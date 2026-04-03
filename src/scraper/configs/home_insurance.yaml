@@ -1,0 +1,14 @@
+vertical: home
+crawl_strategy: static
+sources:
+  - fund_code: ALZ
+    entry_url: https://www.allianz.com.au/home-insurance
+    pdf_selector: "a[href$='.pdf']"
+    product_type_hints:
+      home: home_building
+      contents: contents
+rate_limit:
+  requests_per_second: 0.5
+  retry_attempts: 3
+  backoff_seconds: [2, 5, 10]
+respect_robots_txt: true

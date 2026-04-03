@@ -1,0 +1,284 @@
+vertical: private_health
+version: "1.0"
+hospital:
+  fields:
+    - name: product_name
+      type: string
+      description: Marketing name of the hospital product.
+    - name: hospital_tier
+      type: enum
+      values: [Gold, Silver, SilverPlus, Bronze, BronzePlus, Basic, BasicPlus]
+      description: Government hospital tier.
+    - name: clinical_categories
+      type: list[ClinicalCategory]
+      description: Coverage state for each canonical clinical category.
+  canonical_categories:
+    - AssistedReproductive
+    - BackNeckSpine
+    - Blood
+    - BoneJointMuscle
+    - BrainNervousSystem
+    - BreastSurgery
+    - Cataracts
+    - ChemotherapyRadiotherapyImmunotherapy
+    - DentalSurgery
+    - Diabetes
+    - Dialysis
+    - DigestiveSystem
+    - EarNoseThroat
+    - Eye
+    - GastrointestinalEndoscopy
+    - Gynaecology
+    - HeartVascular
+    - HerniaAppendix
+    - HospitalPsychiatric
+    - ImplantationHearingDevices
+    - InsulinPumps
+    - JointReconstructions
+    - JointReplacements
+    - KidneyBladder
+    - LungChest
+    - MaleReproductive
+    - MiscarriageTerminationOfPregnancy
+    - PainManagement
+    - PainManagementWithDevice
+    - PalliativeCare
+    - PlasticReconstructiveSurgery
+    - PodiatricSurgery
+    - PregnancyBirth
+    - Rehabilitation
+    - Skin
+    - SleepStudies
+    - TonsilsAdenoidsGrommets
+    - WeightLossSurgery
+  aliases:
+    AssistedReproductive:
+      - assisted reproductive
+      - assisted reproductive services
+      - fertility treatment
+    BackNeckSpine:
+      - back neck spine
+      - back, neck and spine
+      - back neck and spine
+    Blood:
+      - blood
+      - blood conditions
+    BoneJointMuscle:
+      - bone joint muscle
+      - bone, joint and muscle
+      - bone and joint
+    BrainNervousSystem:
+      - brain nervous system
+      - brain and nervous system
+    BreastSurgery:
+      - breast surgery
+    Cataracts:
+      - cataracts
+      - cataract surgery
+    ChemotherapyRadiotherapyImmunotherapy:
+      - chemotherapy radiotherapy immunotherapy
+      - chemotherapy radiotherapy and immunotherapy
+      - chemotherapy
+      - radiotherapy
+      - immunotherapy
+    DentalSurgery:
+      - dental surgery
+    Diabetes:
+      - diabetes
+    Dialysis:
+      - dialysis
+      - kidney dialysis
+    DigestiveSystem:
+      - digestive system
+      - digestive system procedures
+    EarNoseThroat:
+      - ear nose throat
+      - ear, nose and throat
+      - ent
+    Eye:
+      - eye
+      - eye procedures
+    GastrointestinalEndoscopy:
+      - gastrointestinal endoscopy
+      - gi endoscopy
+      - colonoscopy and gastroscopy
+    Gynaecology:
+      - gynaecology
+      - gynecology
+    HeartVascular:
+      - heart vascular
+      - heart and vascular
+      - heart and vascular system
+    HerniaAppendix:
+      - hernia appendix
+      - hernia and appendix
+    HospitalPsychiatric:
+      - hospital psychiatric
+      - hospital psychiatric services
+      - psychiatric services
+    ImplantationHearingDevices:
+      - implantation hearing devices
+      - hearing devices
+      - implanted hearing devices
+    InsulinPumps:
+      - insulin pumps
+      - insulin pump
+    JointReconstructions:
+      - joint reconstructions
+      - reconstructions of joints
+    JointReplacements:
+      - joint replacements
+      - replacement of joints
+    KidneyBladder:
+      - kidney bladder
+      - kidney and bladder
+    LungChest:
+      - lung chest
+      - lung and chest
+    MaleReproductive:
+      - male reproductive
+      - male reproductive system
+    MiscarriageTerminationOfPregnancy:
+      - miscarriage termination of pregnancy
+      - miscarriage and termination of pregnancy
+    PainManagement:
+      - pain management
+    PainManagementWithDevice:
+      - pain management with device
+      - pain management device
+    PalliativeCare:
+      - palliative care
+    PlasticReconstructiveSurgery:
+      - plastic reconstructive surgery
+      - plastic and reconstructive surgery
+    PodiatricSurgery:
+      - podiatric surgery
+      - foot surgery
+    PregnancyBirth:
+      - pregnancy birth
+      - pregnancy and birth
+    Rehabilitation:
+      - rehabilitation
+    Skin:
+      - skin
+      - skin procedures
+    SleepStudies:
+      - sleep studies
+      - sleep study
+    TonsilsAdenoidsGrommets:
+      - tonsils adenoids grommets
+      - tonsils, adenoids and grommets
+    WeightLossSurgery:
+      - weight loss surgery
+      - bariatric surgery
+extras:
+  fields:
+    - name: product_name
+      type: string
+      description: Marketing name of the extras product.
+    - name: services
+      type: list[ExtrasService]
+      description: Covered extras services and their limits.
+  canonical_services:
+    - Acupuncture
+    - AntenatalPostnatal
+    - Audiology
+    - ChineseHerbalMedicine
+    - Chiropractic
+    - DentalGeneral
+    - DentalMajor
+    - Dietetics
+    - Endodontic
+    - ExercisePhysiology
+    - GlucoseMonitor
+    - HealthManagement
+    - HearingAids
+    - HomeNursing
+    - NonPBS
+    - OccupationalTherapy
+    - Optical
+    - Orthodontic
+    - Orthoptics
+    - Orthotics
+    - Osteopathy
+    - Physiotherapy
+    - Podiatry
+    - Psychology
+    - RemedialMassage
+    - SpeechTherapy
+    - Vaccinations
+  aliases:
+    Acupuncture:
+      - acupuncture
+      - acupuncture consultations
+    AntenatalPostnatal:
+      - antenatal postnatal
+      - antenatal and postnatal
+    Audiology:
+      - audiology
+    ChineseHerbalMedicine:
+      - chinese herbal medicine
+    Chiropractic:
+      - chiropractic
+      - chiropractic and osteopathy
+    DentalGeneral:
+      - general dental
+      - dental general
+    DentalMajor:
+      - major dental
+      - dental major
+    Dietetics:
+      - dietetics
+      - dietitian
+    Endodontic:
+      - endodontic
+      - endodontics
+    ExercisePhysiology:
+      - exercise physiology
+    GlucoseMonitor:
+      - glucose monitor
+      - glucose monitoring
+    HealthManagement:
+      - health management
+    HearingAids:
+      - hearing aids
+      - hearing aid
+    HomeNursing:
+      - home nursing
+    NonPBS:
+      - non pbs
+      - non-pbs pharmaceuticals
+      - non pbs pharmaceuticals
+    OccupationalTherapy:
+      - occupational therapy
+    Optical:
+      - optical
+    Orthodontic:
+      - orthodontic
+      - orthodontics
+    Orthoptics:
+      - orthoptics
+    Orthotics:
+      - orthotics
+      - orthotic appliances
+    Osteopathy:
+      - osteopathy
+      - chiropractic and osteopathy
+    Physiotherapy:
+      - physiotherapy
+      - physio
+    Podiatry:
+      - podiatry
+    Psychology:
+      - psychology
+      - counselling and psychology
+    RemedialMassage:
+      - remedial massage
+      - myotherapy
+      - remedial massage and myotherapy
+    SpeechTherapy:
+      - speech therapy
+      - speech pathology
+    Vaccinations:
+      - vaccinations
+      - immunisations
