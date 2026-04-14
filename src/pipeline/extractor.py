@@ -11,9 +11,9 @@ from src.pipeline.normalizer import ServiceNormalizer
 from src.schema.loader import SchemaLoader
 
 try:
-    import anthropic
+    from openai import OpenAI
 except ImportError:  # pragma: no cover - optional dependency
-    anthropic = None
+    OpenAI = None
 
 
 class LLMExtractor:
@@ -38,48 +38,56 @@ class LLMExtractor:
         self.normalizer = ServiceNormalizer(schema)
 
     def extract(self, extraction_input: ExtractionInput) -> ExtractionResult:
-        if self.provider == "anthropic" and self.client is not None:
+        if self.provider == "openai" and self.client is not None:
             try:
-                return self._extract_with_anthropic(extraction_input)
+                return self._extract_with_openai(extraction_input)
             except Exception as exc:  # pragma: no cover - network/runtime dependent
                 fallback = self._heuristic_extract(extraction_input)
-                fallback.warnings.append(f"Anthropic extraction failed: {exc}")
+                fallback.warnings.append(f"OpenAI extraction failed: {exc}")
                 return fallback
         return self._heuristic_extract(extraction_input)
 
     def _build_client(self) -> Any | None:
-        if self.provider == "anthropic" and self.config.anthropic_api_key and anthropic is not None:
-            return anthropic.Anthropic(api_key=self.config.anthropic_api_key)
+        if self.provider == "openai" and self.config.openai_api_key and OpenAI is not None:
+            return OpenAI(api_key=self.config.openai_api_key)
         return None
 
-    def _extract_with_anthropic(self, extraction_input: ExtractionInput) -> ExtractionResult:
+    def _extract_with_openai(self, extraction_input: ExtractionInput) -> ExtractionResult:
         system_prompt = self._build_system_prompt(self.schema)
         tool_schema = self.loader.build_json_schema(self.schema)
         user_text = self._build_user_prompt(extraction_input)
-        response = self.client.messages.create(
+        response = self.client.chat.completions.create(
             model=self.model,
-            max_tokens=4000,
-            system=system_prompt,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_text},
+            ],
             tools=[
                 {
-                    "name": "submit_extraction",
-                    "description": "Return extracted structured data for the insurance product.",
-                    "input_schema": tool_schema,
+                    "type": "function",
+                    "function": {
+                        "name": "submit_extraction",
+                        "description": "Return extracted structured data for the insurance product.",
+                        "parameters": tool_schema,
+                        "strict": True,
+                    },
                 }
             ],
-            messages=[{"role": "user", "content": user_text}],
+            tool_choice={"type": "function", "function": {"name": "submit_extraction"}},
+            parallel_tool_calls=False,
         )
-        for block in response.content:
-            if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == "submit_extraction":
+        tool_calls = response.choices[0].message.tool_calls or []
+        for tool_call in tool_calls:
+            if tool_call.function.name == "submit_extraction":
                 return ExtractionResult(
                     vertical=self.schema.vertical,
                     schema_version=self.schema.version,
                     source_path=extraction_input.source_document.path,
-                    provider="anthropic",
+                    provider="openai",
                     model=self.model,
-                    data=block.input,
+                    data=json.loads(tool_call.function.arguments),
                 )
-        raise RuntimeError("Anthropic response did not contain the submit_extraction tool output.")
+        raise RuntimeError("OpenAI response did not contain the submit_extraction tool output.")
 
     def _build_system_prompt(self, schema: VerticalSchema) -> str:
         return (
@@ -125,7 +133,7 @@ class LLMExtractor:
             provider="heuristic",
             model="rule-based-generic",
             data=data,
-            warnings=["Generic heuristic fallback used; configure Anthropic for schema-driven extraction."],
+            warnings=["Generic heuristic fallback used; configure OpenAI for schema-driven extraction."],
         )
 
     def _extract_private_health(

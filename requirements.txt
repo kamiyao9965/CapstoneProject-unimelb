@@ -1,6 +1,5 @@
 pyyaml
 pymupdf
-anthropic
 openai
 deepdiff
 pdfplumber

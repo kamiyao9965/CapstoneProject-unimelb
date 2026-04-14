@@ -76,7 +76,7 @@ python src/run.py crawl \
   --config src/scraper/configs/travel_insurance.yaml
 ```
 
-By default the extractor uses the offline heuristic implementation so the pipeline can run locally without API keys. If you set `ANTHROPIC_API_KEY` and pass `--provider anthropic`, the extractor will switch to schema-driven Claude tool use.
+By default the extractor now prefers OpenAI GPT models. If `OPENAI_API_KEY` is set, `src/run.py` will use the configured GPT model for schema-driven extraction; if not, it falls back to the offline heuristic implementation so the pipeline still runs locally. You can override the provider and model with `--provider` / `--model` or `KONKRD_LLM_PROVIDER` / `KONKRD_LLM_MODEL`.
 
 ## The task
 

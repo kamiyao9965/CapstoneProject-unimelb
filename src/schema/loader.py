@@ -62,6 +62,7 @@ class SchemaLoader:
                             "coverage": {"type": "string", "enum": ["Covered", "Restricted", "Excluded", None]},
                         },
                         "required": ["category", "coverage"],
+                        "additionalProperties": False,
                     },
                 }
             if section.canonical_services:
@@ -77,13 +78,22 @@ class SchemaLoader:
                             "limit_per_policy": {"type": ["number", "null"]},
                             "shared_with": {"type": "array", "items": {"type": "string"}},
                         },
-                        "required": ["service"],
+                        "required": [
+                            "service",
+                            "covered",
+                            "waiting_period",
+                            "limit_per_person",
+                            "limit_per_policy",
+                            "shared_with",
+                        ],
+                        "additionalProperties": False,
                     },
                 }
             properties[section_name] = {
                 "type": "object",
                 "properties": section_properties,
                 "required": required,
+                "additionalProperties": False,
             }
         return {
             "type": "object",

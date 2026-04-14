@@ -10,10 +10,9 @@ class AppConfig(BaseModel):
     project_root: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[1])
     data_dir: Path | None = None
     outputs_dir: Path | None = None
-    anthropic_api_key: str | None = None
     openai_api_key: str | None = None
-    default_llm_provider: str = "heuristic"
-    default_llm_model: str = "claude-sonnet-4-6"
+    default_llm_provider: str = "openai"
+    default_llm_model: str = "gpt-4.1"
 
     def model_post_init(self, __context: object) -> None:
         if self.data_dir is None:
@@ -28,8 +27,7 @@ def load_config() -> AppConfig:
         project_root=project_root,
         data_dir=project_root / "data",
         outputs_dir=project_root / "outputs",
-        anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
         openai_api_key=os.getenv("OPENAI_API_KEY"),
-        default_llm_provider=os.getenv("KONKRD_LLM_PROVIDER", "heuristic"),
-        default_llm_model=os.getenv("KONKRD_LLM_MODEL", "claude-sonnet-4-6"),
+        default_llm_provider=os.getenv("KONKRD_LLM_PROVIDER", "openai"),
+        default_llm_model=os.getenv("KONKRD_LLM_MODEL", "gpt-4.1"),
     )
