@@ -59,7 +59,10 @@ class SchemaLoader:
                         "type": "object",
                         "properties": {
                             "category": {"type": "string", "enum": section.canonical_categories},
-                            "coverage": {"type": "string", "enum": ["Covered", "Restricted", "Excluded", None]},
+                            "coverage": {
+                                "type": ["string", "null"],
+                                "enum": ["Covered", "Restricted", "Excluded"],
+                            },
                         },
                         "required": ["category", "coverage"],
                         "additionalProperties": False,
@@ -105,7 +108,7 @@ class SchemaLoader:
     def _field_to_json_schema(self, field_type: str, values: list[str]) -> dict[str, Any]:
         field_type = field_type.strip()
         if field_type == "enum":
-            return {"type": ["string", "null"], "enum": values + [None]}
+            return {"type": ["string", "null"], "enum": values}
         if field_type in {"currency", "number"}:
             return {"type": ["number", "null"]}
         if field_type == "bool":
