@@ -1,0 +1,640 @@
+schema_version: "0.2"
+vertical: "private_health_au"
+description: >
+  Extraction contract for Australian private health insurance PDFs.
+  The LLM reads a PDF and produces a JSON document matching this schema.
+  The schema is deliberately extraction-centric: every field must be
+  directly readable from the PDF. Downstream pipeline steps handle ID
+  assignment, variant fan-out, and database key resolution.
+
+# ─── PIPELINE METADATA ──────────────────────────────────────────────────────
+# source_file is injected by the pipeline harness at runtime.
+# It is NOT part of the LLM extraction task and does NOT appear in the
+# extractable entities below.
+pipeline_metadata:
+  source_file:
+    type: "string"
+    description: "Absolute or relative path of the PDF passed to the extractor."
+
+# ─── MATURITY PLAN ──────────────────────────────────────────────────────────
+maturity_plan:
+  mvp:
+    required_entities:
+      - "product"
+      - "hospital_cover"
+      - "extras_cover"
+    goal: "Run an end-to-end benchmark on the existing private health dataset."
+  phase_2:
+    required_entities:
+      - "extras_limit_groups"
+    goal: "Capture shared-limit relationships across extras services."
+  phase_3:
+    required_entities:
+      - "product_variants"
+      - "extras_benefits"
+    goal: "Support variant-level detail and per-item benefit extraction."
+
+# ─── INPUT ──────────────────────────────────────────────────────────────────
+input:
+  format: "pdf"
+  supported_product_types:
+    - "Hospital"
+    - "GeneralHealth"
+    - "Combined"
+
+# ─── OUTPUT ─────────────────────────────────────────────────────────────────
+output:
+  format: "json"
+  root_object: "product_document"
+  null_policy: >
+    Use null when the PDF does not explicitly state a value.
+    Never use an empty string in place of null.
+  inference_policy: >
+    Normalise labels into canonical enums; do not invent facts.
+    Preserve raw wording in evidence_text whenever normalisation is lossy
+    or ambiguous.
+
+# ─── CANONICAL VALUES ────────────────────────────────────────────────────────
+canonical_values:
+  product_types:
+    - "Hospital"
+    - "GeneralHealth"
+    - "Combined"
+
+  hospital_tiers:
+    - "Basic"
+    - "BasicPlus"
+    - "Bronze"
+    - "BronzePlus"
+    - "Silver"
+    - "SilverPlus"
+    - "Gold"
+
+  product_statuses:
+    - "open"       # still sold to new members
+    - "closed"     # no longer sold but still serviced
+
+  hospital_cover_values:
+    - "Covered"     # full private cover
+    - "Restricted"  # limited benefit, usually public-patient rate only
+    - "NotCovered"  # explicitly excluded
+
+  # v0.2 change: added Day, Week, Year to reflect real policy waiting periods.
+  # 0-Month (or 0-Day) is a valid value for accident-related services with no wait.
+  waiting_period_units:
+    - "Day"
+    - "Week"
+    - "Month"
+    - "Year"
+
+  # v0.2 change: added PerAdmission and PerCalendarYear to disambiguate excess structures.
+  excess_applies_to:
+    - "PerAdmission"      # most common — charged once per hospital admission
+    - "PerCalendarYear"   # charged up to once per calendar year regardless of admissions
+    - "PerPerson"         # per person on a family policy
+    - "PerPolicy"         # once per policy regardless of how many members
+
+  benefit_types:
+    - "Dollars"   # fixed dollar amount per item
+    - "Percent"   # percentage of MBS or ADA fee schedule
+
+  hospital_categories:
+    - "AssistedReproductive"
+    - "BackNeckSpine"
+    - "Blood"
+    - "BoneJointMuscle"
+    - "BrainNervousSystem"
+    - "BreastSurgery"
+    - "Cataracts"
+    - "ChemotherapyRadiotherapyImmunotherapy"
+    - "DentalSurgery"
+    - "Diabetes"
+    - "Dialysis"
+    - "DigestiveSystem"
+    - "EarNoseThroat"
+    - "Eye"
+    - "GastrointestinalEndoscopy"
+    - "Gynaecology"
+    - "HeartVascular"
+    - "HerniaAppendix"
+    - "HospitalPsychiatric"
+    - "ImplantationHearingDevices"
+    - "InsulinPumps"
+    - "JointReconstructions"
+    - "JointReplacements"
+    - "KidneyBladder"
+    - "LungChest"
+    - "MaleReproductive"
+    - "MiscarriageTerminationOfPregnancy"
+    - "PainManagement"
+    - "PainManagementWithDevice"
+    - "PalliativeCare"
+    - "PlasticReconstructiveSurgery"
+    - "PodiatricSurgery"
+    - "PregnancyBirth"
+    - "Rehabilitation"
+    - "Skin"
+    - "SleepStudies"
+    - "TonsilsAdenoidsGrommets"
+    - "WeightLossSurgery"
+
+  extras_services:
+    - "Acupuncture"
+    - "AntenatalPostnatal"
+    - "Audiology"
+    - "ChineseHerbalMedicine"
+    - "Chiropractic"
+    - "DentalGeneral"
+    - "DentalMajor"
+    - "Dietetics"
+    - "Endodontic"
+    - "ExercisePhysiology"
+    - "GlucoseMonitor"
+    - "HealthManagement"
+    - "HearingAids"
+    - "HomeNursing"
+    - "NonPBS"
+    - "OccupationalTherapy"
+    - "Optical"
+    - "Orthodontic"
+    - "Orthoptics"
+    - "Orthotics"
+    - "Osteopathy"
+    - "Physiotherapy"
+    - "Podiatry"
+    - "Psychology"
+    - "RemedialMassage"
+    - "SpeechTherapy"
+    - "Vaccinations"
+
+# ─── ENTITIES ────────────────────────────────────────────────────────────────
+entities:
+
+  # ── product ──────────────────────────────────────────────────────────────
+  product:
+    maturity: "mvp"
+    cardinality: "1"
+    maps_to:
+      - table: "konkrd-prod-phi-products-master-formatted.csv"
+        grain: "one row per master product"
+    fields:
+
+      product_name:
+        type: "string"
+        required: true
+        description: "Full product name as printed on the PDF cover or header."
+        maps_to: "Name Master"
+
+      product_type:
+        type: "enum"
+        enum_ref: "canonical_values.product_types"
+        required: true
+        maps_to: "ProductType"
+
+      hospital_tier:
+        type: "enum"
+        enum_ref: "canonical_values.hospital_tiers"
+        required_if: "product_type in ['Hospital', 'Combined']"
+        nullable: true
+        maps_to: "HospitalTier"
+
+      # v0.2: Added. Excess is a primary hospital product dimension.
+      # Many PDFs embed the excess in the product name (e.g. "Silver Plus Hospital 750")
+      # or state it in a key details box. Extract the dollar amount as an integer.
+      # Null for zero-excess products or GeneralHealth products.
+      excess_amount:
+        type: "integer"
+        required: false
+        nullable: true
+        description: >
+          Hospital excess in AUD (e.g. 500 for a $500 excess).
+          Null for zero-excess or GeneralHealth-only products.
+
+      # v0.2: Added. Clarifies how the excess is applied.
+      excess_applies_to:
+        type: "enum"
+        enum_ref: "canonical_values.excess_applies_to"
+        required: false
+        nullable: true
+        description: >
+          How the excess is applied. Most Australian policies charge per admission.
+          Null if excess_amount is null.
+
+      # v0.2: Added. PDFs show the full fund or brand name; codes are resolved downstream.
+      fund_name:
+        type: "string"
+        required: false
+        nullable: true
+        description: >
+          The insurer's full name as printed in the PDF (e.g. "Queensland Country Health Fund").
+          The pipeline resolves this to FundCode downstream.
+
+      brand_name:
+        type: "string"
+        required: false
+        nullable: true
+        description: >
+          The brand name if different from the fund name (e.g. "Union Health" under TUH,
+          "Qantas Insurance" under nib). Null when the product is sold directly under
+          the fund's own name.
+
+      # fund_code and brand_code are downstream-resolved from fund_name / brand_name.
+      # Extract only if explicitly printed in the PDF; most PDFs do not show short codes.
+      fund_code:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Short fund code (e.g. NIB, QCH). Usually not printed in PDFs — leave null if absent."
+        maps_to: "FundCode"
+
+      brand_code:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Short brand code (e.g. NIB02). Usually not printed in PDFs — leave null if absent."
+        maps_to: "BrandCode"
+
+      product_status:
+        type: "enum"
+        enum_ref: "canonical_values.product_statuses"
+        required: false
+        nullable: true
+        description: >
+          Whether the product is currently available to new members.
+          PDFs for closed products often state they are no longer on sale.
+        maps_to: "ProductStatus"
+
+      pdf_filepath:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Relative path to the source PDF, injected by the pipeline — not extracted from the document."
+        maps_to: "Pdf Filepath"
+
+      evidence_pages:
+        type: "array[integer]"
+        required: false
+        description: "Page numbers that support the product-level fields above."
+
+  # ── hospital_cover ────────────────────────────────────────────────────────
+  hospital_cover:
+    maturity: "mvp"
+    enabled_if: "product.product_type in ['Hospital', 'Combined']"
+    cardinality: >
+      Up to 38 rows — one per government-defined clinical category.
+      PDFs do not always list every category explicitly. For categories that are
+      not mentioned and are not mandated by the product's tier, use NotCovered.
+      For categories mandated by the tier but not explicitly mentioned, use Covered
+      only if the product's tier requires it; otherwise use null evidence_text and
+      flag for human review.
+    row_key: "title"
+    maps_to:
+      - table: "konkrd-prod-phi-hospital-services-master-unformatted.csv"
+        grain: "one row per master product per clinical category"
+        join_key: "ID Master"
+    fields:
+
+      title:
+        type: "enum"
+        enum_ref: "canonical_values.hospital_categories"
+        required: true
+        description: >
+          Canonical clinical category identifier. PDFs use many surface forms
+          ("back, neck & spine", "back and neck", "BNS") — normalise all to the
+          canonical value (e.g. BackNeckSpine).
+        maps_to: "Title"
+
+      cover:
+        type: "enum"
+        enum_ref: "canonical_values.hospital_cover_values"
+        required: true
+        description: >
+          Coverage status. Map "excluded", "not covered", "no benefit",
+          "✗", or equivalent language to NotCovered. Map "restricted",
+          "limited", "public patient rate only" to Restricted.
+        maps_to: "Cover"
+
+      evidence_pages:
+        type: "array[integer]"
+        required: false
+
+      evidence_text:
+        type: "string"
+        required: false
+        description: "Raw text snippet from the PDF that supports the cover classification. Include when the normalisation is non-obvious."
+
+  # ── extras_cover ──────────────────────────────────────────────────────────
+  extras_cover:
+    maturity: "mvp"
+    enabled_if: "product.product_type in ['GeneralHealth', 'Combined']"
+    cardinality: "Zero or more rows — one per extras service mentioned in the PDF."
+    row_key: "title"
+    maps_to:
+      - table: "konkrd-prod-phi-extras-master-unformatted.csv"
+        grain: "one row per master product per extras service"
+        join_key: "ID Master"
+    fields:
+
+      title:
+        type: "enum"
+        enum_ref: "canonical_values.extras_services"
+        required: true
+        maps_to: "Title"
+
+      covered:
+        type: "boolean"
+        required: true
+        maps_to: "Covered"
+
+      # v0.2: Added description. "Special features" means the service has non-standard
+      # benefit rules such as: percentage-back that differs by provider tier,
+      # per-visit caps in addition to annual limits, or wellness benefit packages.
+      # Rare — set true only when the PDF explicitly calls out unusual benefit conditions.
+      has_special_features:
+        type: "boolean"
+        required: false
+        nullable: true
+        description: >
+          True when the service has non-standard benefit rules not fully captured by
+          the other fields — e.g. provider-tier rebates, per-visit sub-limits, or
+          bundled wellness conditions. False (or null) for standard coverage.
+        maps_to: "HasSpecialFeatures"
+
+      waiting_period_value:
+        type: "integer"
+        required: false
+        nullable: true
+        description: "Numeric duration of the waiting period. Use 0 for services with no wait."
+        maps_to: "WaitingPeriod"
+
+      waiting_period_unit:
+        type: "enum"
+        enum_ref: "canonical_values.waiting_period_units"
+        required: false
+        nullable: true
+        maps_to: "WaitingPeriodUnit"
+
+      # v0.2: Removed annual_limit (boolean). Rationale:
+      # In the production DB, AnnualLimit is almost always null (no special meaning)
+      # or 0/False (meaning the service participates in a shared combined limit —
+      # captured more precisely by extras_limit_groups). The boolean added noise
+      # without adding information not already derivable from limit_per_policy,
+      # limit_per_person, and extras_limit_groups.
+
+      limit_per_policy:
+        type: "integer"
+        required: false
+        nullable: true
+        description: >
+          Annual dollar limit for all members on the policy combined.
+          Null when the service participates in a shared limit
+          (see extras_limit_groups) or when the limit is expressed as free text.
+        maps_to: "LimitPerPolicy"
+
+      limit_per_person:
+        type: "integer"
+        required: false
+        nullable: true
+        description: >
+          Annual dollar limit per individual member.
+          Null when the service participates in a shared limit or is free text.
+        maps_to: "LimitPerPerson"
+
+      free_text_limit:
+        type: "string"
+        required: false
+        nullable: true
+        description: >
+          Verbatim limit text when the limit cannot be represented as a structured
+          integer — e.g. "No annual limit", "100% of ADA fee up to schedule",
+          "Unlimited with GP referral".
+        maps_to: "FreeTextLimit"
+
+      evidence_pages:
+        type: "array[integer]"
+        required: false
+
+      evidence_text:
+        type: "string"
+        required: false
+
+  # ── extras_limit_groups ───────────────────────────────────────────────────
+  extras_limit_groups:
+    maturity: "phase_2"
+    enabled_if: "product.product_type in ['GeneralHealth', 'Combined']"
+    cardinality: "Zero or more rows — one per service-to-service limit relationship."
+    # v0.2: row_key no longer uses product_item_id (a backend UUID not visible in PDFs).
+    # The natural extraction key is the pair (service, service_combined_with).
+    row_key:
+      - "service"
+      - "service_combined_with"
+    maps_to:
+      - table: "konkrd-prod-phi-extras-limit-groups-unformatted.csv"
+        grain: "one row per product variant per shared-limit relationship"
+        join_key: "ProductItemID"
+    fields:
+
+      # v0.2: product_item_id is a backend UUID assigned after variant fan-out.
+      # It never appears in PDFs. Leave null during extraction; the pipeline resolves it.
+      product_item_id:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Backend UUID — always null from extraction. Resolved downstream during variant fan-out."
+        maps_to: "ProductItemID"
+
+      service:
+        type: "enum"
+        enum_ref: "canonical_values.extras_services"
+        required: true
+        description: "The service whose limit is being described."
+        maps_to: "Service"
+
+      service_combined_with:
+        type: "enum"
+        enum_ref: "canonical_values.extras_services"
+        required: true
+        description: >
+          The service that holds the shared dollar limit. When a service has its
+          own standalone limit, this equals service. When two or more services
+          share a pool (e.g. physio and chiro share $1,000), each service points
+          to whichever service carries the limit row in extras_cover.
+          PDFs signal this by merging table cells or listing services together
+          under a single dollar figure.
+        maps_to: "Service Combined With"
+
+      sub_limits_apply:
+        type: "boolean"
+        required: true
+        description: >
+          True when the shared limit pool also has per-service sub-limits —
+          e.g. "Physio and Chiro combined $1,000; Physio max $500".
+        maps_to: "Sub Limits Apply"
+
+      evidence_pages:
+        type: "array[integer]"
+        required: false
+
+      evidence_text:
+        type: "string"
+        required: false
+
+  # ── product_variants ──────────────────────────────────────────────────────
+  product_variants:
+    maturity: "phase_3"
+    # v0.2: All product types (Hospital, GeneralHealth, Combined) have variants.
+    # Variants differ across excess level, state, family type, and membership eligibility.
+    enabled_if: "true"
+    cardinality: "Zero or more rows — one per variant dimension visible in the PDF."
+    row_key: "variant_label_raw"
+    maps_to:
+      - table: "products-master-variant"
+        grain: "one row per product variant"
+        join_key: "ProductItemID"
+        availability: >
+          The variant CSV is not currently present under labelled/.
+          Phase 3 is schema-ready but data-blocked until the table is shipped.
+    fields:
+
+      # v0.2: product_item_id is backend-assigned and not visible in PDFs.
+      product_item_id:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Backend UUID — null from extraction. Assigned downstream."
+        maps_to: "ProductItemID"
+
+      variant_label_raw:
+        type: "string"
+        required: false
+        nullable: true
+        description: >
+          Raw label for this variant as printed in the PDF —
+          e.g. "NSW $500 excess", "Family cover", "Singles only".
+
+      excess_amount:
+        type: "integer"
+        required: false
+        nullable: true
+        description: "Excess for this specific variant in AUD, if the PDF lists multiple excess tiers."
+
+      state:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Australian state or territory this variant applies to, if stated (e.g. NSW, VIC, QLD)."
+
+      membership_type:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Membership category — e.g. Single, Couple, Family, SingleParentFamily."
+
+  # ── extras_benefits ───────────────────────────────────────────────────────
+  extras_benefits:
+    maturity: "phase_3"
+    enabled_if: "product.product_type in ['GeneralHealth', 'Combined']"
+    cardinality: "Zero or more rows — one per granular benefit item within an extras service."
+    row_key:
+      - "service_title"
+      - "benefit_item_code"
+    maps_to:
+      - table: "konkrd-prod-phi-extras-benefits-unformatted.csv"
+        grain: "one row per product variant per granular benefit item"
+        join_key: "ProductItemID"
+    fields:
+
+      # v0.2: product_item_id is backend-assigned. Always null from extraction.
+      product_item_id:
+        type: "string"
+        required: false
+        nullable: true
+        description: "Backend UUID — null from extraction. Resolved downstream."
+        maps_to: "ProductItemID"
+
+      service_title:
+        type: "enum"
+        enum_ref: "canonical_values.extras_services"
+        required: true
+        description: "The extras service this benefit item belongs to."
+        maps_to: "Title"
+
+      # v0.2: Removed benefits_list_id. That field (Benefitslist in the CSV) is an
+      # internal Konkrd hash generated server-side from the benefit set. It is never
+      # present in PDFs and should not appear in the extraction schema.
+
+      benefit_label_raw:
+        type: "string"
+        required: false
+        nullable: true
+        description: >
+          Human-readable item description as printed in the PDF —
+          e.g. "Periodic exam", "Scale and clean", "Full crown (veneered)".
+          Null when only a numeric item code is printed without a label.
+        maps_to: null
+
+      benefit_item_code:
+        type: "string"
+        required: false
+        nullable: true
+        description: >
+          Normalised item code when present in the PDF.
+          For dental services: ADA item numbers (e.g. "012" for periodic exam,
+          "114" for scale and clean). For medical/hospital services: MBS item numbers.
+          The pipeline prefixes these with the service name to form the Item column
+          (e.g. DentalGeneral012PeriodicExam).
+        maps_to: "Item"
+
+      benefit_type:
+        type: "enum"
+        enum_ref: "canonical_values.benefit_types"
+        required: true
+        maps_to: "Type"
+
+      quantity:
+        type: "number"
+        required: true
+        description: >
+          The benefit amount. For Dollars: the AUD dollar amount per item.
+          For Percent: the percentage of the schedule fee (e.g. 60 means 60%).
+        maps_to: "Quantity"
+
+      evidence_pages:
+        type: "array[integer]"
+        required: false
+
+      evidence_text:
+        type: "string"
+        required: false
+
+# ─── NORMALISATION RULES ─────────────────────────────────────────────────────
+normalisation_rules:
+  - "Map all hospital category surface forms to the 38 canonical hospital_categories values."
+  - "Map excluded / not covered / no benefit / ✗ / equivalent → NotCovered."
+  - "Map restricted / limited / public patient rate only / reduced benefit → Restricted."
+  - "Map extras service mentions to canonical extras_services values before scoring."
+  - "Keep raw wording in evidence_text when normalisation is lossy or ambiguous."
+  - "Do not output placeholder rows for entities not present in the document type."
+  - "Do not emit rows for extras services that are clearly not mentioned in the PDF."
+  - "Waiting periods of 0 months (or 0 days) are valid — some services have no wait."
+
+# ─── EVALUATION ──────────────────────────────────────────────────────────────
+evaluation:
+  recommended_join_order:
+    - "Match on pdf_filepath when the pipeline path is known."
+    - "Else match on product_name + brand_name (or brand_code if available)."
+    - "Else match on product_name + fund_name (or fund_code) + product_type."
+  score_primary_entities:
+    - "product"
+    - "hospital_cover"
+    - "extras_cover"
+  score_later_entities:
+    - "extras_limit_groups"
+    - "product_variants"
+    - "extras_benefits"
+  metrics:
+    - "Field-level precision: of fields extracted, how many match ground truth?"
+    - "Field-level recall: of fields in ground truth, how many were extracted?"
+    - "Normalisation accuracy: did surface forms resolve to correct canonical values?"
+    - "Coverage: what percentage of schema fields have a non-null extracted value?"
+    - "Hallucination rate: fields in the output absent from the source document."

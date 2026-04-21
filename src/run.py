@@ -125,7 +125,7 @@ def command_batch(args: argparse.Namespace) -> int:
     gt_store = None
     evaluator = None
     reporter = None
-    if args.evaluate and args.vertical == "private_health":
+    if args.evaluate and args.vertical in {"private_health", "private_health_au"}:
         gt_store = PrivateHealthGroundTruthStore(config.data_dir / "private_health" / "labelled")
         evaluator = ExtractionEvaluator()
         reporter = EvaluationReporter()

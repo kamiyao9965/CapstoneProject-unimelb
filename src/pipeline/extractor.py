@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 from src.config import AppConfig, load_config
@@ -111,8 +112,10 @@ class LLMExtractor:
         return f"FULL TEXT:\n{text}"
 
     def _heuristic_extract(self, extraction_input: ExtractionInput) -> ExtractionResult:
-        if self.schema.vertical == "private_health":
+        if self._is_private_health_schema():
             data, evidences, normalizations, warnings = self._extract_private_health(extraction_input)
+            if self._is_entity_v2_schema():
+                data = self._to_entity_v2_data(data, evidences, extraction_input.source_document.path)
             return ExtractionResult(
                 vertical=self.schema.vertical,
                 schema_version=self.schema.version,
@@ -469,3 +472,226 @@ class LLMExtractor:
         if not lines:
             return None
         return 1
+
+    def _is_private_health_schema(self) -> bool:
+        if self.schema.vertical in {"private_health", "private_health_au"}:
+            return True
+        canonical_values = self.schema.metadata.get("canonical_values", {})
+        return bool(canonical_values.get("hospital_categories")) and bool(canonical_values.get("extras_services"))
+
+    def _is_entity_v2_schema(self) -> bool:
+        return self.schema.metadata.get("schema_style") == "entity_v2"
+
+    def _to_entity_v2_data(
+        self,
+        legacy_data: dict[str, Any],
+        evidences: dict[str, list[Evidence]],
+        source_path: str,
+    ) -> dict[str, Any]:
+        entities = self.schema.metadata.get("entities", {})
+        hospital = legacy_data.get("hospital", {})
+        extras = legacy_data.get("extras", {})
+
+        hospital_rows = self._build_hospital_cover_rows(hospital, evidences)
+        extras_rows = self._build_extras_cover_rows(extras, evidences)
+        extras_limit_rows = self._build_extras_limit_group_rows(extras, evidences)
+
+        product = self._entity_row_template("product")
+        product_name = hospital.get("product_name") or extras.get("product_name") or Path(source_path).stem
+        product_type = self._infer_product_type(bool(hospital_rows), bool(extras_rows))
+        product["product_name"] = product_name
+        product["product_type"] = product_type
+        if "hospital_tier" in product:
+            product["hospital_tier"] = hospital.get("hospital_tier")
+        if "fund_name" in product:
+            product["fund_name"] = self._extract_fund_name_from_source(source_path)
+        if "brand_name" in product:
+            product["brand_name"] = None
+        if "fund_code" in product:
+            product["fund_code"] = self._extract_fund_code(source_path)
+        if "brand_code" in product:
+            product["brand_code"] = None
+        if "product_status" in product:
+            product["product_status"] = None
+        if "pdf_filepath" in product:
+            product["pdf_filepath"] = source_path
+        if "evidence_pages" in product:
+            product["evidence_pages"] = [1]
+        if "excess_amount" in product:
+            product["excess_amount"] = self._extract_excess_amount(product_name)
+        if "excess_applies_to" in product:
+            if product.get("excess_amount") is None:
+                product["excess_applies_to"] = None
+            else:
+                product["excess_applies_to"] = "PerCalendarYear"
+
+        result: dict[str, Any] = {}
+        if "product" in entities:
+            result["product"] = product
+        if "hospital_cover" in entities:
+            result["hospital_cover"] = hospital_rows
+        if "extras_cover" in entities:
+            result["extras_cover"] = extras_rows
+        if "extras_limit_groups" in entities:
+            result["extras_limit_groups"] = extras_limit_rows
+        if "product_variants" in entities:
+            result["product_variants"] = []
+        if "extras_benefits" in entities:
+            result["extras_benefits"] = []
+        return result
+
+    def _build_hospital_cover_rows(
+        self, hospital: dict[str, Any], evidences: dict[str, list[Evidence]]
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        coverage_map = {"Excluded": "NotCovered", None: "NotCovered"}
+        for item in hospital.get("clinical_categories", []):
+            title = item.get("category")
+            if not title:
+                continue
+            row = self._entity_row_template("hospital_cover")
+            row["title"] = title
+            row["cover"] = coverage_map.get(item.get("coverage"), item.get("coverage"))
+            evidence_key = f"hospital.clinical_categories.{title}"
+            row["evidence_pages"] = self._evidence_pages(evidences.get(evidence_key, []))
+            row["evidence_text"] = self._first_evidence_text(evidences.get(evidence_key, []))
+            rows.append(row)
+        return rows
+
+    def _build_extras_cover_rows(
+        self, extras: dict[str, Any], evidences: dict[str, list[Evidence]]
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for item in extras.get("services", []):
+            service = item.get("service")
+            if not service:
+                continue
+            evidence_key = f"extras.services.{service}"
+            evidence_list = evidences.get(evidence_key, [])
+            mentioned = bool(evidence_list) or bool(item.get("covered")) or bool(item.get("waiting_period"))
+            mentioned = mentioned or item.get("limit_per_person") is not None or item.get("limit_per_policy") is not None
+            if not mentioned:
+                continue
+
+            row = self._entity_row_template("extras_cover")
+            row["title"] = service
+            row["covered"] = bool(item.get("covered"))
+            row["has_special_features"] = None
+            waiting_value, waiting_unit = self._parse_waiting_period_parts(item.get("waiting_period"))
+            row["waiting_period_value"] = waiting_value
+            row["waiting_period_unit"] = waiting_unit
+            row["limit_per_policy"] = self._safe_int(item.get("limit_per_policy"))
+            row["limit_per_person"] = self._safe_int(item.get("limit_per_person"))
+            row["free_text_limit"] = None
+            row["evidence_pages"] = self._evidence_pages(evidence_list)
+            row["evidence_text"] = self._first_evidence_text(evidence_list)
+            rows.append(row)
+        return rows
+
+    def _build_extras_limit_group_rows(
+        self, extras: dict[str, Any], evidences: dict[str, list[Evidence]]
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for item in extras.get("services", []):
+            service = item.get("service")
+            if not service:
+                continue
+            for other in item.get("shared_with", []):
+                key = (service, other)
+                if key in seen:
+                    continue
+                seen.add(key)
+                row = self._entity_row_template("extras_limit_groups")
+                row["product_item_id"] = None
+                row["service"] = service
+                row["service_combined_with"] = other
+                row["sub_limits_apply"] = False
+                evidence_key = f"extras.services.{service}"
+                evidence_list = evidences.get(evidence_key, [])
+                row["evidence_pages"] = self._evidence_pages(evidence_list)
+                row["evidence_text"] = self._first_evidence_text(evidence_list)
+                rows.append(row)
+        return rows
+
+    def _entity_row_template(self, entity_name: str) -> dict[str, Any]:
+        entity_spec = self.schema.metadata.get("entities", {}).get(entity_name, {})
+        row: dict[str, Any] = {}
+        for field_name, field_spec in entity_spec.get("fields", {}).items():
+            field_type = str(field_spec.get("type", "string"))
+            if field_type.startswith("array["):
+                row[field_name] = []
+            elif field_spec.get("nullable", False):
+                row[field_name] = None
+            elif field_type in {"boolean", "bool"}:
+                row[field_name] = False
+            else:
+                row[field_name] = None
+        return row
+
+    @staticmethod
+    def _infer_product_type(has_hospital: bool, has_extras: bool) -> str:
+        if has_hospital and has_extras:
+            return "Combined"
+        if has_hospital:
+            return "Hospital"
+        if has_extras:
+            return "GeneralHealth"
+        return "Hospital"
+
+    @staticmethod
+    def _extract_excess_amount(product_name: str | None) -> int | None:
+        if not product_name:
+            return None
+        match = re.search(r"\b(\d{2,4})\b", product_name)
+        if not match:
+            return None
+        value = int(match.group(1))
+        if value in {250, 500, 600, 750, 1000, 1500}:
+            return value
+        return None
+
+    @staticmethod
+    def _extract_fund_code(source_path: str) -> str | None:
+        parts = Path(source_path).parts
+        if "PDFs" in parts:
+            idx = parts.index("PDFs")
+            if idx + 1 < len(parts):
+                return parts[idx + 1]
+        return None
+
+    @staticmethod
+    def _extract_fund_name_from_source(source_path: str) -> str | None:
+        code = LLMExtractor._extract_fund_code(source_path)
+        if not code:
+            return None
+        return code
+
+    @staticmethod
+    def _parse_waiting_period_parts(waiting_period: str | None) -> tuple[int | None, str | None]:
+        if not waiting_period:
+            return None, None
+        match = re.search(r"(\d+)\s*(Day|Week|Month|Year)", waiting_period, flags=re.IGNORECASE)
+        if not match:
+            return None, None
+        number = int(match.group(1))
+        unit = match.group(2).capitalize()
+        return number, unit
+
+    @staticmethod
+    def _safe_int(value: float | int | None) -> int | None:
+        if value is None:
+            return None
+        return int(value)
+
+    @staticmethod
+    def _evidence_pages(evidence_list: list[Evidence]) -> list[int]:
+        pages = sorted({ev.page for ev in evidence_list if ev.page is not None})
+        return [int(page) for page in pages]
+
+    @staticmethod
+    def _first_evidence_text(evidence_list: list[Evidence]) -> str | None:
+        for evidence in evidence_list:
+            if evidence.text:
+                return evidence.text
+        return None
