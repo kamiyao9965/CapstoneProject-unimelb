@@ -1,183 +1,167 @@
 from __future__ import annotations
 
 import argparse
+import random
 import sys
+from collections import defaultdict
 from pathlib import Path
-
-import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import load_config
-from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
-from src.evaluation.reporter import EvaluationReporter
-from src.models import ScraperConfig
-from src.pipeline.extractor import LLMExtractor
-from src.pipeline.ingestor import PDFIngestor
-from src.pipeline.router import FormatRouter
 from src.schema.discovery import SchemaDiscovery
-from src.schema.loader import SchemaLoader
-from src.schema.validator import SchemaValidator
-from src.scraper.crawler import DynamicCrawler, StaticCrawler, scraper_from_config
+
+DEFAULT_CATEGORIES = ("combined", "extras", "generalhealth", "hospital")
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Konkrd extraction pipeline")
+    parser = argparse.ArgumentParser(description="Generate a private health schema from sample PDFs")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    crawl = subparsers.add_parser("crawl", help="Discover and download product PDFs")
-    crawl.add_argument("--vertical", required=True)
-    crawl.add_argument("--config", required=True)
-
-    discover = subparsers.add_parser("discover", help="Propose a draft schema from sample PDFs")
-    discover.add_argument("--vertical", required=True)
-    discover.add_argument("--samples", nargs="+", required=True)
-    discover.add_argument("--output")
-
-    extract = subparsers.add_parser("extract", help="Extract one PDF into structured JSON")
-    extract.add_argument("--pdf", required=True)
-    extract.add_argument("--schema", required=True)
-    extract.add_argument("--output")
-    extract.add_argument("--provider", default=None)
-    extract.add_argument("--model", default=None)
-
-    batch = subparsers.add_parser("batch", help="Run extraction over a vertical")
-    batch.add_argument("--vertical", required=True)
-    batch.add_argument("--schema", required=True)
-    batch.add_argument("--input-root")
-    batch.add_argument("--evaluate", action="store_true")
-    batch.add_argument("--provider", default=None)
-    batch.add_argument("--model", default=None)
+    discover = subparsers.add_parser("discover", help="Generate a draft schema from private health PDFs")
+    discover.add_argument("--vertical", default="private_health")
+    discover.add_argument("--samples", nargs="+")
+    discover.add_argument("--input-root", default="data/private_health/raw/PDFs")
+    discover.add_argument("--categories", nargs="+", default=list(DEFAULT_CATEGORIES))
+    discover.add_argument("--per-category", type=int, default=5)
+    discover.add_argument("--seed", type=int)
+    discover.add_argument("--output", default="outputs/private_health/schema.yaml")
 
     return parser
 
 
-def command_crawl(args: argparse.Namespace) -> int:
-    payload = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
-    config = ScraperConfig.model_validate(payload)
-    scraper = scraper_from_config(config)
-    results = scraper.run()
-    success = sum(1 for item in results if item.status == "success")
-    duplicates = sum(1 for item in results if item.status == "duplicate")
-    failures = sum(1 for item in results if item.status == "failed")
-    print(f"Downloaded: {success}, duplicates: {duplicates}, failed: {failures}")
-    return 0 if failures == 0 else 1
-
-
 def command_discover(args: argparse.Namespace) -> int:
+    if args.vertical != "private_health":
+        print("This testing branch only supports --vertical private_health.")
+        return 1
+
+    sample_paths = args.samples
+    if not sample_paths:
+        try:
+            sample_paths = select_random_samples(
+                input_root=Path(args.input_root),
+                categories=tuple(category.lower() for category in args.categories),
+                per_category=args.per_category,
+                seed=args.seed,
+            )
+        except ValueError as exc:
+            print(exc)
+            return 1
+        print_selected_samples(sample_paths, Path(args.input_root), args.categories)
+
     discovery = SchemaDiscovery()
-    schema_yaml = discovery.discover(args.samples, args.vertical)
-    if args.output:
-        Path(args.output).write_text(schema_yaml, encoding="utf-8")
-        print(f"Wrote schema draft to {args.output}")
-    else:
-        print(schema_yaml)
+    schema_yaml = discovery.discover(sample_paths, args.vertical)
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(schema_yaml, encoding="utf-8")
+    print(f"Wrote schema draft to {output_path}")
     return 0
 
 
-def command_extract(args: argparse.Namespace) -> int:
-    schema_loader = SchemaLoader()
-    schema = schema_loader.load(args.schema)
-    issues = SchemaValidator().validate(schema)
-    if issues:
-        print("Schema validation issues:")
-        for issue in issues:
-            print(f"- {issue}")
-        return 1
+def select_random_samples(
+    input_root: Path,
+    categories: tuple[str, ...] = DEFAULT_CATEGORIES,
+    per_category: int = 5,
+    seed: int | None = None,
+) -> list[str]:
+    if per_category <= 0:
+        raise ValueError("--per-category must be greater than 0.")
+    if not input_root.exists():
+        raise ValueError(f"Input root does not exist: {input_root}")
 
-    ingestor = PDFIngestor()
-    router = FormatRouter()
-    extractor = LLMExtractor(schema=schema, provider=args.provider, model=args.model)
+    rng = random.Random(seed)
+    candidates = collect_pdf_candidates(input_root, categories)
+    selected: list[Path] = []
+    errors: list[str] = []
 
-    parsed = ingestor.ingest(args.pdf)
-    extraction_input = router.route(parsed)
-    result = extractor.extract(extraction_input)
+    for category in categories:
+        by_company = candidates.get(category, {})
+        companies = sorted(by_company)
+        if len(companies) < per_category:
+            errors.append(
+                f"{category}: found {len(companies)} companies with PDFs, need {per_category}."
+            )
+            continue
 
-    output_path = args.output or default_output_path(schema.vertical, Path(args.pdf))
-    result.write_json(output_path)
-    print(f"Wrote extraction to {output_path}")
-    return 0
+        chosen_companies = rng.sample(companies, per_category)
+        for company in chosen_companies:
+            selected.append(rng.choice(sorted(by_company[company])))
 
+    if errors:
+        detail = "\n".join(f"- {error}" for error in errors)
+        raise ValueError(f"Not enough PDFs to build the requested sample:\n{detail}")
 
-def command_batch(args: argparse.Namespace) -> int:
-    config = load_config()
-    schema = SchemaLoader().load(args.schema)
-    issues = SchemaValidator().validate(schema)
-    if issues:
-        print("Schema validation issues:")
-        for issue in issues:
-            print(f"- {issue}")
-        return 1
-
-    input_root = Path(args.input_root) if args.input_root else config.data_dir / args.vertical / "raw" / "PDFs"
-    pdf_paths = sorted(input_root.rglob("*.pdf"))
-    if not pdf_paths:
-        print(f"No PDFs found under {input_root}")
-        return 1
-
-    ingestor = PDFIngestor()
-    router = FormatRouter()
-    extractor = LLMExtractor(schema=schema, provider=args.provider, model=args.model)
-
-    reports = []
-    gt_store = None
-    evaluator = None
-    reporter = None
-    if args.evaluate and args.vertical in {"private_health", "private_health_au"}:
-        gt_store = PrivateHealthGroundTruthStore(config.data_dir / "private_health" / "labelled")
-        evaluator = ExtractionEvaluator()
-        reporter = EvaluationReporter()
-
-    for pdf_path in pdf_paths:
-        parsed = ingestor.ingest(str(pdf_path))
-        extraction_input = router.route(parsed)
-        result = extractor.extract(extraction_input)
-        output_path = default_output_path(schema.vertical, pdf_path)
-        result.write_json(output_path)
-        print(f"Extracted {pdf_path.name} -> {output_path}")
-
-        if gt_store and evaluator:
-            product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
-            if ground_truth:
-                reports.append(
-                    evaluator.evaluate(
-                        extracted=result,
-                        ground_truth=ground_truth,
-                        product_key=product_match.id_master if product_match else None,
-                    )
-                )
-
-    if reports and evaluator and reporter:
-        summary = evaluator.aggregate(reports)
-        report_root = config.outputs_dir / args.vertical / "evaluation"
-        reporter.write_json(reports, summary, report_root / "report.json")
-        reporter.write_markdown(reports, summary, report_root / "report.md")
-        print(f"Wrote evaluation reports to {report_root}")
-    elif args.evaluate:
-        print("Evaluation skipped: only private_health currently has a ground-truth adapter.")
-
-    return 0
+    return [str(path) for path in selected]
 
 
-def default_output_path(vertical: str, pdf_path: Path) -> Path:
-    config = load_config()
-    relative_parts = pdf_path.with_suffix(".json").parts[-4:]
-    return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
+def collect_pdf_candidates(
+    input_root: Path,
+    categories: tuple[str, ...],
+) -> dict[str, dict[str, list[Path]]]:
+    candidates: dict[str, dict[str, list[Path]]] = {
+        category: defaultdict(list) for category in categories
+    }
+
+    for pdf_path in sorted(input_root.rglob("*.pdf")):
+        path_parts_lower = [part.lower() for part in pdf_path.parts]
+        matched_categories = [category for category in categories if category in path_parts_lower]
+        if not matched_categories:
+            continue
+
+        category = matched_categories[0]
+        company = infer_company(pdf_path, input_root, category)
+        candidates[category][company].append(pdf_path)
+
+    return candidates
+
+
+def infer_company(pdf_path: Path, input_root: Path, category: str) -> str:
+    relative_parts = pdf_path.relative_to(input_root).parts
+    lowered = [part.lower() for part in relative_parts]
+
+    if category in lowered:
+        category_index = lowered.index(category)
+        if category_index > 0:
+            return relative_parts[category_index - 1]
+        if category_index + 1 < len(relative_parts) - 1:
+            return relative_parts[category_index + 1]
+
+    return infer_company_from_filename(pdf_path.stem)
+
+
+def infer_company_from_filename(stem: str) -> str:
+    separators = ("-", "_", " ")
+    first_break = len(stem)
+    for separator in separators:
+        index = stem.find(separator)
+        if index > 0:
+            first_break = min(first_break, index)
+    return stem[:first_break] if first_break < len(stem) else stem
+
+
+def print_selected_samples(sample_paths: list[str], input_root: Path, categories: list[str]) -> None:
+    categories_lower = [category.lower() for category in categories]
+    print("Selected PDF samples:")
+    for category in categories_lower:
+        print(f"[{category}]")
+        for sample_path in sample_paths:
+            path = Path(sample_path)
+            parts_lower = [part.lower() for part in path.parts]
+            if category not in parts_lower:
+                continue
+            try:
+                display_path = path.relative_to(input_root)
+            except ValueError:
+                display_path = path
+            print(f"- {display_path}")
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
-    if args.command == "crawl":
-        return command_crawl(args)
     if args.command == "discover":
         return command_discover(args)
-    if args.command == "extract":
-        return command_extract(args)
-    if args.command == "batch":
-        return command_batch(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

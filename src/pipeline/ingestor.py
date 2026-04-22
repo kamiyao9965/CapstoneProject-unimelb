@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import fitz
-
 from src.models import ParsedDocument
 
 try:
@@ -20,6 +18,7 @@ class PDFIngestor:
     """
 
     def ingest(self, pdf_path: str) -> ParsedDocument:
+        fitz = self._load_pymupdf()
         path = Path(pdf_path)
         with fitz.open(path) as doc:
             text_by_page = [page.get_text("text") for page in doc]
@@ -62,3 +61,22 @@ class PDFIngestor:
     @staticmethod
     def _clean_cell(value: str | None) -> str:
         return " ".join((value or "").split())
+
+    @staticmethod
+    def _load_pymupdf():
+        try:
+            import pymupdf as fitz
+
+            return fitz
+        except ImportError:
+            pass
+
+        try:
+            import fitz
+
+            return fitz
+        except ImportError as exc:
+            raise RuntimeError(
+                "PDF ingestion requires PyMuPDF. Install dependencies with "
+                "`pip install -r requirements.txt` and make sure the unrelated `fitz` package is not installed."
+            ) from exc

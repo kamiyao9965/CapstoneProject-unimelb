@@ -41,8 +41,13 @@ class SchemaDiscovery:
             aliases={self._canonicalize(token): [token] for token in likely_categories[:10]},
         )
         schema = VerticalSchema(vertical=vertical, version="0.1-draft", coverage=section)
-        return yaml.safe_dump(schema.model_dump(mode="python"), sort_keys=False, allow_unicode=False)
+        return yaml.safe_dump(self._schema_to_dict(schema), sort_keys=False, allow_unicode=False)
 
     def _canonicalize(self, value: str) -> str:
         parts = re.findall(r"[A-Za-z0-9]+", value)
         return "".join(word.capitalize() for word in parts)
+
+    def _schema_to_dict(self, schema: VerticalSchema) -> dict:
+        if hasattr(schema, "model_dump"):
+            return schema.model_dump(mode="python")
+        return schema.dict()

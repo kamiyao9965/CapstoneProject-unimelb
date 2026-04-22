@@ -1,1 +1,1 @@
-"""Konkrd extraction pipeline package."""
+"""Private health schema discovery package."""

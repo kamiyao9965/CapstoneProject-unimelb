@@ -1,12 +1,4 @@
 pyyaml
 pymupdf
-openai
-deepdiff
 pdfplumber
 pydantic
-rapidfuzz
-pandas
-httpx
-beautifulsoup4
-playwright
-tenacity
