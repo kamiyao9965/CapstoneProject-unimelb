@@ -1,110 +1,131 @@
-# Konkrd Extraction Pipeline
+# Konkrd Schema Discovery - Testing Branch
 
-Konkrd helps consumers compare complex products across competing brands — insurance, utilities, financial services. The barrier is that brands describe product features inconsistently across brochures, PDSs, and marketing material. This project builds a pipeline that extracts product features from those documents into structured, comparable data.
+This `testing` branch is scoped to one task:
 
-## How it works
+> Take private health insurance PDF documents as input and generate a structured schema as output.
 
-The pipeline takes a PDF and a schema, and produces structured JSON. Two modes, same code:
+The branch is not currently focused on the full extraction/evaluation workflow. In this branch, the expected workflow is schema discovery for the `private_health` vertical.
 
-- Discovery: sample docs, no schema → LLM reads the documents and proposes a draft schema → human reviews and locks it.
-- Extraction: doc + locked schema → LLM extracts features into structured JSON → validate against ground truth.
+## Current Scope
 
-## Private health insurance
+Input:
 
-The starting vertical is Australian private health insurance. This is the best vertical to start with because the government already publishes structured product data — so we have ground truth to validate against.
+- Private health PDF files under `data/private_health/raw/PDFs/`
+- Example structure:
 
-Read these in order:
-
-1. [private-health.md](data/private_health/private-health.md) — How Australian health insurance works. Hospital tiers, clinical categories, extras cover, government references.
-2. [konkrd-data.md](data/private_health/konkrd-data.md) — How Konkrd structures this data. Fund hierarchy, products, hospital inclusions, extras, shared limits. Includes a full walkthrough tracing one product across every table.
-3. [db-reference.md](data/private_health/db-reference.md) — Column definitions and sample rows for all 8 database tables.
-
-## What's in the repo
-
+```text
+data/private_health/raw/PDFs/
+  HCF/
+    hospital/
+      HCF-Hospital-Basic-Plus.pdf
+      HCF-Hospital-Silver-Plus.pdf
+    extras/
+      HCF-Top-Extras.pdf
 ```
+
+Output:
+
+- A generated schema file for private health insurance.
+- Recommended output path:
+
+```text
+data/private_health/schema.yaml
+```
+
+or, for testing without overwriting the existing schema:
+
+```text
+outputs/private_health/discovered-schema.yaml
+```
+
+## What This Branch Does
+
+The schema discovery flow reads sample private health PDFs and proposes a draft YAML schema. That schema should describe the fields, categories, services, canonical names, and aliases needed to structure private health insurance data.
+
+At this stage, the main goal is:
+
+1. Read private health PDF documents.
+2. Identify repeated domain concepts such as hospital tiers, clinical categories, extras services, limits, and waiting periods.
+3. Generate a schema that can later be used by an extraction pipeline.
+
+## What This Branch Is Not Focused On
+
+The following parts may exist in the codebase, but they are not the current focus of this `testing` branch:
+
+- Running extraction from PDF into final product JSON.
+- Batch extraction across multiple verticals.
+- Evaluating extracted JSON against labelled CSV ground truth.
+- Crawling insurer websites for new PDFs.
+- Supporting other verticals such as travel, car, or home insurance.
+
+## Key Files
+
+```text
+src/run.py
+```
+
+Unified command-line entrypoint. For this branch, the most relevant command is `discover`.
+
+```text
+src/schema/discovery.py
+```
+
+Generates a draft schema from sample PDFs.
+
+```text
+src/pipeline/ingestor.py
+```
+
+Reads PDF text and tables so the discovery step can inspect document content.
+
+```text
 data/private_health/
-├── raw/                    ← source PDFs from insurers (gitignored)
-├── labelled/               ← Konkrd's structured database (CSVs)
-├── private-health.md       ← how the industry works
-├── konkrd-data.md          ← how Konkrd structures the data
-└── db-reference.md         ← table schemas and sample rows
-
-src/                        ← pipeline code (students build this)
-outputs/                    ← extraction results
-example.md                  ← worked example: one PDF → one JSON (TODO)
 ```
 
-## Implemented pipeline
-
-The project now includes:
-
-- `src/pipeline/` — PDF ingestion, format routing, heuristic + Anthropic-backed extraction, and fuzzy normalisation.
-- `src/schema/` — YAML schema loading, validation, and discovery-mode draft generation.
-- `src/evaluation/` — ground-truth alignment for private health and field-level evaluation reports.
-- `src/scraper/` — static and dynamic crawlers plus a deduplicating PDF downloader with `manifest.jsonl`.
-- `src/run.py` — unified CLI entrypoint for crawl, discover, extract, and batch workflows.
+Private health domain folder. This is the only vertical targeted by the current testing work.
 
 ## Usage
 
-Install dependencies from `requirements.txt`, then run:
+Install dependencies:
 
 ```bash
-# Generate one extraction JSON
-python src/run.py extract \
-  --pdf data/private_health/raw/PDFs/HCF/hospital/HCF-Hospital-Silver-Plus.pdf \
-  --schema data/private_health/schema.yaml
+pip install -r requirements.txt
+```
 
-# Batch extract a vertical
-python src/run.py batch \
-  --vertical private_health \
-  --schema data/private_health/schema.yaml
+Generate a draft schema from private health PDF samples:
 
-# Batch extract and evaluate against labelled CSVs
-python src/run.py batch \
-  --vertical private_health \
-  --schema data/private_health/schema.yaml \
-  --evaluate
-
-# Discover a draft schema from sample PDFs
+```bash
 python src/run.py discover \
-  --vertical travel \
-  --samples data/travel/raw/PDFs/CTB/sample1.pdf data/travel/raw/PDFs/CTB/sample2.pdf
-
-# Crawl PDFs for a configured vertical
-python src/run.py crawl \
-  --vertical travel \
-  --config src/scraper/configs/travel_insurance.yaml
+  --vertical private_health \
+  --samples \
+    data/private_health/raw/PDFs/HCF/hospital/HCF-Hospital-Basic-Plus.pdf \
+    data/private_health/raw/PDFs/HCF/hospital/HCF-Hospital-Silver-Plus.pdf \
+  --output outputs/private_health/discovered-schema.yaml
 ```
 
-By default the extractor now prefers OpenAI GPT models. If `OPENAI_API_KEY` is set, `src/run.py` will use the configured GPT model for schema-driven extraction; if not, it falls back to the offline heuristic implementation so the pipeline still runs locally. You can override the provider and model with `--provider` / `--model` or `KONKRD_LLM_PROVIDER` / `KONKRD_LLM_MODEL`.
+If you want the generated schema to become the active private health schema, write it to:
 
-## The task
-
-The PDFs in `data/private_health/raw/` are the input. The CSVs in `data/private_health/labelled/` are the ground truth. The pipeline's job is to read a PDF and produce output that matches the structured data Konkrd already has.
-
-For hospital cover, this means reading a PDF and correctly identifying which of the 38 clinical categories are Covered, Restricted, or Excluded — normalised to canonical names like `BackNeckSpine`, `BoneJointMuscle`, etc.
-
-For extras cover, this means extracting which services are covered, their waiting periods, per-person and per-policy limits, and how limits are shared across services.
-
-The pipeline should be generic enough that adding a new vertical (travel insurance, mobile plans, utilities, home loans) is just a new directory under `data/` with a new schema. No code changes.
-
-## Evaluation
-
-Compare pipeline output against the labelled CSVs:
-
-- Field-level precision — of the fields extracted, how many match ground truth?
-- Field-level recall — of the fields in ground truth, how many were extracted?
-- Normalisation accuracy — did "back, neck, spine" resolve to `BackNeckSpine`?
-- Coverage — what percentage of schema fields have a non-null value?
-- Hallucination rate — fields in the output that don't exist in the source document.
-
-## Adding a new vertical
-
-```
-data/travel_insurance/
-├── raw/           ← source PDFs
-├── labelled/      ← ground truth (if available)
-└── schema.yaml    ← extraction target
+```bash
+python src/run.py discover \
+  --vertical private_health \
+  --samples \
+    data/private_health/raw/PDFs/HCF/hospital/HCF-Hospital-Basic-Plus.pdf \
+    data/private_health/raw/PDFs/HCF/hospital/HCF-Hospital-Silver-Plus.pdf \
+  --output data/private_health/schema.yaml
 ```
 
-No code changes. The schema carries all the domain knowledge.
+## Expected Result
+
+The output should be a YAML schema for `private_health`, for example:
+
+```yaml
+vertical: private_health
+version: 0.1-draft
+coverage:
+  fields:
+    - name: product_name
+      type: string
+      description: Marketing product name
+```
+
+The schema can later be reviewed, edited, and used as the contract for extracting structured data from private health insurance PDFs.
