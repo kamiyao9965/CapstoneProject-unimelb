@@ -1,0 +1,1224 @@
+vertical: private_health
+version: 0.1-draft
+description: Reusable extraction schema for Australian private health insurance PDFs covering hospital, extras, generalhealth, and combined products across funds. Optimised for cross-company normalization of product identity, cover type, tier, inclusions/exclusions, waiting periods, limits, benefits, excesses, provider rules, and documentary evidence/source references.
+product_types:
+  - hospital
+  - extras
+  - generalhealth
+  - combined
+
+fields:
+  - name: fund_name
+    type: string
+    description: Trading name of the private health fund shown in the document, e.g. Nurses & Midwives Health, Australian Unity, ACA Health, onemedifund, Defence Health, HBF, Medibank, ahm, Teachers Health, CBHS, HCi, Union Health, Qantas.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+    values: []
+
+  - name: fund_legal_entity
+    type: string
+    description: Legal entity or ABN/ACN owner if stated in the PDF footer or header.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: product_name
+    type: string
+    description: Marketing or product sheet name for the cover, including branded product names and variants.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+    values: []
+
+  - name: product_variant
+    type: string
+    description: Product variant or descriptor such as Gold, Silver+, Bronze Plus, Basic Plus, Core 75, Premium Extras, Everyday Extras, No Pregnancy.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: product_type
+    type: enum
+    description: High-level type of cover.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+    values:
+      - hospital
+      - extras
+      - generalhealth
+      - combined
+
+  - name: cover_structure
+    type: enum
+    description: Whether the document describes a standalone hospital product, standalone extras product, a general treatment/general health product, or a combined hospital + extras package.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values:
+      - standalone_hospital
+      - standalone_extras
+      - standalone_generalhealth
+      - combined_hospital_and_extras
+      - hospital_with_optional_extras
+      - configurable_extras_bundle
+
+  - name: tier
+    type: enum
+    description: PHI tier or sub-tier where stated, normalized where possible.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values:
+      - basic
+      - bronze
+      - bronze_plus
+      - silver
+      - silver_plus
+      - gold
+      - top_gold
+      - premium
+      - custom
+      - entry
+      - other
+
+  - name: tier_label_raw
+    type: string
+    description: Exact tier wording as shown in the PDF.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: effective_date
+    type: string
+    description: Effective date of the product or statement, as stated in the document.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: current_as_at_date
+    type: string
+    description: Date the statement says the information is current as at.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: product_sheet_date
+    type: string
+    description: Publication or issue date shown on the product sheet.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: availability
+    type: string
+    description: Availability notes such as state restrictions, open/closed to new members, or member eligibility groups.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: eligibility_group
+    type: string
+    description: Membership eligibility group or cohort referenced in the document, such as teachers, nurses, ADF, union members, Qantas members, members of a particular employer/association.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: availability_states
+    type: list[object]
+    description: States/territories where the product is available or has special rules.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+
+  - name: cover_availability_region
+    type: string
+    description: Region or jurisdiction-level availability summary.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: excess_options
+    type: list[object]
+    description: Excess or co-payment options offered for hospital cover, including amount and whether it applies per person, per year, or per admission.
+    applies_to: [hospital, combined]
+    required: false
+
+  - name: excess_amount
+    type: number
+    description: Default or chosen hospital excess amount.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: excess_type
+    type: enum
+    description: Type of member-paid amount.
+    applies_to: [hospital, combined]
+    required: false
+    values:
+      - excess
+      - co_payment
+      - daily_co_payment
+      - hospital_cost_share
+
+  - name: excess_applies_to
+    type: enum
+    description: How the excess applies.
+    applies_to: [hospital, combined]
+    required: false
+    values:
+      - per_person
+      - per_admission
+      - per_year
+      - per_person_per_year
+      - per_membership_year
+      - per_rolling_year
+      - none
+
+  - name: excess_cap
+    type: string
+    description: Cap or maximum excess payable where stated, including couple/family caps.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: excess_waiver_rules
+    type: string
+    description: Rules for waived excesses, such as dependants, accident admissions, or special programs.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: co_payment_amount
+    type: number
+    description: Explicit member co-payment amount where a co-payment applies instead of or in addition to an excess.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: co_payment_rule
+    type: string
+    description: Explanation of the co-payment, e.g. daily co-payment for hospital accommodation.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: hospital_coverage_status
+    type: enum
+    description: Summary status for hospital clinical categories or services.
+    applies_to: [hospital, combined]
+    required: false
+    values:
+      - included
+      - restricted
+      - excluded
+      - covered
+      - partial
+      - nil
+
+  - name: clinical_categories
+    type: list[object]
+    description: Normalized hospital clinical categories with cover status, notes, and citations where available.
+    applies_to: [hospital, combined]
+    required: false
+
+  - name: hospital_category_name
+    type: string
+    description: Raw or normalized hospital clinical category name.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: hospital_category_status
+    type: enum
+    description: Cover status for a hospital clinical category.
+    applies_to: [hospital, combined]
+    required: false
+    values:
+      - included
+      - restricted
+      - excluded
+      - covered
+
+  - name: hospital_category_note
+    type: string
+    description: Additional note or qualifier attached to a hospital category, such as limited benefits, private-hospital-only, or registered podiatric surgeon caveats.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: hospital_category_aliases
+    type: list[object]
+    description: Alternate names observed in PDFs for a hospital category.
+    applies_to: [hospital, combined]
+    required: false
+
+  - name: services_included_summary
+    type: string
+    description: Short free-text summary of the major hospital inclusions described in the document.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: services_restricted_summary
+    type: string
+    description: Short free-text summary of restricted hospital services and the accommodation benefit relationship.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: services_excluded_summary
+    type: string
+    description: Short free-text summary of excluded hospital services.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: ambulance_cover
+    type: object
+    description: Ambulance benefit details including whether cover is unlimited, capped, emergency-only, or state dependent.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+
+  - name: ambulance_cover_status
+    type: enum
+    description: Ambulance cover status.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values:
+      - included
+      - excluded
+      - limited
+      - state_based
+      - unlimited
+
+  - name: ambulance_limit
+    type: string
+    description: Ambulance benefit limit, if any, including per person, per year, unlimited, or capped amounts.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: ambulance_waiting_period
+    type: string
+    description: Waiting period for ambulance cover.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: ambulance_eligibility_notes
+    type: string
+    description: Notes about ambulance eligibility, such as state scheme exclusions, emergency-only wording, or private provider requirements.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: access_gap_cover
+    type: boolean
+    description: Whether an Access Gap or comparable gap scheme is offered.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: access_gap_cover_name
+    type: string
+    description: Exact scheme name used in the document, such as Access Gap Cover, GapCover, Gap Cover Scheme.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: access_gap_cover_notes
+    type: string
+    description: Explanation of how the gap scheme works, including participating doctors, no-gap/known-gap, excluded services, or billing process.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: medical_cost_coverage
+    type: string
+    description: Summary of how inpatient medical costs are covered relative to the MBS fee and Medicare percentages.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: mbs_coverage_split
+    type: string
+    description: Explicit MBS split such as Medicare 75% / fund 25%, or other fund-specific formulas.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: prostheses_cover
+    type: boolean
+    description: Whether surgically implanted prostheses or medical devices/human tissue products are covered.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: prostheses_rule
+    type: string
+    description: How prostheses are paid, including minimum benefit, list-based benefit, no-gap list, or gap-permitted items.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: travel_accommodation_benefit
+    type: string
+    description: Travel and accommodation benefit for hospital admissions, if offered.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: support_programs
+    type: list[object]
+    description: Hospital support or substitution programs, home care, rehabilitation-in-home, care navigation, or preventative health programs linked to hospital cover.
+    applies_to: [hospital, combined]
+    required: false
+
+  - name: support_program_name
+    type: string
+    description: Name of a hospital support or substitution program.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: support_program_description
+    type: string
+    description: Summary of the support program and its purpose.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: waiting_periods
+    type: list[object]
+    description: Waiting periods for hospital, extras, or generalhealth services, including service-specific durations.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+
+  - name: waiting_period_category
+    type: string
+    description: Category or service class subject to a waiting period.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: waiting_period_duration
+    type: string
+    description: Duration of waiting period, e.g. 1 day, 2 months, 12 months, 36 months, 5 years.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: waiting_period_applies_to_upgrade
+    type: boolean
+    description: Whether the waiting period applies on upgrading cover.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: waiting_period_applies_to_new_members
+    type: boolean
+    description: Whether the waiting period applies to new members.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: waiting_period_transfer_rule
+    type: string
+    description: Rules for transfer continuity, such as 30/60 days to avoid re-serving waiting periods.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_limits
+    type: list[object]
+    description: Annual, lifetime, rolling-year, service, or sub-limits for services.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+
+  - name: limit_category
+    type: string
+    description: Service group or item group the limit applies to.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: limit_amount
+    type: string
+    description: Limit amount or range, including per person, per family, per membership, or rolling-year wording.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: limit_type
+    type: enum
+    description: Limit classification.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values:
+      - annual
+      - lifetime
+      - rolling_year
+      - service_limit
+      - sub_limit
+      - combined_limit
+      - calendar_year
+      - membership_year
+      - none
+
+  - name: limit_scope
+    type: string
+    description: Scope of limit such as per person, per family, per membership, per calendar year, per member per year.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: limit_notes
+    type: string
+    description: Any notes about how the limit accumulates, resets, or interacts with other limits, including loyalty or rewarding limits.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_amounts
+    type: list[object]
+    description: Item-level or service-level benefit amounts where the PDF provides specific rebates, fixed benefits, or percent-back amounts.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+
+  - name: service_name
+    type: string
+    description: Named service or treatment line item.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: service_item_number
+    type: string
+    description: Item number or code where shown, including single or paired item numbers.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: provider_type
+    type: string
+    description: Provider type or qualification requirement, such as recognised provider, registered dentist, orthoptist, podiatrist, physiotherapist, specialist orthodontist.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: provider_network
+    type: string
+    description: Network or provider scheme such as Members' Choice, Member Plus, smile.com.au, AHSA, ARHG, recognised provider.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_percentage
+    type: number
+    description: Percentage benefit paid back for an item or service.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_fixed_amount
+    type: number
+    description: Fixed dollar benefit amount for a service or item.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_formula
+    type: string
+    description: Formula or rule used to compute benefit, such as 60% up to limit, 100% of cost, or benefit after PBS co-payment deduction.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: item_frequency_limit
+    type: string
+    description: How often a specific item can be claimed, such as once per day, twice per year, one per financial year, once every 3 years.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: item_conditions
+    type: string
+    description: Extra conditions for the item or service, such as face-to-face only, medically necessary, prescribed, approved provider, or receipt requirements.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: orthodontic_lifetime_limit
+    type: string
+    description: Lifetime orthodontic cap where stated.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: dental_categories
+    type: list[object]
+    description: Dental categories and subcategories with benefit structure, waiting periods, and limits.
+    applies_to: [extras, generalhealth, combined]
+    required: true
+
+  - name: dental_category
+    type: enum
+    description: Normalized dental group.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values:
+      - general_dental
+      - preventative_dental
+      - major_dental
+      - endodontic
+      - orthodontic
+      - crowns_bridges
+      - dentures
+      - implant_dentistry
+      - surgical_dental
+      - other_dental
+      - cosmetic_dental
+      - occlusal_therapy
+
+  - name: extras_service_category
+    type: enum
+    description: Normalized extras or general treatment service group.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values:
+      - optical
+      - physiotherapy
+      - chiropractic
+      - osteopathy
+      - acupuncture
+      - remedial_massage
+      - myotherapy
+      - exercise_physiology
+      - podiatry
+      - dietetics
+      - psychology
+      - counselling
+      - speech_therapy
+      - occupational_therapy
+      - orthoptics
+      - healthy_lifestyle
+      - health_management
+      - pharmaceutical
+      - ambulance
+      - hearing_aids
+      - aids_and_appliances
+      - medical_devices
+      - travel_accommodation
+      - school_accidents
+      - dental
+      - preventive_tests
+      - mental_health_support
+      - healthier_living
+      - home_nursing
+      - antenatal_postnatal
+      - pathology_related_screening
+      - allied_health
+      - other
+
+  - name: service_status
+    type: enum
+    description: Claimability status for an extras or generalhealth service.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values:
+      - included
+      - excluded
+      - partial
+      - limited
+      - n_a
+
+  - name: service_note
+    type: string
+    description: Notes about claimability, exclusions, or special conditions for the service.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_yearly_limit
+    type: string
+    description: Yearly limit applicable to a service, bundle, or product component.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_frequency
+    type: string
+    description: Frequency or claim count limit for a service or item.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: benefit_reset_period
+    type: string
+    description: When the limit resets, such as calendar year, financial year, rolling years, lifetime, or per membership year.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: rebate_percentage
+    type: number
+    description: Rebate percentage if the source documents describe the service as percentage back.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: provider_restriction
+    type: string
+    description: Provider restriction or recognition requirement for the service.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: claim_channel
+    type: list[object]
+    description: Claim submission methods mentioned in the document, such as HICAPS, app, portal, manual, Medicare-first, direct billing.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+
+  - name: claim_channel_name
+    type: string
+    description: Name of a claim channel or method.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: claim_channel_notes
+    type: string
+    description: Notes on how the channel works or any documentary requirements.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: exclusions
+    type: list[object]
+    description: Explicit exclusions or not-covered items cited in the document.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+
+  - name: exclusion_name
+    type: string
+    description: Name of the excluded service, item, or condition.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: exclusion_note
+    type: string
+    description: Specific exclusion rationale or qualification.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: restricted_services
+    type: list[object]
+    description: Restricted hospital or extras services requiring minimum/default benefits or partial cover.
+    applies_to: [hospital, combined]
+    required: false
+
+  - name: restricted_service_name
+    type: string
+    description: Name of restricted service or category.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: restricted_service_note
+    type: string
+    description: Notes describing what the restriction means in practice.
+    applies_to: [hospital, combined]
+    required: false
+    values: []
+
+  - name: pre_existing_condition_rule
+    type: string
+    description: How the document defines and assesses pre-existing conditions.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: pre_existing_waiting_period
+    type: string
+    description: Waiting period applied to pre-existing conditions.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: accident_cover
+    type: boolean
+    description: Whether accident cover or accident override is offered.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: accident_cover_rule
+    type: string
+    description: Accident cover scope, duration, and conditions such as occurrence after joining, 7-day treatment rule, or admitted-within-180-days rule.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: accident_waiting_period
+    type: string
+    description: Waiting period or waiver rule for accident-related benefits.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: mental_health_waiting_override
+    type: string
+    description: Mental health-specific waiver or lifetime waiver rules, if described.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: loyalty_or_rewarding_limits
+    type: string
+    description: Loyalty, rewarding, continuous membership, or carry-forward limit rules.
+    applies_to: [extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: member_portal_features
+    type: string
+    description: Digital self-service features such as checking limits, claims, cards, hospital search, or communications.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: privacy_policy_reference
+    type: string
+    description: Reference to privacy policy or privacy handling notes included in the document.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: complaints_process_reference
+    type: string
+    description: Reference to complaints process, ombudsman, or dispute resolution contact information.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: code_of_conduct_reference
+    type: string
+    description: Code of Conduct membership or signatory note.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: source_references
+    type: list[object]
+    description: Evidence and source references supporting the extracted schema elements, including document name, page number, section title, and quoted text fragment.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+
+  - name: source_document
+    type: string
+    description: Source PDF filename or identifier.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+    values: []
+
+  - name: source_page
+    type: string
+    description: Page number or page range where the evidence appears.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: true
+    values: []
+
+  - name: source_section
+    type: string
+    description: Section or heading within the source page.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+  - name: source_quote
+    type: string
+    description: Short quote or paraphrase from the PDF supporting the field.
+    applies_to: [hospital, extras, generalhealth, combined]
+    required: false
+    values: []
+
+hospital_categories:
+  - canonical_name: BackNeckSpine
+    description: Back, neck and spinal conditions, including disc disease and spinal fusion.
+    aliases:
+      - Back, neck and spine
+      - Back, Neck and Spine
+      - Back, Neck and Spine
+      - Spine
+  - canonical_name: Blood
+    description: Blood disorders and blood-related conditions, including clotting disorders and bone marrow transplants.
+    aliases:
+      - Blood
+  - canonical_name: BoneJointMuscle
+    description: Bone, joint and muscle conditions and related surgeries.
+    aliases:
+      - Bone, joint and muscle
+      - Bone, Joint and Muscle
+  - canonical_name: BrainAndNervousSystem
+    description: Brain and nervous system conditions including stroke, epilepsy, tumours and Parkinson’s disease.
+    aliases:
+      - Brain and nervous system
+      - Brain and Nervous System
+  - canonical_name: BreastSurgeryMedicallyNecessary
+    description: Medically necessary breast surgery including reconstruction or reduction and treatment of breast disorders.
+    aliases:
+      - Breast surgery (medically necessary)
+      - Breast surgery (non-cosmetic)
+  - canonical_name: Cataracts
+    description: Cataract surgery and related lens replacement.
+    aliases:
+      - Cataracts
+  - canonical_name: ChemotherapyRadiotherapyImmunotherapyForCancer
+    description: Cancer-related chemotherapy, radiotherapy and immunotherapy.
+    aliases:
+      - Chemotherapy, radiotherapy and immunotherapy for cancer
+      - Chemotherapy, Radiotherapy and Immunotherapy for Cancer
+  - canonical_name: DentalSurgery
+    description: Dental surgery performed in hospital, often requiring hospital charges only when a dentist is involved.
+    aliases:
+      - Dental surgery
+  - canonical_name: DiabetesManagementExcludingInsulinPumps
+    description: Diabetes management excluding insulin pump provision.
+    aliases:
+      - Diabetes management (excluding insulin pumps)
+      - Diabetes management (excl. insulin pumps)
+  - canonical_name: DigestiveSystem
+    description: Digestive system conditions and treatment.
+    aliases:
+      - Digestive system
+      - Digestive System
+  - canonical_name: EarNoseAndThroat
+    description: Ear, nose and throat conditions.
+    aliases:
+      - Ear, nose and throat
+      - Ear, Nose and Throat
+  - canonical_name: EyeNotCataracts
+    description: Eye conditions excluding cataracts.
+    aliases:
+      - Eye (not cataracts)
+      - Eye (not Cataracts)
+  - canonical_name: GastrointestinalEndoscopy
+    description: Colonoscopy, gastroscopy and other endoscopic procedures.
+    aliases:
+      - Gastrointestinal endoscopy
+      - Gastrointestinal Endoscopy
+  - canonical_name: Gynaecology
+    description: Female reproductive and gynecological conditions.
+    aliases:
+      - Gynaecology
+      - Gynecology
+  - canonical_name: HeartAndVascularSystem
+    description: Heart and vascular conditions such as heart failure, heart attack and plaque removal.
+    aliases:
+      - Heart and vascular system
+      - Heart and Vascular system
+      - Heart and Vascular System
+  - canonical_name: HerniaAndAppendix
+    description: Hernia and appendicitis treatment.
+    aliases:
+      - Hernia and appendix
+      - Hernia and Appendix
+  - canonical_name: HospitalPsychiatricServices
+    description: Inpatient psychiatric treatment, including mood disorders, psychoses and addiction therapy.
+    aliases:
+      - Hospital psychiatric services
+      - Hospital Psychiatric Services
+  - canonical_name: ImplantationOfHearingDevices
+    description: Surgical implantation of hearing devices.
+    aliases:
+      - Implantation of hearing devices
+  - canonical_name: InsulinPumps
+    description: Insulin pump provision and replacement.
+    aliases:
+      - Insulin pumps
+  - canonical_name: JointReconstructions
+    description: Joint reconstruction surgeries such as torn tendons and rotator cuff repair.
+    aliases:
+      - Joint reconstructions
+      - Joint Reconstructions
+  - canonical_name: JointReplacements
+    description: Joint replacement surgeries including hip, knee, shoulder and other joints.
+    aliases:
+      - Joint replacements
+      - Joint Replacements
+  - canonical_name: KidneyAndBladder
+    description: Kidney and bladder conditions, including stones and incontinence.
+    aliases:
+      - Kidney and bladder
+      - Kidney and Bladder
+  - canonical_name: LungAndChest
+    description: Lung, respiratory and chest conditions.
+    aliases:
+      - Lung and chest
+      - Lung and Chest
+  - canonical_name: MaleReproductiveSystem
+    description: Male reproductive system conditions.
+    aliases:
+      - Male reproductive system
+      - Male reproductive System
+  - canonical_name: MiscarriageAndTerminationOfPregnancy
+    description: Miscarriage treatment and termination of pregnancy.
+    aliases:
+      - Miscarriage and termination of pregnancy
+      - Miscarriage and Termination of Pregnancy
+  - canonical_name: PainManagement
+    description: Pain management treatment without surgical device insertion.
+    aliases:
+      - Pain management
+      - Pain Management
+  - canonical_name: PainManagementWithDevice
+    description: Pain management involving devices.
+    aliases:
+      - Pain management with device
+      - Pain Management with Device
+  - canonical_name: PalliativeCare
+    description: Palliative care and end-of-life support services.
+    aliases:
+      - Palliative care
+      - Palliative Care
+  - canonical_name: PlasticAndReconstructiveSurgeryMedicallyNecessary
+    description: Medically necessary plastic and reconstructive surgery, including trauma or congenital deformity.
+    aliases:
+      - Plastic and reconstructive surgery (medically necessary)
+      - Plastic and reconstructive surgery (non-cosmetic)
+      - Plastic and Reconstructive surgery (medically necessary)
+  - canonical_name: PodiatricSurgery
+    description: Podiatric surgery performed by a registered or accredited podiatric surgeon.
+    aliases:
+      - Podiatric surgery (provided by a registered podiatric surgeon)
+      - Podiatric surgery (by an accredited podiatric surgeon)
+      - Podiatric surgery (provided by a registered podiatric surgeon - limited benefits)
+  - canonical_name: PregnancyAndBirth
+    description: Pregnancy, childbirth and obstetric services.
+    aliases:
+      - Pregnancy and birth
+      - Pregnancy and Birth
+  - canonical_name: Rehabilitation
+    description: Inpatient rehabilitation, including cardiac or stroke rehab where noted.
+    aliases:
+      - Rehabilitation
+  - canonical_name: Skin
+    description: Skin-related conditions and procedures, including melanoma and wound repair.
+    aliases:
+      - Skin
+  - canonical_name: SleepStudies
+    description: Sleep investigations and sleep study procedures.
+    aliases:
+      - Sleep studies
+      - Sleep Studies
+  - canonical_name: TonsilsAdenoidsAndGrommets
+    description: Tonsil, adenoid and grommet procedures.
+    aliases:
+      - Tonsils, adenoids and grommets
+      - Tonsils, Adenoids and Grommets
+  - canonical_name: WeightLossSurgery
+    description: Bariatric and weight loss surgery.
+    aliases:
+      - Weight loss surgery
+      - Weight Loss Surgery
+
+extras_services:
+  - canonical_name: GeneralDental
+    description: Preventive and routine dental services such as exams, cleanings, fluoride, fillings and extractions.
+    aliases:
+      - General Dental
+      - Preventative dental
+      - General dental treatment
+  - canonical_name: MajorDental
+    description: Higher-cost dental services such as crowns, bridges, dentures, root canal and surgical extractions.
+    aliases:
+      - Major Dental
+      - Major dental treatment
+      - High cost dental
+      - Complex dental
+  - canonical_name: Orthodontic
+    description: Orthodontic treatment for teeth and jaw alignment, usually with lifetime limits.
+    aliases:
+      - Orthodontic
+      - Orthodontia
+      - Orthodontics
+  - canonical_name: Optical
+    description: Glasses, lenses, contact lenses and related optical services.
+    aliases:
+      - Optical
+      - Optical appliances
+      - Glasses
+      - Eyes
+  - canonical_name: Physiotherapy
+    description: Physiotherapy consultations and group or hydrotherapy variants.
+    aliases:
+      - Physiotherapy
+      - Physio
+      - Physio/Exercise Physiology
+  - canonical_name: Chiropractic
+    description: Chiropractic consultations and related x-rays where covered.
+    aliases:
+      - Chiropractic
+      - Chiro
+  - canonical_name: Osteopathy
+    description: Osteopathy consultations and related services.
+    aliases:
+      - Osteopathy
+      - Osteo
+  - canonical_name: RemedialMassage
+    description: Remedial massage and similar manual therapy services.
+    aliases:
+      - Remedial massage
+      - Remedial Massage
+      - Therapeutic Massage
+      - Myofascial Release
+  - canonical_name: Acupuncture
+    description: Acupuncture consultations and treatments.
+    aliases:
+      - Acupuncture
+  - canonical_name: ChineseMedicine
+    description: Chinese herbal medicine consultations and traditional Chinese medicine services.
+    aliases:
+      - Chinese Medicine
+      - Chinese herbal medicine
+      - Chinese herbalism
+      - Chinese herbal consultations
+  - canonical_name: ExercisePhysiology
+    description: Exercise physiology consultations and programs.
+    aliases:
+      - Exercise Physiology
+      - Exercise physiology
+  - canonical_name: Podiatry
+    description: Podiatry or chiropody consultations, procedures and related surgeries where covered.
+    aliases:
+      - Podiatry
+      - Chiropody
+      - Podiatry/chiropody
+      - Podiatry (consultations only)
+  - canonical_name: Dietetics
+    description: Dietitian or dietetics consultations and nutrition advice.
+    aliases:
+      - Dietetics
+      - Dietitian
+      - Dietary
+      - Dietetics and Nutrition
+  - canonical_name: Psychology
+    description: Psychology consultations, assessment and group or couple/family therapy where included.
+    aliases:
+      - Psychology
+      - Psychologist
+      - Mental health support
+      - Psychology & Hypnotherapy
+      - Psychology and Counselling
+  - canonical_name: Counselling
+    description: Counselling and social work style mental health therapies where included.
+    aliases:
+      - Counselling
+      - Social worker
+      - Mental health social workers
+  - canonical_name: SpeechTherapy
+    description: Speech therapy or speech pathology services.
+    aliases:
+      - Speech Therapy
+      - Speech therapy
+      - Speech pathology
+  - canonical_name: OccupationalTherapy
+    description: Occupational therapy services.
+    aliases:
+      - Occupational Therapy
+  - canonical_name: Orthoptics
+    description: Orthoptic or eye therapy consultations.
+    aliases:
+      - Orthoptic
+      - Eye therapy
+      - Orthoptic therapy
+  - canonical_name: HealthManagement
+    description: Health management, healthy lifestyle, prevention and approved program benefits.
+    aliases:
+      - Health Management
+      - Healthy Lifestyle
+      - Healthier Living
+      - Health management programs
+      - Health screening
+  - canonical_name: PharmaceuticalsNonPBS
+    description: Non-PBS pharmaceuticals and prescription-only medicines outside hospital, subject to fund-specific rules and co-payments.
+    aliases:
+      - Pharmaceutical
+      - Pharmaceuticals
+      - Non-PBS Pharmaceuticals
+      - Pharmaceuticals (non-PBS)
+      - Pharmacy
+      - Prescriptions
+  - canonical_name: Ambulance
+    description: Emergency or non-emergency ambulance benefits, depending on the product.
+    aliases:
+      - Ambulance
+      - Emergency Ambulance
+      - Ambulance treatment
+      - Ambulance service
+  - canonical_name: AidsAndAppliances
+    description: Medically necessary aids and appliances including hearing aids, CPAP devices, blood glucose monitors, nebulisers and similar appliances.
+    aliases:
+      - Aids and Appliances
+      - Health aids & appliances
+      - Medically prescribed devices and appliances
+      - Appliances, Devices, Prostheses and Jobst Pressure Garments
+  - canonical_name: HearingAids
+    description: Hearing aid devices and related sub-limits.
+    aliases:
+      - Hearing Aids
+      - Hearing aids
+  - canonical_name: TravelAndAccommodation
+    description: Travel expenses and accommodation benefits linked to eligible hospital admissions or treatment.
+    aliases:
+      - Travel & Accommodation
+      - Travel expenses
+      - Accommodation expenses
+      - Patient support accommodation
+      - Non-hospital accommodation
+  - canonical_name: SchoolAccidents
+    description: School accident benefits for dependant children, where offered.
+    aliases:
+      - School accidents
+  - canonical_name: DentalNetwork
+    description: Network dental benefits such as no-gap or capped-price provider arrangements.
+    aliases:
+      - Dental network
+      - smile.com.au
+      - Members’ Choice dental
+  - canonical_name: PreventativeTests
+    description: Health screening tests such as bowel screening, mammograms, bone density and similar preventive tests.
+    aliases:
+      - Preventative tests
+      - Health Screening
+      - Tests and programs
+  - canonical_name: MentalHealthSupport
+    description: Mental health support services including psychologists, counsellors, social workers, telehealth mental health support, and CBT programs.
+    aliases:
+      - Mental health support
+      - Digital Mental Health
+      - Health support
+  - canonical_name: HomeNursing
+    description: Home nursing and nurse visits.
+    aliases:
+      - Home nursing
+      - Home Nursing
+  - canonical_name: AntenatalPostnatal
+    description: Ante-natal and post-natal consultations, classes, lactation support and midwifery where covered.
+    aliases:
+      - Ante Natal - Midwife
+      - Antenatal and postnatal services
+      - Ante/post natal services
+      - Midwifery Services
+
+notes: |
+  Normalize hospital clinical categories and extras services across funds even when naming varies by capitalisation, punctuation, or clinical wording.
+  Treat “restricted”, “included/covered”, and “excluded” as distinct service statuses; many PDFs use checkmarks, R/C/E markers, or narrative explanations.
+  Capture both general product-level benefit structures (e.g. 60% back, fixed amount, no annual limit) and service-level sub-limits or replacement periods.
+  For hospital products, model hospital accommodation, theatre fees, medical services, prostheses/devices, ambulance, excess, accident cover, gap cover, and waiting periods separately.
+  For extras/generalhealth products, model provider network rules, consultation frequency limits, annual/lifetime/rolling limits, and item-specific notes such as face-to-face only or recognised provider requirements.
+  Where documents mention “members’ choice”, “member plus”, “smile.com.au”, “AHSA”, “ARHG”, “Access Gap”, “GapCover”, “No Gap”, or similar networks/schemes, capture the scheme name as an alias or provider_network value.
+  Many products use different limit reset cycles: calendar year, financial year, membership year, rolling year, or lifetime. Preserve the original wording in limit_notes when exact behavior matters.
+  Some products quote benefit percentages relative to cost, others quote fixed dollar amounts or “set benefits” that depend on provider or item. Keep both benefit_percentage and benefit_fixed_amount available.
+  Several documents include product closures or sale restrictions (e.g. closed to new members, retained members only). Capture these in availability and notes when relevant.
+  Use source_references to retain page-level evidence for product identity, status markers, waiting periods, limits, and exclusions; include short quotes rather than full transcriptions where possible.

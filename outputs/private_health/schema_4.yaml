@@ -1,0 +1,526 @@
+vertical: private_health
+version: 0.1-draft
+description: >-
+  Canonical extraction schema for Australian private health insurance product
+  documents (hospital, extras, general health and combined). Designed to
+  represent stable cross‑company fields observed in the supplied product
+  brochures from Nurses & Midwives Health (StarterPak Basic Plus), Defence
+  Health (Value Extras), Peoplecare (High Extras) and HBF (Basic Hospital Plus).
+  The schema focuses on product metadata plus structured capture of cover
+  status, waiting periods, limits, benefits, excesses/co-payments, conditions
+  and evidence/source references. Do not populate product-level records —
+  fields describe the attributes to extract for any product document.
+product_types:
+  - hospital
+  - extras
+  - generalhealth
+  - combined
+fields:
+  - name: product_name
+    type: string
+    description: Official product name as shown in the document (eg "StarterPak Basic Plus", "Value Extras", "High Extras", "Basic Hospital Plus").
+    applies_to:
+      - combined
+      - hospital
+      - extras
+      - generalhealth
+    required: false
+    values: []
+  - name: fund_name
+    type: string
+    description: Insurer / fund or trading name shown on the brochure (eg Nurses & Midwives Health, Defence Health, Peoplecare, HBF).
+    applies_to:
+      - combined
+      - hospital
+      - extras
+      - generalhealth
+    required: false
+    values: []
+  - name: product_type
+    type: enum
+    description: High level product class.
+    applies_to:
+      - combined
+      - hospital
+      - extras
+      - generalhealth
+    required: false
+    values:
+      - hospital
+      - extras
+      - generalhealth
+      - combined
+  - name: tier
+    type: string
+    description: Tier or marketing level where provided (eg "Basic", "Basic Plus", "High", "StarterPak", "Value").
+    applies_to:
+      - combined
+      - hospital
+      - extras
+      - generalhealth
+    required: false
+    values: []
+  - name: coverage_summary
+    type: list[object]
+    description: >
+      Structured list describing what is covered for categories or service groups.
+      Each object commonly contains: category (canonical category name or extras
+      service), status (Included / Restricted / Excluded / Covered / Not covered / Limited), notes (free text), and reference to evidence.
+    applies_to:
+      - hospital
+      - combined
+      - extras
+    required: false
+    values: []
+  - name: waiting_periods
+    type: list[object]
+    description: >
+      Waiting periods applicable. Each object: { service_or_category: string,
+      waiting_period: string (eg "2 months", "12 months", "1 day"), conditions: string }.
+      Capture both hospital and extras waiting rules (including separate rules for pre‑existing conditions, accidents, ambulance, major dental, optical etc).
+    applies_to:
+      - hospital
+      - extras
+      - combined
+    required: false
+    values: []
+  - name: annual_limits
+    type: list[object]
+    description: >
+      Annual limits and sub-limits. Each object: { service_or_category: string,
+      limit_amount: string or number (eg "$1,000 per person", "No limit", "100%"),
+      family_limit: string (if present), frequency_note: string }.
+    applies_to:
+      - extras
+      - generalhealth
+      - combined
+    required: false
+    values: []
+  - name: per_service_benefits
+    type: list[object]
+    description: >
+      Benefit amounts or rates per service/item. Each object: { service_code_or_name: string,
+      benefit_amount: string or number (eg "$40", "70%", "100%"), limit/conditions: string }.
+      Useful for Extras items (eg periodic dental $40) and specified hospital benefits (eg non‑PBS in‑hospital pharmacy up to $1,400).
+    applies_to:
+      - extras
+      - hospital
+      - combined
+      - generalhealth
+    required: false
+    values: []
+  - name: excess_and_copayments
+    type: list[object]
+    description: >
+      Excess, co-payment or per‑episode member contributions. Each object: { type: string (excess/co‑payment/member co‑payment),
+      amount: string or number (eg "$500", "$100 per episode"), applicability: string (eg "per member per calendar year", "per hospital episode"),
+      conditions: string }.
+    applies_to:
+      - hospital
+      - combined
+    required: false
+    values: []
+  - name: provider_requirements
+    type: list[object]
+    description: >
+      Conditions relating to recognised/approved providers, network/no‑gap providers, agreements (eg "Member Plus hospitals", "smile.com.au network", "Peoplecare optical network"),
+      and on‑the‑spot claiming availability.
+    applies_to:
+      - extras
+      - hospital
+      - combined
+    required: false
+    values: []
+  - name: accident_cover_rules
+    type: list[object]
+    description: Rules for accident cover (eg immediate cover, time limits to seek medical attention, in‑hospital benefit periods, geographic limits).
+    applies_to:
+      - combined
+      - hospital
+    required: false
+    values: []
+  - name: ambulance_cover
+    type: list[object]
+    description: >
+      Ambulance coverage details: { scope: string (eg "national", "state‑appointed only"), waiting_period: string, annual_limit: string, exclusions: string }.
+      Capture whether included with Hospital and/or Extras.
+    applies_to:
+      - extras
+      - hospital
+      - combined
+    required: false
+    values: []
+  - name: pre_existing_condition_definition
+    type: string
+    description: Canonical text or short definition used by the fund (commonly "signs or symptoms in the 6 months prior to joining or upgrade").
+    applies_to:
+      - hospital
+      - combined
+    required: false
+    values: []
+  - name: exclusions_and_not_payable_items
+    type: list[object]
+    description: Standard exclusions list; each object: { item: string, reason_or_note: string } (eg cosmetic surgery, services overseas, items covered by third parties, services not recognised by Medicare).
+    applies_to:
+      - hospital
+      - extras
+      - combined
+    required: false
+    values: []
+  - name: claiming_conditions
+    type: list[object]
+    description: Conditions to claim (eg "claims within 2 years", "provider registered", "one service per person per provider per day", "need itemised invoice with patient name").
+    applies_to:
+      - extras
+      - generalhealth
+      - combined
+    required: false
+    values: []
+  - name: medical_devices_and_prostheses_rules
+    type: list[object]
+    description: >
+      Capture rules for devices and prostheses (eg government prostheses list, limits on non‑listed items, benefits up to a specified amount, replacement frequency).
+      Each object: { category: string, rule: string }.
+    applies_to:
+      - hospital
+      - combined
+    required: false
+    values: []
+  - name: evidence
+    type: list[object]
+    description: >
+      References to source documents/pages/sections supporting captured facts. Each object:
+      { source_file: string, doc_name: string, page: number (if available), excerpt: string (short quote or heading), confidence: string }.
+      Use filenames exactly as provided when possible.
+    applies_to:
+      - hospital
+      - extras
+      - combined
+      - generalhealth
+    required: false
+    values: []
+  - name: notes
+    type: string
+    description: Free text field for ambiguous or non-standard observations, e.g. "no lifetime limit on orthodontics" or "state ambulance schemes vary".
+    applies_to:
+      - hospital
+      - extras
+      - combined
+      - generalhealth
+    required: false
+    values: []
+hospital_categories:
+  - canonical_name: BackNeckSpine
+    description: Conditions and surgery affecting back, neck and spine (often labelled "Back, neck and spine").
+    aliases:
+      - "Back, neck and spine"
+      - "Back, neck & spine"
+      - "Back neck and spine"
+  - canonical_name: Blood
+    description: Disorders and procedures involving blood (transfusions, blood disorders).
+    aliases:
+      - "Blood"
+  - canonical_name: BoneJointMuscle
+    description: Bone, joint and muscle conditions (includes orthopaedic surgery not otherwise specified).
+    aliases:
+      - "Bone, joint and muscle"
+      - "Bone, joint & muscle"
+  - canonical_name: BrainNervousSystem
+    description: Brain and nervous system conditions and surgery.
+    aliases:
+      - "Brain and nervous system"
+  - canonical_name: BreastSurgery
+    description: Medically necessary breast surgery (eg mastectomy, reconstructive where medically necessary).
+    aliases:
+      - "Breast surgery (medically necessary)"
+      - "Breast surgery"
+  - canonical_name: Cataracts
+    description: Cataract surgery and related procedures.
+    aliases:
+      - "Cataracts"
+  - canonical_name: ChemotherapyRadiotherapyImmunotherapy
+    description: Cancer medical treatments (chemotherapy, radiotherapy and immunotherapy).
+    aliases:
+      - "Chemotherapy, radiotherapy and immunotherapy for cancer"
+      - "Chemotherapy, radiotherapy and immunotherapy"
+  - canonical_name: DiabetesManagement
+    description: Diabetes management excluding insulin pumps when specified.
+    aliases:
+      - "Diabetes management (excluding insulin pumps)"
+      - "Diabetes management"
+  - canonical_name: DigestiveSystem
+    description: Surgical and medical treatment for digestive organs and systems.
+    aliases:
+      - "Digestive system"
+  - canonical_name: EarNoseThroat
+    description: ENT procedures and surgery.
+    aliases:
+      - "Ear, nose and throat"
+      - "ENT"
+  - canonical_name: EyeOther
+    description: Eye procedures excluding cataracts (listed separately).
+    aliases:
+      - "Eye (not cataracts)"
+      - "Eye"
+  - canonical_name: GastrointestinalEndoscopy
+    description: Endoscopic procedures (gastroscopy, colonoscopy).
+    aliases:
+      - "Gastrointestinal endoscopy"
+  - canonical_name: Gynaecology
+    description: Gynaecological surgery and treatment.
+    aliases:
+      - "Gynaecology"
+  - canonical_name: HospitalPsychiatricServices
+    description: Inpatient psychiatric services and related care.
+    aliases:
+      - "Hospital psychiatric services"
+  - canonical_name: ImplantHearingDevices
+    description: Surgical implantation of hearing devices.
+    aliases:
+      - "Implantation of hearing devices"
+  - canonical_name: KidneyBladder
+    description: Kidney and bladder surgery/treatment, including dialysis where separately listed.
+    aliases:
+      - "Kidney and bladder"
+  - canonical_name: MaleReproductiveSystem
+    description: Conditions and procedures for male reproductive organs.
+    aliases:
+      - "Male reproductive system"
+  - canonical_name: PainManagement
+    description: Pain management interventions (non‑device).
+    aliases:
+      - "Pain management"
+  - canonical_name: PainManagementWithDevice
+    description: Pain management treatments involving implanted or external devices.
+    aliases:
+      - "Pain management with device"
+  - canonical_name: PalliativeCare
+    description: Palliative and end-of-life care in hospital settings.
+    aliases:
+      - "Palliative care"
+  - canonical_name: PlasticReconstructiveSurgery
+    description: Reconstructive (medically necessary) plastic surgery.
+    aliases:
+      - "Plastic and reconstructive surgery (medically necessary)"
+  - canonical_name: PodiatricSurgery
+    description: Podiatric surgery performed by a registered podiatric surgeon (sometimes limited benefits).
+    aliases:
+      - "Podiatric surgery (provided by a registered podiatric surgeon - limited benefits)"
+      - "Podiatric surgery"
+  - canonical_name: Rehabilitation
+    description: Inpatient rehabilitation services and programs.
+    aliases:
+      - "Rehabilitation"
+  - canonical_name: Skin
+    description: Dermatological surgery and skin procedures.
+    aliases:
+      - "Skin"
+  - canonical_name: SleepStudies
+    description: Sleep study diagnosis and related inpatient procedures.
+    aliases:
+      - "Sleep studies"
+  - canonical_name: WeightLossSurgery
+    description: Bariatric and weight loss surgery where listed.
+    aliases:
+      - "Weight loss surgery"
+  - canonical_name: AssistedReproductiveServices
+    description: Fertility and assisted reproductive procedures.
+    aliases:
+      - "Assisted reproductive services"
+      - "Assisted reproductive services"
+  - canonical_name: Dialysis
+    description: Dialysis for chronic kidney failure.
+    aliases:
+      - "Dialysis for chronic kidney failure"
+      - "Dialysis"
+  - canonical_name: HeartVascularSystem
+    description: Cardiac and vascular system surgery and treatments.
+    aliases:
+      - "Heart and vascular system"
+      - "Heart and vascular"
+  - canonical_name: InsulinPumps
+    description: Insulin pumps specifically called out as included or excluded.
+    aliases:
+      - "Insulin pumps"
+  - canonical_name: JointReplacements
+    description: Joint replacement surgery (hip, knee etc.).
+    aliases:
+      - "Joint replacements"
+  - canonical_name: LungChest
+    description: Lung and chest procedures.
+    aliases:
+      - "Lung and chest"
+  - canonical_name: MiscarriageTerminationPregnancy
+    description: Management of miscarriage and termination of pregnancy where listed.
+    aliases:
+      - "Miscarriage and termination of pregnancy"
+  - canonical_name: PregnancyAndBirth
+    description: Pregnancy and birth (maternity) hospital care.
+    aliases:
+      - "Pregnancy and birth"
+  - canonical_name: DentalSurgery
+    description: Dental surgery performed in hospital (often separate from extras dentistry).
+    aliases:
+      - "Dental surgery"
+  - canonical_name: HerniaAppendix
+    description: Hernia and appendix treatment; documents sometimes note overlap with digestive system.
+    aliases:
+      - "Hernia and appendix"
+      - "Hernia & appendix"
+  - canonical_name: TonsilsAdenoidsGrommets
+    description: Tonsil, adenoid and grommet procedures (paediatric ENT).
+    aliases:
+      - "Tonsils, adenoids and grommets"
+extras_services:
+  - canonical_name: GeneralDental
+    description: Preventive and basic dental (check-ups, scale & clean, simple fillings, x‑rays).
+    aliases:
+      - "General dental"
+      - "General and preventive dental"
+      - "Periodic oral examination"
+  - canonical_name: MajorDental
+    description: Major dental services (surgical tooth removal, crowns, endodontics, implants, dentures) and sub-limits.
+    aliases:
+      - "Major dental"
+      - "Surgical removal of a tooth requiring bone removal"
+      - "Endodontics"
+      - "Crowns and bridges"
+  - canonical_name: Orthodontics
+    description: Orthodontic treatment and limits (often with a lifetime limit).
+    aliases:
+      - "Orthodontics"
+  - canonical_name: Optical
+    description: Glasses, lenses, frames and contact lens benefits; may include network no‑gap offers.
+    aliases:
+      - "Optical"
+      - "Glasses and contact lenses"
+      - "Optical network"
+  - canonical_name: PharmacyNonPBS
+    description: Benefits towards non‑PBS prescription medicines (gap between PBS amount and charged price).
+    aliases:
+      - "Pharmacy"
+      - "Pharmaceuticals (non‑PBS)"
+      - "Prescriptions (after the standard PBS amount has been deducted)"
+  - canonical_name: Physiotherapy
+    description: Physiotherapy consultations, including hydrotherapy and one‑on‑one sessions; may include initial/subsequent consult distinctions and group therapy sub‑limits.
+    aliases:
+      - "Physio"
+      - "Physio/Exercise physiology"
+      - "Physiotherapy (including one-on-one hydrotherapy)"
+  - canonical_name: ExercisePhysiology
+    description: Exercise physiology consultations and group classes.
+    aliases:
+      - "Exercise physiology"
+      - "Group exercise physiology"
+  - canonical_name: ChiropracticOsteopathy
+    description: Chiropractic and osteopathy consultations, x‑ray limits sometimes included.
+    aliases:
+      - "Chiro and Osteo"
+      - "Chiropractic / Osteopathy"
+  - canonical_name: Psychology
+    description: Psychology consultations, assessments and group therapy, with sub-limits and Medicare exclusions.
+    aliases:
+      - "Psychology"
+      - "Psychology - Assessment"
+  - canonical_name: Counselling
+    description: Counselling sessions and subsequent consultations.
+    aliases:
+      - "Counselling"
+  - canonical_name: RemedialMassage
+    description: Remedial massage and associated therapies (myotherapy, acupuncture sometimes listed separately).
+    aliases:
+      - "Remedial massage"
+  - canonical_name: Acupuncture
+    description: Acupuncture consultations as an extras item.
+    aliases:
+      - "Acupuncture"
+  - canonical_name: Dietitian
+    description: Dietitian consultations and follow-ups.
+    aliases:
+      - "Dietitian"
+  - canonical_name: Podiatry
+    description: Podiatry / chiropody consultations.
+    aliases:
+      - "Podiatry"
+      - "Podiatry (chiropody)"
+  - canonical_name: Audiology
+    description: Audiology consultations and hearing-related services (non‑device).
+    aliases:
+      - "Audiology"
+  - canonical_name: HearingAids
+    description: Hearing aid purchase and repair sub‑limits, replacement frequency (often long waiting periods).
+    aliases:
+      - "Hearing aids"
+  - canonical_name: MedicallyPrescribedDevicesAndAppliances
+    description: Rental or purchase of medically prescribed devices (oxygen cylinders, nebulisers, TENS machines, blood glucose monitors) with sub-limits and replacement rules.
+    aliases:
+      - "Medically prescribed devices and appliances"
+      - "Rental or purchasing of appliances"
+  - canonical_name: Orthotics
+    description: Orthotic devices, custom-made orthotics with sub-limits and replacement frequency.
+    aliases:
+      - "Orthotics (Custom made)"
+  - canonical_name: TENS
+    description: TENS machines or similar electrotherapy devices with sub-limits.
+    aliases:
+      - "TENS machine"
+  - canonical_name: NebuliserSpacer
+    description: Nebulisers and spacers for breathing conditions.
+    aliases:
+      - "Nebuliser and spacer"
+      - "Nebuliser* and spacer"
+  - canonical_name: AntenatalPostnatal
+    description: Antenatal courses and postnatal consultations provided by recognised midwives/physios in private practice.
+    aliases:
+      - "Antenatal and postnatal services"
+      - "Antenatal consultations/classes"
+  - canonical_name: SpeechTherapy
+    description: Speech therapy consultations and group therapy.
+    aliases:
+      - "Speech therapy"
+  - canonical_name: OccupationalTherapy
+    description: OT initial and subsequent consultations and group therapy.
+    aliases:
+      - "Occupational therapy"
+  - canonical_name: OrthodonticNetworkNoGap
+    description: Network or no‑gap arrangements for dental/optical providers (eg smile.com.au, Peoplecare network) — treated as provider/network benefit rather than a service.
+    aliases:
+      - "smile.com.au"
+      - "Peoplecare Optical and Dental"
+      - "Dental network"
+      - "Optical network"
+  - canonical_name: HealthyLifestylePrograms
+    description: Health-related programs (weight management, approved health screening programs) with program form requirements and sub-limits.
+    aliases:
+      - "Healthy Lifestyle"
+      - "Health Management Programs"
+  - canonical_name: GroupTherapy
+    description: Group therapy sessions and classes (physio, exercise, psychology group therapy).
+    aliases:
+      - "Group therapy"
+      - "Group physiotherapy"
+  - canonical_name: FlexiLimits
+    description: Flexible or capped pharmacy/vaccine or other flexi-limit allowances per prescription or vaccination.
+    aliases:
+      - "Flexi-limits"
+      - "Flexi-limits / Pharmacy and vaccinations"
+  - canonical_name: SchoolAccidentCover
+    description: Special benefits to cover school accident expenses (child dependant limits).
+    aliases:
+      - "School accidents"
+  - canonical_name: NoGapPreventativeDental
+    description: No-gap preventative dental packages available at network dentists (eg check-up and clean packages).
+    aliases:
+      - "No-Gap Preventative Dental"
+      - "No-gap mouthguard"
+notes:
+  - "Canonical fields prioritise stable attributes common across funds: product_name, fund_name, product_type, tier, coverage_summary, waiting_periods, annual_limits, per_service_benefits, excess_and_copayments, provider_requirements, exclusions, claiming_conditions and evidence references."
+  - "Hospital category canonical names were standardised from labels observed in HBF and Nurses & Midwives Health product sheets (eg 'Back, neck and spine' -> BackNeckSpine)."
+  - "Extras service canonical names were standardised from Defence Health, Peoplecare and Nurses & Midwives Health extras lists (eg 'Pharmaceuticals (non‑PBS)' -> PharmacyNonPBS)."
+  - "Waiting periods sometimes vary by scenario (new member vs upgrade vs transfer within 30/60 days); capture both the numeric duration and the condition text."
+  - "Evidence entries should reference the original file name and page/section where the fact was found. Example sources for this schema derivation:"
+  - "  - data/private_health/raw/PDFs/NTF01/combined/starterpak.pdf (StarterPak Basic Plus product sheet; hospital and extras tables, waiting periods, per‑service extras rates)"
+  - "  - data/private_health/raw/PDFs/AHB/extras/def0527-valueextras_productguide_0724_web.pdf (Defence Health Value Extras; detailed extras items, limits, networks)"
+  - "  - data/private_health/raw/PDFs/LHM/generalhealth/high-extras.pdf (Peoplecare High Extras; extras benefit %, waits, annual limits)"
+  - "  - data/private_health/raw/PDFs/HBF/hospital/Basic-hospital-plus.pdf (HBF Basic Hospital Plus; hospital category included/restricted/excluded mapping, excess options, urgent ambulance rules)"
+  - "This schema is intended as a draft for automated extraction and manual data mapping. When extracting, prefer canonical names for categories/services and include original label text in evidence excerpts for auditability."

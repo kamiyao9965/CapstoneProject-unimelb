@@ -13,6 +13,7 @@ The code randomly samples representative PDFs, uploads them to OpenAI as file in
 ```text
 data/private_health/raw/PDFs/   input PDFs
 outputs/private_health/         generated schema output
+outputs/private_health/token_usage.jsonl  per-run token usage log
 src/run.py                      CLI entrypoint
 src/schema/discovery.py         OpenAI file upload + schema request
 src/schema/prompts.py           prompt used for schema generation
@@ -51,14 +52,16 @@ pip install -r requirements.txt
 PowerShell:
 
 ```powershell
-$env:OPENAI_API_KEY="your_api_key_here"
+$env:MY_OPENAI_API_KEY="your_api_key_here"
 ```
 
 Command Prompt:
 
 ```cmd
-set OPENAI_API_KEY=your_api_key_here
+set MY_OPENAI_API_KEY=your_api_key_here
 ```
+
+This project prefers `MY_OPENAI_API_KEY` for testing. If it is not set, it falls back to `OPENAI_API_KEY`.
 
 ## Run
 
@@ -120,3 +123,11 @@ Uploaded files are deleted from OpenAI after schema generation. To keep them for
 ```bash
 python src/run.py --keep-uploaded-files
 ```
+
+Each successful run also appends one JSON line to:
+
+```text
+outputs/private_health/token_usage.jsonl
+```
+
+Each line records the timestamp, model, API key source env name, linked YAML output path, task duration, sample PDFs, and token usage split into `input_tokens`, `output_tokens`, and `total_tokens`.

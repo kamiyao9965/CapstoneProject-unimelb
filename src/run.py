@@ -24,6 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--keep-uploaded-files", action="store_true")
     parser.add_argument("--output", default="outputs/private_health/schema.yaml")
+    parser.add_argument("--usage-log", default="outputs/private_health/token_usage.jsonl")
     return parser
 
 
@@ -31,6 +32,7 @@ def main() -> int:
     args = build_parser().parse_args()
     categories = tuple(category.lower() for category in args.categories)
     input_root = Path(args.input_root)
+    output_path = next_available_path(Path(args.output))
 
     try:
         sample_paths = args.samples or select_samples(
@@ -46,12 +48,12 @@ def main() -> int:
             model=args.model,
             cleanup_uploaded_files=not args.keep_uploaded_files,
             timeout_seconds=args.timeout,
-        ).discover(sample_paths)
+            usage_log_path=args.usage_log,
+        ).discover(sample_paths, output_path=output_path)
     except Exception as exc:
         print(f"Schema discovery failed: {exc}")
         return 1
 
-    output_path = next_available_path(Path(args.output))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(schema_yaml, encoding="utf-8")
     print(f"Wrote schema draft to {output_path}")
