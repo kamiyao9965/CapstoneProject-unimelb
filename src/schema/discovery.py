@@ -9,6 +9,7 @@ from typing import Callable
 
 from openai import OpenAI
 
+from src.common.openai_run import run_response
 from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT
 
 PROJECT_API_KEY_ENV = "MY_OPENAI_API_KEY"
@@ -24,6 +25,10 @@ class SchemaDiscovery:
         timeout_seconds: float = 600.0,
         usage_log_path: str | Path | None = "outputs/private_health/token_usage.jsonl",
         log: Callable[[str], None] | None = print,
+        request_params: dict[str, object] | None = None,
+        extra_instructions: str | None = None,
+        background: bool = True,
+        poll_interval: float = 5.0,
     ) -> None:
         self.model = model
         self.client = client
@@ -31,6 +36,18 @@ class SchemaDiscovery:
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
         self.log = log
+        # Background mode + polling avoids the long synchronous connection that
+        # gateways drop with a 520 on heavy multi-file requests. On by default.
+        self.background = background
+        self.poll_interval = poll_interval
+        # Appended to the system prompt. The refinement loop uses this to feed
+        # back failures from the previous round ("field X was never extractable,
+        # drop or clarify it").
+        self.extra_instructions = extra_instructions
+        # Extra kwargs forwarded to responses.create, e.g. {"temperature": 0} or
+        # {"seed": 7}. Only what the caller sets is sent; support varies by model
+        # (gpt-5 reasoning models may reject temperature), so this is opt-in.
+        self.request_params = dict(request_params or {})
 
     def discover(self, sample_pdfs: list[str], output_path: str | Path | None = None) -> str:
         api_key, api_key_env = self._resolve_api_key()
@@ -42,7 +59,12 @@ class SchemaDiscovery:
 
         started_at = datetime.now(timezone.utc)
         started_perf = time.perf_counter()
-        client = self.client or OpenAI(api_key=api_key, timeout=self.timeout_seconds)
+        # max_retries above the SDK default (2) so transient upstream blips
+        # (e.g. Cloudflare 520s) are absorbed with backoff instead of aborting a
+        # run after the PDFs are already uploaded.
+        client = self.client or OpenAI(
+            api_key=api_key, timeout=self.timeout_seconds, max_retries=5
+        )
         pdf_paths = [Path(path) for path in sample_pdfs]
         resolved_output_path = Path(output_path) if output_path else None
         file_ids = self._upload_pdfs(client, pdf_paths)
@@ -51,12 +73,22 @@ class SchemaDiscovery:
                 f"Generating schema with {self.model} using {api_key_env}. "
                 "This can take a few minutes..."
             )
-            response = client.responses.create(
+            system_prompt = SCHEMA_DISCOVERY_PROMPT
+            if self.extra_instructions:
+                system_prompt += "\n\nRefinement feedback from the previous round:\n"
+                system_prompt += self.extra_instructions
+            response = run_response(
+                client,
+                background=self.background,
+                poll_interval=self.poll_interval,
+                poll_timeout=self.timeout_seconds,
+                log=self.log,
                 model=self.model,
                 input=[
-                    {"role": "system", "content": SCHEMA_DISCOVERY_PROMPT},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": self._input_content(pdf_paths, file_ids)},
                 ],
+                **self.request_params,
             )
             completed_at = datetime.now(timezone.utc)
             duration_seconds = round(time.perf_counter() - started_perf, 3)

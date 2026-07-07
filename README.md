@@ -131,3 +131,62 @@ outputs/private_health/token_usage.jsonl
 ```
 
 Each line records the timestamp, model, API key source env name, linked YAML output path, task duration, sample PDFs, and token usage split into `input_tokens`, `output_tokens`, and `total_tokens`.
+
+## Cost estimation
+
+Turn token usage logs into dollar figures (③ in the improvement plan).
+
+```bash
+# Per-run and per-document discovery cost from the log
+python src/cost/estimate.py
+
+# Project cost across verticals (per-doc token profile is a proxy until the
+# extraction step reports real numbers)
+python src/cost/estimate.py --project \
+  --vertical private_health=1105 --vertical energy=800 --vertical mobile_plans=500
+```
+
+Rates live in `src/cost/pricing.py` and are marked `verified=False` until you
+confirm them against <https://openai.com/api/pricing>. Override per run with
+`--input-rate` / `--output-rate` (USD per 1M tokens).
+
+## Schema stability
+
+Schema discovery is non-deterministic, so measure drift before building on a
+schema (① in the improvement plan).
+
+```bash
+# Compare schemas you already have (offline, no API cost)
+python src/stability/compare.py --schemas run_1.yaml run_2.yaml run_3.yaml --show-items
+
+# Generate N schemas on the SAME fixed sample and compare (uses the API)
+python src/stability/measure.py --runs 3 --seed 42
+```
+
+The report gives per-dimension and overall stability (stable core vs drift) and
+a verdict on whether the schema is reproducible enough to build on.
+
+## Refinement loop
+
+The generate -> extract -> analyze -> review -> update workflow (② in the
+improvement plan).
+
+```bash
+# Human-in-the-loop (default): one round, then stop for review
+python src/refine/loop.py --seed 42 --eval-seed 7
+
+# After editing round_1/feedback.txt, feed it back in
+python src/refine/loop.py --resume-feedback outputs/private_health/refine/round_1/feedback.txt
+
+# Autonomous: iterate N rounds, feeding failures back automatically
+python src/refine/loop.py --autonomous --rounds 3
+```
+
+Discovery samples with `--seed`; evaluation extracts on a **holdout** set
+(`--eval-seed`, kept different) so the schema is not judged on the same PDFs it
+was built from. Individual steps are also usable on their own:
+
+```bash
+python src/extract/analyze.py --schema outputs/private_health/schema.yaml \
+  --extractions outputs/private_health/refine/round_1/extractions
+```
