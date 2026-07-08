@@ -10,7 +10,7 @@ from typing import Callable
 from openai import OpenAI
 
 from src.common.openai_run import run_response
-from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT
+from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT, SCHEMA_PATCH_PROMPT
 
 PROJECT_API_KEY_ENV = "MY_OPENAI_API_KEY"
 DEFAULT_OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
@@ -50,6 +50,46 @@ class SchemaDiscovery:
         self.request_params = dict(request_params or {})
 
     def discover(self, sample_pdfs: list[str], output_path: str | Path | None = None) -> str:
+        return self._generate_from_pdfs(
+            sample_pdfs=sample_pdfs,
+            system_prompt=SCHEMA_DISCOVERY_PROMPT,
+            input_content_factory=self._input_content,
+            output_path=output_path,
+            usage_event="schema_discovery",
+            progress_message="Generating schema",
+        )
+
+    def discover_patches(
+        self,
+        sample_pdfs: list[str],
+        current_schema: str,
+        output_path: str | Path | None = None,
+    ) -> str:
+        """Propose candidate YAML patches against an existing schema baseline.
+
+        Consensus refinement calls this once per run and votes on the patches
+        across runs, instead of regenerating the full schema each time.
+        """
+        return self._generate_from_pdfs(
+            sample_pdfs=sample_pdfs,
+            system_prompt=SCHEMA_PATCH_PROMPT,
+            input_content_factory=lambda pdf_paths, file_ids: self._patch_input_content(
+                pdf_paths, file_ids, current_schema
+            ),
+            output_path=output_path,
+            usage_event="schema_consensus_patch",
+            progress_message="Generating schema patch candidates",
+        )
+
+    def _generate_from_pdfs(
+        self,
+        sample_pdfs: list[str],
+        system_prompt: str,
+        input_content_factory: Callable[[list[Path], list[str]], list[dict[str, str]]],
+        output_path: str | Path | None,
+        usage_event: str,
+        progress_message: str,
+    ) -> str:
         api_key, api_key_env = self._resolve_api_key()
         if not api_key:
             raise RuntimeError(
@@ -70,10 +110,9 @@ class SchemaDiscovery:
         file_ids = self._upload_pdfs(client, pdf_paths)
         try:
             self._log(
-                f"Generating schema with {self.model} using {api_key_env}. "
+                f"{progress_message} with {self.model} using {api_key_env}. "
                 "This can take a few minutes..."
             )
-            system_prompt = SCHEMA_DISCOVERY_PROMPT
             if self.extra_instructions:
                 system_prompt += "\n\nRefinement feedback from the previous round:\n"
                 system_prompt += self.extra_instructions
@@ -86,7 +125,7 @@ class SchemaDiscovery:
                 model=self.model,
                 input=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": self._input_content(pdf_paths, file_ids)},
+                    {"role": "user", "content": input_content_factory(pdf_paths, file_ids)},
                 ],
                 **self.request_params,
             )
@@ -100,6 +139,7 @@ class SchemaDiscovery:
                 completed_at,
                 duration_seconds,
                 resolved_output_path,
+                usage_event,
             )
             return self._clean_yaml(response.output_text)
         finally:
@@ -129,6 +169,27 @@ class SchemaDiscovery:
         content.extend({"type": "input_file", "file_id": file_id} for file_id in file_ids)
         return content
 
+    def _patch_input_content(
+        self,
+        pdf_paths: list[Path],
+        file_ids: list[str],
+        current_schema: str,
+    ) -> list[dict[str, str]]:
+        sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
+        content = [
+            {
+                "type": "input_text",
+                "text": (
+                    "Current YAML schema baseline:\n"
+                    f"{current_schema}\n\n"
+                    "Generate candidate schema patches from these PDFs:\n"
+                    f"{sample_list}"
+                ),
+            }
+        ]
+        content.extend({"type": "input_file", "file_id": file_id} for file_id in file_ids)
+        return content
+
     def _delete_uploaded_files(self, client: OpenAI, file_ids: list[str]) -> None:
         for file_id in file_ids:
             try:
@@ -149,6 +210,7 @@ class SchemaDiscovery:
         completed_at: datetime,
         duration_seconds: float,
         output_path: Path | None,
+        usage_event: str = "schema_discovery",
     ) -> None:
         usage = getattr(response, "usage", None)
         input_tokens = None
@@ -177,7 +239,7 @@ class SchemaDiscovery:
         self._append_usage_log(
             {
                 "timestamp": completed_at.isoformat(),
-                "event": "schema_discovery",
+                "event": usage_event,
                 "model": self.model,
                 "api_key_env": api_key_env,
                 "yaml_output_path": output_path.as_posix() if output_path else None,
