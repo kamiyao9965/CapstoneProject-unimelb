@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from src.refine.aggregator import FieldDecision
-from src.refine.review import (
+from src.refine.candidates.aggregator import FieldDecision
+from src.refine.human_review import (
     apply_review,
     build_review_queue,
     clear_decision,

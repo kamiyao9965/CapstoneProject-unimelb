@@ -1,15 +1,11 @@
-"""Frequency voting over schema patches from multiple consensus runs.
-
-Ported from the `testing` branch (src/schema/aggregator.py) per
-docs/BRANCH_FUSION_PLAN.md.
-"""
+"""Frequency voting over schema patches from multiple consensus runs."""
 
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from src.refine.patch import EvidenceDocument, SchemaPatch
+from src.refine.candidates.patch import EvidenceDocument, SchemaPatch
 
 
 @dataclass

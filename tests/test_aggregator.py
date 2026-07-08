@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from src.refine.aggregator import aggregate_patches
-from src.refine.patch import EvidenceDocument, SchemaPatch
+from src.refine.candidates.aggregator import aggregate_patches
+from src.refine.candidates.patch import EvidenceDocument, SchemaPatch
 
 
 def make_patch(canonical_name: str, source_run: str, **overrides) -> SchemaPatch:

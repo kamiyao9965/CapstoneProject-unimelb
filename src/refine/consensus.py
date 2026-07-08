@@ -24,16 +24,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.refine.aggregator import FieldDecision, aggregate_patches
-from src.refine.normalizer import load_alias_config, normalize_patches
-from src.refine.patch import dump_yaml, load_patch_file, parse_yaml_text
-from src.refine.patch_stability import compute_patch_stability, write_patch_stability
-from src.refine.renderer import (
+from src.refine.artifacts.renderer import (
     render_consensus_schema,
     render_frequency_yaml,
     render_report,
 )
-from src.refine.review import build_review_queue, write_review_queue
+from src.refine.candidates.aggregator import FieldDecision, aggregate_patches
+from src.refine.candidates.normalizer import load_alias_config, normalize_patches
+from src.refine.candidates.patch import dump_yaml, load_patch_file, parse_yaml_text
+from src.refine.candidates.stability import (
+    compute_patch_stability,
+    write_patch_stability,
+)
+from src.refine.human_review import build_review_queue, write_review_queue
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
 

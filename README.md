@@ -21,8 +21,13 @@ src/schema/sampler.py           random PDF sampling
 src/cost/                       token usage -> dollar estimates
 src/stability/                  schema drift measurement across runs
 src/extract/                    holdout extraction + failure analysis
-src/refine/loop.py              generate -> extract -> analyze -> feedback loop
-src/refine/consensus.py         field-level patch voting (consensus refinement)
+src/refine/loop.py              refinement loop CLI compatibility entry point
+src/refine/pipeline/            generate -> consensus/review -> extract -> analyze loop
+src/refine/consensus.py         field-level consensus orchestration
+src/refine/candidates/          patch model, normalization, voting, patch stability
+src/refine/artifacts/           consensus schema/report rendering
+src/refine/human_review/        review queue, decisions, apply logic, Streamlit UI
+src/review_app.py               thin Streamlit entry point
 tests/                          stdlib unittest suite (no API calls)
 requirements.txt                Python dependencies
 ```
@@ -287,6 +292,6 @@ python src/refine/consensus.py --base-schema outputs/private_health/schema.yaml 
 python -m unittest discover -s tests
 ```
 
-Pure-logic coverage for the consensus modules (patch parsing, normalization,
-aggregation, rendering, workflow orchestration with a stubbed model). No API
-calls, no PDFs needed.
+Pure-logic coverage for the consensus, human-review, and pipeline modules
+(patch parsing, normalization, aggregation, rendering, review application, and
+workflow orchestration with a stubbed model). No API calls, no PDFs needed.

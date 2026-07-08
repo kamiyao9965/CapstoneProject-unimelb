@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from src.refine.patch import SchemaPatch, dump_yaml
+from src.refine.candidates.patch import SchemaPatch, dump_yaml
 
 
 def compute_patch_stability(patches: list[SchemaPatch], total_runs: int) -> dict:

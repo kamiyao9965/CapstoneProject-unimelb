@@ -11,9 +11,9 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - streamlit is in requirements
     HAS_STREAMLIT = False
 
-from src.refine.aggregator import FieldDecision
-from src.refine.patch import dump_yaml, load_yaml
-from src.refine.review import build_review_queue, write_review_queue
+from src.refine.candidates.aggregator import FieldDecision
+from src.refine.candidates.patch import dump_yaml, load_yaml
+from src.refine.human_review import build_review_queue, write_review_queue
 
 APP_PATH = "src/review_app.py"
 

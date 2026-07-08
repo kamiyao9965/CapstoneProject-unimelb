@@ -6,12 +6,12 @@ from pathlib import Path
 
 import yaml
 
-from src.refine.aggregator import FieldDecision
-from src.refine.renderer import (
+from src.refine.artifacts.renderer import (
     render_consensus_schema,
     render_frequency_yaml,
     render_report,
 )
+from src.refine.candidates.aggregator import FieldDecision
 
 BASE_SCHEMA = {
     "vertical": "private_health",

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.refine.patch import (
+from src.refine.candidates.patch import (
     EvidenceDocument,
     SchemaPatch,
     dump_yaml,

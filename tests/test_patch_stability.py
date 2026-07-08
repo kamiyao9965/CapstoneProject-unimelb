@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from src.refine.patch import SchemaPatch
-from src.refine.patch_stability import compute_patch_stability
+from src.refine.candidates.patch import SchemaPatch
+from src.refine.candidates.stability import compute_patch_stability
 
 
 def patch(canonical_name: str, source_run: str, patch_type: str = "add_field") -> SchemaPatch:

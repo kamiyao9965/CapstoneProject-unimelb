@@ -1,8 +1,4 @@
-"""Schema patch data model and YAML IO for consensus refinement.
-
-Ported from the `testing` branch (src/schema/patch.py) per
-docs/BRANCH_FUSION_PLAN.md.
-"""
+"""Schema patch data model and YAML IO for consensus refinement."""
 
 from __future__ import annotations
 

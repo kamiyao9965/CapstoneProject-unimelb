@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.refine.normalizer import (
+from src.refine.candidates.normalizer import (
     DEFAULT_ALIAS_CONFIG,
     DEFAULT_FIELD_ALIASES,
     DEFAULT_GROUP_ALIASES,
@@ -13,7 +13,7 @@ from src.refine.normalizer import (
     load_alias_config,
     normalize_patch,
 )
-from src.refine.patch import SchemaPatch
+from src.refine.candidates.patch import SchemaPatch
 
 
 def make_patch(**overrides) -> SchemaPatch:

@@ -1,9 +1,8 @@
 """Canonical field/group names for consensus refinement.
 
-Ported from the `testing` branch (src/schema/normalizer.py) per
-docs/BRANCH_FUSION_PLAN.md. Alias maps are injectable; the private_health
-defaults live in configs/private_health/aliases.yaml so future verticals can
-supply their own file without code changes.
+Alias maps are injectable; the private_health defaults live in
+configs/private_health/aliases.yaml so future verticals can supply their own
+file without code changes.
 """
 
 from __future__ import annotations
@@ -12,9 +11,9 @@ import re
 from pathlib import Path
 from typing import Mapping
 
-from src.refine.patch import SchemaPatch, load_yaml
+from src.refine.candidates.patch import SchemaPatch, load_yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_ALIAS_CONFIG = PROJECT_ROOT / "configs" / "private_health" / "aliases.yaml"
 
 # In-code fallbacks, used only when the config file is missing. Keep these in

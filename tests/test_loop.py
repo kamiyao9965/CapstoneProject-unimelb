@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from src.refine import loop
+from src.refine.pipeline import cli, rounds
 
 
 def make_args(tmp: str, **overrides) -> SimpleNamespace:
@@ -32,7 +32,7 @@ def make_args(tmp: str, **overrides) -> SimpleNamespace:
 
 class ParserBackwardCompatTest(unittest.TestCase):
     def test_defaults_keep_current_behavior(self) -> None:
-        args = loop.build_parser().parse_args([])
+        args = cli.build_parser().parse_args([])
         self.assertEqual(args.consensus_runs, 1)
         self.assertFalse(args.review_ui)
         self.assertIsNone(args.resume_review)
@@ -63,10 +63,10 @@ class RunRoundModeTest(unittest.TestCase):
             )
 
         evaluate = mock.Mock(return_value=(None, "feedback text"))
-        with mock.patch.object(loop, "generate_schema", side_effect=fake_generate), \
-             mock.patch.object(loop, "run_consensus_stage", side_effect=fake_consensus) as consensus_mock, \
-             mock.patch.object(loop, "evaluate_schema", evaluate):
-            result = loop.run_round(args, 1, None)
+        with mock.patch.object(rounds, "generate_schema", side_effect=fake_generate), \
+             mock.patch.object(rounds, "run_consensus_stage", side_effect=fake_consensus) as consensus_mock, \
+             mock.patch.object(rounds, "evaluate_schema", evaluate):
+            result = rounds.run_round(args, 1, None)
         return result, round_dir, evaluate, consensus_mock
 
     def test_default_round_skips_consensus_and_evaluates(self) -> None:
@@ -104,8 +104,8 @@ class ResumeReviewTest(unittest.TestCase):
             round_dir = Path(tmp) / "round_1"
             (round_dir / "consensus").mkdir(parents=True)
             args = make_args(tmp, resume_review=str(round_dir))
-            with mock.patch.object(loop, "evaluate_schema") as evaluate:
-                exit_code = loop.resume_review(args)
+            with mock.patch.object(rounds, "evaluate_schema") as evaluate:
+                exit_code = rounds.resume_review(args)
             self.assertEqual(exit_code, 1)
             evaluate.assert_not_called()
 
@@ -119,8 +119,8 @@ class ResumeReviewTest(unittest.TestCase):
             )
             args = make_args(tmp, resume_review=str(round_dir))
             evaluate = mock.Mock(return_value=(None, "feedback"))
-            with mock.patch.object(loop, "evaluate_schema", evaluate):
-                exit_code = loop.resume_review(args)
+            with mock.patch.object(rounds, "evaluate_schema", evaluate):
+                exit_code = rounds.resume_review(args)
             self.assertEqual(exit_code, 0)
             evaluate.assert_called_once()
             self.assertIn("excess", (round_dir / "schema.yaml").read_text())

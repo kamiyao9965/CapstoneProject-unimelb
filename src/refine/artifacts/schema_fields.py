@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from src.refine.aggregator import FieldDecision
+from src.refine.candidates.aggregator import FieldDecision
 
 VALID_PRODUCT_TYPES = ("hospital", "extras", "generalhealth", "combined")
 

@@ -1,9 +1,7 @@
 """Render consensus artifacts: merged schema, field frequency, and report.
 
-Ported from the `testing` branch (src/schema/renderer.py) per
-docs/BRANCH_FUSION_PLAN.md. Field metadata is written under a `consensus` key
-(rather than `refinement`) to keep consensus refinement distinct from the
-extraction-driven refinement loop.
+Field metadata is written under a `consensus` key (rather than `refinement`) to
+keep consensus refinement distinct from the extraction-driven refinement loop.
 """
 
 from __future__ import annotations
@@ -12,9 +10,12 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.refine.aggregator import FieldDecision
-from src.refine.patch import dump_yaml, load_yaml
-from src.refine.schema_fields import field_payload_from_decision, fields_by_name
+from src.refine.artifacts.schema_fields import (
+    field_payload_from_decision,
+    fields_by_name,
+)
+from src.refine.candidates.aggregator import FieldDecision
+from src.refine.candidates.patch import dump_yaml, load_yaml
 
 
 PROMOTED_DECISIONS = {"core", "conditional"}
