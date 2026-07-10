@@ -1,26 +1,28 @@
 from __future__ import annotations
 
-import json
-import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
-from openai import OpenAI
-
-from src.common.openai_run import run_response
+from src.common.openai_run import (
+    DEFAULT_OPENAI_API_KEY_ENV,
+    PROJECT_API_KEY_ENV,
+    append_jsonl,
+    create_openai_client,
+    managed_uploaded_pdfs,
+    resolve_api_key,
+    run_response,
+    usage_value,
+)
 from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT, SCHEMA_PATCH_PROMPT
-
-PROJECT_API_KEY_ENV = "MY_OPENAI_API_KEY"
-DEFAULT_OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 
 
 class SchemaDiscovery:
     def __init__(
         self,
         model: str = "gpt-5",
-        client: OpenAI | None = None,
+        client: object | None = None,
         cleanup_uploaded_files: bool = True,
         timeout_seconds: float = 600.0,
         usage_log_path: str | Path | None = "outputs/private_health/token_usage.jsonl",
@@ -90,7 +92,7 @@ class SchemaDiscovery:
         usage_event: str,
         progress_message: str,
     ) -> str:
-        api_key, api_key_env = self._resolve_api_key()
+        api_key, api_key_env = resolve_api_key()
         if not api_key:
             raise RuntimeError(
                 f"{PROJECT_API_KEY_ENV} or {DEFAULT_OPENAI_API_KEY_ENV} must be set "
@@ -102,13 +104,19 @@ class SchemaDiscovery:
         # max_retries above the SDK default (2) so transient upstream blips
         # (e.g. Cloudflare 520s) are absorbed with backoff instead of aborting a
         # run after the PDFs are already uploaded.
-        client = self.client or OpenAI(
-            api_key=api_key, timeout=self.timeout_seconds, max_retries=5
+        client = create_openai_client(
+            self.client,
+            api_key=api_key,
+            timeout_seconds=self.timeout_seconds,
         )
         pdf_paths = [Path(path) for path in sample_pdfs]
         resolved_output_path = Path(output_path) if output_path else None
-        file_ids = self._upload_pdfs(client, pdf_paths)
-        try:
+        with managed_uploaded_pdfs(
+            client,
+            pdf_paths,
+            cleanup=self.cleanup_uploaded_files,
+            log=self._log,
+        ) as file_ids:
             self._log(
                 f"{progress_message} with {self.model} using {api_key_env}. "
                 "This can take a few minutes..."
@@ -142,21 +150,6 @@ class SchemaDiscovery:
                 usage_event,
             )
             return self._clean_yaml(response.output_text)
-        finally:
-            if self.cleanup_uploaded_files:
-                self._log("Cleaning up uploaded files...")
-                self._delete_uploaded_files(client, file_ids)
-
-    def _upload_pdfs(self, client: OpenAI, pdf_paths: list[Path]) -> list[str]:
-        file_ids = []
-        total = len(pdf_paths)
-        for index, path in enumerate(pdf_paths, start=1):
-            if not path.exists():
-                raise FileNotFoundError(path)
-            self._log(f"Uploading PDF {index}/{total}: {path.name}")
-            with path.open("rb") as file:
-                file_ids.append(client.files.create(file=file, purpose="user_data").id)
-        return file_ids
 
     def _input_content(self, pdf_paths: list[Path], file_ids: list[str]) -> list[dict[str, str]]:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
@@ -190,13 +183,6 @@ class SchemaDiscovery:
         content.extend({"type": "input_file", "file_id": file_id} for file_id in file_ids)
         return content
 
-    def _delete_uploaded_files(self, client: OpenAI, file_ids: list[str]) -> None:
-        for file_id in file_ids:
-            try:
-                client.files.delete(file_id)
-            except Exception:
-                pass
-
     def _log(self, message: str) -> None:
         if self.log:
             self.log(message)
@@ -221,9 +207,9 @@ class SchemaDiscovery:
             self._log(f"Task duration: {duration_seconds:.3f}s")
             self._log("Token usage: unavailable")
         else:
-            input_tokens = self._usage_value(usage, "input_tokens", "prompt_tokens")
-            output_tokens = self._usage_value(usage, "output_tokens", "completion_tokens")
-            total_tokens = self._usage_value(usage, "total_tokens")
+            input_tokens = usage_value(usage, "input_tokens", "prompt_tokens")
+            output_tokens = usage_value(usage, "output_tokens", "completion_tokens")
+            total_tokens = usage_value(usage, "total_tokens")
 
             self._log(f"Task duration: {duration_seconds:.3f}s")
             parts = []
@@ -236,7 +222,8 @@ class SchemaDiscovery:
 
             self._log("Token usage: " + (", ".join(parts) if parts else "unavailable"))
 
-        self._append_usage_log(
+        append_jsonl(
+            self.usage_log_path,
             {
                 "timestamp": completed_at.isoformat(),
                 "event": usage_event,
@@ -252,41 +239,9 @@ class SchemaDiscovery:
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
                 "total_tokens": total_tokens,
-            }
+            },
+            log=self._log,
         )
-
-    def _append_usage_log(self, payload: dict[str, object]) -> None:
-        if self.usage_log_path is None:
-            return
-
-        try:
-            self.usage_log_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.usage_log_path.open("a", encoding="utf-8") as log_file:
-                log_file.write(json.dumps(payload, ensure_ascii=False) + "\n")
-        except Exception as exc:
-            self._log(f"Failed to write usage log: {exc}")
-
-    @staticmethod
-    def _resolve_api_key() -> tuple[str | None, str]:
-        project_api_key = os.getenv(PROJECT_API_KEY_ENV)
-        if project_api_key:
-            return project_api_key, PROJECT_API_KEY_ENV
-
-        default_api_key = os.getenv(DEFAULT_OPENAI_API_KEY_ENV)
-        if default_api_key:
-            return default_api_key, DEFAULT_OPENAI_API_KEY_ENV
-
-        return None, PROJECT_API_KEY_ENV
-
-    @staticmethod
-    def _usage_value(usage: object, *names: str) -> int | None:
-        for name in names:
-            if isinstance(usage, dict) and usage.get(name) is not None:
-                return int(usage[name])
-            value = getattr(usage, name, None)
-            if value is not None:
-                return int(value)
-        return None
 
     @staticmethod
     def _clean_yaml(text: str) -> str:

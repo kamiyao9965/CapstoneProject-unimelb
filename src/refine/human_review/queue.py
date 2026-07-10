@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Iterable
 
 from src.refine.artifacts.schema_fields import (
     field_payload_from_decision,
@@ -20,6 +21,7 @@ def build_review_queue(
     total_runs: int,
     base_schema_path: str | Path,
     generated_at: str | None = None,
+    schema_build_samples: Iterable[str | Path] = (),
 ) -> dict:
     existing_fields = fields_by_name(base_schema.get("fields", []))
     return {
@@ -28,6 +30,9 @@ def build_review_queue(
             "consensus_source": "candidate_schema_patches",
             "total_runs": total_runs,
             "base_schema_path": Path(base_schema_path).as_posix(),
+            "schema_build_samples": list(
+                dict.fromkeys(str(path) for path in schema_build_samples)
+            ),
         },
         "updates": [
             _queue_item(decision, existing_fields.get(decision.canonical_name))

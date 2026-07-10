@@ -47,11 +47,12 @@ class RunRoundModeTest(unittest.TestCase):
         args = make_args(tmp, **arg_overrides)
         round_dir = Path(tmp) / "round_1"
 
-        def fake_generate(args_, feedback, out_path):
+        def fake_generate(args_, feedback, out_path, sample_paths=None):
+            self.assertEqual(tuple(sample_paths or ()), ("pdfs/discovery.pdf",))
             out_path.write_text("fields: []\n", encoding="utf-8")
             return "fields: []\n"
 
-        def fake_consensus(args_, draft_path, rd):
+        def fake_consensus(args_, draft_path, rd, base_sample_paths=()):
             consensus_dir = rd / "consensus"
             consensus_dir.mkdir(parents=True, exist_ok=True)
             schema_path = consensus_dir / "consensus_schema.yaml"
@@ -59,11 +60,21 @@ class RunRoundModeTest(unittest.TestCase):
             queue_path = consensus_dir / "review_queue.yaml"
             queue_path.write_text("updates: []\n", encoding="utf-8")
             return SimpleNamespace(
-                consensus_schema_path=schema_path, queue_path=queue_path
+                consensus_schema_path=schema_path,
+                queue_path=queue_path,
+                schema_build_samples=(
+                    *base_sample_paths,
+                    "pdfs/consensus.pdf",
+                ),
             )
 
         evaluate = mock.Mock(return_value=(None, "feedback text"))
-        with mock.patch.object(rounds, "generate_schema", side_effect=fake_generate), \
+        with mock.patch.object(
+                rounds,
+                "select_discovery_samples",
+                return_value=("pdfs/discovery.pdf",),
+             ), \
+             mock.patch.object(rounds, "generate_schema", side_effect=fake_generate), \
              mock.patch.object(rounds, "run_consensus_stage", side_effect=fake_consensus) as consensus_mock, \
              mock.patch.object(rounds, "evaluate_schema", evaluate):
             result = rounds.run_round(args, 1, None)
@@ -75,6 +86,10 @@ class RunRoundModeTest(unittest.TestCase):
             self.assertEqual(result, "feedback text")
             consensus_mock.assert_not_called()
             evaluate.assert_called_once()
+            self.assertEqual(
+                evaluate.call_args.kwargs["exclude_paths"],
+                ("pdfs/discovery.pdf",),
+            )
             self.assertTrue((round_dir / "schema.yaml").exists())
             self.assertFalse((round_dir / "schema_draft.yaml").exists())
 
@@ -83,6 +98,10 @@ class RunRoundModeTest(unittest.TestCase):
             result, round_dir, evaluate, _ = self.run_round(tmp, consensus_runs=3)
             self.assertEqual(result, "feedback text")
             evaluate.assert_called_once()
+            self.assertEqual(
+                evaluate.call_args.kwargs["exclude_paths"],
+                ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
+            )
             # schema.yaml is the consensus auto-merge output, draft kept aside.
             self.assertIn("excess", (round_dir / "schema.yaml").read_text())
             self.assertTrue((round_dir / "schema_draft.yaml").exists())
@@ -109,6 +128,26 @@ class ResumeReviewTest(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             evaluate.assert_not_called()
 
+    def test_missing_sample_metadata_fails_without_evaluating(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            round_dir = Path(tmp) / "round_1"
+            consensus_dir = round_dir / "consensus"
+            consensus_dir.mkdir(parents=True)
+            (consensus_dir / "reviewed_schema.yaml").write_text(
+                "fields: [{name: excess}]\n", encoding="utf-8"
+            )
+            (consensus_dir / "review_queue.yaml").write_text(
+                "metadata: {}\nupdates: []\n", encoding="utf-8"
+            )
+            args = make_args(tmp, resume_review=str(round_dir))
+            evaluate = mock.Mock(return_value=(None, "feedback"))
+
+            with mock.patch.object(rounds, "evaluate_schema", evaluate):
+                exit_code = rounds.resume_review(args)
+
+            self.assertEqual(exit_code, 1)
+            evaluate.assert_not_called()
+
     def test_reviewed_schema_is_evaluated_into_round_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             round_dir = Path(tmp) / "round_1"
@@ -117,12 +156,24 @@ class ResumeReviewTest(unittest.TestCase):
             (consensus_dir / "reviewed_schema.yaml").write_text(
                 "fields: [{name: excess}]\n", encoding="utf-8"
             )
+            (consensus_dir / "review_queue.yaml").write_text(
+                "metadata:\n"
+                "  schema_build_samples:\n"
+                "    - pdfs/discovery.pdf\n"
+                "    - pdfs/consensus.pdf\n"
+                "updates: []\n",
+                encoding="utf-8",
+            )
             args = make_args(tmp, resume_review=str(round_dir))
             evaluate = mock.Mock(return_value=(None, "feedback"))
             with mock.patch.object(rounds, "evaluate_schema", evaluate):
                 exit_code = rounds.resume_review(args)
             self.assertEqual(exit_code, 0)
             evaluate.assert_called_once()
+            self.assertEqual(
+                evaluate.call_args.kwargs["exclude_paths"],
+                ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
+            )
             self.assertIn("excess", (round_dir / "schema.yaml").read_text())
 
 

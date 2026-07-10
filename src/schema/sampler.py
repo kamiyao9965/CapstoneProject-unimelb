@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Iterable
 
 
 DEFAULT_CATEGORIES = ("combined", "extras", "generalhealth", "hospital")
@@ -13,6 +14,7 @@ def select_samples(
     categories: tuple[str, ...] = DEFAULT_CATEGORIES,
     per_category: int = 5,
     seed: int | None = None,
+    exclude_paths: Iterable[str | Path] = (),
 ) -> list[str]:
     if per_category <= 0:
         raise ValueError("--per-category must be greater than 0.")
@@ -21,11 +23,16 @@ def select_samples(
 
     rng = random.Random(seed)
     candidates = collect_candidates(input_root, categories)
+    excluded = {Path(path).resolve() for path in exclude_paths}
     selected: list[Path] = []
     errors: list[str] = []
 
     for category in categories:
-        by_company = candidates[category]
+        by_company = {
+            company: [path for path in paths if path.resolve() not in excluded]
+            for company, paths in candidates[category].items()
+        }
+        by_company = {company: paths for company, paths in by_company.items() if paths}
         companies = sorted(by_company)
         if len(companies) < per_category:
             errors.append(f"{category}: found {len(companies)} companies, need {per_category}.")

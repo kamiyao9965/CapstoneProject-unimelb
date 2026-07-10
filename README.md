@@ -15,9 +15,10 @@ data/private_health/raw/PDFs/   input PDFs
 outputs/private_health/         generated schema output
 outputs/private_health/token_usage.jsonl  per-run token usage log
 src/run.py                      CLI entrypoint (one-shot discovery)
-src/schema/discovery.py         OpenAI file upload + schema/patch requests
+src/schema/discovery.py         OpenAI schema/patch request construction
 src/schema/prompts.py           discovery and patch prompts
 src/schema/sampler.py           random PDF sampling
+src/common/openai_run.py        shared OpenAI client/file/usage lifecycle
 src/cost/                       token usage -> dollar estimates
 src/stability/                  schema drift measurement across runs
 src/extract/                    holdout extraction + failure analysis
@@ -193,9 +194,11 @@ python src/refine/loop.py --resume-feedback outputs/private_health/refine/round_
 python src/refine/loop.py --autonomous --rounds 3
 ```
 
-Discovery samples with `--seed`; evaluation extracts on a **holdout** set
-(`--eval-seed`, kept different) so the schema is not judged on the same PDFs it
-was built from. Individual steps are also usable on their own:
+Discovery samples with `--seed`; evaluation extracts on a **holdout** set using
+`--eval-seed` and explicitly excludes every PDF used by draft discovery or
+consensus patch generation. If the remaining corpus cannot satisfy the
+per-category sample size, the loop fails instead of reusing a build sample.
+Individual steps are also usable on their own:
 
 ```bash
 python src/extract/analyze.py --schema outputs/private_health/schema.yaml \
@@ -217,7 +220,8 @@ times for candidate patches against it (each run on a different sample),
 normalizes field/group names, and classifies each proposed field by how many
 runs proposed it: `core` (>=80%), `conditional` (>=50%), `candidate` (>=20%),
 `noise`. Core and conditional fields are merged into the schema that gets
-evaluated. Round outputs:
+evaluated, except `rename_field`, `merge_fields`, and `move_field_group`, whose
+semantics require human editing. Round outputs:
 
 ```text
 outputs/private_health/refine/round_1/
@@ -247,7 +251,8 @@ generations yet still unextractable from real PDFs.
 Every consensus sweep also writes `patch_stability.yaml` (field drift measured
 on the same N patch runs - no extra API cost) and `review_queue.yaml` for
 human review. Field/group alias normalization is configured in
-`configs/private_health/aliases.yaml`, not in code.
+`configs/private_health/aliases.yaml`, not in code. Observed field names remain
+available as aliases while voting uses their canonical names.
 
 ## Human review of schema updates
 
@@ -278,6 +283,10 @@ are never applied). Accepted/edited updates produce `reviewed_schema.yaml`;
 alongside for comparison. Proposals from `rename_field` / `merge_fields` /
 `move_field_group` patches are flagged in the UI - accepting them applies a
 plain upsert, so prefer "Edit then accept" for those.
+
+`--resume-review` also verifies the queue's recorded schema-building samples
+before selecting the holdout set. Review queues created before that metadata
+was introduced must be regenerated rather than evaluated without isolation.
 
 To review patches against the production baseline without running a loop
 round, use the standalone sweep (writes to `outputs/private_health/consensus/`):

@@ -18,7 +18,7 @@ import argparse
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -50,6 +50,7 @@ class ConsensusOutputs:
     stability_path: Path
     queue_path: Path
     decisions: list[FieldDecision]
+    schema_build_samples: tuple[str, ...]
 
 
 class SchemaConsensusRefinement:
@@ -70,6 +71,7 @@ class SchemaConsensusRefinement:
         runs: int = 10,
         seed: int | None = None,
         samples: list[str] | None = None,
+        base_sample_paths: Iterable[str | Path] = (),
         output_dir: str | Path = "outputs/private_health/consensus",
         alias_config_path: str | Path | None = None,
     ) -> ConsensusOutputs:
@@ -91,6 +93,7 @@ class SchemaConsensusRefinement:
         field_aliases, group_aliases = load_alias_config(alias_config_path)
         current_schema = base_schema.read_text(encoding="utf-8")
         all_patches = []
+        schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
 
         for run_number in range(1, runs + 1):
             run_seed = _run_seed(seed, run_number)
@@ -103,6 +106,9 @@ class SchemaConsensusRefinement:
             )
             if not samples:
                 print_samples(sample_paths, Path(input_root), categories)
+            for sample_path in sample_paths:
+                if sample_path not in schema_build_samples:
+                    schema_build_samples.append(sample_path)
 
             patch_path = patch_dir / f"run_{run_number:03d}.yaml"
             patch_yaml = self.discovery.discover_patches(
@@ -128,6 +134,7 @@ class SchemaConsensusRefinement:
                 parse_yaml_text(current_schema) or {},
                 total_runs=runs,
                 base_schema_path=base_schema,
+                schema_build_samples=schema_build_samples,
             ),
             queue_path,
         )
@@ -140,6 +147,7 @@ class SchemaConsensusRefinement:
             stability_path=stability_path,
             queue_path=queue_path,
             decisions=decisions,
+            schema_build_samples=tuple(schema_build_samples),
         )
 
     def _log(self, message: str) -> None:

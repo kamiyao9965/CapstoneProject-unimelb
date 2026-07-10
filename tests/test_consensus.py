@@ -77,6 +77,7 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
             runs=2,
             seed=42,
             samples=["pdfs/a.pdf"],
+            base_sample_paths=["pdfs/discovery.pdf"],
             output_dir=Path(tmp) / "consensus",
         )
         return discovery, outputs
@@ -108,6 +109,14 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
                 queue["metadata"]["consensus_source"], "candidate_schema_patches"
             )
             self.assertEqual(queue["metadata"]["total_runs"], 2)
+            self.assertEqual(
+                queue["metadata"]["schema_build_samples"],
+                ["pdfs/discovery.pdf", "pdfs/a.pdf"],
+            )
+            self.assertEqual(
+                outputs.schema_build_samples,
+                ("pdfs/discovery.pdf", "pdfs/a.pdf"),
+            )
             ids = [item["id"] for item in queue["updates"]]
             self.assertIn("field:excess", ids)
 

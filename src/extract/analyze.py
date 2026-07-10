@@ -100,9 +100,14 @@ def analyze(records: list[dict], specs: list[FieldSpec]) -> Analysis:
                 model_unfilled[name] = model_unfilled.get(name, 0) + 1
 
     fill_rate = {name: filled_counts[name] / n for name in filled_counts}
-    weak_fields = sorted(
-        name for name, rate in fill_rate.items()
-        if rate < WEAK_FILL_THRESHOLD and not spec_by_name[name].required
+    weak_fields = (
+        sorted(
+            name
+            for name, rate in fill_rate.items()
+            if rate < WEAK_FILL_THRESHOLD and not spec_by_name[name].required
+        )
+        if docs
+        else []
     )
 
     return Analysis(
@@ -140,6 +145,13 @@ def print_report(analysis: Analysis) -> None:
 
 def build_feedback(analysis: Analysis) -> str:
     """Turn the failure signals into instructions the discovery step can act on."""
+    if analysis.documents == 0:
+        return (
+            "- No documents were successfully extracted; "
+            f"{analysis.error_docs} extraction attempt(s) failed. Fix extraction or "
+            "parsing errors before refining the schema."
+        )
+
     lines: list[str] = []
     if analysis.weak_fields:
         lines.append(

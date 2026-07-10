@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.refine.candidates.aggregator import aggregate_patches
 from src.refine.candidates.normalizer import (
     DEFAULT_ALIAS_CONFIG,
     DEFAULT_FIELD_ALIASES,
@@ -57,7 +58,7 @@ class CanonicalGroupNameTest(unittest.TestCase):
 class NormalizePatchTest(unittest.TestCase):
     def test_normalizes_names_and_fills_canonical_from_field_name(self) -> None:
         normalized = normalize_patch(make_patch())
-        self.assertEqual(normalized.field_name, "annual_limit")
+        self.assertEqual(normalized.field_name, "annual_benefit_limit")
         self.assertEqual(normalized.canonical_name, "annual_limit")
         self.assertEqual(normalized.target_group, "hospital_cover")
 
@@ -72,6 +73,15 @@ class NormalizePatchTest(unittest.TestCase):
     def test_explicit_canonical_name_is_still_normalized(self) -> None:
         normalized = normalize_patch(make_patch(canonical_name="Yearly Limit"))
         self.assertEqual(normalized.canonical_name, "annual_limit")
+
+    def test_observed_alias_survives_normalization_and_aggregation(self) -> None:
+        normalized = normalize_patch(make_patch(source_run="run_001"))
+
+        decision = aggregate_patches([normalized], total_runs=1)[0]
+
+        self.assertEqual(normalized.field_name, "annual_benefit_limit")
+        self.assertEqual(decision.canonical_name, "annual_limit")
+        self.assertEqual(decision.aliases, ["annual_benefit_limit"])
 
 
 class LoadAliasConfigTest(unittest.TestCase):

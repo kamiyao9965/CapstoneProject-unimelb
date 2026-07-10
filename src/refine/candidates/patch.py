@@ -16,6 +16,9 @@ SUPPORTED_PATCH_TYPES = {
     "add_alias",
     "reject_field",
 }
+MANUAL_EDIT_PATCH_TYPES = frozenset(
+    {"rename_field", "merge_fields", "move_field_group"}
+)
 
 
 @dataclass(frozen=True)

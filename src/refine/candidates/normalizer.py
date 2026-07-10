@@ -82,7 +82,7 @@ def normalize_patch(
     return SchemaPatch(
         patch_type=patch.patch_type,
         target_group=canonical_group_name(patch.target_group, group_aliases),
-        field_name=canonical_field_name(patch.field_name, field_aliases),
+        field_name=_snake_case(patch.field_name),
         canonical_name=canonical_name,
         field_type=patch.field_type,
         description=patch.description,

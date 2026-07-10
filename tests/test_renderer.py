@@ -105,6 +105,20 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         self.assertEqual(schema["consensus"]["promoted_decisions"], ["conditional", "core"])
         self.assertIn("generated_at", schema["consensus"])
 
+    def test_manual_edit_patch_types_are_not_auto_promoted(self) -> None:
+        schema = self.render(
+            [
+                make_decision("renamed_field", "core", patch_types=["rename_field"]),
+                make_decision("merged_field", "core", patch_types=["merge_fields"]),
+                make_decision("moved_field", "core", patch_types=["move_field_group"]),
+            ]
+        )
+
+        names = [field["name"] for field in schema["fields"]]
+        self.assertNotIn("renamed_field", names)
+        self.assertNotIn("merged_field", names)
+        self.assertNotIn("moved_field", names)
+
 
 class RenderFrequencyAndReportTest(unittest.TestCase):
     def test_frequency_yaml_lists_all_decisions(self) -> None:

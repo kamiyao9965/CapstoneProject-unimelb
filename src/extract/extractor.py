@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
-from openai import OpenAI
-
-from src.common.openai_run import run_response
+from src.common.openai_run import (
+    DEFAULT_OPENAI_API_KEY_ENV,
+    PROJECT_API_KEY_ENV,
+    append_jsonl,
+    create_openai_client,
+    managed_uploaded_pdfs,
+    resolve_api_key,
+    run_response,
+    usage_value,
+)
 from src.extract.prompts import EXTRACTION_PROMPT
-
-PROJECT_API_KEY_ENV = "MY_OPENAI_API_KEY"
-DEFAULT_OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 
 
 class SchemaExtractor:
@@ -23,7 +26,7 @@ class SchemaExtractor:
         self,
         schema_text: str,
         model: str = "gpt-5",
-        client: OpenAI | None = None,
+        client: object | None = None,
         cleanup_uploaded_files: bool = True,
         timeout_seconds: float = 600.0,
         usage_log_path: str | Path | None = "outputs/private_health/extraction_usage.jsonl",
@@ -47,7 +50,7 @@ class SchemaExtractor:
         if not pdf_path.exists():
             raise FileNotFoundError(pdf_path)
 
-        api_key, api_key_env = self._resolve_api_key()
+        api_key, api_key_env = resolve_api_key()
         if not api_key:
             raise RuntimeError(
                 f"{PROJECT_API_KEY_ENV} or {DEFAULT_OPENAI_API_KEY_ENV} must be set to extract."
@@ -55,14 +58,19 @@ class SchemaExtractor:
 
         # Higher max_retries than the SDK default so transient upstream 5xx
         # (e.g. Cloudflare 520) back off and retry instead of failing the batch.
-        client = self.client or OpenAI(
-            api_key=api_key, timeout=self.timeout_seconds, max_retries=5
+        client = create_openai_client(
+            self.client,
+            api_key=api_key,
+            timeout_seconds=self.timeout_seconds,
         )
         started = time.perf_counter()
         self._log(f"Extracting {pdf_path.name}...")
-        with pdf_path.open("rb") as handle:
-            file_id = client.files.create(file=handle, purpose="user_data").id
-        try:
+        with managed_uploaded_pdfs(
+            client,
+            [pdf_path],
+            cleanup=self.cleanup_uploaded_files,
+            log=self._log,
+        ) as file_ids:
             response = run_response(
                 client,
                 background=self.background,
@@ -77,7 +85,7 @@ class SchemaExtractor:
                         "content": [
                             {"type": "input_text",
                              "text": f"Schema (YAML):\n{self.schema_text}\n\nExtract from the attached PDF."},
-                            {"type": "input_file", "file_id": file_id},
+                            {"type": "input_file", "file_id": file_ids[0]},
                         ],
                     },
                 ],
@@ -85,17 +93,12 @@ class SchemaExtractor:
             record = self._parse_json(response.output_text)
             self._log_usage(response, pdf_path, api_key_env, round(time.perf_counter() - started, 3))
             return record
-        finally:
-            if self.cleanup_uploaded_files:
-                try:
-                    client.files.delete(file_id)
-                except Exception:
-                    pass
 
     def extract_many(self, pdf_paths: list[str | Path], out_dir: str | Path) -> list[Path]:
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         written: list[Path] = []
+        reserved_targets: set[Path] = set()
         for pdf_path in pdf_paths:
             pdf_path = Path(pdf_path)
             try:
@@ -105,6 +108,11 @@ class SchemaExtractor:
                 record = {"_error": str(exc), "_source": pdf_path.as_posix()}
             record.setdefault("_source", pdf_path.as_posix())
             target = out_dir / f"{pdf_path.stem}.json"
+            suffix = 2
+            while target in reserved_targets:
+                target = out_dir / f"{pdf_path.stem}_{suffix}.json"
+                suffix += 1
+            reserved_targets.add(target)
             target.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
             written.append(target)
         return written
@@ -136,35 +144,13 @@ class SchemaExtractor:
             "api_key_env": api_key_env,
             "source_pdf": pdf_path.as_posix(),
             "duration_seconds": duration,
-            "input_tokens": self._usage_value(usage, "input_tokens", "prompt_tokens"),
-            "output_tokens": self._usage_value(usage, "output_tokens", "completion_tokens"),
-            "total_tokens": self._usage_value(usage, "total_tokens"),
+            "input_tokens": usage_value(usage, "input_tokens", "prompt_tokens"),
+            "output_tokens": usage_value(usage, "output_tokens", "completion_tokens"),
+            "total_tokens": usage_value(usage, "total_tokens"),
         }
-        try:
-            self.usage_log_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.usage_log_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-        except Exception as exc:
-            self._log(f"Failed to write extraction usage log: {exc}")
-
-    @staticmethod
-    def _usage_value(usage: object, *names: str) -> int | None:
-        if usage is None:
-            return None
-        for name in names:
-            if isinstance(usage, dict) and usage.get(name) is not None:
-                return int(usage[name])
-            value = getattr(usage, name, None)
-            if value is not None:
-                return int(value)
-        return None
-
-    @staticmethod
-    def _resolve_api_key() -> tuple[str | None, str]:
-        project = os.getenv(PROJECT_API_KEY_ENV)
-        if project:
-            return project, PROJECT_API_KEY_ENV
-        default = os.getenv(DEFAULT_OPENAI_API_KEY_ENV)
-        if default:
-            return default, DEFAULT_OPENAI_API_KEY_ENV
-        return None, PROJECT_API_KEY_ENV
+        append_jsonl(
+            self.usage_log_path,
+            payload,
+            log=self._log,
+            error_label="extraction usage log",
+        )

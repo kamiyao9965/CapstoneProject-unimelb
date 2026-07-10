@@ -15,7 +15,11 @@ from src.refine.artifacts.schema_fields import (
     fields_by_name,
 )
 from src.refine.candidates.aggregator import FieldDecision
-from src.refine.candidates.patch import dump_yaml, load_yaml
+from src.refine.candidates.patch import (
+    MANUAL_EDIT_PATCH_TYPES,
+    dump_yaml,
+    load_yaml,
+)
 
 
 PROMOTED_DECISIONS = {"core", "conditional"}
@@ -35,6 +39,8 @@ def render_consensus_schema(
 
     for decision in decisions:
         if decision.decision not in PROMOTED_DECISIONS:
+            continue
+        if MANUAL_EDIT_PATCH_TYPES.intersection(decision.patch_types):
             continue
         existing_fields[decision.canonical_name] = field_payload_from_decision(
             decision,
