@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
+from src.common.model_config import ModelSelection, resolve_selection
 from src.extract.analyze import (
     analyze,
     build_feedback,
@@ -29,6 +30,17 @@ def select_discovery_samples(args) -> tuple[str, ...]:
     )
 
 
+def _selection(args) -> ModelSelection:
+    existing = getattr(args, "selection", None)
+    if existing is not None:
+        return existing
+    return resolve_selection(
+        provider=getattr(args, "provider", None),
+        model=getattr(args, "model", None),
+        document_input=getattr(args, "document_input", None),
+    )
+
+
 def generate_schema(
     args,
     feedback: str | None,
@@ -40,10 +52,11 @@ def generate_schema(
         sample_paths = select_discovery_samples(args)
     resolved_sample_paths = [str(path) for path in sample_paths]
     schema_yaml = SchemaDiscovery(
-        model=args.model,
+        selection=_selection(args),
         timeout_seconds=args.timeout,
         usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
         extra_instructions=feedback,
+        pdf_root=Path(args.input_root),
     ).discover(resolved_sample_paths, output_path=out_path)
     out_path.write_text(schema_yaml, encoding="utf-8")
     return schema_yaml
@@ -58,9 +71,10 @@ def run_consensus_stage(
     """Run N patch generations against a draft and render consensus artifacts."""
     return SchemaConsensusRefinement(
         discovery=SchemaDiscovery(
-            model=args.model,
+            selection=_selection(args),
             timeout_seconds=args.timeout,
             usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
+            pdf_root=Path(args.input_root),
         ),
     ).refine(
         base_schema_path=draft_schema_path,
@@ -90,9 +104,10 @@ def evaluate_schema(
     extractions_dir = round_dir / "extractions"
     SchemaExtractor(
         schema_text=schema_text,
-        model=args.model,
+        selection=_selection(args),
         timeout_seconds=args.timeout,
         usage_log_path=str(round_dir / "extraction_usage.jsonl"),
+        pdf_root=Path(args.input_root),
     ).extract_many(eval_paths, extractions_dir)
 
     specs = load_field_specs(schema_text)

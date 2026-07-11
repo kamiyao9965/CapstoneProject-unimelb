@@ -6,16 +6,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
-from src.common.openai_run import (
-    DEFAULT_OPENAI_API_KEY_ENV,
-    PROJECT_API_KEY_ENV,
-    append_jsonl,
-    create_openai_client,
-    managed_uploaded_pdfs,
-    resolve_api_key,
-    run_response,
-    usage_value,
+from src.common.document_preprocessor import MarkdownPreprocessor, prepare_documents
+from src.common.model_config import ModelSelection
+from src.common.model_provider import (
+    ModelProvider,
+    ModelResponse,
+    ProviderRequest,
+    create_provider,
 )
+from src.common.openai_run import append_jsonl
 from src.extract.prompts import EXTRACTION_PROMPT
 
 
@@ -27,16 +26,25 @@ class SchemaExtractor:
         schema_text: str,
         model: str = "gpt-5",
         client: object | None = None,
+        selection: ModelSelection | None = None,
+        provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
         timeout_seconds: float = 600.0,
         usage_log_path: str | Path | None = "outputs/private_health/extraction_usage.jsonl",
         log: Callable[[str], None] | None = print,
         background: bool = True,
         poll_interval: float = 5.0,
+        pdf_root: str | Path | None = None,
+        preprocessor: MarkdownPreprocessor | None = None,
     ) -> None:
         self.schema_text = schema_text
-        self.model = model
-        self.client = client
+        self.selection = selection or ModelSelection("openai", model, "pdf")
+        self.model = self.selection.model
+        self.provider = provider or create_provider(self.selection, client=client)
+        # Markdown mode maps each PDF to its mirrored Markdown path before the
+        # provider request; PDF mode never touches the preprocessor.
+        self.pdf_root = Path(pdf_root) if pdf_root else None
+        self.preprocessor = preprocessor
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -50,49 +58,31 @@ class SchemaExtractor:
         if not pdf_path.exists():
             raise FileNotFoundError(pdf_path)
 
-        api_key, api_key_env = resolve_api_key()
-        if not api_key:
-            raise RuntimeError(
-                f"{PROJECT_API_KEY_ENV} or {DEFAULT_OPENAI_API_KEY_ENV} must be set to extract."
-            )
-
-        # Higher max_retries than the SDK default so transient upstream 5xx
-        # (e.g. Cloudflare 520) back off and retry instead of failing the batch.
-        client = create_openai_client(
-            self.client,
-            api_key=api_key,
-            timeout_seconds=self.timeout_seconds,
-        )
         started = time.perf_counter()
-        self._log(f"Extracting {pdf_path.name}...")
-        with managed_uploaded_pdfs(
-            client,
-            [pdf_path],
-            cleanup=self.cleanup_uploaded_files,
-            log=self._log,
-        ) as file_ids:
-            response = run_response(
-                client,
+        self._log(f"Extracting {pdf_path.name} with {self.selection.provider}/{self.model}...")
+        document_paths = prepare_documents(
+            self.selection, (pdf_path,), self.pdf_root, self.preprocessor
+        )
+        response = self.provider.generate(
+            ProviderRequest(
+                selection=self.selection,
+                system_prompt=EXTRACTION_PROMPT,
+                user_text=(
+                    f"Schema (YAML):\n{self.schema_text}\n\n"
+                    "Extract from the attached PDF."
+                ),
+                document_paths=document_paths,
+                timeout_seconds=self.timeout_seconds,
+                cleanup_documents=self.cleanup_uploaded_files,
+                request_params={},
                 background=self.background,
                 poll_interval=self.poll_interval,
-                poll_timeout=self.timeout_seconds,
                 log=self.log,
-                model=self.model,
-                input=[
-                    {"role": "system", "content": EXTRACTION_PROMPT},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text",
-                             "text": f"Schema (YAML):\n{self.schema_text}\n\nExtract from the attached PDF."},
-                            {"type": "input_file", "file_id": file_ids[0]},
-                        ],
-                    },
-                ],
             )
-            record = self._parse_json(response.output_text)
-            self._log_usage(response, pdf_path, api_key_env, round(time.perf_counter() - started, 3))
-            return record
+        )
+        record = self._parse_json(response.text)
+        self._log_usage(response, pdf_path, round(time.perf_counter() - started, 3))
+        return record
 
     def extract_many(self, pdf_paths: list[str | Path], out_dir: str | Path) -> list[Path]:
         out_dir = Path(out_dir)
@@ -133,20 +123,22 @@ class SchemaExtractor:
         if self.log:
             self.log(message)
 
-    def _log_usage(self, response: object, pdf_path: Path, api_key_env: str, duration: float) -> None:
+    def _log_usage(self, response: ModelResponse, pdf_path: Path, duration: float) -> None:
         if self.usage_log_path is None:
             return
-        usage = getattr(response, "usage", None)
+        usage = response.usage
         payload = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "event": "extraction",
-            "model": self.model,
-            "api_key_env": api_key_env,
+            "provider": response.provider,
+            "model": response.model,
+            "document_input": self.selection.document_input,
+            "api_key_env": response.api_key_env,
             "source_pdf": pdf_path.as_posix(),
             "duration_seconds": duration,
-            "input_tokens": usage_value(usage, "input_tokens", "prompt_tokens"),
-            "output_tokens": usage_value(usage, "output_tokens", "completion_tokens"),
-            "total_tokens": usage_value(usage, "total_tokens"),
+            "input_tokens": usage.input_tokens if usage else None,
+            "output_tokens": usage.output_tokens if usage else None,
+            "total_tokens": usage.total_tokens if usage else None,
         }
         append_jsonl(
             self.usage_log_path,

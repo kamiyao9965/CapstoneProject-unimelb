@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -9,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.common.model_config import resolve_selection
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
 
@@ -20,7 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--categories", nargs="+", default=list(DEFAULT_CATEGORIES))
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--seed", type=int)
-    parser.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-5"))
+    parser.add_argument("--provider")
+    parser.add_argument("--model")
+    parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--keep-uploaded-files", action="store_true")
     parser.add_argument("--output", default="outputs/private_health/schema.yaml")
@@ -29,7 +31,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    try:
+        selection = resolve_selection(
+            provider=args.provider,
+            model=args.model,
+            document_input=args.document_input,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
     categories = tuple(category.lower() for category in args.categories)
     input_root = Path(args.input_root)
     output_path = next_available_path(Path(args.output))
@@ -45,10 +56,11 @@ def main() -> int:
             print_samples(sample_paths, input_root, categories)
 
         schema_yaml = SchemaDiscovery(
-            model=args.model,
+            selection=selection,
             cleanup_uploaded_files=not args.keep_uploaded_files,
             timeout_seconds=args.timeout,
             usage_log_path=args.usage_log,
+            pdf_root=input_root,
         ).discover(sample_paths, output_path=output_path)
     except Exception as exc:
         print(f"Schema discovery failed: {exc}")

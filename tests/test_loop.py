@@ -6,7 +6,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from src.common.model_config import ModelSelection, resolve_selection
 from src.refine.pipeline import cli, rounds
+from src.refine.pipeline import steps
 
 
 def make_args(tmp: str, **overrides) -> SimpleNamespace:
@@ -38,6 +40,68 @@ class ParserBackwardCompatTest(unittest.TestCase):
         self.assertIsNone(args.resume_review)
         self.assertFalse(args.autonomous)
         self.assertEqual(args.rounds, 1)
+
+    def test_provider_flags_resolve_to_the_default_selection(self) -> None:
+        args = cli.build_parser().parse_args([])
+        selection = resolve_selection(
+            provider=args.provider,
+            model=args.model,
+            document_input=args.document_input,
+            environment={},
+        )
+
+        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "pdf"))
+
+
+class PipelineSelectionTest(unittest.TestCase):
+    def test_generate_schema_passes_args_selection_to_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = make_args(tmp)
+            args.selection = ModelSelection("anthropic", "claude-test", "pdf")
+            out_path = Path(tmp) / "schema.yaml"
+            discovery = mock.Mock()
+            discovery.discover.return_value = "fields: []\n"
+
+            with mock.patch.object(steps, "SchemaDiscovery", return_value=discovery) as factory:
+                steps.generate_schema(args, None, out_path, sample_paths=["sample.pdf"])
+
+        self.assertEqual(factory.call_args.kwargs["selection"], args.selection)
+        self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
+
+    def test_run_consensus_stage_passes_pdf_root_to_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = make_args(tmp)
+            args.selection = ModelSelection("openai", "gpt-5", "pdf")
+            draft_path = Path(tmp) / "draft.yaml"
+            draft_path.write_text("fields: []\n", encoding="utf-8")
+            discovery = mock.Mock()
+
+            with mock.patch.object(steps, "SchemaDiscovery", return_value=discovery) as factory, \
+                 mock.patch.object(steps, "SchemaConsensusRefinement") as refinement:
+                steps.run_consensus_stage(args, draft_path, Path(tmp) / "round_1")
+
+        self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
+        refinement.assert_called_once()
+
+    def test_evaluate_schema_passes_pdf_root_to_extractor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = make_args(tmp)
+            args.selection = ModelSelection("openai", "gpt-5", "pdf")
+            round_dir = Path(tmp) / "round_1"
+            round_dir.mkdir()
+            extractor = mock.Mock()
+            extractor.extract_many.return_value = []
+
+            with mock.patch.object(steps, "select_samples", return_value=["pdfs/eval.pdf"]), \
+                 mock.patch.object(steps, "SchemaExtractor", return_value=extractor) as factory, \
+                 mock.patch.object(steps, "load_field_specs", return_value={}), \
+                 mock.patch.object(steps, "load_records", return_value=[]), \
+                 mock.patch.object(steps, "analyze", return_value=None), \
+                 mock.patch.object(steps, "print_report"), \
+                 mock.patch.object(steps, "build_feedback", return_value="feedback"):
+                steps.evaluate_schema(args, "fields: []", round_dir)
+
+        self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
 
 
 class RunRoundModeTest(unittest.TestCase):

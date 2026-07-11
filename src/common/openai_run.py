@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Iterator
 
 from openai import OpenAI
+
+from src.common.model_config import ModelSelection, resolve_api_key as resolve_provider_api_key
 
 # Statuses a background response can be in while still running.
 PENDING_STATUSES = {"queued", "in_progress"}
@@ -16,15 +17,8 @@ DEFAULT_OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 
 
 def resolve_api_key() -> tuple[str | None, str]:
-    project_api_key = os.getenv(PROJECT_API_KEY_ENV)
-    if project_api_key:
-        return project_api_key, PROJECT_API_KEY_ENV
-
-    default_api_key = os.getenv(DEFAULT_OPENAI_API_KEY_ENV)
-    if default_api_key:
-        return default_api_key, DEFAULT_OPENAI_API_KEY_ENV
-
-    return None, PROJECT_API_KEY_ENV
+    """Backward-compatible OpenAI-only wrapper around shared key resolution."""
+    return resolve_provider_api_key(ModelSelection("openai", "gpt-5", "pdf"))
 
 
 def create_openai_client(

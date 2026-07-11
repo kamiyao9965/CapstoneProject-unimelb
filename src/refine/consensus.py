@@ -37,6 +37,7 @@ from src.refine.candidates.stability import (
     write_patch_stability,
 )
 from src.refine.human_review import build_review_queue, write_review_queue
+from src.common.model_config import resolve_selection
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
 
@@ -173,7 +174,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--runs", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--model", default="gpt-5")
+    parser.add_argument("--provider")
+    parser.add_argument("--model")
+    parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--out-dir", default="outputs/private_health/consensus")
     parser.add_argument("--alias-config", help="Alias YAML (default: configs/private_health/aliases.yaml)")
@@ -181,12 +184,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    try:
+        selection = resolve_selection(
+            provider=args.provider,
+            model=args.model,
+            document_input=args.document_input,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
     outputs = SchemaConsensusRefinement(
         discovery=SchemaDiscovery(
-            model=args.model,
+            selection=selection,
             timeout_seconds=args.timeout,
             usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
+            pdf_root=args.input_root,
         ),
     ).refine(
         base_schema_path=args.base_schema,

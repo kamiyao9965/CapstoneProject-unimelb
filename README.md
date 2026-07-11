@@ -3,10 +3,10 @@
 The core flow is:
 
 ```text
-private_health PDFs -> OpenAI model -> outputs/private_health/schema.yaml
+private_health PDFs -> selected provider model -> outputs/private_health/schema.yaml
 ```
 
-The code randomly samples representative PDFs, uploads them to OpenAI as file inputs, and asks the model to generate a reusable YAML schema. Around that sit cost estimation, schema stability measurement, field-level consensus refinement, and an extraction-driven refinement loop.
+The code randomly samples representative PDFs, sends them to the selected model provider (OpenAI by default; Anthropic and DeepSeek are also supported), and asks the model to generate a reusable YAML schema. Around that sit cost estimation, schema stability measurement, field-level consensus refinement, and an extraction-driven refinement loop.
 
 ## Project Structure
 
@@ -15,9 +15,12 @@ data/private_health/raw/PDFs/   input PDFs
 outputs/private_health/         generated schema output
 outputs/private_health/token_usage.jsonl  per-run token usage log
 src/run.py                      CLI entrypoint (one-shot discovery)
-src/schema/discovery.py         OpenAI schema/patch request construction
+src/schema/discovery.py         provider-neutral schema/patch request construction
 src/schema/prompts.py           discovery and patch prompts
 src/schema/sampler.py           random PDF sampling
+src/common/model_config.py      provider/model/document-input selection + key lookup
+src/common/model_provider.py    provider-neutral contract; OpenAI/Anthropic/DeepSeek adapters
+src/common/document_preprocessor.py  opt-in PDF-to-Markdown mirror (MinerU)
 src/common/openai_run.py        shared OpenAI client/file/usage lifecycle
 src/cost/                       token usage -> dollar estimates
 src/stability/                  schema drift measurement across runs
@@ -75,6 +78,21 @@ set MY_OPENAI_API_KEY=your_api_key_here
 
 This project prefers `MY_OPENAI_API_KEY` for testing. If it is not set, it falls back to `OPENAI_API_KEY`.
 
+### Provider credentials and endpoints
+
+Each provider reads only its own environment variables; keys are never CLI
+arguments and are never logged:
+
+| Provider | API-key environment variables | Optional endpoint override |
+| --- | --- | --- |
+| OpenAI | `MY_OPENAI_API_KEY`, then `OPENAI_API_KEY` | `OPENAI_BASE_URL` |
+| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL` |
+| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_BASE_URL` |
+
+`LLM_PROVIDER`, `LLM_MODEL`, and `LLM_DOCUMENT_INPUT` set environment-level
+defaults; explicit CLI flags always win, and the built-in defaults remain
+`openai` / `gpt-5` / `pdf`.
+
 ## Run
 
 Generate a schema using the default sampling strategy:
@@ -108,6 +126,29 @@ Use another model:
 ```bash
 python src/run.py --model gpt-5
 ```
+
+Select a provider and model (defaults: `--provider openai --model gpt-5`):
+
+```bash
+python src/run.py --provider anthropic --model <claude-model-id>
+```
+
+Use MinerU-generated Markdown mirrors instead of direct PDFs (opt-in):
+
+```bash
+python src/run.py --provider deepseek --model <deepseek-model-id> --document-input markdown
+```
+
+`--provider`, `--model`, and `--document-input` are accepted by every
+API-backed command (`src/run.py`, `src/refine/loop.py`,
+`src/refine/consensus.py`, `src/stability/measure.py`). In Markdown mode each
+sampled PDF under `data/private_health/raw/PDFs/` is mapped to the matching
+`data/private_health/raw/Markdown/` path; an existing mirror is reused, a
+missing one is generated locally with MinerU, and a conversion failure stops
+the run rather than falling back to the PDF. Sampling, holdout exclusion, and
+usage logs always keep the original PDF identity. DeepSeek supports Markdown
+input only; `--provider deepseek --document-input pdf` fails before any
+request is made.
 
 Use a different number per category:
 
