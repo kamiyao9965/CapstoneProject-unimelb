@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.refine.artifacts.schema_fields import fields_by_name, sanitize_field_payload
+from src.refine.artifacts.schema_fields import fields_by_name
 from src.refine.candidates.patch import dump_yaml, load_yaml
 from src.refine.human_review.constants import (
     DECISIONS_FILENAME,
@@ -16,6 +16,7 @@ from src.refine.human_review.constants import (
 )
 from src.refine.human_review.decisions import decisions_by_id, load_review_decisions
 from src.refine.human_review.queue import load_review_queue
+from src.schema.validation import validate_field_payload, validate_schema_mapping
 
 
 def apply_review(
@@ -43,10 +44,16 @@ def apply_review(
 
     reviewed = deepcopy(base_schema)
     fields = fields_by_name(reviewed.get("fields", []))
+    allowed_product_types = set(reviewed.get("product_types") or [])
     summary = {"applied": [], "edited": [], "rejected": [], "pending": []}
 
     for item in queue_items:
-        payload = _payload_from_review_item(item, by_id.get(item["id"]), summary)
+        payload = _payload_from_review_item(
+            item,
+            by_id.get(item["id"]),
+            summary,
+            allowed_product_types,
+        )
         if payload is not None:
             fields[str(payload["name"])] = payload
 
@@ -58,6 +65,7 @@ def apply_review(
         "rejected_count": len(summary["rejected"]),
         "pending_count": len(summary["pending"]),
     }
+    validate_schema_mapping(reviewed)
     return reviewed, summary
 
 
@@ -65,6 +73,7 @@ def _payload_from_review_item(
     item: dict,
     entry: dict | None,
     summary: dict[str, list[str]],
+    allowed_product_types: set[str],
 ) -> dict | None:
     if entry is None:
         summary["pending"].append(item["id"])
@@ -78,8 +87,21 @@ def _payload_from_review_item(
         summary["rejected"].append(item["id"])
         return None
     if action == "accept":
+        if item.get("needs_manual_edit"):
+            raise ValueError(
+                f"{item['id']} combines or requires manual patch semantics and "
+                "must be edited before it can be applied."
+            )
         summary["applied"].append(item["id"])
-        return sanitize_field_payload(deepcopy(item.get("proposed_update") or {}))
+        payload = deepcopy(item.get("proposed_update") or {})
+        validate_field_payload(payload, allowed_product_types)
+        return payload
+
+    if item.get("needs_schema_edit"):
+        raise ValueError(
+            f"{item['id']} uses rename/merge/move semantics and cannot be applied "
+            "as a field upsert; edit the base schema contract directly."
+        )
 
     payload = deepcopy(entry.get("edited_update"))
     if not isinstance(payload, dict) or not payload.get("name"):
@@ -88,7 +110,8 @@ def _payload_from_review_item(
             "with at least a name"
         )
     summary["edited"].append(item["id"])
-    return sanitize_field_payload(payload)
+    validate_field_payload(payload, allowed_product_types)
+    return payload
 
 
 def apply_review_files(

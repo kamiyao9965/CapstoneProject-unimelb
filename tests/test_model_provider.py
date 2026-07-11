@@ -12,6 +12,18 @@ from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest, create_provider
 from src.schema.discovery import SchemaDiscovery
 
+VALID_SCHEMA_TEXT = """vertical: private_health
+version: 0.1-draft
+product_types: [hospital]
+fields:
+  - name: product_name
+    type: string
+    description: Product name
+    applies_to: [hospital]
+    required: true
+    values: []
+"""
+
 
 class RecordingProvider:
     def __init__(self) -> None:
@@ -20,7 +32,7 @@ class RecordingProvider:
     def generate(self, request: ProviderRequest) -> ModelResponse:
         self.requests.append(request)
         return ModelResponse(
-            text="fields: []\n",
+            text=VALID_SCHEMA_TEXT,
             provider=request.selection.provider,
             model=request.selection.model,
             response_id="response_001",
@@ -43,7 +55,7 @@ class ProviderContractTest(unittest.TestCase):
 
             schema = discovery.discover([str(pdf_path)])
 
-        self.assertEqual(schema, "fields: []\n")
+        self.assertEqual(schema, VALID_SCHEMA_TEXT)
         self.assertEqual(len(provider.requests), 1)
         request = provider.requests[0]
         self.assertEqual(request.selection, selection)
@@ -398,6 +410,70 @@ class ProviderContractTest(unittest.TestCase):
 
         self.assertEqual(response.text, "ok")
         self.assertIn("# source", calls["messages"][0]["content"][0]["text"])
+
+    def test_anthropic_provider_rejects_max_token_truncation(self) -> None:
+        response = SimpleNamespace(
+            id="msg_truncated",
+            stop_reason="max_tokens",
+            content=[SimpleNamespace(type="text", text="partial")],
+            usage=None,
+        )
+        client = SimpleNamespace(
+            messages=SimpleNamespace(create=lambda **_: response)
+        )
+        selection = ModelSelection("anthropic", "claude-test", "markdown")
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "truncated"):
+                create_provider(selection, client=client).generate(
+                    ProviderRequest(
+                        selection=selection,
+                        system_prompt="system",
+                        user_text="user",
+                        document_paths=(),
+                        timeout_seconds=1,
+                        cleanup_documents=True,
+                        request_params={},
+                        background=False,
+                        poll_interval=0,
+                        log=None,
+                    )
+                )
+
+    def test_deepseek_provider_rejects_length_truncation(self) -> None:
+        response = SimpleNamespace(
+            id="chat_truncated",
+            choices=[
+                SimpleNamespace(
+                    finish_reason="length",
+                    message=SimpleNamespace(content="partial"),
+                )
+            ],
+            usage=None,
+        )
+        client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=lambda **_: response)
+            )
+        )
+        selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+
+        with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "truncated"):
+                create_provider(selection, client=client).generate(
+                    ProviderRequest(
+                        selection=selection,
+                        system_prompt="system",
+                        user_text="user",
+                        document_paths=(),
+                        timeout_seconds=1,
+                        cleanup_documents=True,
+                        request_params={},
+                        background=False,
+                        poll_interval=0,
+                        log=None,
+                    )
+                )
 
 
 if __name__ == "__main__":

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-
 from src.refine.candidates.aggregator import FieldDecision
+from src.refine.candidates.patch import MANUAL_EDIT_PATCH_TYPES
 
 VALID_PRODUCT_TYPES = ("hospital", "extras", "generalhealth", "combined")
 
@@ -30,18 +29,6 @@ def applies_to_from_group(target_group: str) -> list[str]:
     return [candidate] if candidate in VALID_PRODUCT_TYPES else []
 
 
-def sanitize_field_payload(payload: dict[str, object]) -> dict[str, object]:
-    """Return a copy whose applies_to contains only valid product types."""
-    sanitized = deepcopy(payload)
-    applies_to = sanitized.get("applies_to", [])
-    if not isinstance(applies_to, list):
-        applies_to = []
-    sanitized["applies_to"] = [
-        value for value in applies_to if value in VALID_PRODUCT_TYPES
-    ]
-    return sanitized
-
-
 def field_payload_from_decision(
     decision: FieldDecision,
     existing_field: dict[str, object] | None = None,
@@ -49,18 +36,29 @@ def field_payload_from_decision(
 ) -> dict[str, object]:
     """Build the schema field payload implied by one consensus decision."""
     payload = dict(existing_field or {})
-    payload.update(
-        {
-            "name": decision.canonical_name,
-            "type": payload.get("type") or decision.field_type,
-            "description": payload.get("description") or decision.description,
-            "applies_to": payload.get("applies_to")
-            or applies_to_from_group(decision.target_group),
-            "required": payload.get("required", decision.decision == "core"),
-            "values": payload.get("values", []),
-        }
-    )
-    payload = sanitize_field_payload(payload)
+    patch_types = set(decision.patch_types)
+    if patch_types == {"update_description"}:
+        payload["description"] = decision.description
+    elif patch_types == {"add_alias"}:
+        payload["aliases"] = sorted(
+            set(payload.get("aliases") or []) | set(decision.aliases)
+        )
+    else:
+        payload.update(
+            {
+                "name": decision.canonical_name,
+                "type": payload.get("type") or decision.field_type,
+                "description": payload.get("description") or decision.description,
+                "applies_to": payload.get("applies_to")
+                or decision.applies_to
+                or applies_to_from_group(decision.target_group),
+                "required": payload.get(
+                    "required",
+                    decision.required if decision.required is not None else False,
+                ),
+                "values": payload.get("values", decision.values),
+            }
+        )
     if include_consensus:
         payload["consensus"] = {
             **dict(payload.get("consensus") or {}),
@@ -71,3 +69,17 @@ def field_payload_from_decision(
             "source_runs": decision.source_runs,
         }
     return payload
+
+
+def decision_requires_manual_edit(decision: FieldDecision) -> bool:
+    """Return whether collapsed patch semantics are unsafe to apply unattended."""
+    patch_types = set(decision.patch_types)
+    return (
+        len(patch_types) != 1
+        or bool(MANUAL_EDIT_PATCH_TYPES.intersection(patch_types))
+    )
+
+
+def decision_requires_schema_edit(decision: FieldDecision) -> bool:
+    """Return whether the action cannot be represented as one field upsert."""
+    return bool(MANUAL_EDIT_PATCH_TYPES.intersection(decision.patch_types))

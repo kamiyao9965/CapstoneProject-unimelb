@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Iterable
 
 from src.refine.artifacts.schema_fields import (
+    decision_requires_manual_edit,
+    decision_requires_schema_edit,
     field_payload_from_decision,
     fields_by_name,
 )
 from src.refine.candidates.aggregator import FieldDecision
 from src.refine.candidates.patch import dump_yaml, load_yaml
-from src.refine.human_review.constants import MANUAL_EDIT_PATCH_TYPES
 
 
 def build_review_queue(
@@ -57,9 +58,8 @@ def _queue_item(decision: FieldDecision, existing_field: dict | None) -> dict:
         "evidence_documents": [doc.to_dict() for doc in decision.evidence_documents],
         "rationale_samples": decision.rationale_samples,
         "reject_rationale_samples": decision.reject_rationale_samples,
-        "needs_manual_edit": bool(
-            MANUAL_EDIT_PATCH_TYPES.intersection(decision.patch_types)
-        ),
+        "needs_manual_edit": decision_requires_manual_edit(decision),
+        "needs_schema_edit": decision_requires_schema_edit(decision),
         "proposed_update": field_payload_from_decision(decision, existing_field),
     }
 

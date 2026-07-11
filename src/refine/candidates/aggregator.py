@@ -27,6 +27,9 @@ class FieldDecision:
     # canonical name. Display-only - never reduces frequency or the decision.
     reject_votes: int = 0
     reject_rationale_samples: list[str] = field(default_factory=list)
+    applies_to: list[str] = field(default_factory=list)
+    required: bool | None = None
+    values: list[str] = field(default_factory=list)
 
     @property
     def frequency_label(self) -> str:
@@ -48,6 +51,9 @@ class FieldDecision:
             "source_runs": self.source_runs,
             "average_confidence": round(self.average_confidence, 3),
             "description": self.description,
+            "applies_to": self.applies_to,
+            "required": self.required,
+            "values": self.values,
             "rationale_samples": self.rationale_samples,
             "reject_votes": self.reject_votes_label,
             "reject_rationale_samples": self.reject_rationale_samples,
@@ -140,6 +146,9 @@ def _build_decision(
         rationale_samples=_sample_rationales(patches),
         reject_votes=reject_votes,
         reject_rationale_samples=_sample_rationales(reject_patches),
+        applies_to=list(_most_common_tuple([patch.applies_to for patch in patches])),
+        required=_most_common_bool([patch.required for patch in patches]),
+        values=list(_most_common_tuple([patch.values for patch in patches])),
     )
 
 
@@ -155,6 +164,25 @@ def _most_common(values: list[str]) -> str:
 
 def _first_non_empty(values: list[str]) -> str:
     return next((value for value in values if value), "")
+
+
+def _most_common_tuple(values: list[tuple[str, ...]]) -> tuple[str, ...]:
+    populated = [value for value in values if value]
+    if not populated:
+        return ()
+    return sorted(
+        ((value, populated.count(value)) for value in set(populated)),
+        key=lambda item: (-item[1], item[0]),
+    )[0][0]
+
+
+def _most_common_bool(values: list[bool | None]) -> bool | None:
+    populated = [value for value in values if value is not None]
+    if not populated:
+        return None
+    true_count = populated.count(True)
+    false_count = populated.count(False)
+    return true_count > false_count
 
 
 def _sample_rationales(patches: list[SchemaPatch], cap: int = 3) -> list[str]:

@@ -347,7 +347,8 @@ main()
 
 ### 5.2 `src/schema/sampler.py`
 
-整体作用：根据 PDF 路径中的 category 和 company 做平衡采样。
+整体作用：根据 PDF 路径中的 category 和 company 做平衡采样，并用
+SHA-256 内容 identity 防止重复 PDF 跨 build/holdout 泄漏。
 
 被谁调用：
 
@@ -358,14 +359,15 @@ main()
 
 函数说明：
 
-- `select_samples(input_root, categories, per_category, seed, exclude_paths)`：每个 category 选 `per_category` 个 company/PDF，并可排除建模阶段已使用的 PDF。
+- `select_samples(input_root, categories, per_category, seed, exclude_paths)`：每个 category 选择不同 company 和不同内容 identity，并排除建模阶段使用过的整个重复内容组。
+- `document_identity(path)`：计算带文件元数据缓存的 SHA-256 identity。
 - `collect_candidates(input_root, categories)`：扫描目录，按 category -> company -> PDF 建索引。
 - `company_from_path(pdf_path, input_root, category)`：从 PDF 路径推断 company 名称。
 - `print_samples(sample_paths, input_root, categories)`：把采样结果按 category 打印出来。
 
 ### 5.3 `src/schema/discovery.py`
 
-整体作用：OpenAI-backed schema generation 和 patch generation 的 owner。负责 schema/patch 请求内容、YAML 清洗和 schema-specific usage payload；共享 API key、client、上传/清理和 JSONL 生命周期由 `src/common/openai_run.py` 负责。
+整体作用：provider-neutral schema generation 和 patch generation 的 owner。负责 schema/patch 请求内容、YAML 清洗和 schema-specific usage payload；完整 schema 在记录成功和返回前由 `src/schema/validation.py` 验证。
 
 被谁调用：
 
@@ -386,6 +388,12 @@ main()
 - `_input_content(pdf_paths, file_ids)`：构造完整 schema discovery 的 user content。
 - `_patch_input_content(pdf_paths, file_ids, current_schema)`：构造 patch discovery 的 user content。
 - `_log_usage(...)`：把 token、耗时、样本等写入 JSONL。
+
+### 5.3.1 `src/schema/validation.py`
+
+整体作用：验证完整 private-health schema 和单个 field payload；拒绝无效
+YAML、重复字段、未知 product type、缺失 required/applies_to，以及没有
+allowed values 的 enum。
 
 ### 5.4 `src/schema/prompts.py`
 
@@ -641,8 +649,8 @@ SchemaConsensusRefinement.refine()
 
 - `fields_by_name(fields)`：把 schema 的 fields list 转成 name -> field dict。
 - `applies_to_from_group(target_group)`：把 consensus group 映射成 schema 的 applies_to。
-- `sanitize_field_payload(payload)`：清洗 field payload，防止 group 名混入 applies_to。
 - `field_payload_from_decision(decision, existing_field=None, include_consensus=False)`：从 FieldDecision 构造或更新 schema field。
+- `decision_requires_manual_edit(decision)`：识别混合 action 和 rename/merge/move 等不能安全自动应用的决策。
 
 ### 5.16 `src/refine/artifacts/renderer.py`
 
@@ -672,7 +680,7 @@ SchemaConsensusRefinement.refine()
 
 常量说明：
 
-- `MANUAL_EDIT_PATCH_TYPES`：rename/merge/move 这类建议需要人工编辑确认。
+- `MANUAL_EDIT_PATCH_TYPES`：rename/merge/move 这类 schema-level 建议仅供审计，不能作为 field upsert 应用。
 - `SUPPORTED_ACTIONS`：支持 `accept`、`reject`、`edit`。
 - `QUEUE_FILENAME`：`review_queue.yaml`。
 - `DECISIONS_FILENAME`：`review_decisions.yaml`。
@@ -834,7 +842,8 @@ API key、client、PDF 上传/清理、usage 字段读取和 JSONL 追加复用 
 
 ### 5.27 `src/stability/signature.py`
 
-整体作用：把 schema YAML 转成可比较的 signature。
+整体作用：把 schema YAML 转成可比较的 semantic signature；字段比较包含
+type、required、applies_to、values、description 和扩展结构，而不仅是名字。
 
 被谁调用：
 
@@ -843,7 +852,7 @@ API key、client、PDF 上传/清理、usage 字段读取和 JSONL 追加复用 
 
 类和函数说明：
 
-- `SchemaSignature`：保存 product_types、fields、hospital_categories、extras_services 等集合。
+- `SchemaSignature`：保存 product_types、field names、field contracts、hospital_categories、extras_services 等集合。
 - `_canonical_names(items, key)`：从 list 中提取规范化名字集合。
 - `signature_from_text(text, label)`：从 YAML 文本生成 SchemaSignature。
 - `signature_from_file(path)`：从 YAML 文件生成 SchemaSignature。
@@ -1204,16 +1213,20 @@ reject_field
 | `>= 0.2` | `candidate` |
 | `< 0.2` | `noise` |
 
-`consensus_schema.yaml` 只自动合并：
+`consensus_schema.yaml` 只考虑以下 frequency 层级：
 
 ```text
 core
 conditional
 ```
 
-`rename_field`、`merge_fields`、`move_field_group` 即使达到上述频率，也不会无人值守自动合并，只进入 review queue。
+Frequency 不代表 requiredness。只有单一、完整、无 reject vote 的安全 action
+可以无人值守合并；混合 action 必须保存显式 field edit。`rename_field`、
+`merge_fields`、`move_field_group` 是 audit-only，不能作为 field upsert 应用，
+必须直接修改 base schema。
 
-`reject_field` 只是负面信号，用于 review 展示，不会降低 frequency。只有 reject、没有正向 patch 的字段不会生成 FieldDecision。
+`reject_field` 不改变 frequency 分类，但任何 reject vote 都会阻止无人值守
+合并。只有 reject、没有正向 patch 的字段不会生成 FieldDecision。
 
 ## 10. alias 归一化
 

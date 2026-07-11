@@ -73,6 +73,18 @@ class ModelSelectionTest(unittest.TestCase):
 
         self.assertEqual(selection.model, "gpt-legacy")
 
+    def test_non_openai_provider_requires_an_explicit_or_environment_model(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Model must be provided"):
+            resolve_selection(provider="anthropic", environment={})
+
+        self.assertEqual(
+            resolve_selection(
+                provider="deepseek",
+                environment={"LLM_MODEL": "deepseek-chat"},
+            ),
+            ModelSelection("deepseek", "deepseek-chat", "pdf"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

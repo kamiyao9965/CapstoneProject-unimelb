@@ -15,6 +15,7 @@ from src.common.model_provider import (
 )
 from src.common.openai_run import append_jsonl
 from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT, SCHEMA_PATCH_PROMPT
+from src.schema.validation import validate_schema_text
 
 
 class SchemaDiscovery:
@@ -123,6 +124,9 @@ class SchemaDiscovery:
                 log=self.log,
             )
         )
+        cleaned_text = self._clean_yaml(response.text)
+        if usage_event == "schema_discovery":
+            validate_schema_text(cleaned_text)
         completed_at = datetime.now(timezone.utc)
         duration_seconds = round(time.perf_counter() - started_perf, 3)
         self._log_usage(
@@ -134,7 +138,7 @@ class SchemaDiscovery:
             resolved_output_path,
             usage_event,
         )
-        return self._clean_yaml(response.text)
+        return cleaned_text
 
     def _input_text(self, pdf_paths: list[Path]) -> str:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)

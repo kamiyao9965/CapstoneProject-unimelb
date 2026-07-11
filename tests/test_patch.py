@@ -23,6 +23,9 @@ def make_patch_dict(**overrides) -> dict:
         "canonical_name": "excess",
         "type": "number",
         "description": "Excess payable per admission",
+        "applies_to": ["hospital"],
+        "required": False,
+        "values": [],
         "evidence_documents": [
             {"path": "pdfs/a.pdf", "quote_or_summary": "Excess $500"},
         ],
@@ -42,6 +45,9 @@ class SchemaPatchFromDictTest(unittest.TestCase):
         self.assertEqual(patch.canonical_name, "excess")
         self.assertEqual(patch.field_type, "number")
         self.assertEqual(patch.confidence, 0.9)
+        self.assertEqual(patch.applies_to, ("hospital",))
+        self.assertFalse(patch.required)
+        self.assertEqual(patch.values, ())
         self.assertEqual(patch.source_run, "run_001")
         self.assertEqual(patch.evidence_documents[0].path, "pdfs/a.pdf")
 
@@ -57,9 +63,9 @@ class SchemaPatchFromDictTest(unittest.TestCase):
         self.assertEqual(patch.target_group, "identity")
         self.assertEqual(patch.field_type, "enum")
 
-    def test_non_numeric_confidence_becomes_zero(self) -> None:
-        patch = SchemaPatch.from_dict(make_patch_dict(confidence="high"))
-        self.assertEqual(patch.confidence, 0.0)
+    def test_non_numeric_confidence_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "confidence"):
+            SchemaPatch.from_dict(make_patch_dict(confidence="high"))
 
     def test_evidence_from_plain_string(self) -> None:
         document = EvidenceDocument.from_value("pdfs/b.pdf")
@@ -77,6 +83,25 @@ class SchemaPatchValidateTest(unittest.TestCase):
         patch = SchemaPatch.from_dict(make_patch_dict(field_name="", canonical_name=""))
         with self.assertRaises(ValueError):
             patch.validate()
+
+    def test_rejects_add_field_enum_without_allowed_values(self) -> None:
+        patch = SchemaPatch.from_dict(make_patch_dict(type="enum", values=[]))
+        with self.assertRaisesRegex(ValueError, "enum.*values"):
+            patch.validate()
+
+    def test_rejects_add_field_with_unknown_product_type(self) -> None:
+        patch = SchemaPatch.from_dict(make_patch_dict(applies_to=["dental"]))
+        with self.assertRaisesRegex(ValueError, "applies_to"):
+            patch.validate()
+
+    def test_rejects_confidence_outside_zero_to_one(self) -> None:
+        patch = SchemaPatch.from_dict(make_patch_dict(confidence=1.2))
+        with self.assertRaisesRegex(ValueError, "confidence"):
+            patch.validate()
+
+    def test_rejects_scalar_applies_to_instead_of_silently_iterating_it(self) -> None:
+        with self.assertRaisesRegex(ValueError, "applies_to"):
+            SchemaPatch.from_dict(make_patch_dict(applies_to="hospital"))
 
 
 class ParsePatchPayloadTest(unittest.TestCase):

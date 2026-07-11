@@ -57,6 +57,9 @@ patches:
     canonical_name: snake_case_canonical_name
     type: string | number | boolean | enum | list[object]
     description: short production-oriented description
+    applies_to: [hospital | extras | generalhealth | combined]
+    required: false
+    values: []  # required and non-empty for enum fields
     evidence_documents:
       - path: source PDF path when available
         quote_or_summary: short evidence summary

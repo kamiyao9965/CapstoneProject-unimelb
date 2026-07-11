@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from src.schema.validation import SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES
+
 
 SUPPORTED_PATCH_TYPES = {
     "add_field",
@@ -58,6 +60,9 @@ class SchemaPatch:
     confidence: float = 0.0
     rationale: str = ""
     source_run: str = ""
+    applies_to: tuple[str, ...] = field(default_factory=tuple)
+    required: bool | None = None
+    values: tuple[str, ...] = field(default_factory=tuple)
 
     @classmethod
     def from_dict(cls, value: dict[str, Any], source_run: str = "") -> "SchemaPatch":
@@ -76,9 +81,16 @@ class SchemaPatch:
             field_type=str(value.get("type") or value.get("field_type") or "string").strip(),
             description=str(value.get("description") or "").strip(),
             evidence_documents=evidence,
-            confidence=_float_or_zero(value.get("confidence")),
+            confidence=_confidence(value.get("confidence")),
             rationale=str(value.get("rationale") or "").strip(),
             source_run=source_run,
+            applies_to=_string_tuple(value.get("applies_to"), "applies_to"),
+            required=(
+                value.get("required")
+                if isinstance(value.get("required"), bool)
+                else None
+            ),
+            values=_string_tuple(value.get("values"), "values"),
         )
 
     def validate(self) -> None:
@@ -86,6 +98,25 @@ class SchemaPatch:
             raise ValueError(f"Unsupported patch_type: {self.patch_type}")
         if not self.field_name and not self.canonical_name:
             raise ValueError("Patch must include field_name or canonical_name.")
+        if not 0.0 <= self.confidence <= 1.0:
+            raise ValueError("Patch confidence must be between 0 and 1.")
+        if self.patch_type == "add_field":
+            if self.field_type not in SUPPORTED_FIELD_TYPES:
+                raise ValueError(f"Unsupported field type: {self.field_type}")
+            if not self.description:
+                raise ValueError("add_field patch must include a description.")
+            if not self.applies_to or set(self.applies_to) - SUPPORTED_PRODUCT_TYPES:
+                raise ValueError(
+                    "add_field patch applies_to must contain supported product types."
+                )
+            if self.required is None:
+                raise ValueError("add_field patch must declare required as true or false.")
+            if self.field_type == "enum" and not self.values:
+                raise ValueError("add_field enum patch must declare allowed values.")
+        if self.patch_type == "update_description" and not self.description:
+            raise ValueError("update_description patch must include a description.")
+        if self.patch_type == "add_alias" and self.field_name == self.canonical_name:
+            raise ValueError("add_alias patch must provide an alias distinct from canonical_name.")
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -95,6 +126,9 @@ class SchemaPatch:
             "canonical_name": self.canonical_name,
             "type": self.field_type,
             "description": self.description,
+            "applies_to": list(self.applies_to),
+            "required": self.required,
+            "values": list(self.values),
             "evidence_documents": [
                 document.to_dict() for document in self.evidence_documents
             ],
@@ -155,8 +189,20 @@ def _require_yaml() -> Any:
     return yaml
 
 
-def _float_or_zero(value: object) -> float:
+def _confidence(value: object) -> float:
+    if value is None:
+        return 0.0
     try:
         return float(value)
-    except (TypeError, ValueError):
-        return 0.0
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Patch confidence must be numeric.") from exc
+
+
+def _string_tuple(value: object, label: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ValueError(f"Patch {label} must be a list.")
+    if any(not isinstance(item, (str, int, float, bool)) for item in value):
+        raise ValueError(f"Patch {label} must contain scalar values only.")
+    return tuple(str(item) for item in value)

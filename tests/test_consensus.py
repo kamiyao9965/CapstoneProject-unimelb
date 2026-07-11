@@ -11,6 +11,7 @@ from src.refine.consensus import SchemaConsensusRefinement
 BASE_SCHEMA_TEXT = """\
 vertical: private_health
 version: 0.1-draft
+product_types: [hospital, extras]
 fields:
   - name: product_name
     type: string
@@ -30,11 +31,18 @@ patches:
     canonical_name: excess
     type: number
     description: Excess payable per admission
+    applies_to: [hospital]
+    required: false
+    values: []
     confidence: 0.9
   - patch_type: add_field
     target_group: marketing
     field_name: promo_text
     type: string
+    description: Promotional text
+    applies_to: [hospital]
+    required: false
+    values: []
     confidence: 0.2
 """
 
@@ -45,6 +53,9 @@ patches:
     field_name: excess
     type: number
     description: Excess payable per admission
+    applies_to: [hospital]
+    required: false
+    values: []
     confidence: 0.8
 """
 

@@ -172,6 +172,11 @@ class AnthropicProvider:
             messages=[{"role": "user", "content": content}],
             **parameters,
         )
+        if getattr(response, "stop_reason", None) == "max_tokens":
+            raise RuntimeError(
+                "Anthropic response was truncated because it reached max_tokens; "
+                "increase max_tokens before accepting the generated artifact."
+            )
         usage = getattr(response, "usage", None)
         return ModelResponse(
             text="".join(
@@ -241,9 +246,19 @@ class DeepSeekProvider:
             ],
             **request.request_params,
         )
+        if not getattr(response, "choices", None):
+            raise RuntimeError("DeepSeek response contained no completion choices.")
+        choice = response.choices[0]
+        finish_reason = getattr(choice, "finish_reason", None)
+        if finish_reason == "length":
+            raise RuntimeError(
+                "DeepSeek response was truncated because it reached the output length limit."
+            )
+        if finish_reason == "content_filter":
+            raise RuntimeError("DeepSeek response was blocked by the content filter.")
         usage = getattr(response, "usage", None)
         return ModelResponse(
-            text=response.choices[0].message.content or "",
+            text=choice.message.content or "",
             provider=request.selection.provider,
             model=request.selection.model,
             response_id=getattr(response, "id", None),

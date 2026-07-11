@@ -14,6 +14,8 @@ from src.refine.human_review import (
 
 BASE_SCHEMA = {
     "vertical": "private_health",
+    "version": "0.1-draft",
+    "product_types": ["hospital", "extras", "generalhealth", "combined"],
     "fields": [
         {
             "name": "product_name",
@@ -179,17 +181,16 @@ class ApplyReviewTest(unittest.TestCase):
         self.apply(queue, decisions)
         self.assertEqual(len(BASE_SCHEMA["fields"]), 1)
 
-    def test_accept_filters_group_names_out_of_applies_to(self) -> None:
+    def test_accept_rejects_group_names_in_applies_to(self) -> None:
         queue = make_queue()
         # Simulate a hand-edited queue that smuggled a group name in.
         queue["updates"][0]["proposed_update"]["applies_to"] = ["extras_cover", "extras"]
         decisions = empty_decisions()
         upsert_decision(decisions, "field:annual_limit", "accept")
-        reviewed, _ = self.apply(queue, decisions)
-        field = next(f for f in reviewed["fields"] if f["name"] == "annual_limit")
-        self.assertEqual(field["applies_to"], ["extras"])
+        with self.assertRaisesRegex(ValueError, "unknown product types"):
+            self.apply(queue, decisions)
 
-    def test_edit_filters_group_names_out_of_applies_to(self) -> None:
+    def test_edit_rejects_group_names_in_applies_to(self) -> None:
         queue = make_queue()
         decisions = empty_decisions()
         upsert_decision(
@@ -205,9 +206,40 @@ class ApplyReviewTest(unittest.TestCase):
                 "values": [],
             },
         )
-        reviewed, _ = self.apply(queue, decisions)
-        field = next(f for f in reviewed["fields"] if f["name"] == "annual_limit")
-        self.assertEqual(field["applies_to"], ["extras"])
+        with self.assertRaisesRegex(ValueError, "unknown product types"):
+            self.apply(queue, decisions)
+
+    def test_manual_patch_cannot_be_plainly_accepted(self) -> None:
+        queue = make_queue(
+            [make_decision("renamed_field", patch_types=["rename_field"])]
+        )
+        decisions = empty_decisions()
+        upsert_decision(decisions, "field:renamed_field", "accept")
+
+        with self.assertRaisesRegex(ValueError, "must be edited"):
+            self.apply(queue, decisions)
+
+    def test_rename_patch_cannot_be_applied_as_an_edited_upsert(self) -> None:
+        queue = make_queue(
+            [make_decision("renamed_field", patch_types=["rename_field"])]
+        )
+        decisions = empty_decisions()
+        upsert_decision(
+            decisions,
+            "field:renamed_field",
+            "edit",
+            edited_update={
+                "name": "renamed_field",
+                "type": "number",
+                "description": "Renamed field",
+                "applies_to": ["extras"],
+                "required": False,
+                "values": [],
+            },
+        )
+
+        with self.assertRaisesRegex(ValueError, "cannot be applied as a field upsert"):
+            self.apply(queue, decisions)
 
     def test_unknown_decision_id_fails_loudly(self) -> None:
         decisions = empty_decisions()

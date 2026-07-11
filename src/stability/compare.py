@@ -76,7 +76,7 @@ def compare(signatures: list[SchemaSignature], show_items: bool) -> float:
         print()
 
     if overall >= 0.9:
-        verdict = "HIGH stability - safe to build on"
+        verdict = "HIGH contract stability - safe to build on"
     elif overall >= 0.75:
         verdict = "MODERATE stability - core is stable, edges drift; pin or merge before building"
     else:

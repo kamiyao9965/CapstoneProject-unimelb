@@ -39,23 +39,26 @@ def resolve_selection(
     resolved_provider = _normalized(
         provider if provider is not None else environment.get("LLM_PROVIDER", DEFAULT_PROVIDER)
     )
+    if resolved_provider not in SUPPORTED_PROVIDERS:
+        raise ValueError(
+            f"Unsupported provider {resolved_provider!r}. "
+            f"Choose one of: {', '.join(sorted(SUPPORTED_PROVIDERS))}."
+        )
     environment_model = environment.get("LLM_MODEL")
     if environment_model is None and resolved_provider == "openai":
         environment_model = environment.get("OPENAI_MODEL", DEFAULT_MODEL)
-    resolved_model = _trimmed(
-        model if model is not None else environment_model or DEFAULT_MODEL
-    )
+    if model is None and environment_model is None and resolved_provider != "openai":
+        raise ValueError(
+            f"Model must be provided for provider {resolved_provider!r} via "
+            "--model or LLM_MODEL."
+        )
+    resolved_model = _trimmed(model if model is not None else environment_model)
     resolved_document_input = _normalized(
         document_input
         if document_input is not None
         else environment.get("LLM_DOCUMENT_INPUT", DEFAULT_DOCUMENT_INPUT)
     )
 
-    if resolved_provider not in SUPPORTED_PROVIDERS:
-        raise ValueError(
-            f"Unsupported provider {resolved_provider!r}. "
-            f"Choose one of: {', '.join(sorted(SUPPORTED_PROVIDERS))}."
-        )
     if resolved_document_input not in SUPPORTED_DOCUMENT_INPUTS:
         raise ValueError(
             f"Unsupported document input {resolved_document_input!r}. "

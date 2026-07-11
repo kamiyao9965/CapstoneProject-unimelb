@@ -11,15 +11,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.refine.artifacts.schema_fields import (
+    applies_to_from_group,
+    decision_requires_manual_edit,
     field_payload_from_decision,
     fields_by_name,
 )
 from src.refine.candidates.aggregator import FieldDecision
-from src.refine.candidates.patch import (
-    MANUAL_EDIT_PATCH_TYPES,
-    dump_yaml,
-    load_yaml,
-)
+from src.refine.candidates.patch import dump_yaml, load_yaml
+from src.schema.validation import validate_schema_mapping
 
 
 PROMOTED_DECISIONS = {"core", "conditional"}
@@ -40,11 +39,20 @@ def render_consensus_schema(
     for decision in decisions:
         if decision.decision not in PROMOTED_DECISIONS:
             continue
-        if MANUAL_EDIT_PATCH_TYPES.intersection(decision.patch_types):
+        if decision.reject_votes or decision_requires_manual_edit(decision):
+            continue
+        patch_type = decision.patch_types[0]
+        existing_field = existing_fields.get(decision.canonical_name)
+        if patch_type in {"update_description", "add_alias"} and existing_field is None:
+            continue
+        if patch_type == "add_field" and (
+            not (decision.applies_to or applies_to_from_group(decision.target_group))
+            or (decision.field_type == "enum" and not decision.values)
+        ):
             continue
         existing_fields[decision.canonical_name] = field_payload_from_decision(
             decision,
-            existing_fields.get(decision.canonical_name),
+            existing_field,
             include_consensus=True,
         )
 
@@ -53,6 +61,7 @@ def render_consensus_schema(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "promoted_decisions": sorted(PROMOTED_DECISIONS),
     }
+    validate_schema_mapping(consensus_schema)
     dump_yaml(consensus_schema, output_path)
 
 

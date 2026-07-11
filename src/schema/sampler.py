@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import random
 from collections import defaultdict
+from functools import lru_cache
+from hashlib import sha256
 from pathlib import Path
 from typing import Iterable
 
@@ -24,27 +26,115 @@ def select_samples(
     rng = random.Random(seed)
     candidates = collect_candidates(input_root, categories)
     excluded = {Path(path).resolve() for path in exclude_paths}
+    excluded_identities = {
+        document_identity(path)
+        for path in excluded
+        if path.is_file()
+    }
     selected: list[Path] = []
+    selected_identities: set[str] = set()
     errors: list[str] = []
 
     for category in categories:
         by_company = {
-            company: [path for path in paths if path.resolve() not in excluded]
+            company: [
+                path
+                for path in paths
+                if path.resolve() not in excluded
+                and document_identity(path) not in excluded_identities
+            ]
             for company, paths in candidates[category].items()
         }
         by_company = {company: paths for company, paths in by_company.items() if paths}
-        companies = sorted(by_company)
-        if len(companies) < per_category:
-            errors.append(f"{category}: found {len(companies)} companies, need {per_category}.")
+        category_selection = _select_unique_documents(
+            by_company,
+            per_category,
+            rng,
+            selected_identities,
+        )
+        if category_selection is None:
+            unique_documents = {
+                document_identity(path)
+                for paths in by_company.values()
+                for path in paths
+                if document_identity(path) not in selected_identities
+            }
+            errors.append(
+                f"{category}: found {len(unique_documents)} unique documents across "
+                f"{len(by_company)} companies, need {per_category}."
+            )
             continue
 
-        for company in rng.sample(companies, per_category):
-            selected.append(rng.choice(sorted(by_company[company])))
+        for path in category_selection:
+            selected.append(path)
+            selected_identities.add(document_identity(path))
 
     if errors:
-        raise ValueError("Not enough PDFs:\n" + "\n".join(f"- {error}" for error in errors))
+        raise ValueError(
+            "Not enough unique PDFs:\n" + "\n".join(f"- {error}" for error in errors)
+        )
 
     return [str(path) for path in selected]
+
+
+def document_identity(path: str | Path) -> str:
+    """Return a content identity that treats copied PDFs as the same document."""
+    resolved = Path(path).resolve()
+    stat = resolved.stat()
+    return _cached_digest(resolved, stat.st_size, stat.st_mtime_ns)
+
+
+@lru_cache(maxsize=None)
+def _cached_digest(path: Path, size: int, modified_ns: int) -> str:
+    del size, modified_ns  # cache-key metadata invalidates the digest after file changes
+    digest = sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _select_unique_documents(
+    by_company: dict[str, list[Path]],
+    count: int,
+    rng: random.Random,
+    unavailable_identities: set[str],
+) -> list[Path] | None:
+    """Choose distinct companies and content identities, or report impossibility."""
+    companies = sorted(by_company)
+    rng.shuffle(companies)
+    choices: dict[str, list[Path]] = {}
+    for company in companies:
+        paths = sorted(by_company[company])
+        rng.shuffle(paths)
+        choices[company] = paths
+
+    def search(
+        company_index: int,
+        chosen: list[Path],
+        used_identities: set[str],
+    ) -> list[Path] | None:
+        if len(chosen) == count:
+            return chosen
+        if len(companies) - company_index < count - len(chosen):
+            return None
+
+        for index in range(company_index, len(companies)):
+            company = companies[index]
+            for path in choices[company]:
+                identity = document_identity(path)
+                if identity in used_identities or identity in unavailable_identities:
+                    continue
+                result = search(
+                    index + 1,
+                    [*chosen, path],
+                    used_identities | {identity},
+                )
+                if result is not None:
+                    return result
+        return None
+
+    return search(0, [], set())
 
 
 def collect_candidates(

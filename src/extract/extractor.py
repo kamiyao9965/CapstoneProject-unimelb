@@ -16,6 +16,7 @@ from src.common.model_provider import (
 )
 from src.common.openai_run import append_jsonl
 from src.extract.prompts import EXTRACTION_PROMPT
+from src.schema.validation import validate_schema_text
 
 
 class SchemaExtractor:
@@ -37,6 +38,7 @@ class SchemaExtractor:
         pdf_root: str | Path | None = None,
         preprocessor: MarkdownPreprocessor | None = None,
     ) -> None:
+        validate_schema_text(schema_text)
         self.schema_text = schema_text
         self.selection = selection or ModelSelection("openai", model, "pdf")
         self.model = self.selection.model

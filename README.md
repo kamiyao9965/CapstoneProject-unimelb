@@ -18,6 +18,7 @@ src/run.py                      CLI entrypoint (one-shot discovery)
 src/schema/discovery.py         provider-neutral schema/patch request construction
 src/schema/prompts.py           discovery and patch prompts
 src/schema/sampler.py           random PDF sampling
+src/schema/validation.py        generated schema/field contract validation
 src/common/model_config.py      provider/model/document-input selection + key lookup
 src/common/model_provider.py    provider-neutral contract; OpenAI/Anthropic/DeepSeek adapters
 src/common/document_preprocessor.py  opt-in PDF-to-Markdown mirror (MinerU)
@@ -216,8 +217,9 @@ python src/stability/compare.py --schemas run_1.yaml run_2.yaml run_3.yaml --sho
 python src/stability/measure.py --runs 3 --seed 42
 ```
 
-The report gives per-dimension and overall stability (stable core vs drift) and
-a verdict on whether the schema is reproducible enough to build on.
+The report compares complete field contracts (type, required, applies-to,
+values, descriptions, and nested metadata), not field names alone, and gives a
+verdict on whether the schema is reproducible enough to build on.
 
 ## Refinement loop
 
@@ -236,8 +238,10 @@ python src/refine/loop.py --autonomous --rounds 3
 ```
 
 Discovery samples with `--seed`; evaluation extracts on a **holdout** set using
-`--eval-seed` and explicitly excludes every PDF used by draft discovery or
-consensus patch generation. If the remaining corpus cannot satisfy the
+`--eval-seed` and excludes every PDF used by draft discovery or consensus patch
+generation by SHA-256 content identity. Copied PDFs at different paths cannot
+leak into evaluation, and one sample sweep uses each identity at most once. If
+the remaining corpus cannot satisfy the
 per-category sample size, the loop fails instead of reusing a build sample.
 Individual steps are also usable on their own:
 
@@ -260,9 +264,12 @@ Each round then generates a draft schema, asks the model `--consensus-runs`
 times for candidate patches against it (each run on a different sample),
 normalizes field/group names, and classifies each proposed field by how many
 runs proposed it: `core` (>=80%), `conditional` (>=50%), `candidate` (>=20%),
-`noise`. Core and conditional fields are merged into the schema that gets
-evaluated, except `rename_field`, `merge_fields`, and `move_field_group`, whose
-semantics require human editing. Round outputs:
+`noise`. Frequency does not imply field requiredness. Unattended merging is
+allowed only for one unambiguous patch action with no reject votes and a
+complete field contract. Mixed actions require an explicit field edit;
+`rename_field`, `merge_fields`, and `move_field_group` are audit-only until
+schema-level operations exist and must be applied directly to the base schema.
+Round outputs:
 
 ```text
 outputs/private_health/refine/round_1/
@@ -321,9 +328,10 @@ Every click writes `review_decisions.yaml` immediately; the queue file itself
 is never rewritten (an item with no decision stays pending, and pending items
 are never applied). Accepted/edited updates produce `reviewed_schema.yaml`;
 `consensus_schema.yaml` (what the thresholds would have accepted) is kept
-alongside for comparison. Proposals from `rename_field` / `merge_fields` /
-`move_field_group` patches are flagged in the UI - accepting them applies a
-plain upsert, so prefer "Edit then accept" for those.
+alongside for comparison. Mixed-action and `rename_field` / `merge_fields` /
+`move_field_group` proposals are flagged in the UI and cannot be applied as
+field upserts. Mixed actions disable plain Accept and require an explicit field
+payload; rename/merge/move require direct base-schema editing.
 
 `--resume-review` also verifies the queue's recorded schema-building samples
 before selecting the holdout set. Review queues created before that metadata

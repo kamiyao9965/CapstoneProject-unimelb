@@ -168,10 +168,15 @@ def _render_review_item(item: dict, status_label: str) -> None:
         f"**Group:** {item.get('target_group') or 'n/a'} | "
         f"**Aliases:** {', '.join(item.get('aliases', [])) or 'none'}"
     )
-    if item.get("needs_manual_edit"):
+    if item.get("needs_schema_edit"):
+        st.error(
+            "rename/merge/move changes cannot be represented as one field upsert. "
+            "This item is audit-only; edit the base schema contract directly."
+        )
+    elif item.get("needs_manual_edit"):
         st.warning(
-            "rename/merge/move proposal - accepting applies a plain upsert "
-            "(the old field is NOT removed). Prefer Edit then Accept."
+            "This proposal combines patch actions. Plain Accept is disabled; "
+            "review and save one explicit field payload."
         )
 
     st.markdown("**Proposed update**")
@@ -207,7 +212,12 @@ def _render_decision_panel(
     )
 
     accept_col, reject_col, clear_col = st.columns(3)
-    if accept_col.button("Accept", key=f"accept:{item_id}", type="primary"):
+    if accept_col.button(
+        "Accept",
+        key=f"accept:{item_id}",
+        type="primary",
+        disabled=bool(item.get("needs_manual_edit")),
+    ):
         save_decision(decisions_path, decisions, item_id, "accept", notes)
         st.rerun()
     if reject_col.button("Reject", key=f"reject:{item_id}"):
@@ -230,7 +240,11 @@ def _render_decision_panel(
         height=220,
         key=f"edit:{item_id}",
     )
-    if st.button("Save edit & accept", key=f"save_edit:{item_id}"):
+    if st.button(
+        "Save edit & accept",
+        key=f"save_edit:{item_id}",
+        disabled=bool(item.get("needs_schema_edit")),
+    ):
         try:
             payload = yaml.safe_load(edited_text)
             if not isinstance(payload, dict) or not payload.get("name"):

@@ -16,6 +16,7 @@ from src.refine.candidates.aggregator import FieldDecision
 BASE_SCHEMA = {
     "vertical": "private_health",
     "version": "0.1-draft",
+    "product_types": ["hospital", "extras", "combined"],
     "fields": [
         {
             "name": "product_name",
@@ -41,6 +42,10 @@ def make_decision(name: str, decision: str, **overrides) -> FieldDecision:
         "aliases": [],
         "source_runs": ["run_001"],
         "average_confidence": 0.75,
+        "patch_types": ["add_field"],
+        "applies_to": ["hospital"],
+        "required": False,
+        "values": [],
     }
     values.update(overrides)
     return FieldDecision(**values)
@@ -81,16 +86,23 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         self.assertEqual(field["applies_to"], ["hospital", "extras"])
         self.assertTrue(field["required"])
 
-    def test_new_core_field_is_required_and_annotated(self) -> None:
+    def test_new_core_field_is_not_assumed_required(self) -> None:
         schema = self.render([make_decision("excess", "core")])
         field = next(f for f in schema["fields"] if f["name"] == "excess")
-        self.assertTrue(field["required"])
+        self.assertFalse(field["required"])
         self.assertEqual(field["consensus"]["decision"], "core")
         self.assertEqual(field["consensus"]["frequency"], "4/5")
 
     def test_new_field_maps_group_to_product_type(self) -> None:
         schema = self.render(
-            [make_decision("annual_limit", "core", target_group="extras_cover")]
+            [
+                make_decision(
+                    "annual_limit",
+                    "core",
+                    target_group="extras_cover",
+                    applies_to=[],
+                )
+            ]
         )
         field = next(f for f in schema["fields"] if f["name"] == "annual_limit")
         self.assertEqual(field["applies_to"], ["extras"])
@@ -99,6 +111,79 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         schema = self.render([make_decision("ambulance_cover", "conditional")])
         field = next(f for f in schema["fields"] if f["name"] == "ambulance_cover")
         self.assertFalse(field["required"])
+
+    def test_new_enum_field_preserves_allowed_values(self) -> None:
+        schema = self.render(
+            [
+                make_decision(
+                    "cover_status",
+                    "core",
+                    field_type="enum",
+                    values=["included", "excluded"],
+                )
+            ]
+        )
+        field = next(f for f in schema["fields"] if f["name"] == "cover_status")
+        self.assertEqual(field["values"], ["included", "excluded"])
+
+    def test_update_description_changes_existing_field_description(self) -> None:
+        schema = self.render(
+            [
+                make_decision(
+                    "product_name",
+                    "core",
+                    patch_types=["update_description"],
+                    description="Clarified product name",
+                    applies_to=["hospital", "extras"],
+                )
+            ]
+        )
+        field = next(f for f in schema["fields"] if f["name"] == "product_name")
+        self.assertEqual(field["description"], "Clarified product name")
+
+    def test_add_alias_merges_aliases_into_existing_field(self) -> None:
+        schema = self.render(
+            [
+                make_decision(
+                    "product_name",
+                    "core",
+                    patch_types=["add_alias"],
+                    aliases=["plan_name"],
+                    applies_to=["hospital", "extras"],
+                )
+            ]
+        )
+        field = next(f for f in schema["fields"] if f["name"] == "product_name")
+        self.assertEqual(field["aliases"], ["plan_name"])
+
+    def test_unknown_group_is_not_auto_promoted(self) -> None:
+        schema = self.render(
+            [
+                make_decision(
+                    "member_note",
+                    "core",
+                    target_group="member_services",
+                    applies_to=[],
+                )
+            ]
+        )
+        self.assertNotIn("member_note", [field["name"] for field in schema["fields"]])
+
+    def test_reject_votes_prevent_unattended_auto_merge(self) -> None:
+        schema = self.render([make_decision("excess", "core", reject_votes=1)])
+        self.assertNotIn("excess", [field["name"] for field in schema["fields"]])
+
+    def test_mixed_patch_actions_are_not_auto_promoted(self) -> None:
+        schema = self.render(
+            [
+                make_decision(
+                    "excess",
+                    "core",
+                    patch_types=["add_field", "update_description"],
+                )
+            ]
+        )
+        self.assertNotIn("excess", [field["name"] for field in schema["fields"]])
 
     def test_schema_level_consensus_metadata_written(self) -> None:
         schema = self.render([make_decision("excess", "core")])

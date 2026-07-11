@@ -167,7 +167,7 @@ def _run_seed(seed: int | None, run_number: int) -> int | None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Standalone consensus refinement: N patch runs against a base "
-        "schema, frequency voting, review queue (uses the OpenAI API)"
+        "schema, frequency voting, review queue (uses the selected provider API)"
     )
     parser.add_argument("--base-schema", default="outputs/private_health/schema.yaml")
     parser.add_argument("--input-root", default="data/private_health/raw/PDFs")

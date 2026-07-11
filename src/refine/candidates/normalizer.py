@@ -90,6 +90,9 @@ def normalize_patch(
         confidence=patch.confidence,
         rationale=patch.rationale,
         source_run=patch.source_run,
+        applies_to=patch.applies_to,
+        required=patch.required,
+        values=patch.values,
     )
 
 

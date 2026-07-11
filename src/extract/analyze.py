@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
+from src.schema.validation import SUPPORTED_PRODUCT_TYPES, validate_schema_text
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -24,10 +24,11 @@ class FieldSpec:
     type: str = "string"
     required: bool = False
     values: list[str] = field(default_factory=list)
+    applies_to: tuple[str, ...] = tuple(sorted(SUPPORTED_PRODUCT_TYPES))
 
 
 def load_field_specs(schema_text: str) -> list[FieldSpec]:
-    data = yaml.safe_load(schema_text) or {}
+    data = validate_schema_text(schema_text)
     specs: list[FieldSpec] = []
     for item in data.get("fields") or []:
         if not isinstance(item, dict) or not item.get("name"):
@@ -38,6 +39,7 @@ def load_field_specs(schema_text: str) -> list[FieldSpec]:
                 type=str(item.get("type", "string")),
                 required=bool(item.get("required", False)),
                 values=[str(v) for v in (item.get("values") or [])],
+                applies_to=tuple(str(value) for value in (item.get("applies_to") or [])),
             )
         )
     return specs
@@ -65,7 +67,9 @@ def is_filled(value: object) -> bool:
 class Analysis:
     documents: int
     error_docs: int
+    unclassified_docs: int
     fill_rate: dict[str, float]
+    evaluated_documents: dict[str, int]
     weak_fields: list[str]
     missing_required: dict[str, int]      # field -> docs missing it
     enum_violations: dict[str, list[str]]  # field -> bad values seen
@@ -74,17 +78,27 @@ class Analysis:
 
 def analyze(records: list[dict], specs: list[FieldSpec]) -> Analysis:
     spec_by_name = {s.name: s for s in specs}
-    docs = [r for r in records if not r.get("_error") and not r.get("_parse_error")]
-    error_docs = len(records) - len(docs)
-    n = len(docs) or 1
+    extracted_docs = [
+        record
+        for record in records
+        if not record.get("_error") and not record.get("_parse_error")
+    ]
+    error_docs = len(records) - len(extracted_docs)
+    docs = [record for record in extracted_docs if _product_type(record) is not None]
+    unclassified_docs = len(extracted_docs) - len(docs)
 
     filled_counts = {s.name: 0 for s in specs}
+    evaluated_documents = {s.name: 0 for s in specs}
     missing_required: dict[str, int] = {}
     enum_violations: dict[str, list[str]] = {}
     model_unfilled: dict[str, int] = {}
 
     for record in docs:
+        product_type = _product_type(record)
         for name, spec in spec_by_name.items():
+            if product_type not in spec.applies_to:
+                continue
+            evaluated_documents[name] += 1
             value = record.get(name)
             if is_filled(value):
                 filled_counts[name] += 1
@@ -99,12 +113,21 @@ def analyze(records: list[dict], specs: list[FieldSpec]) -> Analysis:
             if name in spec_by_name:
                 model_unfilled[name] = model_unfilled.get(name, 0) + 1
 
-    fill_rate = {name: filled_counts[name] / n for name in filled_counts}
+    fill_rate = {
+        name: (
+            filled_counts[name] / evaluated_documents[name]
+            if evaluated_documents[name]
+            else 0.0
+        )
+        for name in filled_counts
+    }
     weak_fields = (
         sorted(
             name
             for name, rate in fill_rate.items()
-            if rate < WEAK_FILL_THRESHOLD and not spec_by_name[name].required
+            if evaluated_documents[name]
+            and rate < WEAK_FILL_THRESHOLD
+            and not spec_by_name[name].required
         )
         if docs
         else []
@@ -113,7 +136,9 @@ def analyze(records: list[dict], specs: list[FieldSpec]) -> Analysis:
     return Analysis(
         documents=len(docs),
         error_docs=error_docs,
+        unclassified_docs=unclassified_docs,
         fill_rate=fill_rate,
+        evaluated_documents=evaluated_documents,
         weak_fields=weak_fields,
         missing_required=missing_required,
         enum_violations={k: sorted(set(v)) for k, v in enum_violations.items()},
@@ -121,8 +146,19 @@ def analyze(records: list[dict], specs: list[FieldSpec]) -> Analysis:
     )
 
 
+def _product_type(record: dict) -> str | None:
+    value = record.get("product_type")
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    return normalized if normalized in SUPPORTED_PRODUCT_TYPES else None
+
+
 def print_report(analysis: Analysis) -> None:
-    print(f"Documents analyzed: {analysis.documents} ({analysis.error_docs} errored)\n")
+    print(
+        f"Documents analyzed: {analysis.documents} "
+        f"({analysis.error_docs} errored, {analysis.unclassified_docs} unclassified)\n"
+    )
 
     print("Field fill rate (lowest first):")
     for name, rate in sorted(analysis.fill_rate.items(), key=lambda kv: kv[1]):
@@ -148,8 +184,9 @@ def build_feedback(analysis: Analysis) -> str:
     if analysis.documents == 0:
         return (
             "- No documents were successfully extracted; "
-            f"{analysis.error_docs} extraction attempt(s) failed. Fix extraction or "
-            "parsing errors before refining the schema."
+            f"{analysis.error_docs} extraction attempt(s) failed and "
+            f"{analysis.unclassified_docs} record(s) had no valid product_type. "
+            "Fix extraction, parsing, or classification errors before refining the schema."
         )
 
     lines: list[str] = []

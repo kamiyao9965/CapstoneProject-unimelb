@@ -10,14 +10,30 @@ from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest
 from src.extract.extractor import SchemaExtractor
 
+VALID_SCHEMA_TEXT = """vertical: private_health
+version: 0.1-draft
+product_types: [hospital]
+fields:
+  - name: product_name
+    type: string
+    description: Product name
+    applies_to: [hospital]
+    required: true
+    values: []
+"""
+
 
 class ExtractManyOutputTest(unittest.TestCase):
+    def test_rejects_invalid_schema_before_extraction(self) -> None:
+        with self.assertRaisesRegex(ValueError, "valid YAML"):
+            SchemaExtractor(schema_text="fields: [", log=None)
+
     def test_same_stem_pdfs_write_distinct_json_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             first_pdf = Path(tmp) / "FundA" / "hospital" / "product.pdf"
             second_pdf = Path(tmp) / "FundB" / "hospital" / "product.pdf"
             out_dir = Path(tmp) / "extractions"
-            extractor = SchemaExtractor(schema_text="fields: []", log=None)
+            extractor = SchemaExtractor(schema_text=VALID_SCHEMA_TEXT, log=None)
 
             with mock.patch.object(
                 extractor,
@@ -51,7 +67,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             provider = RecordingProvider()
             selection = ModelSelection("openai", "gpt-5", "pdf")
             record = SchemaExtractor(
-                schema_text="fields: []",
+                schema_text=VALID_SCHEMA_TEXT,
                 selection=selection,
                 provider=provider,
                 usage_log_path=None,
@@ -89,7 +105,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             usage_log = Path(tmp) / "usage.jsonl"
             provider = RecordingProvider()
             record = SchemaExtractor(
-                schema_text="fields: []",
+                schema_text=VALID_SCHEMA_TEXT,
                 selection=ModelSelection("anthropic", "claude-test", "markdown"),
                 provider=provider,
                 pdf_root=pdf_root,
