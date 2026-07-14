@@ -3,12 +3,14 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.common.model_config import resolve_selection
+from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
 from src.stability.compare import compare
@@ -67,15 +69,32 @@ def main() -> int:
     schema_paths: list[Path] = []
     for index in range(1, args.runs + 1):
         print(f"--- Run {index}/{args.runs} ---")
-        schema_yaml = SchemaDiscovery(
+        path = out_dir / f"run_{index}.json"
+        run_id = uuid4().hex
+        schema_data = SchemaDiscovery(
             selection=selection,
             timeout_seconds=args.timeout,
             usage_log_path=str(out_dir / "token_usage.jsonl"),
             request_params=request_params,
             pdf_root=args.input_root,
-        ).discover(sample_paths, output_path=out_dir / f"run_{index}.yaml")
-        path = out_dir / f"run_{index}.yaml"
-        path.write_text(schema_yaml, encoding="utf-8")
+        ).discover(sample_paths, output_path=path, run_id=run_id)
+        artifact = build_success_artifact(
+            artifact_type="discovered_schema",
+            contract_version="1.0.0",
+            data=schema_data,
+            provenance={
+                "run_id": run_id,
+                "provider": selection.provider,
+                "model": selection.model,
+                "document_input": selection.document_input,
+                "source_documents": list(sample_paths),
+                "source_artifacts": [],
+            },
+            data_contract="private_health/discovered_schema",
+        )
+        write_artifact(
+            path, artifact, data_contract="private_health/discovered_schema"
+        )
         schema_paths.append(path)
         print(f"Wrote {path}\n")
 

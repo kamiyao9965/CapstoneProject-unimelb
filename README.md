@@ -1,355 +1,512 @@
-# Private Health Schema Discovery
+# Australian Private Health Schema Discovery
 
-The core flow is:
+A Python CLI for discovering, stabilising, reviewing, and evaluating reusable
+extraction schemas from Australian private health insurance PDFs.
 
-```text
-private_health PDFs -> selected provider model -> outputs/private_health/schema.yaml
+The entire runtime pipeline is JSON-only. Model responses use the strongest
+approved structured-output mode for the selected provider, are validated
+locally against authoritative JSON Schema contracts, and receive at most two
+repair retries. Invalid data never proceeds to the next stage.
+
+## What the project can do
+
+| Capability | Result |
+| --- | --- |
+| Schema discovery | Generate a reusable private-health extraction contract from a balanced PDF sample |
+| Multi-provider execution | Switch between OpenAI, Anthropic, and DeepSeek through `.env` or CLI flags |
+| Native structured output | OpenAI JSON Schema, Anthropic JSON Schema, or DeepSeek JSON object mode |
+| Optional MinerU preprocessing | Convert sampled PDFs to mirrored Markdown before a model request |
+| Stability measurement | Repeat discovery on the same sample and measure semantic schema drift |
+| Candidate-patch consensus | Generate N patch sets, normalise aliases, vote on fields, and produce an auditable consensus |
+| Human review | Accept, reject, or edit proposals in Streamlit before applying them |
+| Holdout extraction | Compile the discovered fields into a runtime extraction JSON Schema and extract unseen PDFs |
+| Failure analysis | Measure applicability, fill rate, required-field misses, enum violations, and model-reported unfilled fields |
+| Refinement loop | Feed validated failure analysis into a later discovery round |
+| Cost estimation | Estimate actual and projected spend from JSONL token-usage logs |
+
+## Safety guarantees
+
+- Generated runtime files use a versioned artifact envelope with provenance,
+  success/failure status, and separate `data` and `error` fields.
+- JSON is parsed strictly; Markdown fences, partial JSON, YAML, type coercion,
+  guessed values, and silent field repair are not accepted.
+- The first model attempt may be followed by at most two repair attempts.
+- Each billable attempt is recorded in the JSONL usage log under one logical
+  run identity.
+- Exhausted extraction failure writes below `errors/extraction/` and stops the
+  stage before analysis or later documents.
+- Existing success paths are not overwritten automatically.
+- `.env`, source PDFs, MinerU mirrors, outputs, and usage logs are ignored and
+  must not be committed.
+
+## Requirements
+
+- macOS or Linux
+- Python 3.10–3.13 (MinerU constrains the supported range)
+- At least one provider API key
+- Source PDFs organised under `data/private_health/raw/PDFs/`
+
+The repository contains no API keys or source PDFs.
+
+## 1. Install
+
+```bash
+git clone <repository-url>
+cd CapstoneProject-unimelb
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-The code randomly samples representative PDFs, sends them to the selected model provider (OpenAI by default; Anthropic and DeepSeek are also supported), and asks the model to generate a reusable YAML schema. Around that sit cost estimation, schema stability measurement, field-level consensus refinement, and an extraction-driven refinement loop.
+Verify the offline suite before using credentials:
 
-## Project Structure
-
-```text
-data/private_health/raw/PDFs/   input PDFs
-outputs/private_health/         generated schema output
-outputs/private_health/token_usage.jsonl  per-run token usage log
-src/run.py                      CLI entrypoint (one-shot discovery)
-src/schema/discovery.py         provider-neutral schema/patch request construction
-src/schema/prompts.py           discovery and patch prompts
-src/schema/sampler.py           random PDF sampling
-src/schema/validation.py        generated schema/field contract validation
-src/common/model_config.py      provider/model/document-input selection + key lookup
-src/common/model_provider.py    provider-neutral contract; OpenAI/Anthropic/DeepSeek adapters
-src/common/document_preprocessor.py  opt-in PDF-to-Markdown mirror (MinerU)
-src/common/openai_run.py        shared OpenAI client/file/usage lifecycle
-src/cost/                       token usage -> dollar estimates
-src/stability/                  schema drift measurement across runs
-src/extract/                    holdout extraction + failure analysis
-src/refine/loop.py              refinement loop CLI compatibility entry point
-src/refine/pipeline/            generate -> consensus/review -> extract -> analyze loop
-src/refine/consensus.py         field-level consensus orchestration
-src/refine/candidates/          patch model, normalization, voting, patch stability
-src/refine/artifacts/           consensus schema/report rendering
-src/refine/human_review/        review queue, decisions, apply logic, Streamlit UI
-src/review_app.py               thin Streamlit entry point
-tests/                          stdlib unittest suite (no API calls)
-requirements.txt                Python dependencies
+```bash
+.venv/bin/python -m compileall src tests
+.venv/bin/python -m unittest discover -s tests
 ```
 
-## PDF Layout
+## 2. Add source documents
 
-Put PDFs under `data/private_health/raw/PDFs/`. The sampler looks for these category folder names anywhere in the path:
-
-```text
-combined
-extras
-generalhealth
-hospital
-```
-
-Example:
+The sampler expects fund/category folders below the input root. For example:
 
 ```text
 data/private_health/raw/PDFs/
-  HCF/
-    combined/
-    extras/
-    generalhealth/
+  AUF/
     hospital/
+      product-a.pdf
+  CBC/
+    generalhealth/
+      product-b.pdf
+  NTF/
+    combined/
+      product-c.pdf
+  RBH/
+    extras/
+      product-d.pdf
 ```
 
-## Setup
+Default categories are `hospital`, `extras`, `generalhealth`, and `combined`.
+Sampling is category-balanced, content-deduplicated by SHA-256, and supports a
+fixed seed. Holdout selection excludes discovery documents by content identity.
+
+## 3. Configure `.env`
+
+Create `.env` in the repository root. Keep all provider credentials so you can
+switch models without editing the file structure:
+
+```dotenv
+# Active selection
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-5
+LLM_DOCUMENT_INPUT=pdf
+
+# Provider credentials
+MY_OPENAI_API_KEY=replace-with-your-openai-key
+ANTHROPIC_API_KEY=replace-with-your-anthropic-key
+DEEPSEEK_API_KEY=replace-with-your-deepseek-key
+
+# Optional compatible endpoint overrides
+# OPENAI_BASE_URL=https://...
+# ANTHROPIC_BASE_URL=https://...
+# DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+Selection precedence is CLI flag, then `.env`, then the OpenAI defaults.
+`OPENAI_API_KEY` is also accepted; `MY_OPENAI_API_KEY` has precedence when both
+exist. `OPENAI_MODEL` is only a legacy OpenAI fallback; prefer `LLM_MODEL`.
+
+The CLI does not load `.env` itself. Export it into the shell before running:
 
 ```bash
-pip install -r requirements.txt
+set -a
+source .env
+set +a
 ```
 
-PowerShell:
+Do not paste real keys into issues, logs, screenshots, commits, or chat.
 
-```powershell
-$env:MY_OPENAI_API_KEY="your_api_key_here"
+### Switch providers
+
+OpenAI with native PDF input:
+
+```dotenv
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-5
+LLM_DOCUMENT_INPUT=pdf
 ```
 
-Command Prompt:
+Anthropic with native PDF input:
 
-```cmd
-set MY_OPENAI_API_KEY=your_api_key_here
+```dotenv
+LLM_PROVIDER=anthropic
+LLM_MODEL=claude-sonnet-4-5
+LLM_DOCUMENT_INPUT=pdf
 ```
 
-This project prefers `MY_OPENAI_API_KEY` for testing. If it is not set, it falls back to `OPENAI_API_KEY`.
+DeepSeek uses Markdown document input because the adapter does not upload PDFs:
 
-### Provider credentials and endpoints
+```dotenv
+LLM_PROVIDER=deepseek
+LLM_MODEL=deepseek-v4-pro
+LLM_DOCUMENT_INPUT=markdown
+```
 
-Each provider reads only its own environment variables; keys are never CLI
-arguments and are never logged:
+The model identifier must exist at the configured endpoint. The project accepts
+the approved `deepseek-*` family, but it cannot make an unavailable provider
+model exist. Confirm the exact model ID with your DeepSeek account or proxy.
 
-| Provider | API-key environment variables | Optional endpoint override |
-| --- | --- | --- |
-| OpenAI | `MY_OPENAI_API_KEY`, then `OPENAI_API_KEY` | `OPENAI_BASE_URL` |
-| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL` |
-| DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_BASE_URL` |
-
-`LLM_PROVIDER`, `LLM_MODEL`, and `LLM_DOCUMENT_INPUT` set environment-level
-defaults; explicit CLI flags always win, and the built-in defaults remain
-`openai` / `gpt-5` / `pdf`.
-
-## Run
-
-Generate a schema using the default sampling strategy:
+The same selection can be overridden for one command:
 
 ```bash
-python src/run.py --seed 42
+.venv/bin/python src/run.py \
+  --provider anthropic \
+  --model claude-sonnet-4-5 \
+  --document-input pdf
 ```
 
-By default it selects 20 PDFs:
+## 4. Run one-shot schema discovery
 
-- 5 from `combined`
-- 5 from `extras`
-- 5 from `generalhealth`
-- 5 from `hospital`
+Quick smoke-sized sample:
 
-Within each category, it tries to choose PDFs from 5 different companies.
+```bash
+.venv/bin/python src/run.py \
+  --per-category 1 \
+  --seed 42
+```
 
-The output is written to:
+Use backslashes exactly as shown when splitting a shell command across lines.
+Without them, each following line becomes a separate command.
+
+Default success output:
 
 ```text
-outputs/private_health/schema.yaml
+outputs/private_health/schema.json
 ```
 
-If that file already exists, the next run writes to `schema_1.yaml`, then
-`schema_2.yaml`, and so on.
+If that path exists, the CLI selects `schema_1.json`, then `schema_2.json`, and
+so on. It never replaces the baseline automatically.
 
-## Options
-
-Use another model:
+Use explicit documents when needed:
 
 ```bash
-python src/run.py --model gpt-5
-```
-
-Select a provider and model (defaults: `--provider openai --model gpt-5`):
-
-```bash
-python src/run.py --provider anthropic --model <claude-model-id>
-```
-
-Use MinerU-generated Markdown mirrors instead of direct PDFs (opt-in):
-
-```bash
-python src/run.py --provider deepseek --model <deepseek-model-id> --document-input markdown
-```
-
-`--provider`, `--model`, and `--document-input` are accepted by every
-API-backed command (`src/run.py`, `src/refine/loop.py`,
-`src/refine/consensus.py`, `src/stability/measure.py`). In Markdown mode each
-sampled PDF under `data/private_health/raw/PDFs/` is mapped to the matching
-`data/private_health/raw/Markdown/` path; an existing mirror is reused, a
-missing one is generated locally with MinerU, and a conversion failure stops
-the run rather than falling back to the PDF. Sampling, holdout exclusion, and
-usage logs always keep the original PDF identity. DeepSeek supports Markdown
-input only; `--provider deepseek --document-input pdf` fails before any
-request is made.
-
-Use a different number per category:
-
-```bash
-python src/run.py --per-category 3
-```
-
-Use a longer OpenAI timeout:
-
-```bash
-python src/run.py --timeout 1200
-```
-
-Provide exact PDFs instead of random sampling:
-
-```bash
-python src/run.py \
+.venv/bin/python src/run.py \
   --samples \
-    data/private_health/raw/PDFs/HCF/hospital/HCF-Hospital-Basic-Plus.pdf \
-    data/private_health/raw/PDFs/HCF/extras/HCF-Top-Extras.pdf
+    data/private_health/raw/PDFs/AUF/hospital/product-a.pdf \
+    data/private_health/raw/PDFs/RBH/extras/product-d.pdf \
+  --output outputs/private_health/manual_schema.json
 ```
 
-Uploaded files are deleted from OpenAI after schema generation. To keep them for debugging:
+Important options:
 
-```bash
-python src/run.py --keep-uploaded-files
-```
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `--input-root` | `data/private_health/raw/PDFs` | PDF corpus root |
+| `--categories` | four standard categories | Categories to sample |
+| `--per-category` | `5` | Documents sampled per category |
+| `--seed` | random | Reproducible sample selection |
+| `--provider` | environment/default | Provider override |
+| `--model` | environment/default | Model override |
+| `--document-input` | environment/default | `pdf` or `markdown` |
+| `--timeout` | `600` | Request/poll timeout seconds |
+| `--output` | `outputs/private_health/schema.json` | Preferred success path |
+| `--usage-log` | `outputs/private_health/token_usage.jsonl` | Per-attempt usage log |
 
-Each successful run also appends one JSON line to:
+On exhausted validation, the command exits non-zero and writes a redacted
+artifact below `outputs/private_health/errors/schema_discovery/`.
+
+## 5. Optional MinerU Markdown branch
+
+Markdown mode maps each selected source PDF from:
 
 ```text
-outputs/private_health/token_usage.jsonl
+data/private_health/raw/PDFs/<relative-path>.pdf
 ```
 
-Each line records the timestamp, model, API key source env name, linked YAML output path, task duration, sample PDFs, and token usage split into `input_tokens`, `output_tokens`, and `total_tokens`.
-
-## Cost estimation
-
-Turn token usage logs into dollar figures (③ in the improvement plan).
-
-```bash
-# Per-run and per-document discovery cost from the log
-python src/cost/estimate.py
-
-# Project cost across verticals (per-doc token profile is a proxy until the
-# extraction step reports real numbers)
-python src/cost/estimate.py --project \
-  --vertical private_health=1105 --vertical energy=800 --vertical mobile_plans=500
-```
-
-Rates live in `src/cost/pricing.py` and are marked `verified=False` until you
-confirm them against <https://openai.com/api/pricing>. Override per run with
-`--input-rate` / `--output-rate` (USD per 1M tokens).
-
-## Schema stability
-
-Schema discovery is non-deterministic, so measure drift before building on a
-schema (① in the improvement plan).
-
-```bash
-# Compare schemas you already have (offline, no API cost)
-python src/stability/compare.py --schemas run_1.yaml run_2.yaml run_3.yaml --show-items
-
-# Generate N schemas on the SAME fixed sample and compare (uses the API)
-python src/stability/measure.py --runs 3 --seed 42
-```
-
-The report compares complete field contracts (type, required, applies-to,
-values, descriptions, and nested metadata), not field names alone, and gives a
-verdict on whether the schema is reproducible enough to build on.
-
-## Refinement loop
-
-The generate -> extract -> analyze -> review -> update workflow (② in the
-improvement plan).
-
-```bash
-# Human-in-the-loop (default): one round, then stop for review
-python src/refine/loop.py --seed 42 --eval-seed 7
-
-# After editing round_1/feedback.txt, feed it back in
-python src/refine/loop.py --resume-feedback outputs/private_health/refine/round_1/feedback.txt
-
-# Autonomous: iterate N rounds, feeding failures back automatically
-python src/refine/loop.py --autonomous --rounds 3
-```
-
-Discovery samples with `--seed`; evaluation extracts on a **holdout** set using
-`--eval-seed` and excludes every PDF used by draft discovery or consensus patch
-generation by SHA-256 content identity. Copied PDFs at different paths cannot
-leak into evaluation, and one sample sweep uses each identity at most once. If
-the remaining corpus cannot satisfy the
-per-category sample size, the loop fails instead of reusing a build sample.
-Individual steps are also usable on their own:
-
-```bash
-python src/extract/analyze.py --schema outputs/private_health/schema.yaml \
-  --extractions outputs/private_health/refine/round_1/extractions
-```
-
-## Consensus refinement
-
-Schema fields drift between generations. When drift is visible (see
-`src/stability/`), stabilize field decisions *before* extraction evaluation by
-voting over multiple patch runs:
-
-```bash
-python src/refine/loop.py --seed 42 --eval-seed 7 --consensus-runs 5
-```
-
-Each round then generates a draft schema, asks the model `--consensus-runs`
-times for candidate patches against it (each run on a different sample),
-normalizes field/group names, and classifies each proposed field by how many
-runs proposed it: `core` (>=80%), `conditional` (>=50%), `candidate` (>=20%),
-`noise`. Frequency does not imply field requiredness. Unattended merging is
-allowed only for one unambiguous patch action with no reject votes and a
-complete field contract. Mixed actions require an explicit field edit;
-`rename_field`, `merge_fields`, and `move_field_group` are audit-only until
-schema-level operations exist and must be applied directly to the base schema.
-Round outputs:
+to:
 
 ```text
-outputs/private_health/refine/round_1/
-  schema_draft.yaml       single-generation draft (consensus baseline)
-  schema.yaml             consensus schema the round was evaluated on
-  consensus/
-    candidate_patches/    raw patch YAML per run (auditable)
-    field_frequency.yaml  per-field vote counts and evidence
-    consensus_report.md   human-readable decision report
-  extractions/            holdout extraction JSON
-  feedback.txt            extraction-failure feedback for the next round
+data/private_health/raw/Markdown/<relative-path>.md
 ```
 
-Cost scales with `--consensus-runs` (default 1 = off). Thresholds assume a
-meaningful run count; with very few runs a field seen once can already reach
-`conditional`, so prefer around 5 runs and keep `--per-category` small while
-experimenting. The two refinement signals are intentionally separate:
+An existing mirror is reused. Otherwise MinerU converts only the selected PDF.
+Conversion is opt-in, local, and fail-closed; failure stops before the provider
+request. The Markdown mirror is source input, not a pipeline output artifact.
+
+## 6. Measure schema stability
+
+Run discovery repeatedly on one fixed sample:
+
+```bash
+.venv/bin/python src/stability/measure.py \
+  --runs 3 \
+  --per-category 1 \
+  --seed 42 \
+  --out-dir outputs/private_health/stability
+```
+
+This writes `run_1.json`, `run_2.json`, and so on, then compares product types,
+field contracts, hospital categories, and extras services. Envelope timestamps
+and provenance do not count as semantic drift.
+
+Compare existing artifacts without an API call:
+
+```bash
+.venv/bin/python src/stability/compare.py \
+  --schemas \
+    outputs/private_health/stability/run_1.json \
+    outputs/private_health/stability/run_2.json \
+  --show-items
+```
+
+Or compare every success artifact in one directory:
+
+```bash
+.venv/bin/python src/stability/compare.py \
+  --dir outputs/private_health/stability
+```
+
+## 7. Run candidate-patch consensus
+
+Consensus asks the model for changes to the baseline instead of repeatedly
+rewriting the whole schema:
+
+```bash
+.venv/bin/python src/refine/consensus.py \
+  --base-schema outputs/private_health/schema.json \
+  --runs 5 \
+  --per-category 1 \
+  --seed 42 \
+  --out-dir outputs/private_health/consensus
+```
+
+Outputs:
 
 ```text
-consensus refinement  = stabilizes schema fields before extraction
-extraction refinement = improves the schema from holdout extraction failures
+outputs/private_health/consensus/
+  candidate_patches/
+    run_001.json
+    run_002.json
+  consensus_schema.json
+  field_frequency.json
+  patch_stability.json
+  review_queue.json
 ```
 
-Extraction analysis remains the stronger signal: a field can be stable across
-generations yet still unextractable from real PDFs.
+The human-readable report is rendered in the terminal from validated JSON; no
+Markdown report is persisted. Alias normalisation is configured in
+`configs/private_health/aliases.json`.
 
-Every consensus sweep also writes `patch_stability.yaml` (field drift measured
-on the same N patch runs - no extra API cost) and `review_queue.yaml` for
-human review. Field/group alias normalization is configured in
-`configs/private_health/aliases.yaml`, not in code. Observed field names remain
-available as aliases while voting uses their canonical names.
+Only safe core/conditional field operations are auto-promoted. Reject votes,
+mixed actions, rename, merge, and move operations require human intervention.
 
-## Human review of schema updates
+## 8. Human review
 
-Unattended consensus auto-merges by thresholds. To gate updates on a human
-decision instead, add `--review-ui`:
+Start the review UI:
 
 ```bash
-python src/refine/loop.py --seed 42 --eval-seed 7 --consensus-runs 5 --review-ui
+.venv/bin/python -m streamlit run src/review_app.py -- \
+  --consensus-dir outputs/private_health/consensus
 ```
 
-The round stops after writing `round_N/consensus/review_queue.yaml`. Then:
+The UI reads immutable `review_queue.json` and saves accept/reject/edit choices
+to `review_decisions.json`. JSON edit errors are shown without replacing the
+previous valid decision.
+
+Apply saved decisions from the UI or CLI:
 
 ```bash
-# 1. Review each proposal (accept / reject / edit) in the browser
-streamlit run src/review_app.py -- --consensus-dir outputs/private_health/refine/round_1/consensus
-
-# 2. Apply your decisions (also a button in the UI)
-python src/refine/review.py apply --consensus-dir outputs/private_health/refine/round_1/consensus
-
-# 3. Evaluate the reviewed schema on the holdout set
-python src/refine/loop.py --resume-review outputs/private_health/refine/round_1
+.venv/bin/python src/refine/review.py apply \
+  --consensus-dir outputs/private_health/consensus
 ```
 
-Every click writes `review_decisions.yaml` immediately; the queue file itself
-is never rewritten (an item with no decision stays pending, and pending items
-are never applied). Accepted/edited updates produce `reviewed_schema.yaml`;
-`consensus_schema.yaml` (what the thresholds would have accepted) is kept
-alongside for comparison. Mixed-action and `rename_field` / `merge_fields` /
-`move_field_group` proposals are flagged in the UI and cannot be applied as
-field upserts. Mixed actions disable plain Accept and require an explicit field
-payload; rename/merge/move require direct base-schema editing.
+Result:
 
-`--resume-review` also verifies the queue's recorded schema-building samples
-before selecting the holdout set. Review queues created before that metadata
-was introduced must be regenerated rather than evaluated without isolation.
+```text
+outputs/private_health/consensus/reviewed_schema.json
+```
 
-To review patches against the production baseline without running a loop
-round, use the standalone sweep (writes to `outputs/private_health/consensus/`):
+Pending and rejected items are not applied. Unknown IDs, malformed decisions,
+invalid field edits, and unsafe rename/merge/move upserts fail loudly.
+
+## 9. Run the refinement and holdout flow
+
+### One round without consensus
 
 ```bash
-python src/refine/consensus.py --base-schema outputs/private_health/schema.yaml --runs 5
+.venv/bin/python src/refine/loop.py \
+  --per-category 1 \
+  --eval-per-category 1 \
+  --seed 42 \
+  --eval-seed 7
 ```
 
-## Tests
+### Consensus with a human review stop
 
 ```bash
-python -m unittest discover -s tests
+.venv/bin/python src/refine/loop.py \
+  --per-category 1 \
+  --eval-per-category 1 \
+  --consensus-runs 3 \
+  --review-ui \
+  --seed 42 \
+  --eval-seed 7
 ```
 
-Pure-logic coverage for the consensus, human-review, and pipeline modules
-(patch parsing, normalization, aggregation, rendering, review application, and
-workflow orchestration with a stubbed model). No API calls, no PDFs needed.
+Review and apply the queue, then resume holdout evaluation:
+
+```bash
+.venv/bin/python src/refine/loop.py \
+  --resume-review outputs/private_health/refine/round_1
+```
+
+### Feed reviewed analysis into another round
+
+```bash
+.venv/bin/python src/refine/loop.py \
+  --resume-feedback outputs/private_health/refine/round_1/refinement_feedback.json
+```
+
+### Autonomous multi-round execution
+
+```bash
+.venv/bin/python src/refine/loop.py \
+  --autonomous \
+  --rounds 3 \
+  --per-category 1 \
+  --eval-per-category 1
+```
+
+Autonomous mode removes the human stop; it does not weaken validation or the
+three-attempt maximum.
+
+Typical round contents:
+
+```text
+round_1/
+  schema.json
+  schema_draft.json              # when consensus is enabled
+  extraction_usage.jsonl
+  extractions/*.json
+  errors/extraction/*.json       # only on failure
+  refinement_feedback.json
+  consensus/                     # when enabled
+    candidate_patches/*.json
+    consensus_schema.json
+    field_frequency.json
+    patch_stability.json
+    review_queue.json
+    review_decisions.json        # after review begins
+    reviewed_schema.json         # after apply
+```
+
+## 10. Analyze extraction artifacts directly
+
+```bash
+.venv/bin/python src/extract/analyze.py \
+  --schema outputs/private_health/refine/round_1/schema.json \
+  --extractions outputs/private_health/refine/round_1/extractions \
+  --feedback-out outputs/private_health/refine/round_1/manual_feedback.json
+```
+
+Only validated success envelopes contribute product values. Failed or malformed
+artifacts increment the error count and never affect fill-rate denominators.
+
+## 11. Estimate cost
+
+Actual usage summary:
+
+```bash
+.venv/bin/python src/cost/estimate.py \
+  --log outputs/private_health/token_usage.jsonl
+```
+
+Project across document counts:
+
+```bash
+.venv/bin/python src/cost/estimate.py \
+  --log outputs/private_health/token_usage.jsonl \
+  --project \
+  --vertical private_health=1000
+```
+
+Custom rates are USD per one million tokens:
+
+```bash
+.venv/bin/python src/cost/estimate.py \
+  --log outputs/private_health/token_usage.jsonl \
+  --input-rate 1.25 \
+  --output-rate 10.00
+```
+
+## Artifact envelope
+
+All generated runtime JSON has this common shape:
+
+```json
+{
+  "artifact_type": "discovered_schema",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-07-14T08:00:00Z",
+  "provenance": {
+    "run_id": "...",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "pdf",
+    "source_documents": [],
+    "source_artifacts": []
+  },
+  "data": {},
+  "error": null
+}
+```
+
+Failure artifacts have `status: "failed"`, `data: null`, and a structured,
+redacted `error`. Tracked contracts and configuration are ordinary JSON, and
+token logs remain JSONL.
+
+## Development verification
+
+```bash
+.venv/bin/python -m compileall src tests
+.venv/bin/python -m unittest discover -s tests
+.venv/bin/python src/run.py --help
+.venv/bin/python src/refine/loop.py --help
+.venv/bin/python src/refine/consensus.py --help
+.venv/bin/python src/refine/review.py --help
+.venv/bin/python src/stability/compare.py --help
+.venv/bin/python src/stability/measure.py --help
+.venv/bin/python src/extract/analyze.py --help
+```
+
+These checks are offline. A passing suite does not prove live credentials,
+provider model availability, provider-side schema acceptance, PDF upload, or a
+real MinerU conversion.
+
+## Troubleshooting
+
+### `... values must be a list`
+
+The model returned data outside the contract. The current pipeline sends the
+validation path back for up to two repairs. If all attempts fail, inspect the
+redacted error artifact and usage log; invalid data is not saved as a schema.
+
+### DeepSeek rejects PDF mode
+
+Set `LLM_DOCUMENT_INPUT=markdown`. DeepSeek does not use the PDF-upload branch.
+
+### Model is not approved for structured output
+
+The model ID does not match `configs/model_capabilities.json`. Verify provider
+documentation before changing the registry.
+
+### Existing output path
+
+One-shot discovery chooses a numeric suffix. Other governed stages refuse to
+overwrite their expected artifacts; use a new output directory.
+
+### No live API verification
+
+The test suite intentionally makes no credentialed calls. Run a small
+`--per-category 1` discovery when you are ready to spend API credit.

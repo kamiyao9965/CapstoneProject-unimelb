@@ -4,11 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
-
+from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.refine.artifacts.renderer import (
     render_consensus_schema,
-    render_frequency_yaml,
+    render_frequency_json,
     render_report,
 )
 from src.refine.candidates.aggregator import FieldDecision
@@ -16,8 +15,18 @@ from src.refine.candidates.aggregator import FieldDecision
 BASE_SCHEMA = {
     "vertical": "private_health",
     "version": "0.1-draft",
+    "description": "Schema",
     "product_types": ["hospital", "extras", "combined"],
     "fields": [
+        {
+            "name": "product_type",
+            "type": "enum",
+            "description": "Product classification",
+            "applies_to": ["hospital", "extras", "combined"],
+            "required": True,
+            "values": ["hospital", "extras", "combined"],
+            "aliases": [],
+        },
         {
             "name": "product_name",
             "type": "string",
@@ -25,8 +34,17 @@ BASE_SCHEMA = {
             "applies_to": ["hospital", "extras"],
             "required": True,
             "values": [],
+            "aliases": [],
         }
     ],
+    "hospital_categories": [],
+    "extras_services": [],
+    "notes": [],
+}
+
+PROVENANCE = {
+    "run_id": "test", "provider": "openai", "model": "gpt-5",
+    "document_input": "pdf", "source_documents": [], "source_artifacts": [],
 }
 
 
@@ -54,11 +72,21 @@ def make_decision(name: str, decision: str, **overrides) -> FieldDecision:
 class RenderConsensusSchemaTest(unittest.TestCase):
     def render(self, decisions: list[FieldDecision]) -> dict:
         with tempfile.TemporaryDirectory() as tmp:
-            base_path = Path(tmp) / "base.yaml"
-            base_path.write_text(yaml.safe_dump(BASE_SCHEMA), encoding="utf-8")
-            out_path = Path(tmp) / "consensus_schema.yaml"
+            base_path = Path(tmp) / "base.json"
+            base_artifact = build_success_artifact(
+                artifact_type="discovered_schema", contract_version="1.0.0",
+                data=BASE_SCHEMA, provenance=PROVENANCE,
+                data_contract="private_health/discovered_schema",
+            )
+            write_artifact(
+                base_path, base_artifact, data_contract="private_health/discovered_schema"
+            )
+            out_path = Path(tmp) / "consensus_schema.json"
             render_consensus_schema(base_path, decisions, out_path)
-            return yaml.safe_load(out_path.read_text(encoding="utf-8"))
+            return read_artifact(
+                out_path, expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )["data"]
 
     def test_promotes_core_and_conditional_only(self) -> None:
         schema = self.render(
@@ -90,8 +118,7 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         schema = self.render([make_decision("excess", "core")])
         field = next(f for f in schema["fields"] if f["name"] == "excess")
         self.assertFalse(field["required"])
-        self.assertEqual(field["consensus"]["decision"], "core")
-        self.assertEqual(field["consensus"]["frequency"], "4/5")
+        self.assertEqual(field["aliases"], [])
 
     def test_new_field_maps_group_to_product_type(self) -> None:
         schema = self.render(
@@ -185,10 +212,9 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         )
         self.assertNotIn("excess", [field["name"] for field in schema["fields"]])
 
-    def test_schema_level_consensus_metadata_written(self) -> None:
+    def test_consensus_metadata_stays_in_frequency_artifact_not_schema(self) -> None:
         schema = self.render([make_decision("excess", "core")])
-        self.assertEqual(schema["consensus"]["promoted_decisions"], ["conditional", "core"])
-        self.assertIn("generated_at", schema["consensus"])
+        self.assertNotIn("consensus", schema)
 
     def test_manual_edit_patch_types_are_not_auto_promoted(self) -> None:
         schema = self.render(
@@ -206,23 +232,24 @@ class RenderConsensusSchemaTest(unittest.TestCase):
 
 
 class RenderFrequencyAndReportTest(unittest.TestCase):
-    def test_frequency_yaml_lists_all_decisions(self) -> None:
+    def test_frequency_json_lists_all_decisions(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            out_path = Path(tmp) / "field_frequency.yaml"
-            render_frequency_yaml(
+            out_path = Path(tmp) / "field_frequency.json"
+            render_frequency_json(
                 [make_decision("excess", "core"), make_decision("promo_text", "noise")],
                 out_path,
             )
-            payload = yaml.safe_load(out_path.read_text(encoding="utf-8"))
+            payload = read_artifact(
+                out_path, expected_type="field_frequency",
+                data_contract="private_health/field_frequency",
+            )["data"]
             self.assertEqual(len(payload["fields"]), 2)
             self.assertEqual(payload["fields"][0]["field"], "excess")
             self.assertEqual(payload["fields"][0]["frequency"], "4/5")
 
     def test_report_contains_summary_table_and_details(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            out_path = Path(tmp) / "consensus_report.md"
-            render_report([make_decision("excess", "core")], out_path)
-            text = out_path.read_text(encoding="utf-8")
+            text = render_report([make_decision("excess", "core")])
             self.assertIn("# Schema Consensus Report", text)
             self.assertIn("| excess | hospital_cover | 4/5 | core | 0.750 |", text)
             self.assertIn("### excess", text)

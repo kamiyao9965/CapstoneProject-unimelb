@@ -1,22 +1,39 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 
 from src.refine.candidates.aggregator import FieldDecision
+from src.refine.artifacts.schema_fields import fields_by_name
 from src.refine.human_review import (
     apply_review,
     build_review_queue,
     clear_decision,
     derive_status,
     empty_decisions,
+    load_review_decisions,
+    save_review_decision,
+    remove_review_decision,
     upsert_decision,
+    write_review_decisions,
 )
 
 BASE_SCHEMA = {
     "vertical": "private_health",
     "version": "0.1-draft",
+    "description": "Schema",
     "product_types": ["hospital", "extras", "generalhealth", "combined"],
     "fields": [
+        {
+            "name": "product_type",
+            "type": "enum",
+            "description": "Product classification",
+            "applies_to": ["hospital", "extras", "generalhealth", "combined"],
+            "required": True,
+            "values": ["hospital", "extras", "generalhealth", "combined"],
+            "aliases": [],
+        },
         {
             "name": "product_name",
             "type": "string",
@@ -24,8 +41,12 @@ BASE_SCHEMA = {
             "applies_to": ["hospital", "extras"],
             "required": True,
             "values": [],
+            "aliases": [],
         }
     ],
+    "hospital_categories": [],
+    "extras_services": [],
+    "notes": [],
 }
 
 
@@ -55,12 +76,20 @@ def make_queue(decisions=None) -> dict:
         decisions if decisions is not None else [make_decision("annual_limit")],
         BASE_SCHEMA,
         total_runs=10,
-        base_schema_path="outputs/private_health/schema.yaml",
+        base_schema_path="outputs/private_health/schema.json",
         generated_at="2026-07-08T00:00:00+00:00",
     )
 
 
 class BuildReviewQueueTest(unittest.TestCase):
+    def test_fields_by_name_rejects_malformed_entries_instead_of_dropping_them(self) -> None:
+        with self.assertRaisesRegex(ValueError, "field 1"):
+            fields_by_name([{"name": "valid"}, {"description": "missing name"}])
+
+    def test_fields_by_name_rejects_duplicate_names(self) -> None:
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            fields_by_name([{"name": "same"}, {"name": "same"}])
+
     def test_queue_is_deterministic(self) -> None:
         decisions = [make_decision("annual_limit"), make_decision("excess")]
         self.assertEqual(make_queue(decisions), make_queue(decisions))
@@ -102,6 +131,27 @@ class BuildReviewQueueTest(unittest.TestCase):
 
 
 class DeriveStatusTest(unittest.TestCase):
+    def test_atomic_decision_updates_merge_with_latest_file_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "review_decisions.json"
+            write_review_decisions(empty_decisions(), path)
+            save_review_decision(path, "field:first", "accept")
+
+            save_review_decision(path, "field:second", "reject", "not supported")
+            payload = load_review_decisions(path)
+
+            self.assertEqual(
+                {item["id"] for item in payload["decisions"]},
+                {"field:first", "field:second"},
+            )
+
+            remove_review_decision(path, "field:first")
+            payload = load_review_decisions(path)
+            self.assertEqual(
+                [item["id"] for item in payload["decisions"]],
+                ["field:second"],
+            )
+
     def test_status_is_derived_not_stored(self) -> None:
         queue = make_queue([make_decision("annual_limit"), make_decision("excess")])
         self.assertNotIn("review_status", queue["updates"][0])
@@ -153,7 +203,8 @@ class ApplyReviewTest(unittest.TestCase):
             "edit",
             "clarified",
             {"name": "excess", "type": "number", "description": "Excess per admission",
-             "applies_to": ["hospital"], "required": False, "values": []},
+             "applies_to": ["hospital"], "required": False, "values": [],
+             "aliases": []},
         )
 
         reviewed, summary = self.apply(queue, decisions)
@@ -172,14 +223,14 @@ class ApplyReviewTest(unittest.TestCase):
         self.assertEqual(summary["edited"], ["field:excess"])
         self.assertEqual(summary["rejected"], ["field:promo_text"])
         self.assertEqual(summary["pending"], ["field:waiting_period"])
-        self.assertEqual(reviewed["review"]["pending_count"], 1)
+        self.assertNotIn("review", reviewed)
 
     def test_base_schema_is_not_mutated(self) -> None:
         queue = make_queue()
         decisions = empty_decisions()
         upsert_decision(decisions, "field:annual_limit", "accept")
         self.apply(queue, decisions)
-        self.assertEqual(len(BASE_SCHEMA["fields"]), 1)
+        self.assertEqual(len(BASE_SCHEMA["fields"]), 2)
 
     def test_accept_rejects_group_names_in_applies_to(self) -> None:
         queue = make_queue()
@@ -191,23 +242,22 @@ class ApplyReviewTest(unittest.TestCase):
             self.apply(queue, decisions)
 
     def test_edit_rejects_group_names_in_applies_to(self) -> None:
-        queue = make_queue()
         decisions = empty_decisions()
-        upsert_decision(
-            decisions,
-            "field:annual_limit",
-            "edit",
-            edited_update={
-                "name": "annual_limit",
-                "type": "number",
-                "description": "Annual limit",
-                "applies_to": ["extras_cover", "extras"],
-                "required": False,
-                "values": [],
-            },
-        )
-        with self.assertRaisesRegex(ValueError, "unknown product types"):
-            self.apply(queue, decisions)
+        with self.assertRaises(ValueError):
+            upsert_decision(
+                decisions,
+                "field:annual_limit",
+                "edit",
+                edited_update={
+                    "name": "annual_limit",
+                    "type": "number",
+                    "description": "Annual limit",
+                    "applies_to": ["extras_cover", "extras"],
+                    "required": False,
+                    "values": [],
+                    "aliases": [],
+                },
+            )
 
     def test_manual_patch_cannot_be_plainly_accepted(self) -> None:
         queue = make_queue(
@@ -235,6 +285,7 @@ class ApplyReviewTest(unittest.TestCase):
                 "applies_to": ["extras"],
                 "required": False,
                 "values": [],
+                "aliases": [],
             },
         )
 

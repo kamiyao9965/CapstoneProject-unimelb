@@ -1,5 +1,5 @@
 openai>=1.99.0
-PyYAML>=6.0
+jsonschema>=4.26.0,<5
 streamlit>=1.37
 mineru[all]==3.4.3
 anthropic==0.116.0

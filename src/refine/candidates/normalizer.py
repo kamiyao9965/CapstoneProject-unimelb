@@ -1,7 +1,7 @@
 """Canonical field/group names for consensus refinement.
 
 Alias maps are injectable; the private_health defaults live in
-configs/private_health/aliases.yaml so future verticals can supply their own
+configs/private_health/aliases.json so future verticals can supply their own
 file without code changes.
 """
 
@@ -11,52 +11,31 @@ import re
 from pathlib import Path
 from typing import Mapping
 
-from src.refine.candidates.patch import SchemaPatch, load_yaml
+from src.common.json_codec import loads_json
+from src.common.json_contracts import validate_contract
+from src.refine.candidates.patch import SchemaPatch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_ALIAS_CONFIG = PROJECT_ROOT / "configs" / "private_health" / "aliases.yaml"
-
-# In-code fallbacks, used only when the config file is missing. Keep these in
-# sync with configs/private_health/aliases.yaml.
-DEFAULT_FIELD_ALIASES: Mapping[str, str] = {
-    "annual_benefit_limit": "annual_limit",
-    "annual_limits": "annual_limit",
-    "yearly_limit": "annual_limit",
-    "fund": "fund_name",
-    "company": "fund_name",
-    "company_name": "fund_name",
-    "provider": "provider_name",
-    "product": "product_name",
-}
-
-DEFAULT_GROUP_ALIASES: Mapping[str, str] = {
-    "extras": "extras_cover",
-    "extra_cover": "extras_cover",
-    "hospital": "hospital_cover",
-    "general_health": "generalhealth_cover",
-    "generalhealth": "generalhealth_cover",
-    "source": "source_and_evidence",
-    "evidence": "source_and_evidence",
-}
-
+DEFAULT_ALIAS_CONFIG = PROJECT_ROOT / "configs" / "private_health" / "aliases.json"
 
 def load_alias_config(
     path: str | Path | None = None,
 ) -> tuple[Mapping[str, str], Mapping[str, str]]:
-    """Load (field_aliases, group_aliases) from a YAML config.
+    """Load (field_aliases, group_aliases) from a JSON config.
 
-    Falls back to the in-code defaults when no path is given and the default
-    config file does not exist, so the pipeline works on a bare checkout.
+    The tracked JSON file is the single authoritative default alias source.
     """
     resolved = Path(path) if path else DEFAULT_ALIAS_CONFIG
     if not resolved.exists():
-        if path:
-            raise FileNotFoundError(resolved)
-        return DEFAULT_FIELD_ALIASES, DEFAULT_GROUP_ALIASES
+        raise FileNotFoundError(resolved)
 
-    payload = load_yaml(resolved) or {}
+    try:
+        payload = loads_json(resolved.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(f"Alias config is not valid JSON: {resolved}: {exc}") from exc
+    validate_contract(payload, "private_health/aliases")
     if not isinstance(payload, dict):
-        raise ValueError(f"Alias config must be a YAML object: {resolved}")
+        raise ValueError(f"Alias config must be a JSON object: {resolved}")
     return (
         _string_map(payload.get("field_aliases"), resolved),
         _string_map(payload.get("group_aliases"), resolved),
@@ -67,7 +46,7 @@ def _string_map(value: object, source: Path) -> dict[str, str]:
     if value is None:
         return {}
     if not isinstance(value, dict):
-        raise ValueError(f"Alias sections must be YAML mappings: {source}")
+        raise ValueError(f"Alias sections must be JSON objects: {source}")
     return {str(key): str(val) for key, val in value.items()}
 
 
@@ -108,7 +87,7 @@ def canonical_field_name(
     value: str, aliases: Mapping[str, str] | None = None
 ) -> str:
     name = _snake_case(value)
-    resolved_aliases = DEFAULT_FIELD_ALIASES if aliases is None else aliases
+    resolved_aliases = load_alias_config()[0] if aliases is None else aliases
     return resolved_aliases.get(name, name)
 
 
@@ -116,7 +95,7 @@ def canonical_group_name(
     value: str, aliases: Mapping[str, str] | None = None
 ) -> str:
     name = _snake_case(value)
-    resolved_aliases = DEFAULT_GROUP_ALIASES if aliases is None else aliases
+    resolved_aliases = load_alias_config()[1] if aliases is None else aliases
     return resolved_aliases.get(name, name)
 
 

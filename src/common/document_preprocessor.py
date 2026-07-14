@@ -43,7 +43,17 @@ def markdown_path(source_pdf: Path, pdf_root: Path) -> Path:
     """Return the Markdown mirror of a PDF below the configured PDF root."""
     if source_pdf.suffix.lower() != ".pdf":
         raise ValueError(f"Expected a PDF source path, got {source_pdf}")
-    return (pdf_root.parent / "Markdown" / source_pdf.relative_to(pdf_root)).with_suffix(".md")
+    resolved_source = source_pdf.resolve(strict=False)
+    resolved_root = pdf_root.resolve(strict=False)
+    try:
+        relative = resolved_source.relative_to(resolved_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"PDF source must be below the configured PDF root: {source_pdf}"
+        ) from exc
+    output = (pdf_root.parent / "Markdown" / relative).with_suffix(".md")
+    _reject_markdown_symlinks(output, pdf_root.parent / "Markdown")
+    return output
 
 
 def ensure_markdown(
@@ -55,16 +65,34 @@ def ensure_markdown(
     if not source_pdf.exists():
         raise FileNotFoundError(source_pdf)
     output_markdown = markdown_path(source_pdf, pdf_root)
+    if output_markdown.is_symlink():
+        raise ValueError(f"Markdown mirror must not be a symbolic link: {output_markdown}")
     if output_markdown.exists():
         return output_markdown
 
     output_markdown.parent.mkdir(parents=True, exist_ok=True)
     preprocessor.convert(source_pdf, output_markdown)
+    _reject_markdown_symlinks(output_markdown, pdf_root.parent / "Markdown")
     if not output_markdown.exists():
         raise RuntimeError(
             f"Markdown preprocessor did not create {output_markdown} from {source_pdf}."
         )
     return output_markdown
+
+
+def _reject_markdown_symlinks(output: Path, mirror_root: Path) -> None:
+    """Reject symlink components so Markdown writes cannot escape the mirror."""
+    try:
+        relative = output.relative_to(mirror_root)
+    except ValueError as exc:
+        raise ValueError(f"Markdown output escapes its mirror root: {output}") from exc
+    current = mirror_root
+    if current.is_symlink():
+        raise ValueError(f"Markdown mirror must not use a symbolic link: {current}")
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"Markdown mirror must not use a symbolic link: {current}")
 
 
 def prepare_documents(

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from fnmatch import fnmatchcase
+from pathlib import Path
 from typing import Mapping
+
+from src.common.json_codec import loads_json
 
 DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "gpt-5"
@@ -27,6 +31,45 @@ class ModelSelection:
     document_input: str
 
 
+@dataclass(frozen=True)
+class StructuredOutputCapability:
+    mode: str
+
+
+def require_structured_output_capability(
+    selection: ModelSelection,
+) -> StructuredOutputCapability:
+    """Resolve an approved provider/model structured-output capability."""
+    path = Path(__file__).resolve().parents[2] / "configs" / "model_capabilities.json"
+    config = loads_json(path.read_text(encoding="utf-8"))
+    if not isinstance(config, dict):
+        raise ValueError("Model capability config must be a JSON object.")
+    provider_config = config.get("providers", {}).get(selection.provider)
+    if not isinstance(provider_config, dict):
+        raise ValueError(
+            f"Provider {selection.provider!r} is not approved for structured output."
+        )
+    patterns = provider_config.get("model_patterns", [])
+    if not any(fnmatchcase(selection.model, pattern) for pattern in patterns):
+        raise ValueError(
+            f"Model {selection.provider}/{selection.model} is not approved for "
+            "structured output. Update configs/model_capabilities.json only after "
+            "verifying provider support."
+        )
+    document_inputs = provider_config.get("document_inputs", [])
+    if selection.document_input not in document_inputs:
+        raise ValueError(
+            f"{selection.provider}/{selection.model} does not support structured "
+            f"output with {selection.document_input} document input."
+        )
+    mode = provider_config.get("structured_output_mode")
+    if mode not in {"json_schema", "json_object"}:
+        raise ValueError(
+            f"Invalid structured output capability for {selection.provider}."
+        )
+    return StructuredOutputCapability(mode=mode)
+
+
 def resolve_selection(
     *,
     provider: str | None = None,
@@ -37,7 +80,9 @@ def resolve_selection(
     """Resolve CLI values, then environment defaults, then safe built-ins."""
     environment = os.environ if environment is None else environment
     resolved_provider = _normalized(
-        provider if provider is not None else environment.get("LLM_PROVIDER", DEFAULT_PROVIDER)
+        provider
+        if provider is not None
+        else environment.get("LLM_PROVIDER", DEFAULT_PROVIDER)
     )
     if resolved_provider not in SUPPORTED_PROVIDERS:
         raise ValueError(

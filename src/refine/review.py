@@ -19,21 +19,21 @@ from src.refine.human_review import (
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Apply human review decisions to produce reviewed_schema.yaml"
+        description="Apply human review decisions to produce reviewed_schema.json"
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     apply_command = subcommands.add_parser(
-        "apply", help="Apply review_decisions.yaml to the queue"
+        "apply", help="Apply review_decisions.json to the queue"
     )
     apply_command.add_argument(
         "--consensus-dir",
         required=True,
-        help=f"Directory containing review_queue.yaml and {DECISIONS_FILENAME}",
+        help=f"Directory containing review_queue.json and {DECISIONS_FILENAME}",
     )
     apply_command.add_argument(
         "--base-schema",
-        help="Base schema YAML (default: base_schema_path from the queue metadata)",
+        help="Base schema JSON artifact (default: base_schema_path from queue metadata)",
     )
     apply_command.add_argument(
         "--out",

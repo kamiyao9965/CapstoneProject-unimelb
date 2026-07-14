@@ -89,7 +89,7 @@ def compare(signatures: list[SchemaSignature], show_items: bool) -> float:
 def collect_paths(schemas: list[str] | None, directory: str | None) -> list[Path]:
     paths: list[Path] = []
     if directory:
-        paths.extend(sorted(Path(directory).glob("*.yaml")))
+        paths.extend(sorted(Path(directory).glob("*.json")))
     if schemas:
         paths.extend(Path(p) for p in schemas)
     return paths
@@ -97,8 +97,8 @@ def collect_paths(schemas: list[str] | None, directory: str | None) -> list[Path
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Measure schema drift across discovery runs")
-    parser.add_argument("--schemas", nargs="+", help="Two or more schema YAML files")
-    parser.add_argument("--dir", help="Directory of *.yaml schemas to compare")
+    parser.add_argument("--schemas", nargs="+", help="Two or more schema JSON artifacts")
+    parser.add_argument("--dir", help="Directory of *.json schemas to compare")
     parser.add_argument("--show-items", action="store_true", help="List drifting items")
     return parser
 
@@ -107,7 +107,7 @@ def main() -> int:
     args = build_parser().parse_args()
     paths = collect_paths(args.schemas, args.dir)
     if len(paths) < 2:
-        print("Need at least 2 schema files (use --schemas a.yaml b.yaml or --dir DIR).")
+        print("Need at least 2 schema files (use --schemas a.json b.json or --dir DIR).")
         return 1
 
     missing = [str(p) for p in paths if not p.exists()]

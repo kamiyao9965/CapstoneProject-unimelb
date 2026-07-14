@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["instructions", "analysis"],
+  "properties": {
+    "instructions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documents", "error_docs", "unclassified_docs", "fill_rate", "evaluated_documents", "weak_fields", "missing_required", "enum_violations", "model_unfilled"],
+      "properties": {
+        "documents": {"type": "integer", "minimum": 0},
+        "error_docs": {"type": "integer", "minimum": 0},
+        "unclassified_docs": {"type": "integer", "minimum": 0},
+        "fill_rate": {"type": "object", "additionalProperties": {"type": "number"}},
+        "evaluated_documents": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "weak_fields": {"type": "array", "items": {"type": "string"}},
+        "missing_required": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "enum_violations": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": ["string", "number", "integer", "boolean"]}}},
+        "model_unfilled": {"type": "object", "additionalProperties": {"type": "integer"}}
+      }
+    }
+  }
+}

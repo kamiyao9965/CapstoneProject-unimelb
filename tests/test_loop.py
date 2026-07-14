@@ -6,9 +6,41 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from src.common.json_artifacts import (
+    build_success_artifact,
+    read_artifact,
+    write_artifact,
+)
 from src.common.model_config import ModelSelection, resolve_selection
+from src.refine.human_review import write_review_queue
 from src.refine.pipeline import cli, rounds
 from src.refine.pipeline import steps
+from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
+
+
+PROVENANCE = {
+    "run_id": "test", "provider": "openai", "model": "gpt-5",
+    "document_input": "pdf", "source_documents": [], "source_artifacts": [],
+}
+
+
+def write_schema(path: Path, data: dict | None = None) -> None:
+    artifact = build_success_artifact(
+        artifact_type="discovered_schema", contract_version="1.0.0",
+        data=data or VALID_DISCOVERED_SCHEMA, provenance=PROVENANCE,
+        data_contract="private_health/discovered_schema",
+    )
+    write_artifact(path, artifact, data_contract="private_health/discovered_schema")
+
+
+def review_queue_metadata(samples: list[str] | None = None) -> dict[str, object]:
+    return {
+        "generated_at": "2026-07-14T00:00:00+00:00",
+        "consensus_source": "candidate_schema_patches",
+        "total_runs": 1,
+        "base_schema_path": "schema.json",
+        "schema_build_samples": samples or [],
+    }
 
 
 def make_args(tmp: str, **overrides) -> SimpleNamespace:
@@ -58,22 +90,23 @@ class PipelineSelectionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             args = make_args(tmp)
             args.selection = ModelSelection("anthropic", "claude-test", "pdf")
-            out_path = Path(tmp) / "schema.yaml"
+            out_path = Path(tmp) / "schema.json"
             discovery = mock.Mock()
-            discovery.discover.return_value = "fields: []\n"
+            discovery.discover.return_value = VALID_DISCOVERED_SCHEMA
 
             with mock.patch.object(steps, "SchemaDiscovery", return_value=discovery) as factory:
                 steps.generate_schema(args, None, out_path, sample_paths=["sample.pdf"])
 
         self.assertEqual(factory.call_args.kwargs["selection"], args.selection)
         self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
+        self.assertTrue(discovery.discover.call_args.kwargs["run_id"])
 
     def test_run_consensus_stage_passes_pdf_root_to_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             args = make_args(tmp)
             args.selection = ModelSelection("openai", "gpt-5", "pdf")
-            draft_path = Path(tmp) / "draft.yaml"
-            draft_path.write_text("fields: []\n", encoding="utf-8")
+            draft_path = Path(tmp) / "draft.json"
+            write_schema(draft_path)
             discovery = mock.Mock()
 
             with mock.patch.object(steps, "SchemaDiscovery", return_value=discovery) as factory, \
@@ -95,11 +128,19 @@ class PipelineSelectionTest(unittest.TestCase):
             with mock.patch.object(steps, "select_samples", return_value=["pdfs/eval.pdf"]), \
                  mock.patch.object(steps, "SchemaExtractor", return_value=extractor) as factory, \
                  mock.patch.object(steps, "load_field_specs", return_value={}), \
-                 mock.patch.object(steps, "load_records", return_value=[]), \
+                 mock.patch.object(steps, "load_records", return_value=([], 0)), \
                  mock.patch.object(steps, "analyze", return_value=None), \
                  mock.patch.object(steps, "print_report"), \
-                 mock.patch.object(steps, "build_feedback", return_value="feedback"):
-                steps.evaluate_schema(args, "fields: []", round_dir)
+                 mock.patch.object(steps, "build_feedback", return_value="feedback"), \
+                 mock.patch.object(steps, "build_feedback_data", return_value={
+                     "instructions": ["feedback"],
+                     "analysis": {"documents": 0, "error_docs": 0,
+                         "unclassified_docs": 0, "fill_rate": {},
+                         "evaluated_documents": {}, "weak_fields": [],
+                         "missing_required": {}, "enum_violations": {},
+                         "model_unfilled": {}},
+                 }):
+                steps.evaluate_schema(args, VALID_DISCOVERED_SCHEMA, round_dir)
 
         self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
 
@@ -113,16 +154,25 @@ class RunRoundModeTest(unittest.TestCase):
 
         def fake_generate(args_, feedback, out_path, sample_paths=None):
             self.assertEqual(tuple(sample_paths or ()), ("pdfs/discovery.pdf",))
-            out_path.write_text("fields: []\n", encoding="utf-8")
-            return "fields: []\n"
+            write_schema(out_path)
+            return VALID_DISCOVERED_SCHEMA
 
         def fake_consensus(args_, draft_path, rd, base_sample_paths=()):
             consensus_dir = rd / "consensus"
             consensus_dir.mkdir(parents=True, exist_ok=True)
-            schema_path = consensus_dir / "consensus_schema.yaml"
-            schema_path.write_text("fields: [{name: excess}]\n", encoding="utf-8")
-            queue_path = consensus_dir / "review_queue.yaml"
-            queue_path.write_text("updates: []\n", encoding="utf-8")
+            schema_path = consensus_dir / "consensus_schema.json"
+            schema = dict(VALID_DISCOVERED_SCHEMA)
+            schema["fields"] = [*VALID_DISCOVERED_SCHEMA["fields"], {
+                "name": "excess", "type": "number", "description": "Excess",
+                "applies_to": ["hospital"], "required": False, "values": [],
+                "aliases": [],
+            }]
+            write_schema(schema_path, schema)
+            queue_path = consensus_dir / "review_queue.json"
+            write_review_queue(
+                {"metadata": review_queue_metadata(), "updates": []},
+                queue_path,
+            )
             return SimpleNamespace(
                 consensus_schema_path=schema_path,
                 queue_path=queue_path,
@@ -154,8 +204,8 @@ class RunRoundModeTest(unittest.TestCase):
                 evaluate.call_args.kwargs["exclude_paths"],
                 ("pdfs/discovery.pdf",),
             )
-            self.assertTrue((round_dir / "schema.yaml").exists())
-            self.assertFalse((round_dir / "schema_draft.yaml").exists())
+            self.assertTrue((round_dir / "schema.json").exists())
+            self.assertFalse((round_dir / "schema_draft.json").exists())
 
     def test_unattended_consensus_evaluates_auto_merge(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -166,9 +216,12 @@ class RunRoundModeTest(unittest.TestCase):
                 evaluate.call_args.kwargs["exclude_paths"],
                 ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
             )
-            # schema.yaml is the consensus auto-merge output, draft kept aside.
-            self.assertIn("excess", (round_dir / "schema.yaml").read_text())
-            self.assertTrue((round_dir / "schema_draft.yaml").exists())
+            artifact = read_artifact(
+                round_dir / "schema.json", expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )
+            self.assertIn("excess", [f["name"] for f in artifact["data"]["fields"]])
+            self.assertTrue((round_dir / "schema_draft.json").exists())
 
     def test_attended_consensus_stops_before_evaluation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -177,8 +230,7 @@ class RunRoundModeTest(unittest.TestCase):
             )
             self.assertIsNone(result)
             evaluate.assert_not_called()
-            # schema.yaml must not exist yet - it is written on resume-review.
-            self.assertFalse((round_dir / "schema.yaml").exists())
+            self.assertFalse((round_dir / "schema.json").exists())
 
 
 class ResumeReviewTest(unittest.TestCase):
@@ -197,11 +249,10 @@ class ResumeReviewTest(unittest.TestCase):
             round_dir = Path(tmp) / "round_1"
             consensus_dir = round_dir / "consensus"
             consensus_dir.mkdir(parents=True)
-            (consensus_dir / "reviewed_schema.yaml").write_text(
-                "fields: [{name: excess}]\n", encoding="utf-8"
-            )
-            (consensus_dir / "review_queue.yaml").write_text(
-                "metadata: {}\nupdates: []\n", encoding="utf-8"
+            write_schema(consensus_dir / "reviewed_schema.json")
+            write_review_queue(
+                {"metadata": review_queue_metadata(), "updates": []},
+                consensus_dir / "review_queue.json",
             )
             args = make_args(tmp, resume_review=str(round_dir))
             evaluate = mock.Mock(return_value=(None, "feedback"))
@@ -217,16 +268,18 @@ class ResumeReviewTest(unittest.TestCase):
             round_dir = Path(tmp) / "round_1"
             consensus_dir = round_dir / "consensus"
             consensus_dir.mkdir(parents=True)
-            (consensus_dir / "reviewed_schema.yaml").write_text(
-                "fields: [{name: excess}]\n", encoding="utf-8"
-            )
-            (consensus_dir / "review_queue.yaml").write_text(
-                "metadata:\n"
-                "  schema_build_samples:\n"
-                "    - pdfs/discovery.pdf\n"
-                "    - pdfs/consensus.pdf\n"
-                "updates: []\n",
-                encoding="utf-8",
+            schema = dict(VALID_DISCOVERED_SCHEMA)
+            schema["fields"] = [*VALID_DISCOVERED_SCHEMA["fields"], {
+                "name": "excess", "type": "number", "description": "Excess",
+                "applies_to": ["hospital"], "required": False, "values": [],
+                "aliases": [],
+            }]
+            write_schema(consensus_dir / "reviewed_schema.json", schema)
+            write_review_queue(
+                {"metadata": review_queue_metadata([
+                    "pdfs/discovery.pdf", "pdfs/consensus.pdf"
+                ]), "updates": []},
+                consensus_dir / "review_queue.json",
             )
             args = make_args(tmp, resume_review=str(round_dir))
             evaluate = mock.Mock(return_value=(None, "feedback"))
@@ -238,7 +291,11 @@ class ResumeReviewTest(unittest.TestCase):
                 evaluate.call_args.kwargs["exclude_paths"],
                 ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
             )
-            self.assertIn("excess", (round_dir / "schema.yaml").read_text())
+            artifact = read_artifact(
+                round_dir / "schema.json", expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )
+            self.assertIn("excess", [f["name"] for f in artifact["data"]["fields"]])
 
 
 if __name__ == "__main__":

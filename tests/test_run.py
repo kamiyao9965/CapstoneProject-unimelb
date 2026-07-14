@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import json
 from pathlib import Path
 from unittest import mock
 
@@ -34,12 +35,20 @@ class RunParserTest(unittest.TestCase):
     def test_main_passes_input_root_to_discovery_as_pdf_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             discovery = mock.Mock()
-            discovery.discover.return_value = "fields: []\n"
+            discovery.discover.return_value = {
+                "vertical": "private_health", "version": "0.1-draft",
+                "description": "Schema", "product_types": ["hospital"],
+                "fields": [{"name": "product_name", "type": "string",
+                            "description": "Name", "applies_to": ["hospital"],
+                            "required": True, "values": [], "aliases": []}],
+                "hospital_categories": [], "extras_services": [], "notes": [],
+            }
+            output = Path(tmp) / "schema.json"
             argv = [
                 "run.py",
                 "--samples", "sample.pdf",
                 "--input-root", str(Path(tmp) / "PDFs"),
-                "--output", str(Path(tmp) / "schema.yaml"),
+                "--output", str(output),
                 "--usage-log", str(Path(tmp) / "usage.jsonl"),
             ]
 
@@ -47,8 +56,16 @@ class RunParserTest(unittest.TestCase):
                  mock.patch("sys.argv", argv):
                 exit_code = run_module.main()
 
-        self.assertEqual(exit_code, 0)
-        self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(tmp) / "PDFs")
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(tmp) / "PDFs")
+            artifact = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(artifact["status"], "success")
+            self.assertEqual(artifact["artifact_type"], "discovered_schema")
+
+    def test_default_output_is_json(self) -> None:
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.output, "outputs/private_health/schema.json")
 
 
 if __name__ == "__main__":

@@ -12,6 +12,8 @@ from src.refine.human_review.decisions import (
     derive_status,
     empty_decisions,
     load_review_decisions,
+    remove_review_decision,
+    save_review_decision,
     upsert_decision,
     write_review_decisions,
 )
@@ -34,6 +36,8 @@ __all__ = [
     "empty_decisions",
     "load_review_decisions",
     "load_review_queue",
+    "remove_review_decision",
+    "save_review_decision",
     "upsert_decision",
     "write_review_decisions",
     "write_review_queue",

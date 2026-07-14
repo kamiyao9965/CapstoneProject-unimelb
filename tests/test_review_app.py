@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,8 +13,12 @@ except ModuleNotFoundError:  # pragma: no cover - streamlit is in requirements
     HAS_STREAMLIT = False
 
 from src.refine.candidates.aggregator import FieldDecision
-from src.refine.candidates.patch import dump_yaml, load_yaml
-from src.refine.human_review import build_review_queue, write_review_queue
+from src.common.json_artifacts import build_success_artifact, write_artifact
+from src.refine.human_review import (
+    build_review_queue,
+    load_review_decisions,
+    write_review_queue,
+)
 
 APP_PATH = "src/review_app.py"
 
@@ -22,13 +27,28 @@ def build_fixture(tmp: str) -> Path:
     out = Path(tmp)
     base = {
         "vertical": "private_health",
+        "version": "0.1-draft",
+        "description": "Schema",
+        "product_types": ["hospital", "extras"],
         "fields": [
+            {"name": "product_type", "type": "enum",
+             "description": "Product classification",
+             "applies_to": ["hospital", "extras"], "required": True,
+             "values": ["hospital", "extras"], "aliases": []},
             {"name": "product_name", "type": "string", "description": "Product name",
-             "applies_to": ["hospital"], "required": True, "values": []}
+             "applies_to": ["hospital"], "required": True, "values": [], "aliases": []}
         ],
+        "hospital_categories": [], "extras_services": [], "notes": [],
     }
-    base_path = out / "base_schema.yaml"
-    dump_yaml(base, base_path)
+    base_path = out / "base_schema.json"
+    artifact = build_success_artifact(
+        artifact_type="discovered_schema", contract_version="1.0.0",
+        data=base,
+        provenance={"run_id": "test", "provider": "openai", "model": "gpt-5",
+                    "document_input": "pdf", "source_documents": [], "source_artifacts": []},
+        data_contract="private_health/discovered_schema",
+    )
+    write_artifact(base_path, artifact, data_contract="private_health/discovered_schema")
     decisions = [
         FieldDecision(
             "annual_limit", "extras_cover", "number", "Annual limit", 8, 10, "core",
@@ -45,7 +65,7 @@ def build_fixture(tmp: str) -> Path:
         decisions, base, total_runs=10, base_schema_path=base_path,
         generated_at="2026-07-08T00:00:00+00:00",
     )
-    write_review_queue(queue, out / "review_queue.yaml")
+    write_review_queue(queue, out / "review_queue.json")
     return out
 
 
@@ -71,11 +91,35 @@ class ReviewAppTest(unittest.TestCase):
             at.button(key="accept:field:annual_limit").click()
             at.run()
             self.assertFalse(at.exception)
-            payload = load_yaml(fixture / "review_decisions.yaml")
+            payload = load_review_decisions(fixture / "review_decisions.json")
             self.assertEqual(
                 payload["decisions"][0]["id"], "field:annual_limit"
             )
             self.assertEqual(payload["decisions"][0]["action"], "accept")
+
+    def test_json_edit_persists_edited_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = build_fixture(tmp)
+            at = self.render(fixture)
+            edited = {
+                "name": "annual_limit", "type": "number",
+                "description": "Reviewed annual limit",
+                "applies_to": ["extras"], "required": False, "values": [],
+                "aliases": [],
+            }
+            at.text_area(key="edit:field:annual_limit").set_value(
+                json.dumps(edited)
+            )
+            at.button(key="save_edit:field:annual_limit").click()
+            at.run()
+
+            self.assertFalse(at.exception)
+            payload = load_review_decisions(fixture / "review_decisions.json")
+            self.assertEqual(payload["decisions"][0]["action"], "edit")
+            self.assertEqual(
+                payload["decisions"][0]["edited_update"]["description"],
+                "Reviewed annual limit",
+            )
 
 
 if __name__ == "__main__":

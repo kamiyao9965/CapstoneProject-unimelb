@@ -1,0 +1,28 @@
+{
+  "providers": {
+    "openai": {
+      "model_patterns": ["gpt-5*", "gpt-4.1*", "gpt-4o*", "o3*", "o4*"],
+      "structured_output_mode": "json_schema",
+      "document_inputs": ["pdf", "markdown"]
+    },
+    "anthropic": {
+      "model_patterns": [
+        "claude-sonnet-4-5*",
+        "claude-haiku-4-5*",
+        "claude-opus-4-5*",
+        "claude-sonnet-4-6*",
+        "claude-opus-4-6*",
+        "claude-opus-4-7*",
+        "claude-opus-4-8*",
+        "claude-sonnet-5*"
+      ],
+      "structured_output_mode": "json_schema",
+      "document_inputs": ["pdf", "markdown"]
+    },
+    "deepseek": {
+      "model_patterns": ["deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro"],
+      "structured_output_mode": "json_object",
+      "document_inputs": ["markdown"]
+    }
+  }
+}

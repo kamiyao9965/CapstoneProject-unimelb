@@ -1,12 +1,18 @@
-"""Schema patch data model and YAML IO for consensus refinement."""
+"""Schema patch data model and JSON artifact IO for consensus refinement."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
-from src.schema.validation import SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES
+from src.common.json_artifacts import (
+    build_success_artifact,
+    read_artifact,
+    write_artifact,
+)
+from src.common.json_contracts import validate_contract
+from src.schema.validation import JSONScalar, SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES
 
 
 SUPPORTED_PATCH_TYPES = {
@@ -62,7 +68,7 @@ class SchemaPatch:
     source_run: str = ""
     applies_to: tuple[str, ...] = field(default_factory=tuple)
     required: bool | None = None
-    values: tuple[str, ...] = field(default_factory=tuple)
+    values: tuple[JSONScalar, ...] = field(default_factory=tuple)
 
     @classmethod
     def from_dict(cls, value: dict[str, Any], source_run: str = "") -> "SchemaPatch":
@@ -90,7 +96,7 @@ class SchemaPatch:
                 if isinstance(value.get("required"), bool)
                 else None
             ),
-            values=_string_tuple(value.get("values"), "values"),
+            values=_scalar_tuple(value.get("values"), "values"),
         )
 
     def validate(self) -> None:
@@ -138,8 +144,12 @@ class SchemaPatch:
 
 
 def load_patch_file(path: str | Path) -> list[SchemaPatch]:
-    payload = load_yaml(path)
-    return parse_patch_payload(payload, source_run=Path(path).stem)
+    artifact = read_artifact(
+        path,
+        expected_type="candidate_patch_set",
+        data_contract="private_health/candidate_patch_set",
+    )
+    return parse_patch_payload(artifact["data"], source_run=Path(path).stem)
 
 
 def parse_patch_payload(payload: object, source_run: str = "") -> list[SchemaPatch]:
@@ -148,45 +158,34 @@ def parse_patch_payload(payload: object, source_run: str = "") -> list[SchemaPat
     elif isinstance(payload, dict):
         raw_patches = payload.get("patches", [])
     else:
-        raise ValueError("Patch YAML must be a list or an object with a patches list.")
+        raise ValueError("Patch JSON must be an object with a patches list.")
 
     patches: list[SchemaPatch] = []
     for item in raw_patches or []:
         if not isinstance(item, dict):
-            raise ValueError("Each patch must be a YAML object.")
+            raise ValueError("Each patch must be a JSON object.")
         patch = SchemaPatch.from_dict(item, source_run=source_run)
         patch.validate()
         patches.append(patch)
     return patches
 
 
-def load_yaml(path: str | Path) -> object:
-    yaml = _require_yaml()
-    with Path(path).open("r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
-
-
-def parse_yaml_text(text: str) -> object:
-    return _require_yaml().safe_load(text)
-
-
-def dump_yaml(payload: object, path: str | Path) -> None:
-    yaml = _require_yaml()
-    resolved_path = Path(path)
-    resolved_path.parent.mkdir(parents=True, exist_ok=True)
-    with resolved_path.open("w", encoding="utf-8") as file:
-        yaml.safe_dump(payload, file, sort_keys=False, allow_unicode=True)
-
-
-def _require_yaml() -> Any:
-    try:
-        import yaml
-    except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "PyYAML is required for consensus refinement. "
-            "Run: pip install -r requirements.txt"
-        ) from exc
-    return yaml
+def write_patch_file(
+    payload: Mapping[str, object],
+    path: str | Path,
+    *,
+    provenance: Mapping[str, object],
+) -> Path:
+    artifact = build_success_artifact(
+        artifact_type="candidate_patch_set",
+        contract_version="1.0.0",
+        data=payload,
+        provenance=provenance,
+        data_contract="private_health/candidate_patch_set",
+    )
+    return write_artifact(
+        path, artifact, data_contract="private_health/candidate_patch_set"
+    )
 
 
 def _confidence(value: object) -> float:
@@ -203,6 +202,16 @@ def _string_tuple(value: object, label: str) -> tuple[str, ...]:
         return ()
     if not isinstance(value, list):
         raise ValueError(f"Patch {label} must be a list.")
+    if any(not isinstance(item, str) for item in value):
+        raise ValueError(f"Patch {label} must contain strings only.")
+    return tuple(value)
+
+
+def _scalar_tuple(value: object, label: str) -> tuple[JSONScalar, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ValueError(f"Patch {label} must be a list.")
     if any(not isinstance(item, (str, int, float, bool)) for item in value):
         raise ValueError(f"Patch {label} must contain scalar values only.")
-    return tuple(str(item) for item in value)
+    return tuple(value)

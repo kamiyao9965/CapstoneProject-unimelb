@@ -4,16 +4,20 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Iterable
+from uuid import uuid4
 
+from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.common.model_config import ModelSelection, resolve_selection
 from src.extract.analyze import (
     analyze,
     build_feedback,
+    build_feedback_data,
     load_field_specs,
     load_records,
     print_report,
 )
 from src.extract.extractor import SchemaExtractor
+from src.extract.contract import compile_extraction_contract
 from src.refine.consensus import SchemaConsensusRefinement
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
@@ -46,20 +50,33 @@ def generate_schema(
     feedback: str | None,
     out_path: Path,
     sample_paths: Iterable[str | Path] | None = None,
-) -> str:
+) -> dict[str, object]:
     """Generate a schema over the discovery sample, optionally with feedback."""
     if sample_paths is None:
         sample_paths = select_discovery_samples(args)
     resolved_sample_paths = [str(path) for path in sample_paths]
-    schema_yaml = SchemaDiscovery(
-        selection=_selection(args),
+    selection = _selection(args)
+    run_id = uuid4().hex
+    schema_data = SchemaDiscovery(
+        selection=selection,
         timeout_seconds=args.timeout,
         usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
         extra_instructions=feedback,
         pdf_root=Path(args.input_root),
-    ).discover(resolved_sample_paths, output_path=out_path)
-    out_path.write_text(schema_yaml, encoding="utf-8")
-    return schema_yaml
+    ).discover(resolved_sample_paths, output_path=out_path, run_id=run_id)
+    artifact = build_success_artifact(
+        artifact_type="discovered_schema",
+        contract_version="1.0.0",
+        data=schema_data,
+        provenance={
+            "run_id": run_id, "provider": selection.provider,
+            "model": selection.model, "document_input": selection.document_input,
+            "source_documents": resolved_sample_paths, "source_artifacts": [],
+        },
+        data_contract="private_health/discovered_schema",
+    )
+    write_artifact(out_path, artifact, data_contract="private_health/discovered_schema")
+    return schema_data
 
 
 def run_consensus_stage(
@@ -89,11 +106,11 @@ def run_consensus_stage(
 
 def evaluate_schema(
     args,
-    schema_text: str,
+    schema_data: dict[str, object],
     round_dir: Path,
     exclude_paths: Iterable[str | Path] = (),
 ):
-    """Extract holdout PDFs, analyze failures, and write feedback.txt."""
+    """Extract holdout PDFs, analyze failures, and write refinement_feedback.json."""
     eval_paths = select_samples(
         input_root=Path(args.input_root),
         categories=DEFAULT_CATEGORIES,
@@ -103,17 +120,36 @@ def evaluate_schema(
     )
     extractions_dir = round_dir / "extractions"
     SchemaExtractor(
-        schema_text=schema_text,
+        schema_data=schema_data,
         selection=_selection(args),
         timeout_seconds=args.timeout,
         usage_log_path=str(round_dir / "extraction_usage.jsonl"),
         pdf_root=Path(args.input_root),
     ).extract_many(eval_paths, extractions_dir)
 
-    specs = load_field_specs(schema_text)
-    records = load_records(extractions_dir)
-    analysis = analyze(records, specs)
+    specs = load_field_specs(schema_data)
+    records, failed_artifacts = load_records(
+        extractions_dir,
+        compile_extraction_contract(schema_data),
+    )
+    analysis = analyze(records, specs, failed_artifacts=failed_artifacts)
     print_report(analysis)
     feedback = build_feedback(analysis)
-    (round_dir / "feedback.txt").write_text(feedback + "\n", encoding="utf-8")
+    feedback_data = build_feedback_data(analysis)
+    feedback_artifact = build_success_artifact(
+        artifact_type="refinement_feedback",
+        contract_version="1.0.0",
+        data=feedback_data,
+        provenance={
+            "run_id": None, "provider": None, "model": None,
+            "document_input": None, "source_documents": list(eval_paths),
+            "source_artifacts": [],
+        },
+        data_contract="private_health/refinement_feedback",
+    )
+    write_artifact(
+        round_dir / "refinement_feedback.json",
+        feedback_artifact,
+        data_contract="private_health/refinement_feedback",
+    )
     return analysis, feedback

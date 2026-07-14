@@ -4,84 +4,77 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
-
+from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
+from src.common.model_config import ModelSelection
 from src.refine.consensus import SchemaConsensusRefinement
 
-BASE_SCHEMA_TEXT = """\
-vertical: private_health
-version: 0.1-draft
-product_types: [hospital, extras]
-fields:
-  - name: product_name
-    type: string
-    description: Product name
-    applies_to: [hospital, extras]
-    required: true
-    values: []
-"""
+BASE_SCHEMA = {
+    "vertical": "private_health", "version": "0.1-draft",
+    "description": "Schema", "product_types": ["hospital", "extras"],
+    "fields": [{"name": "product_type", "type": "enum",
+                "description": "Product classification",
+                "applies_to": ["hospital", "extras"], "required": True,
+                "values": ["hospital", "extras"], "aliases": []},
+               {"name": "product_name", "type": "string",
+                "description": "Product name", "applies_to": ["hospital", "extras"],
+                "required": True, "values": [], "aliases": []}],
+    "hospital_categories": [], "extras_services": [], "notes": [],
+}
 
-# Model-shaped patch YAML: run 1 and 2 agree on `excess` (different surface
+# Model-shaped patch JSON: run 1 and 2 agree on `excess` (different surface
 # names, same canonical name after normalization); only run 1 sees `promo_text`.
-PATCH_RUN_1 = """\
-patches:
-  - patch_type: add_field
-    target_group: Hospital
-    field_name: Excess Amount
-    canonical_name: excess
-    type: number
-    description: Excess payable per admission
-    applies_to: [hospital]
-    required: false
-    values: []
-    confidence: 0.9
-  - patch_type: add_field
-    target_group: marketing
-    field_name: promo_text
-    type: string
-    description: Promotional text
-    applies_to: [hospital]
-    required: false
-    values: []
-    confidence: 0.2
-"""
+def patch(name: str, group: str, confidence: float, description: str) -> dict:
+    return {
+        "patch_type": "add_field", "target_group": group, "field_name": name,
+        "canonical_name": "excess" if "excess" in name.lower() else name,
+        "type": "number" if "excess" in name.lower() else "string",
+        "description": description, "applies_to": ["hospital"],
+        "required": False, "values": [], "evidence_documents": [],
+        "confidence": confidence, "rationale": "",
+    }
 
-PATCH_RUN_2 = """\
-patches:
-  - patch_type: add_field
-    target_group: hospital
-    field_name: excess
-    type: number
-    description: Excess payable per admission
-    applies_to: [hospital]
-    required: false
-    values: []
-    confidence: 0.8
-"""
+PATCH_RUN_1 = {"patches": [
+    patch("Excess Amount", "Hospital", 0.9, "Excess payable per admission"),
+    patch("promo_text", "marketing", 0.2, "Promotional text"),
+]}
+PATCH_RUN_2 = {"patches": [
+    patch("excess", "hospital", 0.8, "Excess payable per admission"),
+]}
 
 
 class StubDiscovery:
-    """Stands in for SchemaDiscovery; returns canned patch YAML per run."""
+    """Stands in for SchemaDiscovery; returns canned patch JSON per run."""
 
-    def __init__(self, patch_yaml_per_run: list[str]) -> None:
-        self.patch_yaml_per_run = patch_yaml_per_run
+    def __init__(self, patch_data_per_run: list[dict]) -> None:
+        self.patch_data_per_run = patch_data_per_run
         self.calls: list[dict] = []
+        self.selection = ModelSelection("openai", "gpt-5", "pdf")
 
-    def discover_patches(self, sample_pdfs, current_schema, output_path=None) -> str:
+    def discover_patches(
+        self, sample_pdfs, current_schema, output_path=None, *, run_id=None,
+    ) -> dict:
         self.calls.append(
             {
                 "sample_pdfs": list(sample_pdfs),
                 "current_schema": current_schema,
                 "output_path": output_path,
+                "run_id": run_id,
             }
         )
-        return self.patch_yaml_per_run[len(self.calls) - 1]
+        return self.patch_data_per_run[len(self.calls) - 1]
 
 
 class SchemaConsensusRefinementTest(unittest.TestCase):
     def run_consensus(self, tmp: str):
-        base_path = Path(tmp) / "schema_draft.yaml"
-        base_path.write_text(BASE_SCHEMA_TEXT, encoding="utf-8")
+        base_path = Path(tmp) / "schema_draft.json"
+        artifact = build_success_artifact(
+            artifact_type="discovered_schema", contract_version="1.0.0",
+            data=BASE_SCHEMA,
+            provenance={"run_id": "base", "provider": "openai", "model": "gpt-5",
+                        "document_input": "pdf", "source_documents": [], "source_artifacts": []},
+            data_contract="private_health/discovered_schema",
+        )
+        write_artifact(base_path, artifact, data_contract="private_health/discovered_schema")
         discovery = StubDiscovery([PATCH_RUN_1, PATCH_RUN_2])
         outputs = SchemaConsensusRefinement(discovery=discovery, log=None).refine(
             base_schema_path=base_path,
@@ -99,23 +92,33 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
             self.assertEqual(len(discovery.calls), 2)
             for call in discovery.calls:
                 self.assertEqual(call["sample_pdfs"], ["pdfs/a.pdf"])
-                self.assertIn("product_name", call["current_schema"])
+                self.assertIn(
+                    "product_name",
+                    [field["name"] for field in call["current_schema"]["fields"]],
+                )
+            self.assertEqual(
+                [call["run_id"] for call in discovery.calls],
+                ["consensus-001", "consensus-002"],
+            )
 
     def test_writes_all_consensus_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             _, outputs = self.run_consensus(tmp)
-            self.assertTrue((outputs.patch_dir / "run_001.yaml").exists())
-            self.assertTrue((outputs.patch_dir / "run_002.yaml").exists())
+            self.assertTrue((outputs.patch_dir / "run_001.json").exists())
+            self.assertTrue((outputs.patch_dir / "run_002.json").exists())
             self.assertTrue(outputs.consensus_schema_path.exists())
             self.assertTrue(outputs.frequency_path.exists())
-            self.assertTrue(outputs.report_path.exists())
+            self.assertIn("# Schema Consensus Report", outputs.report)
             self.assertTrue(outputs.stability_path.exists())
             self.assertTrue(outputs.queue_path.exists())
 
     def test_review_queue_and_stability_derive_from_patch_runs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             _, outputs = self.run_consensus(tmp)
-            queue = yaml.safe_load(outputs.queue_path.read_text(encoding="utf-8"))
+            queue = read_artifact(
+                outputs.queue_path, expected_type="review_queue",
+                data_contract="private_health/review_queue",
+            )["data"]
             self.assertEqual(
                 queue["metadata"]["consensus_source"], "candidate_schema_patches"
             )
@@ -131,9 +134,10 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
             ids = [item["id"] for item in queue["updates"]]
             self.assertIn("field:excess", ids)
 
-            stability = yaml.safe_load(
-                outputs.stability_path.read_text(encoding="utf-8")
-            )
+            stability = read_artifact(
+                outputs.stability_path, expected_type="patch_stability",
+                data_contract="private_health/patch_stability",
+            )["data"]
             fields = stability["dimensions"]["fields"]
             # excess appears in both runs; promo_text drifts (run 1 only).
             self.assertIn("excess", fields["stable_items"])
@@ -154,17 +158,18 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
     def test_consensus_schema_promotes_voted_fields_and_keeps_base(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             _, outputs = self.run_consensus(tmp)
-            schema = yaml.safe_load(
-                outputs.consensus_schema_path.read_text(encoding="utf-8")
-            )
+            schema = read_artifact(
+                outputs.consensus_schema_path, expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )["data"]
             names = [field["name"] for field in schema["fields"]]
             self.assertIn("product_name", names)
             self.assertIn("excess", names)
 
     def test_rejects_non_positive_runs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            base_path = Path(tmp) / "schema_draft.yaml"
-            base_path.write_text(BASE_SCHEMA_TEXT, encoding="utf-8")
+            base_path = Path(tmp) / "schema_draft.json"
+            base_path.touch()
             refinement = SchemaConsensusRefinement(discovery=StubDiscovery([]), log=None)
             with self.assertRaises(ValueError):
                 refinement.refine(base_schema_path=base_path, runs=0)
@@ -172,7 +177,7 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
     def test_missing_base_schema_raises(self) -> None:
         refinement = SchemaConsensusRefinement(discovery=StubDiscovery([]), log=None)
         with self.assertRaises(FileNotFoundError):
-            refinement.refine(base_schema_path="does/not/exist.yaml", runs=1)
+            refinement.refine(base_schema_path="does/not/exist.json", runs=1)
 
 
 if __name__ == "__main__":

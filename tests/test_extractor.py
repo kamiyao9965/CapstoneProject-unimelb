@@ -9,44 +9,103 @@ from unittest import mock
 from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest
 from src.extract.extractor import SchemaExtractor
+from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
-VALID_SCHEMA_TEXT = """vertical: private_health
-version: 0.1-draft
-product_types: [hospital]
-fields:
-  - name: product_name
-    type: string
-    description: Product name
-    applies_to: [hospital]
-    required: true
-    values: []
-"""
+VALID_RECORD = {
+    "product_type": "hospital",
+    "product_name": "Example",
+    "_unfilled": [],
+    "_notes": None,
+}
 
 
 class ExtractManyOutputTest(unittest.TestCase):
     def test_rejects_invalid_schema_before_extraction(self) -> None:
-        with self.assertRaisesRegex(ValueError, "valid YAML"):
-            SchemaExtractor(schema_text="fields: [", log=None)
+        with self.assertRaises(ValueError):
+            SchemaExtractor(schema_data={"fields": []}, log=None)
 
     def test_same_stem_pdfs_write_distinct_json_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             first_pdf = Path(tmp) / "FundA" / "hospital" / "product.pdf"
             second_pdf = Path(tmp) / "FundB" / "hospital" / "product.pdf"
             out_dir = Path(tmp) / "extractions"
-            extractor = SchemaExtractor(schema_text=VALID_SCHEMA_TEXT, log=None)
+            extractor = SchemaExtractor(schema_data=VALID_DISCOVERED_SCHEMA, log=None)
 
             with mock.patch.object(
                 extractor,
                 "extract_one",
-                side_effect=[{"fund": "A"}, {"fund": "B"}],
+                side_effect=[
+                    {
+                        "product_type": "hospital", "product_name": "A",
+                        "_unfilled": [], "_notes": None,
+                    },
+                    {
+                        "product_type": "hospital", "product_name": "B",
+                        "_unfilled": [], "_notes": None,
+                    },
+                ],
             ):
                 written = extractor.extract_many([first_pdf, second_pdf], out_dir)
 
             self.assertEqual(len(set(written)), 2)
-            records = [
-                json.loads(path.read_text(encoding="utf-8")) for path in written
-            ]
-            self.assertCountEqual([record["fund"] for record in records], ["A", "B"])
+            artifacts = [json.loads(path.read_text(encoding="utf-8")) for path in written]
+            self.assertCountEqual(
+                [artifact["data"]["product_name"] for artifact in artifacts],
+                ["A", "B"],
+            )
+
+    def test_failure_stops_remaining_documents_and_preserves_prior_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pdfs = [Path(tmp) / f"{name}.pdf" for name in ("one", "two", "three")]
+            out_dir = Path(tmp) / "extractions"
+            extractor = SchemaExtractor(schema_data=VALID_DISCOVERED_SCHEMA, log=None)
+            calls: list[str] = []
+
+            def extract(path: Path, *, run_id: str | None = None) -> dict:
+                calls.append(Path(path).name)
+                if Path(path).name == "two.pdf":
+                    raise RuntimeError("provider failed")
+                return {
+                    "product_type": "hospital",
+                    "product_name": Path(path).stem,
+                    "_unfilled": [],
+                    "_notes": None,
+                }
+
+            with mock.patch.object(extractor, "extract_one", side_effect=extract):
+                with self.assertRaisesRegex(RuntimeError, "provider failed"):
+                    extractor.extract_many(pdfs, out_dir)
+
+            self.assertEqual(calls, ["one.pdf", "two.pdf"])
+            self.assertTrue((out_dir / "one.json").exists())
+            self.assertFalse((out_dir / "three.json").exists())
+            self.assertEqual(len(list((out_dir / "errors" / "extraction").glob("*.json"))), 1)
+
+    def test_usage_and_success_artifact_share_one_logical_run_id(self) -> None:
+        class RecordingProvider:
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                return ModelResponse(
+                    text=json.dumps(VALID_RECORD),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_path = root / "example.pdf"
+            pdf_path.touch()
+            usage_path = root / "usage.jsonl"
+            output_path = SchemaExtractor(
+                schema_data=VALID_DISCOVERED_SCHEMA,
+                provider=RecordingProvider(),
+                usage_log_path=usage_path,
+                log=None,
+            ).extract_many([pdf_path], root / "extractions")[0]
+
+            usage = json.loads(usage_path.read_text(encoding="utf-8"))
+            artifact = json.loads(output_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(usage["run_id"], artifact["provenance"]["run_id"])
 
     def test_extract_one_passes_logical_pdf_to_injected_provider(self) -> None:
         class RecordingProvider:
@@ -56,7 +115,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             def generate(self, request: ProviderRequest) -> ModelResponse:
                 self.request = request
                 return ModelResponse(
-                    text='{"fund": "Example"}',
+                    text=json.dumps(VALID_RECORD),
                     provider=request.selection.provider,
                     model=request.selection.model,
                 )
@@ -67,18 +126,68 @@ class ExtractManyOutputTest(unittest.TestCase):
             provider = RecordingProvider()
             selection = ModelSelection("openai", "gpt-5", "pdf")
             record = SchemaExtractor(
-                schema_text=VALID_SCHEMA_TEXT,
+                schema_data=VALID_DISCOVERED_SCHEMA,
                 selection=selection,
                 provider=provider,
                 usage_log_path=None,
                 log=None,
             ).extract_one(pdf_path)
 
-        self.assertEqual(record, {"fund": "Example"})
+        self.assertEqual(record, VALID_RECORD)
         self.assertIsNotNone(provider.request)
         self.assertEqual(provider.request.selection, selection)
         self.assertEqual(provider.request.document_paths, (pdf_path,))
-        self.assertIn("Schema (YAML)", provider.request.user_text)
+        self.assertIn("Discovered schema data", provider.request.user_text)
+        self.assertEqual(provider.request.structured_output.name, "extraction_result")
+        self.assertTrue(provider.request.structured_output.strict)
+
+    def test_open_list_object_field_uses_non_strict_provider_schema(self) -> None:
+        class RecordingProvider:
+            def __init__(self) -> None:
+                self.request: ProviderRequest | None = None
+
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                self.request = request
+                return ModelResponse(
+                    text=json.dumps(
+                        {
+                            "product_type": "extras",
+                            "product_name": "Example",
+                            "benefits": [{"label": "Dental", "limit": 500}],
+                            "_unfilled": [],
+                            "_notes": None,
+                        }
+                    ),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        schema = json.loads(json.dumps(VALID_DISCOVERED_SCHEMA))
+        schema["fields"].append(
+            {
+                "name": "benefits",
+                "type": "list[object]",
+                "description": "Benefit entries whose nested shape is source-defined.",
+                "applies_to": ["extras"],
+                "required": False,
+                "values": [],
+                "aliases": [],
+            }
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "example.pdf"
+            pdf_path.touch()
+            provider = RecordingProvider()
+            SchemaExtractor(
+                schema_data=schema,
+                selection=ModelSelection("openai", "gpt-5", "pdf"),
+                provider=provider,
+                usage_log_path=None,
+                log=None,
+            ).extract_one(pdf_path)
+
+        self.assertIsNotNone(provider.request)
+        self.assertFalse(provider.request.structured_output.strict)
 
     def test_extract_one_markdown_mode_sends_mirror_and_logs_source_pdf(self) -> None:
         class RecordingProvider:
@@ -88,7 +197,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             def generate(self, request: ProviderRequest) -> ModelResponse:
                 self.request = request
                 return ModelResponse(
-                    text='{"fund": "Example"}',
+                    text=json.dumps(VALID_RECORD),
                     provider=request.selection.provider,
                     model=request.selection.model,
                 )
@@ -105,7 +214,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             usage_log = Path(tmp) / "usage.jsonl"
             provider = RecordingProvider()
             record = SchemaExtractor(
-                schema_text=VALID_SCHEMA_TEXT,
+                schema_data=VALID_DISCOVERED_SCHEMA,
                 selection=ModelSelection("anthropic", "claude-test", "markdown"),
                 provider=provider,
                 pdf_root=pdf_root,
@@ -114,7 +223,7 @@ class ExtractManyOutputTest(unittest.TestCase):
                 log=None,
             ).extract_one(pdf_path)
 
-            self.assertEqual(record, {"fund": "Example"})
+            self.assertEqual(record, VALID_RECORD)
             self.assertEqual(
                 provider.request.document_paths,
                 (Path(tmp) / "Markdown" / "HCF" / "hospital" / "example.md",),

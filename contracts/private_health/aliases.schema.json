@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["field_aliases", "group_aliases"],
+  "properties": {
+    "field_aliases": {"type": "object", "additionalProperties": {"type": "string"}},
+    "group_aliases": {"type": "object", "additionalProperties": {"type": "string"}}
+  }
+}

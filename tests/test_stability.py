@@ -1,26 +1,35 @@
 from __future__ import annotations
 
 import unittest
+import json
 
 from src.stability.compare import jaccard
-from src.stability.signature import signature_from_text
+from src.stability.signature import signature_from_artifact, signature_from_text
+from src.common.json_artifacts import build_success_artifact
+from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
 
 def schema(field_type: str, description: str = "Product name") -> str:
-    return f"""
-vertical: private_health
-version: 0.1-draft
-product_types: [hospital]
-fields:
-  - name: product_name
-    type: {field_type}
-    description: {description}
-    applies_to: [hospital]
-    required: true
-    values: []
-hospital_categories: []
-extras_services: []
-"""
+    data = {
+        "vertical": "private_health", "version": "0.1-draft",
+        "description": "Schema", "product_types": ["hospital"],
+        "fields": [{
+            "name": "product_name", "type": field_type,
+            "description": description, "applies_to": ["hospital"],
+            "required": True, "values": [], "aliases": [],
+        }],
+        "hospital_categories": [], "extras_services": [], "notes": [],
+    }
+    artifact = build_success_artifact(
+        artifact_type="discovered_schema", contract_version="1.0.0",
+        data=data,
+        provenance={
+            "run_id": "test", "provider": "openai", "model": "gpt-5",
+            "document_input": "pdf", "source_documents": [], "source_artifacts": [],
+        },
+        data_contract="private_health/discovered_schema",
+    )
+    return json.dumps(artifact)
 
 
 class SemanticSchemaSignatureTest(unittest.TestCase):
@@ -45,17 +54,25 @@ class SemanticSchemaSignatureTest(unittest.TestCase):
 
         self.assertEqual(stability, 0.0)
 
-    def test_consensus_metadata_does_not_change_field_contract(self) -> None:
-        base = schema("string")
-        annotated = base.replace(
-            "    values: []",
-            "    values: []\n    consensus:\n      decision: core\n      frequency: 5/5",
+    def test_envelope_provenance_does_not_change_semantic_signature(self) -> None:
+        provenance = {
+            "run_id": "one", "provider": "openai", "model": "gpt-5",
+            "document_input": "pdf", "source_documents": [], "source_artifacts": [],
+        }
+        first = build_success_artifact(
+            artifact_type="discovered_schema", contract_version="1.0.0",
+            data=VALID_DISCOVERED_SCHEMA, provenance=provenance,
+            data_contract="private_health/discovered_schema",
+            created_at="2026-07-14T00:00:00Z",
         )
+        second = json.loads(json.dumps(first))
+        second["created_at"] = "2026-07-14T01:00:00Z"
+        second["provenance"]["run_id"] = "two"
 
-        first = signature_from_text(base, "first")
-        second = signature_from_text(annotated, "second")
-
-        self.assertEqual(first.field_contracts, second.field_contracts)
+        self.assertEqual(
+            signature_from_artifact(first, "first").field_contracts,
+            signature_from_artifact(second, "second").field_contracts,
+        )
 
 
 if __name__ == "__main__":

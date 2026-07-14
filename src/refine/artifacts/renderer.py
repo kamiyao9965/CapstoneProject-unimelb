@@ -1,8 +1,4 @@
-"""Render consensus artifacts: merged schema, field frequency, and report.
-
-Field metadata is written under a `consensus` key (rather than `refinement`) to
-keep consensus refinement distinct from the extraction-driven refinement loop.
-"""
+"""Render consensus JSON artifacts and human-readable CLI summaries."""
 
 from __future__ import annotations
 
@@ -17,7 +13,11 @@ from src.refine.artifacts.schema_fields import (
     fields_by_name,
 )
 from src.refine.candidates.aggregator import FieldDecision
-from src.refine.candidates.patch import dump_yaml, load_yaml
+from src.common.json_artifacts import (
+    build_success_artifact,
+    read_artifact,
+    write_artifact,
+)
 from src.schema.validation import validate_schema_mapping
 
 
@@ -29,9 +29,13 @@ def render_consensus_schema(
     decisions: list[FieldDecision],
     output_path: str | Path,
 ) -> None:
-    base_schema = load_yaml(base_schema_path) or {}
+    base_schema = read_artifact(
+        base_schema_path,
+        expected_type="discovered_schema",
+        data_contract="private_health/discovered_schema",
+    )["data"]
     if not isinstance(base_schema, dict):
-        raise ValueError("Base schema YAML must be an object.")
+        raise ValueError("Base schema JSON must be an object.")
 
     consensus_schema = deepcopy(base_schema)
     existing_fields = fields_by_name(consensus_schema.get("fields", []))
@@ -53,23 +57,37 @@ def render_consensus_schema(
         existing_fields[decision.canonical_name] = field_payload_from_decision(
             decision,
             existing_field,
-            include_consensus=True,
         )
 
     consensus_schema["fields"] = list(existing_fields.values())
-    consensus_schema["consensus"] = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "promoted_decisions": sorted(PROMOTED_DECISIONS),
-    }
     validate_schema_mapping(consensus_schema)
-    dump_yaml(consensus_schema, output_path)
+    artifact = build_success_artifact(
+        artifact_type="discovered_schema",
+        contract_version="1.0.0",
+        data=consensus_schema,
+        provenance=_local_provenance([Path(base_schema_path).as_posix()]),
+        data_contract="private_health/discovered_schema",
+    )
+    write_artifact(
+        output_path, artifact, data_contract="private_health/discovered_schema"
+    )
 
 
-def render_frequency_yaml(decisions: list[FieldDecision], output_path: str | Path) -> None:
-    dump_yaml({"fields": [decision.to_dict() for decision in decisions]}, output_path)
+def render_frequency_json(decisions: list[FieldDecision], output_path: str | Path) -> None:
+    data = {"fields": [decision.to_dict() for decision in decisions]}
+    artifact = build_success_artifact(
+        artifact_type="field_frequency",
+        contract_version="1.0.0",
+        data=data,
+        provenance=_local_provenance(),
+        data_contract="private_health/field_frequency",
+    )
+    write_artifact(
+        output_path, artifact, data_contract="private_health/field_frequency"
+    )
 
 
-def render_report(decisions: list[FieldDecision], output_path: str | Path) -> None:
+def render_report(decisions: list[FieldDecision]) -> str:
     lines = [
         "# Schema Consensus Report",
         "",
@@ -111,6 +129,12 @@ def render_report(decisions: list[FieldDecision], output_path: str | Path) -> No
             ]
         )
 
-    resolved_path = Path(output_path)
-    resolved_path.parent.mkdir(parents=True, exist_ok=True)
-    resolved_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _local_provenance(source_artifacts: list[str] | None = None) -> dict[str, object]:
+    return {
+        "run_id": None, "provider": None, "model": None,
+        "document_input": None, "source_documents": [],
+        "source_artifacts": source_artifacts or [],
+    }

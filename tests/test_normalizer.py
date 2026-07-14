@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from src.refine.candidates.aggregator import aggregate_patches
 from src.refine.candidates.normalizer import (
     DEFAULT_ALIAS_CONFIG,
-    DEFAULT_FIELD_ALIASES,
-    DEFAULT_GROUP_ALIASES,
     canonical_field_name,
     canonical_group_name,
     load_alias_config,
@@ -85,34 +84,33 @@ class NormalizePatchTest(unittest.TestCase):
 
 
 class LoadAliasConfigTest(unittest.TestCase):
-    def test_default_config_file_matches_in_code_defaults(self) -> None:
+    def test_default_config_file_is_the_authoritative_default(self) -> None:
         self.assertTrue(DEFAULT_ALIAS_CONFIG.exists())
         field_aliases, group_aliases = load_alias_config()
-        self.assertEqual(dict(field_aliases), dict(DEFAULT_FIELD_ALIASES))
-        self.assertEqual(dict(group_aliases), dict(DEFAULT_GROUP_ALIASES))
+        self.assertEqual(field_aliases["company_name"], "fund_name")
+        self.assertEqual(group_aliases["hospital"], "hospital_cover")
 
     def test_loaded_aliases_drive_normalization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            config = Path(tmp) / "aliases.yaml"
-            config.write_text(
-                "field_aliases:\n  tariff: premium\ngroup_aliases:\n  bills: billing\n",
-                encoding="utf-8",
-            )
+            config = Path(tmp) / "aliases.json"
+            config.write_text(json.dumps({
+                "field_aliases": {"tariff": "premium"},
+                "group_aliases": {"bills": "billing"},
+            }), encoding="utf-8")
             field_aliases, group_aliases = load_alias_config(config)
             self.assertEqual(canonical_field_name("Tariff", field_aliases), "premium")
             self.assertEqual(canonical_group_name("Bills", group_aliases), "billing")
 
     def test_missing_explicit_path_raises(self) -> None:
         with self.assertRaises(FileNotFoundError):
-            load_alias_config("does/not/exist.yaml")
+            load_alias_config("does/not/exist.json")
 
-    def test_missing_sections_default_to_empty(self) -> None:
+    def test_missing_sections_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            config = Path(tmp) / "aliases.yaml"
-            config.write_text("field_aliases:\n  a: b\n", encoding="utf-8")
-            field_aliases, group_aliases = load_alias_config(config)
-            self.assertEqual(field_aliases, {"a": "b"})
-            self.assertEqual(group_aliases, {})
+            config = Path(tmp) / "aliases.json"
+            config.write_text(json.dumps({"field_aliases": {"a": "b"}}), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_alias_config(config)
 
 
 if __name__ == "__main__":

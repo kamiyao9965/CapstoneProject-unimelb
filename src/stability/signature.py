@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
+from src.common.json_artifacts import read_artifact
+from src.common.json_codec import dumps_json, loads_json
+from src.common.json_contracts import validate_contract
 
 # The dimensions we track for drift. Each maps to a set of identifier strings
 # pulled out of a schema so two schemas can be compared set-against-set.
@@ -63,15 +64,19 @@ def _field_contracts(items: object) -> frozenset[str]:
             ):
                 contract[unordered_key] = sorted(value, key=lambda element: str(element))
         contracts.add(
-            json.dumps(contract, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+            dumps_json(contract, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         )
     return frozenset(contracts)
 
 
-def signature_from_text(text: str, label: str) -> SchemaSignature:
-    data = yaml.safe_load(text) or {}
-    if not isinstance(data, dict):
-        raise ValueError(f"{label}: schema is not a YAML mapping")
+def signature_from_artifact(artifact: object, label: str) -> SchemaSignature:
+    validate_contract(artifact, "artifact_envelope")
+    if not isinstance(artifact, dict) or artifact.get("status") != "success":
+        raise ValueError(f"{label}: schema artifact is not successful")
+    if artifact.get("artifact_type") != "discovered_schema":
+        raise ValueError(f"{label}: expected a discovered_schema artifact")
+    data = artifact["data"]
+    validate_contract(data, "private_health/discovered_schema")
 
     product_types = data.get("product_types") or []
     pt = (
@@ -90,6 +95,20 @@ def signature_from_text(text: str, label: str) -> SchemaSignature:
     )
 
 
+def signature_from_text(text: str, label: str) -> SchemaSignature:
+    """Parse a JSON artifact string and build its semantic signature."""
+    try:
+        artifact = loads_json(text)
+    except ValueError as exc:
+        raise ValueError(f"{label}: schema artifact is not valid strict JSON: {exc}") from exc
+    return signature_from_artifact(artifact, label)
+
+
 def signature_from_file(path: str | Path) -> SchemaSignature:
     path = Path(path)
-    return signature_from_text(path.read_text(encoding="utf-8"), label=path.name)
+    artifact = read_artifact(
+        path,
+        expected_type="discovered_schema",
+        data_contract="private_health/discovered_schema",
+    )
+    return signature_from_artifact(artifact, label=path.name)

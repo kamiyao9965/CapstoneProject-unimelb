@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
 from pathlib import Path
 
 from src.refine.artifacts.schema_fields import fields_by_name
-from src.refine.candidates.patch import dump_yaml, load_yaml
+from src.common.json_artifacts import (
+    build_success_artifact,
+    read_artifact,
+    write_artifact,
+)
 from src.refine.human_review.constants import (
     DECISIONS_FILENAME,
     QUEUE_FILENAME,
@@ -30,7 +33,7 @@ def apply_review(
     actions fail loudly because they indicate a queue/decision file mismatch.
     """
     if not isinstance(base_schema, dict):
-        raise ValueError("Base schema must be a YAML object.")
+        raise ValueError("Base schema must be a JSON object.")
 
     queue_items = queue.get("updates", [])
     queue_ids = {item["id"] for item in queue_items}
@@ -58,13 +61,6 @@ def apply_review(
             fields[str(payload["name"])] = payload
 
     reviewed["fields"] = list(fields.values())
-    reviewed["review"] = {
-        "reviewed_at": datetime.now(timezone.utc).isoformat(),
-        "source_queue_generated_at": queue.get("metadata", {}).get("generated_at"),
-        "applied_count": len(summary["applied"]) + len(summary["edited"]),
-        "rejected_count": len(summary["rejected"]),
-        "pending_count": len(summary["pending"]),
-    }
     validate_schema_mapping(reviewed)
     return reviewed, summary
 
@@ -119,7 +115,7 @@ def apply_review_files(
     base_schema_path: str | Path | None = None,
     output_path: str | Path | None = None,
 ) -> tuple[Path, dict]:
-    """Load queue/decisions from disk and write reviewed_schema.yaml."""
+    """Load queue/decisions from disk and write reviewed_schema.json."""
     consensus_dir = Path(consensus_dir)
     queue = load_review_queue(consensus_dir / QUEUE_FILENAME)
     decisions_path = consensus_dir / DECISIONS_FILENAME
@@ -133,11 +129,34 @@ def apply_review_files(
     reviewed, summary = apply_review(
         queue,
         decisions_payload,
-        load_yaml(resolved_base_schema),
+        read_artifact(
+            resolved_base_schema,
+            expected_type="discovered_schema",
+            data_contract="private_health/discovered_schema",
+        )["data"],
     )
 
     resolved_output = (
         Path(output_path) if output_path else consensus_dir / REVIEWED_SCHEMA_FILENAME
     )
-    dump_yaml(reviewed, resolved_output)
+    artifact = build_success_artifact(
+        artifact_type="discovered_schema",
+        contract_version="1.0.0",
+        data=reviewed,
+        provenance={
+            "run_id": None, "provider": None, "model": None,
+            "document_input": None, "source_documents": [],
+            "source_artifacts": [
+                (consensus_dir / QUEUE_FILENAME).as_posix(),
+                decisions_path.as_posix(),
+                resolved_base_schema.as_posix(),
+            ],
+        },
+        data_contract="private_health/discovered_schema",
+    )
+    write_artifact(
+        resolved_output,
+        artifact,
+        data_contract="private_health/discovered_schema",
+    )
     return resolved_output, summary

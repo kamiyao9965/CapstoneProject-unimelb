@@ -67,7 +67,14 @@ class StandaloneSelectionParserTest(unittest.TestCase):
                 "--out-dir", str(Path(tmp) / "out"),
             ]
             discovery = mock.Mock()
-            discovery.discover.return_value = "fields: []\n"
+            discovery.discover.return_value = {
+                "vertical": "private_health", "version": "0.1-draft",
+                "description": "Schema", "product_types": ["hospital"],
+                "fields": [{"name": "product_name", "type": "string",
+                            "description": "Name", "applies_to": ["hospital"],
+                            "required": True, "values": [], "aliases": []}],
+                "hospital_categories": [], "extras_services": [], "notes": [],
+            }
 
             with mock.patch.object(
                      measure_module, "SchemaDiscovery", return_value=discovery
@@ -80,6 +87,9 @@ class StandaloneSelectionParserTest(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(factory.call_args.kwargs["pdf_root"], str(Path(tmp) / "PDFs"))
+        run_ids = [call.kwargs["run_id"] for call in discovery.discover.call_args_list]
+        self.assertEqual(len(run_ids), 2)
+        self.assertEqual(len(set(run_ids)), 2)
 
 
 if __name__ == "__main__":

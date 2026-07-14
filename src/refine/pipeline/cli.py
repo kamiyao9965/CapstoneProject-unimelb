@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from src.common.json_artifacts import read_artifact
+from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
 from src.refine.pipeline.rounds import next_round_index, resume_review, run_round
 
@@ -60,7 +62,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--resume-review",
         help=(
-            "Path to a round_N directory whose consensus/reviewed_schema.yaml "
+            "Path to a round_N directory whose consensus/reviewed_schema.json "
             "should be evaluated on the holdout set"
         ),
     )
@@ -74,7 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--resume-feedback",
-        help="Path to a (human-edited) feedback file to seed round 1",
+        help="Path to a validated feedback JSON artifact to seed round 1",
     )
     return parser
 
@@ -124,7 +126,12 @@ def _run_from_start(args) -> int:
 def _load_feedback(args, start_index: int) -> str | None:
     if not args.resume_feedback:
         return None
-    feedback = Path(args.resume_feedback).read_text(encoding="utf-8").strip()
+    artifact = read_artifact(
+        args.resume_feedback,
+        expected_type="refinement_feedback",
+        data_contract="private_health/refinement_feedback",
+    )
+    feedback = dumps_json(artifact["data"], ensure_ascii=False)
     print(f"Seeding round {start_index} with feedback from {args.resume_feedback}")
     return feedback
 
@@ -133,7 +140,7 @@ def _print_human_loop_stop(args, round_index: int) -> None:
     print(
         "\n--- Human-in-the-loop stop ---\n"
         "Review the schema and feedback under "
-        f"{args.out_dir}/round_{round_index}/. Edit feedback.txt if needed, then re-run with:\n"
-        f"  python src/refine/loop.py --resume-feedback {args.out_dir}/round_{round_index}/feedback.txt\n"
+        f"{args.out_dir}/round_{round_index}/. Review refinement_feedback.json, then re-run with:\n"
+        f"  python src/refine/loop.py --resume-feedback {args.out_dir}/round_{round_index}/refinement_feedback.json\n"
         "or pass --autonomous to let the loop iterate on its own."
     )

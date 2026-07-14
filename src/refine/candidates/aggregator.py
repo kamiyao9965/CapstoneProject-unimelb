@@ -6,6 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from src.refine.candidates.patch import EvidenceDocument, SchemaPatch
+from src.schema.validation import JSONScalar
 
 
 @dataclass
@@ -29,7 +30,7 @@ class FieldDecision:
     reject_rationale_samples: list[str] = field(default_factory=list)
     applies_to: list[str] = field(default_factory=list)
     required: bool | None = None
-    values: list[str] = field(default_factory=list)
+    values: list[JSONScalar] = field(default_factory=list)
 
     @property
     def frequency_label(self) -> str:
@@ -166,13 +167,18 @@ def _first_non_empty(values: list[str]) -> str:
     return next((value for value in values if value), "")
 
 
-def _most_common_tuple(values: list[tuple[str, ...]]) -> tuple[str, ...]:
+def _most_common_tuple(
+    values: list[tuple[JSONScalar, ...]],
+) -> tuple[JSONScalar, ...]:
     populated = [value for value in values if value]
     if not populated:
         return ()
     return sorted(
         ((value, populated.count(value)) for value in set(populated)),
-        key=lambda item: (-item[1], item[0]),
+        key=lambda item: (
+            -item[1],
+            tuple((type(value).__name__, repr(value)) for value in item[0]),
+        ),
     )[0][0]
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.common.json_artifacts import read_artifact, write_artifact
 from src.refine.human_review import QUEUE_FILENAME, load_review_queue
 from src.refine.pipeline.steps import (
     evaluate_schema,
@@ -29,14 +30,14 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
     """
     round_dir = Path(args.out_dir) / f"round_{round_index}"
     round_dir.mkdir(parents=True, exist_ok=True)
-    schema_path = round_dir / "schema.yaml"
+    schema_path = round_dir / "schema.json"
     with_consensus = args.consensus_runs > 1
-    draft_path = round_dir / "schema_draft.yaml" if with_consensus else schema_path
+    draft_path = round_dir / "schema_draft.json" if with_consensus else schema_path
 
     print(f"\n========== ROUND {round_index} ==========")
     print("[generate] discovering schema" + (" with feedback" if feedback_in else ""))
     schema_build_samples = select_discovery_samples(args)
-    schema_text = generate_schema(
+    schema_data = generate_schema(
         args,
         feedback_in,
         draft_path,
@@ -45,20 +46,20 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
     print(f"[generate] wrote {draft_path}")
 
     if with_consensus:
-        schema_text, schema_build_samples = _run_consensus_or_pause(
+        schema_data, schema_build_samples = _run_consensus_or_pause(
             args,
             draft_path,
             round_dir,
             schema_path,
             schema_build_samples,
         )
-        if schema_text is None:
+        if schema_data is None:
             return None
 
     print("[extract + analyze] evaluating schema on holdout PDFs")
     _analysis, feedback_out = evaluate_schema(
         args,
-        schema_text,
+        schema_data,
         round_dir,
         exclude_paths=schema_build_samples,
     )
@@ -72,7 +73,7 @@ def _run_consensus_or_pause(
     round_dir: Path,
     schema_path: Path,
     base_sample_paths: tuple[str, ...],
-) -> tuple[str | None, tuple[str, ...]]:
+) -> tuple[dict[str, object] | None, tuple[str, ...]]:
     print(f"[consensus] voting over {args.consensus_runs} patch runs")
     outputs = run_consensus_stage(
         args,
@@ -85,10 +86,18 @@ def _run_consensus_or_pause(
         _print_review_stop(round_dir, outputs.queue_path)
         return None, outputs.schema_build_samples
 
-    schema_text = outputs.consensus_schema_path.read_text(encoding="utf-8")
-    schema_path.write_text(schema_text, encoding="utf-8")
+    artifact = read_artifact(
+        outputs.consensus_schema_path,
+        expected_type="discovered_schema",
+        data_contract="private_health/discovered_schema",
+    )
+    write_artifact(
+        schema_path,
+        artifact,
+        data_contract="private_health/discovered_schema",
+    )
     print(f"[consensus] wrote {schema_path}")
-    return schema_text, outputs.schema_build_samples
+    return artifact["data"], outputs.schema_build_samples
 
 
 def _print_review_stop(round_dir: Path, queue_path: Path) -> None:
@@ -108,7 +117,7 @@ def _print_review_stop(round_dir: Path, queue_path: Path) -> None:
 def resume_review(args) -> int:
     """Evaluate a human-reviewed schema in its original round directory."""
     round_dir = Path(args.resume_review)
-    reviewed_path = round_dir / "consensus" / "reviewed_schema.yaml"
+    reviewed_path = round_dir / "consensus" / "reviewed_schema.json"
     if not reviewed_path.exists():
         print(
             f"{reviewed_path} not found. Apply your review decisions first:\n"
@@ -130,20 +139,26 @@ def resume_review(args) -> int:
         return 1
     schema_build_samples = tuple(str(path) for path in samples)
 
-    schema_text = reviewed_path.read_text(encoding="utf-8")
-    schema_path = round_dir / "schema.yaml"
-    schema_path.write_text(schema_text, encoding="utf-8")
+    artifact = read_artifact(
+        reviewed_path,
+        expected_type="discovered_schema",
+        data_contract="private_health/discovered_schema",
+    )
+    schema_path = round_dir / "schema.json"
+    write_artifact(
+        schema_path, artifact, data_contract="private_health/discovered_schema"
+    )
     print(f"[resume-review] evaluating {reviewed_path} on holdout PDFs")
 
     _analysis, feedback = evaluate_schema(
         args,
-        schema_text,
+        artifact["data"],
         round_dir,
         exclude_paths=schema_build_samples,
     )
     print("\n[find-failures] refinement feedback:\n" + feedback)
     print(
         "\nTo feed this into the next round:\n"
-        f"  python src/refine/loop.py --resume-feedback {round_dir / 'feedback.txt'}"
+        f"  python src/refine/loop.py --resume-feedback {round_dir / 'refinement_feedback.json'}"
     )
     return 0

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -10,6 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.cost.pricing import ModelPrice, cost_usd, resolve_price
+from src.common.json_codec import loads_json
 
 DEFAULT_LOG = "outputs/private_health/token_usage.jsonl"
 
@@ -22,7 +22,10 @@ def load_runs(log_path: Path) -> list[dict]:
         line = line.strip()
         if not line:
             continue
-        runs.append(json.loads(line))
+        payload = loads_json(line)
+        if not isinstance(payload, dict):
+            raise ValueError("Each usage-log line must be a JSON object.")
+        runs.append(payload)
     return runs
 
 

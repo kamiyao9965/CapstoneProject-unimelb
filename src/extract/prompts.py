@@ -1,12 +1,12 @@
 EXTRACTION_PROMPT = """
 You are an extraction engine for Australian private health insurance PDFs.
 
-You are given a YAML schema (the extraction contract) and one PDF. Read the PDF
-and return a single JSON object that populates the schema's fields for the
-product described in that PDF.
+You are given a JSON schema definition and one PDF. Read the PDF and return a
+single JSON object that populates the fields for the product described in that
+PDF. The supplied structured-output contract is authoritative.
 
 Rules:
-- Output ONLY valid JSON. No markdown fences, no commentary.
+- Output only the JSON object. No markdown fences or commentary.
 - Use the field names from the schema as JSON keys.
 - If a field is not present in the PDF, set it to null. Do not guess.
 - For list[object] fields, return a JSON array of objects.

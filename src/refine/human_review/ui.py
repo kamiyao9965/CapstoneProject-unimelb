@@ -3,24 +3,24 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import streamlit as st
-import yaml
+from src.common.json_codec import loads_json
 
 from src.refine.human_review import (
     DECISIONS_FILENAME,
     QUEUE_FILENAME,
     REVIEWED_SCHEMA_FILENAME,
     apply_review_files,
-    clear_decision,
     decisions_by_id,
     derive_status,
     empty_decisions,
     load_review_decisions,
     load_review_queue,
-    upsert_decision,
-    write_review_decisions,
+    remove_review_decision,
+    save_review_decision,
 )
 
 DEFAULT_CONSENSUS_DIR = "outputs/private_health/consensus"
@@ -47,8 +47,11 @@ def save_decision(
     notes: str,
     edited_update: dict | None = None,
 ) -> None:
-    upsert_decision(decisions, item_id, action, notes, edited_update)
-    write_review_decisions(decisions, decisions_path)
+    latest = save_review_decision(
+        decisions_path, item_id, action, notes, edited_update
+    )
+    decisions.clear()
+    decisions.update(latest)
 
 
 def main() -> None:
@@ -117,8 +120,7 @@ def main() -> None:
     visible_items = [item for item in updates if visible(item)]
 
     st.sidebar.divider()
-    if st.sidebar.button("Apply decisions -> reviewed_schema.yaml", type="primary"):
-        write_review_decisions(decisions, decisions_path)
+    if st.sidebar.button("Apply decisions -> reviewed_schema.json", type="primary"):
         out_path, summary = apply_review_files(consensus_dir=consensus_dir)
         st.sidebar.success(
             f"Wrote {out_path}\n\n"
@@ -180,7 +182,7 @@ def _render_review_item(item: dict, status_label: str) -> None:
         )
 
     st.markdown("**Proposed update**")
-    st.code(yaml.safe_dump(item["proposed_update"], sort_keys=False), language="yaml")
+    st.json(item["proposed_update"])
 
     if item.get("rationale_samples"):
         st.markdown("**Model rationale**")
@@ -228,15 +230,16 @@ def _render_decision_panel(
         key=f"clear:{item_id}",
         help="Remove the decision; item returns to pending",
     ):
-        clear_decision(decisions, item_id)
-        write_review_decisions(decisions, decisions_path)
+        latest = remove_review_decision(decisions_path, item_id)
+        decisions.clear()
+        decisions.update(latest)
         st.rerun()
 
     st.markdown("**Edit then accept**")
     default_edit = existing.get("edited_update") or item["proposed_update"]
     edited_text = st.text_area(
-        "Field payload (YAML)",
-        value=yaml.safe_dump(default_edit, sort_keys=False),
+        "Field payload (JSON)",
+        value=json.dumps(default_edit, ensure_ascii=False, indent=2),
         height=220,
         key=f"edit:{item_id}",
     )
@@ -246,11 +249,11 @@ def _render_decision_panel(
         disabled=bool(item.get("needs_schema_edit")),
     ):
         try:
-            payload = yaml.safe_load(edited_text)
+            payload = loads_json(edited_text)
             if not isinstance(payload, dict) or not payload.get("name"):
                 raise ValueError("Edited payload must be a mapping with a name")
         except Exception as exc:
-            st.error(f"Invalid YAML: {exc}")
+            st.error(f"Invalid JSON: {exc}")
         else:
             save_decision(decisions_path, decisions, item_id, "edit", notes, payload)
             st.rerun()

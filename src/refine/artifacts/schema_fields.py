@@ -1,4 +1,4 @@
-"""Shared helpers for writing field proposals into schema YAML."""
+"""Shared helpers for writing field proposals into schema JSON data."""
 
 from __future__ import annotations
 
@@ -9,13 +9,19 @@ VALID_PRODUCT_TYPES = ("hospital", "extras", "generalhealth", "combined")
 
 
 def fields_by_name(fields: object) -> dict[str, dict[str, object]]:
-    """Return schema fields keyed by name, ignoring malformed entries."""
+    """Return validated schema fields keyed by name without silent repair."""
     if not isinstance(fields, list):
-        return {}
+        raise ValueError("Schema fields must be a list.")
     result: dict[str, dict[str, object]] = {}
-    for field in fields:
-        if isinstance(field, dict) and field.get("name"):
-            result[str(field["name"])] = field
+    for index, field in enumerate(fields):
+        if not isinstance(field, dict):
+            raise ValueError(f"Schema field {index} must be an object.")
+        name = field.get("name")
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"Schema field {index} must have a non-empty string name.")
+        if name in result:
+            raise ValueError(f"Schema contains duplicate field name: {name}")
+        result[name] = field
     return result
 
 
@@ -32,7 +38,6 @@ def applies_to_from_group(target_group: str) -> list[str]:
 def field_payload_from_decision(
     decision: FieldDecision,
     existing_field: dict[str, object] | None = None,
-    include_consensus: bool = False,
 ) -> dict[str, object]:
     """Build the schema field payload implied by one consensus decision."""
     payload = dict(existing_field or {})
@@ -57,17 +62,9 @@ def field_payload_from_decision(
                     decision.required if decision.required is not None else False,
                 ),
                 "values": payload.get("values", decision.values),
+                "aliases": payload.get("aliases", decision.aliases),
             }
         )
-    if include_consensus:
-        payload["consensus"] = {
-            **dict(payload.get("consensus") or {}),
-            "decision": decision.decision,
-            "frequency": decision.frequency_label,
-            "average_confidence": round(decision.average_confidence, 3),
-            "aliases": decision.aliases,
-            "source_runs": decision.source_runs,
-        }
     return payload
 
 

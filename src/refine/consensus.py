@@ -6,7 +6,7 @@ docs/BRANCH_FUSION_PLAN.md. This stabilizes schema *fields* before extraction:
     base schema + N patch-generation runs
       -> normalize field/group names
       -> frequency voting (core/conditional/candidate/noise)
-      -> consensus_schema.yaml + field_frequency.yaml + consensus_report.md
+      -> consensus_schema.json + field_frequency.json + CLI summary
 
 It complements (does not replace) the extraction-driven refinement in
 src/refine/loop.py, which judges the schema on holdout extraction failures.
@@ -26,18 +26,19 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.refine.artifacts.renderer import (
     render_consensus_schema,
-    render_frequency_yaml,
+    render_frequency_json,
     render_report,
 )
 from src.refine.candidates.aggregator import FieldDecision, aggregate_patches
 from src.refine.candidates.normalizer import load_alias_config, normalize_patches
-from src.refine.candidates.patch import dump_yaml, load_patch_file, parse_yaml_text
+from src.refine.candidates.patch import load_patch_file, write_patch_file
 from src.refine.candidates.stability import (
     compute_patch_stability,
     write_patch_stability,
 )
 from src.refine.human_review import build_review_queue, write_review_queue
 from src.common.model_config import resolve_selection
+from src.common.json_artifacts import read_artifact
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
 
@@ -47,7 +48,7 @@ class ConsensusOutputs:
     patch_dir: Path
     consensus_schema_path: Path
     frequency_path: Path
-    report_path: Path
+    report: str
     stability_path: Path
     queue_path: Path
     decisions: list[FieldDecision]
@@ -85,14 +86,17 @@ class SchemaConsensusRefinement:
 
         resolved_output_dir = Path(output_dir)
         patch_dir = resolved_output_dir / "candidate_patches"
-        consensus_schema_path = resolved_output_dir / "consensus_schema.yaml"
-        frequency_path = resolved_output_dir / "field_frequency.yaml"
-        report_path = resolved_output_dir / "consensus_report.md"
-        stability_path = resolved_output_dir / "patch_stability.yaml"
-        queue_path = resolved_output_dir / "review_queue.yaml"
+        consensus_schema_path = resolved_output_dir / "consensus_schema.json"
+        frequency_path = resolved_output_dir / "field_frequency.json"
+        stability_path = resolved_output_dir / "patch_stability.json"
+        queue_path = resolved_output_dir / "review_queue.json"
 
         field_aliases, group_aliases = load_alias_config(alias_config_path)
-        current_schema = base_schema.read_text(encoding="utf-8")
+        current_schema = read_artifact(
+            base_schema,
+            expected_type="discovered_schema",
+            data_contract="private_health/discovered_schema",
+        )["data"]
         all_patches = []
         schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
 
@@ -111,40 +115,64 @@ class SchemaConsensusRefinement:
                 if sample_path not in schema_build_samples:
                     schema_build_samples.append(sample_path)
 
-            patch_path = patch_dir / f"run_{run_number:03d}.yaml"
-            patch_yaml = self.discovery.discover_patches(
+            patch_path = patch_dir / f"run_{run_number:03d}.json"
+            run_id = f"consensus-{run_number:03d}"
+            patch_data = self.discovery.discover_patches(
                 sample_pdfs=sample_paths,
                 current_schema=current_schema,
                 output_path=patch_path,
+                run_id=run_id,
             )
-            dump_yaml(parse_yaml_text(patch_yaml), patch_path)
+            write_patch_file(
+                patch_data,
+                patch_path,
+                provenance={
+                    "run_id": run_id,
+                    "provider": self.discovery.selection.provider,
+                    "model": self.discovery.selection.model,
+                    "document_input": self.discovery.selection.document_input,
+                    "source_documents": list(sample_paths),
+                    "source_artifacts": [base_schema.as_posix()],
+                },
+            )
             all_patches.extend(
                 normalize_patches(load_patch_file(patch_path), field_aliases, group_aliases)
             )
 
         decisions = aggregate_patches(all_patches, total_runs=runs)
-        render_frequency_yaml(decisions, frequency_path)
+        render_frequency_json(decisions, frequency_path)
         render_consensus_schema(base_schema, decisions, consensus_schema_path)
-        render_report(decisions, report_path)
+        report = render_report(decisions)
         write_patch_stability(
-            compute_patch_stability(all_patches, total_runs=runs), stability_path
+            compute_patch_stability(all_patches, total_runs=runs),
+            stability_path,
+            provenance={
+                "run_id": None, "provider": None, "model": None,
+                "document_input": None, "source_documents": [],
+                "source_artifacts": [path.as_posix() for path in sorted(patch_dir.glob("*.json"))],
+            },
         )
         write_review_queue(
             build_review_queue(
                 decisions,
-                parse_yaml_text(current_schema) or {},
+                current_schema,
                 total_runs=runs,
                 base_schema_path=base_schema,
                 schema_build_samples=schema_build_samples,
             ),
             queue_path,
+            provenance={
+                "run_id": None, "provider": None, "model": None,
+                "document_input": None, "source_documents": [],
+                "source_artifacts": [frequency_path.as_posix(), base_schema.as_posix()],
+            },
         )
 
         return ConsensusOutputs(
             patch_dir=patch_dir,
             consensus_schema_path=consensus_schema_path,
             frequency_path=frequency_path,
-            report_path=report_path,
+            report=report,
             stability_path=stability_path,
             queue_path=queue_path,
             decisions=decisions,
@@ -169,7 +197,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Standalone consensus refinement: N patch runs against a base "
         "schema, frequency voting, review queue (uses the selected provider API)"
     )
-    parser.add_argument("--base-schema", default="outputs/private_health/schema.yaml")
+    parser.add_argument("--base-schema", default="outputs/private_health/schema.json")
     parser.add_argument("--input-root", default="data/private_health/raw/PDFs")
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--runs", type=int, default=5)
@@ -179,7 +207,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--out-dir", default="outputs/private_health/consensus")
-    parser.add_argument("--alias-config", help="Alias YAML (default: configs/private_health/aliases.yaml)")
+    parser.add_argument("--alias-config", help="Alias JSON (default: configs/private_health/aliases.json)")
     return parser
 
 
@@ -214,6 +242,7 @@ def main() -> int:
     print(f"Wrote consensus schema (auto-merge reference) to {outputs.consensus_schema_path}")
     print(f"Wrote patch stability to {outputs.stability_path}")
     print(f"Wrote review queue to {outputs.queue_path}")
+    print(outputs.report)
     print(
         "\nNext: review the queue, then apply decisions:\n"
         f"  streamlit run src/review_app.py -- --consensus-dir {args.out_dir}\n"

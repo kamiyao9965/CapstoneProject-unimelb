@@ -4,6 +4,7 @@ import unittest
 
 from src.common.model_config import (
     ModelSelection,
+    require_structured_output_capability,
     resolve_api_key,
     resolve_selection,
 )
@@ -84,6 +85,40 @@ class ModelSelectionTest(unittest.TestCase):
             ),
             ModelSelection("deepseek", "deepseek-chat", "pdf"),
         )
+
+    def test_structured_output_capabilities_cover_approved_model_families(self) -> None:
+        self.assertEqual(
+            require_structured_output_capability(
+                ModelSelection("openai", "gpt-5", "pdf")
+            ).mode,
+            "json_schema",
+        )
+        self.assertEqual(
+            require_structured_output_capability(
+                ModelSelection("anthropic", "claude-sonnet-4-5", "pdf")
+            ).mode,
+            "json_schema",
+        )
+        self.assertEqual(
+            require_structured_output_capability(
+                ModelSelection("deepseek", "deepseek-v4-pro", "markdown")
+            ).mode,
+            "json_object",
+        )
+
+    def test_unknown_model_fails_before_structured_request(self) -> None:
+        unsupported = (
+            ModelSelection("openai", "unapproved-model", "pdf"),
+            ModelSelection("openai", "gpt-3.5-turbo", "pdf"),
+            ModelSelection("anthropic", "claude-3-haiku-20240307", "pdf"),
+            ModelSelection("deepseek", "deepseek-unknown", "markdown"),
+        )
+        for selection in unsupported:
+            with self.subTest(selection=selection):
+                with self.assertRaisesRegex(
+                    ValueError, "not approved for structured output"
+                ):
+                    require_structured_output_capability(selection)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -9,6 +8,7 @@ from typing import Callable, Iterator
 from openai import OpenAI
 
 from src.common.model_config import ModelSelection, resolve_api_key as resolve_provider_api_key
+from src.common.json_codec import dumps_json
 
 # Statuses a background response can be in while still running.
 PENDING_STATUSES = {"queued", "in_progress"}
@@ -54,7 +54,7 @@ def append_jsonl(
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            handle.write(dumps_json(payload, ensure_ascii=False) + "\n")
     except Exception as exc:
         if log:
             log(f"Failed to write {error_label}: {exc}")

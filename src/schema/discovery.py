@@ -1,21 +1,35 @@
 from __future__ import annotations
 
+import json
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
+from uuid import uuid4
 
 from src.common.document_preprocessor import MarkdownPreprocessor, prepare_documents
+from src.common.json_artifacts import (
+    build_failure_artifact,
+    write_failure_artifact,
+)
+from src.common.json_contracts import load_contract
 from src.common.model_config import ModelSelection
 from src.common.model_provider import (
     ModelProvider,
     ModelResponse,
     ProviderRequest,
+    StructuredOutputSpec,
     create_provider,
 )
 from src.common.openai_run import append_jsonl
+from src.common.structured_output import (
+    StructuredOutputFailure,
+    run_structured_output,
+)
 from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT, SCHEMA_PATCH_PROMPT
-from src.schema.validation import validate_schema_text
+from src.schema.validation import validate_schema_mapping
+from src.refine.candidates.patch import parse_patch_payload
 
 
 class SchemaDiscovery:
@@ -60,7 +74,13 @@ class SchemaDiscovery:
         # (gpt-5 reasoning models may reject temperature), so this is opt-in.
         self.request_params = dict(request_params or {})
 
-    def discover(self, sample_pdfs: list[str], output_path: str | Path | None = None) -> str:
+    def discover(
+        self,
+        sample_pdfs: list[str],
+        output_path: str | Path | None = None,
+        *,
+        run_id: str | None = None,
+    ) -> dict[str, object]:
         return self._generate_from_pdfs(
             sample_pdfs=sample_pdfs,
             system_prompt=SCHEMA_DISCOVERY_PROMPT,
@@ -68,15 +88,18 @@ class SchemaDiscovery:
             output_path=output_path,
             usage_event="schema_discovery",
             progress_message="Generating schema",
+            run_id=run_id,
         )
 
     def discover_patches(
         self,
         sample_pdfs: list[str],
-        current_schema: str,
+        current_schema: dict[str, object],
         output_path: str | Path | None = None,
-    ) -> str:
-        """Propose candidate YAML patches against an existing schema baseline.
+        *,
+        run_id: str | None = None,
+    ) -> dict[str, object]:
+        """Propose candidate JSON patches against an existing schema baseline.
 
         Consensus refinement calls this once per run and votes on the patches
         across runs, instead of regenerating the full schema each time.
@@ -88,6 +111,7 @@ class SchemaDiscovery:
             output_path=output_path,
             usage_event="schema_consensus_patch",
             progress_message="Generating schema patch candidates",
+            run_id=run_id,
         )
 
     def _generate_from_pdfs(
@@ -98,7 +122,8 @@ class SchemaDiscovery:
         output_path: str | Path | None,
         usage_event: str,
         progress_message: str,
-    ) -> str:
+        run_id: str | None,
+    ) -> dict[str, object]:
         started_at = datetime.now(timezone.utc)
         started_perf = time.perf_counter()
         pdf_paths = [Path(path) for path in sample_pdfs]
@@ -107,52 +132,147 @@ class SchemaDiscovery:
         if self.extra_instructions:
             system_prompt += "\n\nRefinement feedback from the previous round:\n"
             system_prompt += self.extra_instructions
-        document_paths = prepare_documents(
-            self.selection, pdf_paths, self.pdf_root, self.preprocessor
-        )
-        response = self.provider.generate(
-            ProviderRequest(
-                selection=self.selection,
-                system_prompt=system_prompt,
-                user_text=user_text_factory(pdf_paths),
-                document_paths=document_paths,
-                timeout_seconds=self.timeout_seconds,
-                cleanup_documents=self.cleanup_uploaded_files,
-                request_params=self.request_params,
-                background=self.background,
-                poll_interval=self.poll_interval,
-                log=self.log,
+        logical_run_id = run_id or uuid4().hex
+        try:
+            document_paths = prepare_documents(
+                self.selection, pdf_paths, self.pdf_root, self.preprocessor
             )
+        except Exception as exc:
+            self._write_failure(
+                resolved_output_path, usage_event, logical_run_id, pdf_paths, exc
+            )
+            raise
+        request = ProviderRequest(
+            selection=self.selection,
+            system_prompt=system_prompt,
+            user_text=user_text_factory(pdf_paths),
+            document_paths=document_paths,
+            timeout_seconds=self.timeout_seconds,
+            cleanup_documents=self.cleanup_uploaded_files,
+            request_params=self.request_params,
+            background=self.background,
+            poll_interval=self.poll_interval,
+            log=self.log,
         )
-        cleaned_text = self._clean_yaml(response.text)
-        if usage_event == "schema_discovery":
-            validate_schema_text(cleaned_text)
-        completed_at = datetime.now(timezone.utc)
-        duration_seconds = round(time.perf_counter() - started_perf, 3)
-        self._log_usage(
-            response,
-            pdf_paths,
-            started_at,
-            completed_at,
-            duration_seconds,
-            resolved_output_path,
-            usage_event,
+        structured_contract = {
+            "schema_discovery": (
+                "discovered_schema",
+                "private_health/discovered_schema",
+                validate_schema_mapping,
+            ),
+            "schema_consensus_patch": (
+                "candidate_patch_set",
+                "private_health/candidate_patch_set",
+                parse_patch_payload,
+            ),
+        }.get(usage_event)
+        if structured_contract is not None:
+            output_name, contract_name, business_validator = structured_contract
+            request = replace(
+                request,
+                structured_output=StructuredOutputSpec(
+                    name=output_name,
+                    schema=load_contract(contract_name),
+                ),
+            )
+            try:
+                result = run_structured_output(
+                    self.provider,
+                    request,
+                    data_contract=contract_name,
+                    business_validator=business_validator,
+                )
+            except StructuredOutputFailure as exc:
+                completed_at = datetime.now(timezone.utc)
+                duration_seconds = round(time.perf_counter() - started_perf, 3)
+                for attempt in exc.result.attempts:
+                    self._log_usage(
+                        attempt.response, pdf_paths, started_at, completed_at,
+                        duration_seconds, resolved_output_path, usage_event,
+                        run_id=logical_run_id, attempt_number=attempt.number,
+                        validation_succeeded=False,
+                    )
+                self._write_failure(
+                    resolved_output_path,
+                    usage_event,
+                    logical_run_id,
+                    pdf_paths,
+                    exc,
+                    details=exc.result.errors,
+                )
+                raise
+            except Exception as exc:
+                self._write_failure(
+                    resolved_output_path,
+                    usage_event,
+                    logical_run_id,
+                    pdf_paths,
+                    exc,
+                )
+                raise
+            completed_at = datetime.now(timezone.utc)
+            duration_seconds = round(time.perf_counter() - started_perf, 3)
+            for attempt in result.attempts:
+                self._log_usage(
+                    attempt.response, pdf_paths, started_at, completed_at,
+                    duration_seconds, resolved_output_path, usage_event,
+                    run_id=logical_run_id, attempt_number=attempt.number,
+                    validation_succeeded=not attempt.errors,
+                )
+            assert result.data is not None
+            return result.data
+
+        raise RuntimeError(f"No structured output contract configured for {usage_event}.")
+
+    def _write_failure(
+        self,
+        output_path: Path | None,
+        stage: str,
+        run_id: str,
+        pdf_paths: list[Path],
+        error: Exception,
+        *,
+        details=(),
+    ) -> None:
+        if output_path is None:
+            return
+        artifact = build_failure_artifact(
+            artifact_type=f"{stage}_error",
+            contract_version="1.0.0",
+            provenance={
+                "run_id": run_id,
+                "provider": self.selection.provider,
+                "model": self.selection.model,
+                "document_input": self.selection.document_input,
+                "source_documents": [path.as_posix() for path in pdf_paths],
+                "source_artifacts": [],
+            },
+            error_code=(
+                "structured_output_exhausted"
+                if isinstance(error, StructuredOutputFailure)
+                else f"{stage}_failed"
+            ),
+            message=str(error),
+            details=details,
         )
-        return cleaned_text
+        try:
+            write_failure_artifact(output_path.parent, stage, run_id, artifact)
+        except Exception as artifact_error:
+            self._log(f"Could not write {stage} failure artifact: {artifact_error}")
 
     def _input_text(self, pdf_paths: list[Path]) -> str:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
-        return f"Generate a private_health YAML schema from these PDFs:\n{sample_list}"
+        return f"Generate a private_health schema from these PDFs:\n{sample_list}"
 
     def _patch_input_text(
         self,
         pdf_paths: list[Path],
-        current_schema: str,
+        current_schema: dict[str, object],
     ) -> str:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
         return (
-            "Current YAML schema baseline:\n"
-            f"{current_schema}\n\n"
+            "Current JSON schema baseline:\n"
+            f"{json.dumps(current_schema, ensure_ascii=False)}\n\n"
             "Generate candidate schema patches from these PDFs:\n"
             f"{sample_list}"
         )
@@ -170,6 +290,10 @@ class SchemaDiscovery:
         duration_seconds: float,
         output_path: Path | None,
         usage_event: str = "schema_discovery",
+        *,
+        run_id: str,
+        attempt_number: int,
+        validation_succeeded: bool,
     ) -> None:
         usage = response.usage
         input_tokens = usage.input_tokens if usage else None
@@ -200,7 +324,10 @@ class SchemaDiscovery:
                 "model": response.model,
                 "document_input": self.selection.document_input,
                 "api_key_env": response.api_key_env,
-                "yaml_output_path": output_path.as_posix() if output_path else None,
+                "artifact_output_path": output_path.as_posix() if output_path else None,
+                "run_id": run_id,
+                "attempt_number": attempt_number,
+                "validation_succeeded": validation_succeeded,
                 "started_at": started_at.isoformat(),
                 "completed_at": completed_at.isoformat(),
                 "duration_seconds": duration_seconds,
@@ -213,11 +340,3 @@ class SchemaDiscovery:
             },
             log=self._log,
         )
-
-    @staticmethod
-    def _clean_yaml(text: str) -> str:
-        cleaned = text.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.removeprefix("```yaml").removeprefix("```").strip()
-            cleaned = cleaned.removesuffix("```").strip()
-        return cleaned + "\n"

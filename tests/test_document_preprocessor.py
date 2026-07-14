@@ -35,6 +35,45 @@ class MarkdownMirrorTest(unittest.TestCase):
             Path("data/private_health/raw/Markdown/HCF/hospital/product.md"),
         )
 
+    def test_rejects_lexical_parent_escape_from_pdf_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_root = Path(tmp) / "PDFs"
+            pdf_root.mkdir()
+            outside = pdf_root / ".." / "outside.pdf"
+            outside.touch()
+
+            with self.assertRaisesRegex(ValueError, "below the configured PDF root"):
+                markdown_path(outside, pdf_root)
+
+    def test_rejects_source_symlink_that_escapes_pdf_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_root = root / "PDFs"
+            pdf_root.mkdir()
+            outside = root / "outside.pdf"
+            outside.touch()
+            linked = pdf_root / "linked.pdf"
+            linked.symlink_to(outside)
+
+            with self.assertRaisesRegex(ValueError, "below the configured PDF root"):
+                ensure_markdown(linked, pdf_root, FakePreprocessor())
+
+    def test_rejects_cached_markdown_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_root = root / "PDFs"
+            source = pdf_root / "product.pdf"
+            source.parent.mkdir()
+            source.touch()
+            outside = root / "outside.md"
+            outside.write_text("secret", encoding="utf-8")
+            cached = root / "Markdown" / "product.md"
+            cached.parent.mkdir()
+            cached.symlink_to(outside)
+
+            with self.assertRaisesRegex(ValueError, "symbolic link"):
+                ensure_markdown(source, pdf_root, FakePreprocessor())
+
     def test_reuses_existing_markdown_without_conversion(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             pdf_root = Path(tmp) / "PDFs"

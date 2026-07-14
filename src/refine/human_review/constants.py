@@ -4,6 +4,6 @@ from __future__ import annotations
 
 SUPPORTED_ACTIONS = {"accept", "reject", "edit"}
 
-QUEUE_FILENAME = "review_queue.yaml"
-DECISIONS_FILENAME = "review_decisions.yaml"
-REVIEWED_SCHEMA_FILENAME = "reviewed_schema.yaml"
+QUEUE_FILENAME = "review_queue.json"
+DECISIONS_FILENAME = "review_decisions.json"
+REVIEWED_SCHEMA_FILENAME = "reviewed_schema.json"

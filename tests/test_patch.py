@@ -7,11 +7,9 @@ from pathlib import Path
 from src.refine.candidates.patch import (
     EvidenceDocument,
     SchemaPatch,
-    dump_yaml,
     load_patch_file,
-    load_yaml,
     parse_patch_payload,
-    parse_yaml_text,
+    write_patch_file,
 )
 
 
@@ -72,6 +70,18 @@ class SchemaPatchFromDictTest(unittest.TestCase):
         self.assertEqual(document.path, "pdfs/b.pdf")
         self.assertEqual(document.quote_or_summary, "")
 
+    def test_preserves_numeric_and_boolean_enum_values_without_coercion(self) -> None:
+        patch = SchemaPatch.from_dict(
+            make_patch_dict(type="enum", values=[1, True, "included"])
+        )
+
+        self.assertEqual(patch.values, (1, True, "included"))
+        self.assertEqual(patch.to_dict()["values"], [1, True, "included"])
+
+    def test_applies_to_rejects_non_string_scalars(self) -> None:
+        with self.assertRaisesRegex(ValueError, "applies_to"):
+            SchemaPatch.from_dict(make_patch_dict(applies_to=[1]))
+
 
 class SchemaPatchValidateTest(unittest.TestCase):
     def test_rejects_unsupported_patch_type(self) -> None:
@@ -126,15 +136,22 @@ class ParsePatchPayloadTest(unittest.TestCase):
         self.assertEqual(parse_patch_payload({"patches": []}), [])
 
 
-class YamlRoundTripTest(unittest.TestCase):
+class JsonArtifactRoundTripTest(unittest.TestCase):
     def test_dump_load_round_trip_and_source_run_from_stem(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "nested" / "run_007.yaml"
-            dump_yaml({"patches": [make_patch_dict()]}, path)
+            path = Path(tmp) / "nested" / "run_007.json"
+            payload = {"patches": [make_patch_dict()]}
+            write_patch_file(
+                payload,
+                path,
+                provenance={
+                    "run_id": "run_007", "provider": "openai", "model": "gpt-5",
+                    "document_input": "pdf", "source_documents": [], "source_artifacts": [],
+                },
+            )
             patches = load_patch_file(path)
             self.assertEqual(len(patches), 1)
             self.assertEqual(patches[0].source_run, "run_007")
-            self.assertEqual(load_yaml(path), parse_yaml_text(path.read_text(encoding="utf-8")))
 
 
 if __name__ == "__main__":

@@ -9,20 +9,65 @@ from types import SimpleNamespace
 from unittest import mock
 
 from src.common.model_config import ModelSelection
-from src.common.model_provider import ModelResponse, ProviderRequest, create_provider
+from src.common.json_contracts import load_contract
+from src.common import model_provider
+from src.common.model_provider import (
+    ModelResponse,
+    ProviderResponseError,
+    ProviderRequest,
+    StructuredOutputSpec,
+    create_provider,
+)
 from src.schema.discovery import SchemaDiscovery
 
-VALID_SCHEMA_TEXT = """vertical: private_health
-version: 0.1-draft
-product_types: [hospital]
-fields:
-  - name: product_name
-    type: string
-    description: Product name
-    applies_to: [hospital]
-    required: true
-    values: []
-"""
+VALID_SCHEMA_TEXT = json.dumps({
+    "vertical": "private_health",
+    "version": "0.1-draft",
+    "description": "Schema",
+    "product_types": ["hospital"],
+    "fields": [{
+        "name": "product_type", "type": "enum",
+        "description": "Product classification", "applies_to": ["hospital"],
+        "required": True, "values": ["hospital"], "aliases": [],
+    }, {
+        "name": "product_name", "type": "string", "description": "Product name",
+        "applies_to": ["hospital"], "required": True, "values": [],
+        "aliases": [],
+    }],
+    "hospital_categories": [],
+    "extras_services": [],
+    "notes": [],
+})
+
+OUTPUT_SPEC = StructuredOutputSpec(
+    name="discovered_schema",
+    schema={
+        "type": "object",
+        "properties": {"fields": {"type": "array"}},
+        "required": ["fields"],
+        "additionalProperties": False,
+    },
+)
+
+PROVIDER_EDGE_SPEC = StructuredOutputSpec(
+    name="edge_schema",
+    schema={
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["kind", "fixed", "tags", "note"],
+        "properties": {
+            "kind": {"enum": ["hospital", "extras"]},
+            "fixed": {"const": "private_health"},
+            "tags": {
+                "type": "array",
+                "uniqueItems": True,
+                "items": {"type": "string", "minLength": 1},
+            },
+            "note": {"type": ["string", "null"]},
+        },
+    },
+)
 
 
 class RecordingProvider:
@@ -40,6 +85,22 @@ class RecordingProvider:
 
 
 class ProviderContractTest(unittest.TestCase):
+    def test_authoritative_model_contracts_project_for_native_schema_providers(self) -> None:
+        for contract_name in (
+            "private_health/discovered_schema",
+            "private_health/candidate_patch_set",
+        ):
+            with self.subTest(contract=contract_name, provider="openai"):
+                projected = model_provider._project_openai_schema(
+                    load_contract(contract_name), strict=True
+                )
+                self.assertEqual(projected["type"], "object")
+            with self.subTest(contract=contract_name, provider="anthropic"):
+                projected = model_provider._project_anthropic_schema(
+                    load_contract(contract_name)
+                )
+                self.assertEqual(projected["type"], "object")
+
     def test_discovery_passes_logical_pdf_request_to_injected_provider(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             pdf_path = Path(tmp) / "sample.pdf"
@@ -55,12 +116,13 @@ class ProviderContractTest(unittest.TestCase):
 
             schema = discovery.discover([str(pdf_path)])
 
-        self.assertEqual(schema, VALID_SCHEMA_TEXT)
+        self.assertIn("product_name", [field["name"] for field in schema["fields"]])
         self.assertEqual(len(provider.requests), 1)
         request = provider.requests[0]
         self.assertEqual(request.selection, selection)
         self.assertEqual(request.document_paths, (pdf_path,))
-        self.assertIn("Generate a private_health YAML schema", request.user_text)
+        self.assertIn("Generate a private_health schema", request.user_text)
+        self.assertEqual(request.structured_output.name, "discovered_schema")
 
     def test_discovery_markdown_mode_sends_mirrors_and_logs_source_pdfs(self) -> None:
         class WritingPreprocessor:
@@ -160,6 +222,67 @@ class ProviderContractTest(unittest.TestCase):
         self.assertIn("read this", user_content[0]["text"])
         self.assertIn("# policy", user_content[0]["text"])
 
+    def test_openai_provider_uses_strict_responses_json_schema(self) -> None:
+        calls = {}
+
+        def create(**kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(
+                id="resp_json",
+                output_text='{"fields": []}',
+                usage=None,
+            )
+
+        client = SimpleNamespace(
+            responses=SimpleNamespace(create=create),
+            files=SimpleNamespace(),
+        )
+        selection = ModelSelection("openai", "gpt-5", "markdown")
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            create_provider(selection, client=client).generate(
+                ProviderRequest(
+                    selection=selection, system_prompt="system", user_text="user",
+                    document_paths=(), timeout_seconds=1, cleanup_documents=True,
+                    request_params={}, background=False, poll_interval=0, log=None,
+                    structured_output=OUTPUT_SPEC,
+                )
+            )
+
+        self.assertEqual(calls["text"]["format"]["type"], "json_schema")
+        self.assertEqual(calls["text"]["format"]["name"], "discovered_schema")
+        self.assertTrue(calls["text"]["format"]["strict"])
+        self.assertEqual(calls["text"]["format"]["schema"], OUTPUT_SPEC.schema)
+
+    def test_openai_provider_projects_to_its_documented_schema_subset(self) -> None:
+        calls = {}
+
+        def create(**kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(id="resp_json", output_text="{}", usage=None)
+
+        selection = ModelSelection("openai", "gpt-5", "markdown")
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            create_provider(
+                selection,
+                client=SimpleNamespace(
+                    responses=SimpleNamespace(create=create), files=SimpleNamespace()
+                ),
+            ).generate(
+                ProviderRequest(
+                    selection=selection, system_prompt="system", user_text="user",
+                    document_paths=(), timeout_seconds=1, cleanup_documents=True,
+                    request_params={}, background=False, poll_interval=0, log=None,
+                    structured_output=PROVIDER_EDGE_SPEC,
+                )
+            )
+
+        schema = calls["text"]["format"]["schema"]
+        self.assertNotIn("$schema", schema)
+        self.assertNotIn("uniqueItems", schema["properties"]["tags"])
+        self.assertNotIn("minLength", schema["properties"]["tags"]["items"])
+        self.assertEqual(schema["properties"]["kind"]["type"], "string")
+        self.assertEqual(schema["properties"]["fixed"]["type"], "string")
+
     def test_anthropic_provider_sends_native_pdf_document_and_normalizes_response(self) -> None:
         class FakeMessages:
             def __init__(self) -> None:
@@ -200,6 +323,132 @@ class ProviderContractTest(unittest.TestCase):
         self.assertEqual(response.text, "fields: []")
         self.assertEqual(response.usage.input_tokens, 12)
         self.assertEqual(messages.kwargs["messages"][0]["content"][0]["type"], "document")
+
+    def test_anthropic_provider_uses_native_output_config(self) -> None:
+        calls = {}
+
+        def create(**kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(
+                id="msg_json",
+                content=[SimpleNamespace(type="text", text='{"fields": []}')],
+                usage=None,
+            )
+
+        selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
+            create_provider(
+                selection,
+                client=SimpleNamespace(messages=SimpleNamespace(create=create)),
+            ).generate(
+                ProviderRequest(
+                    selection=selection, system_prompt="system", user_text="user",
+                    document_paths=(), timeout_seconds=1, cleanup_documents=True,
+                    request_params={}, background=False, poll_interval=0, log=None,
+                    structured_output=OUTPUT_SPEC,
+                )
+            )
+
+        self.assertEqual(
+            calls["output_config"],
+            {"format": {"type": "json_schema", "schema": OUTPUT_SPEC.schema}},
+        )
+
+    def test_anthropic_provider_transforms_unsupported_schema_constraints(self) -> None:
+        calls = {}
+
+        def create(**kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(
+                id="msg_json",
+                stop_reason="end_turn",
+                content=[SimpleNamespace(type="text", text="{}")],
+                usage=None,
+            )
+
+        selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
+            create_provider(
+                selection,
+                client=SimpleNamespace(messages=SimpleNamespace(create=create)),
+            ).generate(
+                ProviderRequest(
+                    selection=selection, system_prompt="system", user_text="user",
+                    document_paths=(), timeout_seconds=1, cleanup_documents=True,
+                    request_params={}, background=False, poll_interval=0, log=None,
+                    structured_output=PROVIDER_EDGE_SPEC,
+                )
+            )
+
+        schema = calls["output_config"]["format"]["schema"]
+        self.assertNotIn("$schema", schema)
+        self.assertNotIn("uniqueItems", schema["properties"]["tags"])
+        self.assertNotIn("minLength", schema["properties"]["tags"]["items"])
+        self.assertEqual(schema["properties"]["kind"]["type"], "string")
+        self.assertEqual(schema["properties"]["note"]["anyOf"][1]["type"], "null")
+
+    def test_anthropic_provider_rejects_schema_over_union_limit_before_api_call(self) -> None:
+        class ExplodingMessages:
+            def create(self, **kwargs):
+                raise AssertionError("Schema limit must fail before the API call.")
+
+        properties = {
+            f"field_{index}": {"type": ["string", "null"]}
+            for index in range(17)
+        }
+        spec = StructuredOutputSpec(
+            name="too_many_unions",
+            schema={
+                "type": "object",
+                "additionalProperties": False,
+                "required": list(properties),
+                "properties": properties,
+            },
+        )
+        selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "16 union"):
+                create_provider(
+                    selection,
+                    client=SimpleNamespace(messages=ExplodingMessages()),
+                ).generate(
+                    ProviderRequest(
+                        selection=selection, system_prompt="system", user_text="user",
+                        document_paths=(), timeout_seconds=1,
+                        cleanup_documents=True, request_params={}, background=False,
+                        poll_interval=0, log=None, structured_output=spec,
+                    )
+                )
+
+    def test_anthropic_refusal_is_normalized_without_exposing_refusal_text(self) -> None:
+        response = SimpleNamespace(
+            id="msg_refusal",
+            stop_reason="refusal",
+            content=[SimpleNamespace(type="text", text="SENSITIVE REFUSAL TEXT")],
+            usage=SimpleNamespace(input_tokens=8, output_tokens=3),
+        )
+        selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
+            with self.assertRaises(ProviderResponseError) as caught:
+                create_provider(
+                    selection,
+                    client=SimpleNamespace(
+                        messages=SimpleNamespace(create=lambda **_: response)
+                    ),
+                ).generate(
+                    ProviderRequest(
+                        selection=selection, system_prompt="system", user_text="user",
+                        document_paths=(), timeout_seconds=1,
+                        cleanup_documents=True, request_params={}, background=False,
+                        poll_interval=0, log=None, structured_output=OUTPUT_SPEC,
+                    )
+                )
+
+        self.assertEqual(caught.exception.response.response_id, "msg_refusal")
+        self.assertEqual(caught.exception.response.usage.total_tokens, 11)
+        self.assertNotIn("SENSITIVE REFUSAL TEXT", str(caught.exception))
 
     def test_deepseek_provider_rejects_pdf_before_key_or_client_use(self) -> None:
         class ExplodingClient:
@@ -273,6 +522,68 @@ class ProviderContractTest(unittest.TestCase):
         self.assertEqual(user_message["role"], "user")
         self.assertIn("read this", user_message["content"])
         self.assertIn("# policy", user_message["content"])
+
+    def test_deepseek_provider_uses_json_object_mode_and_schema_instruction(self) -> None:
+        calls = {}
+
+        def create(**kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(
+                id="chat_json",
+                choices=[SimpleNamespace(
+                    finish_reason="stop",
+                    message=SimpleNamespace(content='{"fields": []}'),
+                )],
+                usage=None,
+            )
+
+        selection = ModelSelection("deepseek", "deepseek-v4-pro", "markdown")
+        with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True):
+            create_provider(
+                selection,
+                client=SimpleNamespace(
+                    chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+                ),
+            ).generate(
+                ProviderRequest(
+                    selection=selection, system_prompt="system", user_text="user",
+                    document_paths=(), timeout_seconds=1, cleanup_documents=True,
+                    request_params={}, background=False, poll_interval=0, log=None,
+                    structured_output=OUTPUT_SPEC,
+                )
+            )
+
+        self.assertEqual(calls["response_format"], {"type": "json_object"})
+        self.assertIn("valid JSON", calls["messages"][0]["content"])
+        self.assertIn('"required"', calls["messages"][0]["content"])
+
+    def test_deepseek_provider_rejects_empty_structured_output(self) -> None:
+        response = SimpleNamespace(
+            id="chat_empty",
+            choices=[SimpleNamespace(
+                finish_reason="stop",
+                message=SimpleNamespace(content=""),
+            )],
+            usage=None,
+        )
+        selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+        with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "empty"):
+                create_provider(
+                    selection,
+                    client=SimpleNamespace(
+                        chat=SimpleNamespace(
+                            completions=SimpleNamespace(create=lambda **_: response)
+                        )
+                    ),
+                ).generate(
+                    ProviderRequest(
+                        selection=selection, system_prompt="system", user_text="user",
+                        document_paths=(), timeout_seconds=1, cleanup_documents=True,
+                        request_params={}, background=False, poll_interval=0, log=None,
+                        structured_output=OUTPUT_SPEC,
+                    )
+                )
 
     def test_deepseek_provider_configures_official_endpoint_and_env_override(self) -> None:
         from src.common import model_provider

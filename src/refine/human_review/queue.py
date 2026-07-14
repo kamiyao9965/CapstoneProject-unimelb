@@ -13,7 +13,7 @@ from src.refine.artifacts.schema_fields import (
     fields_by_name,
 )
 from src.refine.candidates.aggregator import FieldDecision
-from src.refine.candidates.patch import dump_yaml, load_yaml
+from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 
 
 def build_review_queue(
@@ -64,12 +64,35 @@ def _queue_item(decision: FieldDecision, existing_field: dict | None) -> dict:
     }
 
 
-def write_review_queue(queue: dict, path: str | Path) -> None:
-    dump_yaml(queue, path)
+def write_review_queue(
+    queue: dict,
+    path: str | Path,
+    *,
+    provenance: dict[str, object] | None = None,
+) -> None:
+    artifact = build_success_artifact(
+        artifact_type="review_queue",
+        contract_version="1.0.0",
+        data=queue,
+        provenance=provenance or _local_provenance(),
+        data_contract="private_health/review_queue",
+    )
+    write_artifact(path, artifact, data_contract="private_health/review_queue")
 
 
 def load_review_queue(path: str | Path) -> dict:
-    payload = load_yaml(path)
+    payload = read_artifact(
+        path,
+        expected_type="review_queue",
+        data_contract="private_health/review_queue",
+    )["data"]
     if not isinstance(payload, dict) or "updates" not in payload:
         raise ValueError(f"Not a review queue file: {path}")
     return payload
+
+
+def _local_provenance() -> dict[str, object]:
+    return {
+        "run_id": None, "provider": None, "model": None,
+        "document_input": None, "source_documents": [], "source_artifacts": [],
+    }

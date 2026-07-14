@@ -10,7 +10,8 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from src.refine.candidates.patch import SchemaPatch, dump_yaml
+from src.common.json_artifacts import build_success_artifact, write_artifact
+from src.refine.candidates.patch import SchemaPatch
 
 
 def compute_patch_stability(patches: list[SchemaPatch], total_runs: int) -> dict:
@@ -59,5 +60,17 @@ def compute_patch_stability(patches: list[SchemaPatch], total_runs: int) -> dict
     }
 
 
-def write_patch_stability(payload: dict, path: str | Path) -> None:
-    dump_yaml(payload, path)
+def write_patch_stability(
+    payload: dict,
+    path: str | Path,
+    *,
+    provenance: dict[str, object],
+) -> None:
+    artifact = build_success_artifact(
+        artifact_type="patch_stability",
+        contract_version="1.0.0",
+        data=payload,
+        provenance=provenance,
+        data_contract="private_health/patch_stability",
+    )
+    write_artifact(path, artifact, data_contract="private_health/patch_stability")

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Collection, Mapping
-
-import yaml
+from typing import TypeAlias
 
 SUPPORTED_FIELD_TYPES = frozenset(
     {"string", "number", "boolean", "enum", "list[object]"}
@@ -14,21 +13,13 @@ SUPPORTED_PRODUCT_TYPES = frozenset(
     {"hospital", "extras", "generalhealth", "combined"}
 )
 SNAKE_CASE_NAME = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
-
-
-def validate_schema_text(text: str) -> dict[str, object]:
-    """Parse and validate a complete private-health schema YAML document."""
-    try:
-        payload = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        raise ValueError(f"Schema response is not valid YAML: {exc}") from exc
-    return validate_schema_mapping(payload)
+JSONScalar: TypeAlias = str | int | float | bool
 
 
 def validate_schema_mapping(payload: object) -> dict[str, object]:
     """Validate a parsed schema and return it with a precise mapping type."""
     if not isinstance(payload, dict):
-        raise ValueError("Schema YAML must be an object.")
+        raise ValueError("Schema JSON must be an object.")
     if payload.get("vertical") != "private_health":
         raise ValueError("Schema vertical must be 'private_health'.")
     version = payload.get("version")
@@ -60,7 +51,41 @@ def validate_schema_mapping(payload: object) -> dict[str, object]:
         if name in field_names:
             raise ValueError(f"Schema contains duplicate field name: {name}")
         field_names.add(name)
+    _validate_product_type_field(fields, product_types)
     return payload
+
+
+def _validate_product_type_field(
+    fields: list[object],
+    product_types: list[str],
+) -> None:
+    matches = [
+        field for field in fields
+        if isinstance(field, dict) and field.get("name") == "product_type"
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "Schema must contain exactly one product_type field for holdout classification."
+        )
+    product_type = matches[0]
+    if product_type.get("type") != "enum":
+        raise ValueError("Schema product_type field must use type 'enum'.")
+    values = product_type.get("values")
+    if (
+        not isinstance(values, list)
+        or any(not isinstance(value, str) for value in values)
+        or len(values) != len(product_types)
+        or set(values) != set(product_types)
+    ):
+        raise ValueError(
+            "Schema product_type values must match top-level product_types exactly."
+        )
+    if set(product_type.get("applies_to") or []) != set(product_types):
+        raise ValueError(
+            "Schema product_type applies_to must cover every top-level product_type."
+        )
+    if product_type.get("required") is not True:
+        raise ValueError("Schema product_type field must be required.")
 
 
 def validate_field_payload(
@@ -113,7 +138,7 @@ def validate_field_payload(
         raise ValueError(f"Schema enum field {name!r} values must be scalar.")
 
     aliases = payload.get("aliases")
-    if aliases is not None and (
+    if (
         not isinstance(aliases, list)
         or any(not isinstance(alias, str) or not alias.strip() for alias in aliases)
     ):
