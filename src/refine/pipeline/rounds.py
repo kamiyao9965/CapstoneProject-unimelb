@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.common.json_artifacts import read_artifact, write_artifact
-from src.refine.human_review import QUEUE_FILENAME, load_review_queue
+from src.refine.human_review import QUEUE_FILENAME
 from src.refine.pipeline.steps import (
     evaluate_schema,
     generate_schema,
@@ -46,15 +46,13 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
     print(f"[generate] wrote {draft_path}")
 
     if with_consensus:
-        schema_data, schema_build_samples = _run_consensus_or_pause(
+        schema_data, schema_build_samples = _run_consensus_stage(
             args,
             draft_path,
             round_dir,
             schema_path,
             schema_build_samples,
         )
-        if schema_data is None:
-            return None
 
     print("[extract + analyze] evaluating schema on holdout PDFs")
     _analysis, feedback_out = evaluate_schema(
@@ -64,16 +62,38 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
         exclude_paths=schema_build_samples,
     )
     print("\n[find-failures] refinement feedback:\n" + feedback_out)
+    if with_consensus and args.review_ui:
+        _print_review_stop(round_dir, round_dir / "consensus" / QUEUE_FILENAME)
+        return None
+
+    final_schema_path = publish_final_schema(schema_path, Path(args.out_dir))
+    print(f"[final-schema] wrote {final_schema_path}")
     return feedback_out
 
 
-def _run_consensus_or_pause(
+def publish_final_schema(schema_path: Path, out_dir: Path) -> Path:
+    """Publish the latest completed round schema to a stable path for extraction."""
+    artifact = read_artifact(
+        schema_path,
+        expected_type="discovered_schema",
+        data_contract="private_health/discovered_schema",
+    )
+    final_schema_path = out_dir / "final_schema.json"
+    write_artifact(
+        final_schema_path,
+        artifact,
+        data_contract="private_health/discovered_schema",
+    )
+    return final_schema_path
+
+
+def _run_consensus_stage(
     args,
     draft_path: Path,
     round_dir: Path,
     schema_path: Path,
     base_sample_paths: tuple[str, ...],
-) -> tuple[dict[str, object] | None, tuple[str, ...]]:
+) -> tuple[dict[str, object], tuple[str, ...]]:
     print(f"[consensus] voting over {args.consensus_runs} patch runs")
     outputs = run_consensus_stage(
         args,
@@ -81,10 +101,6 @@ def _run_consensus_or_pause(
         round_dir,
         base_sample_paths=base_sample_paths,
     )
-
-    if args.review_ui:
-        _print_review_stop(round_dir, outputs.queue_path)
-        return None, outputs.schema_build_samples
 
     artifact = read_artifact(
         outputs.consensus_schema_path,
@@ -96,7 +112,8 @@ def _run_consensus_or_pause(
         artifact,
         data_contract="private_health/discovered_schema",
     )
-    print(f"[consensus] wrote {schema_path}")
+    suffix = " for pre-review extraction analysis" if args.review_ui else ""
+    print(f"[consensus] wrote {schema_path}{suffix}")
     return artifact["data"], outputs.schema_build_samples
 
 
@@ -109,13 +126,13 @@ def _print_review_stop(round_dir: Path, queue_path: Path) -> None:
         f"     streamlit run src/review_app.py -- --consensus-dir {consensus_dir}\n"
         "2. Apply your decisions (also available from the UI):\n"
         f"     python src/refine/review.py apply --consensus-dir {consensus_dir}\n"
-        "3. Evaluate the reviewed schema on the holdout set:\n"
+        "3. Publish the reviewed schema as the final schema:\n"
         f"     python src/refine/loop.py --resume-review {round_dir}"
     )
 
 
 def resume_review(args) -> int:
-    """Evaluate a human-reviewed schema in its original round directory."""
+    """Publish a human-reviewed schema in its original round directory."""
     round_dir = Path(args.resume_review)
     reviewed_path = round_dir / "consensus" / "reviewed_schema.json"
     if not reviewed_path.exists():
@@ -124,20 +141,6 @@ def resume_review(args) -> int:
             f"  python src/refine/review.py apply --consensus-dir {round_dir / 'consensus'}"
         )
         return 1
-
-    queue_path = round_dir / "consensus" / QUEUE_FILENAME
-    if not queue_path.exists():
-        print(f"{queue_path} not found; cannot verify the holdout sample split.")
-        return 1
-    queue = load_review_queue(queue_path)
-    samples = queue.get("metadata", {}).get("schema_build_samples", [])
-    if not isinstance(samples, list) or not samples:
-        print(
-            f"{queue_path} has no schema_build_samples metadata; rerun the "
-            "consensus round before evaluating this review."
-        )
-        return 1
-    schema_build_samples = tuple(str(path) for path in samples)
 
     artifact = read_artifact(
         reviewed_path,
@@ -148,17 +151,13 @@ def resume_review(args) -> int:
     write_artifact(
         schema_path, artifact, data_contract="private_health/discovered_schema"
     )
-    print(f"[resume-review] evaluating {reviewed_path} on holdout PDFs")
-
-    _analysis, feedback = evaluate_schema(
-        args,
-        artifact["data"],
-        round_dir,
-        exclude_paths=schema_build_samples,
-    )
-    print("\n[find-failures] refinement feedback:\n" + feedback)
+    print(f"[resume-review] wrote reviewed schema to {schema_path}")
+    final_schema_path = publish_final_schema(schema_path, Path(args.out_dir))
+    print(f"[final-schema] wrote {final_schema_path}")
     print(
-        "\nTo feed this into the next round:\n"
+        "\nPre-review extraction feedback is available at:\n"
+        f"  {round_dir / 'refinement_feedback.json'}\n"
+        "To feed it into the next round:\n"
         f"  python src/refine/loop.py --resume-feedback {round_dir / 'refinement_feedback.json'}"
     )
     return 0

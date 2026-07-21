@@ -9,38 +9,73 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.common.model_config import resolve_selection
 from src.common.json_artifacts import (
     build_failure_artifact,
     build_success_artifact,
     write_artifact,
     write_failure_artifact,
 )
-from src.common.structured_output import StructuredOutputFailure
-from src.schema.discovery import SchemaDiscovery
+from src.common.data_paths import default_private_health_pdf_root
+from src.common.model_config import resolve_selection
+from src.config import load_config
+from src.schema.loader import SchemaLoader
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
+from src.schema.validator import SchemaValidator
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Generate a private health schema from PDFs")
-    parser.add_argument("--samples", nargs="+")
-    parser.add_argument("--input-root", default="data/private_health/raw/PDFs")
-    parser.add_argument("--categories", nargs="+", default=list(DEFAULT_CATEGORIES))
-    parser.add_argument("--per-category", type=int, default=5)
-    parser.add_argument("--seed", type=int)
-    parser.add_argument("--provider")
-    parser.add_argument("--model")
-    parser.add_argument("--document-input")
-    parser.add_argument("--timeout", type=float, default=600.0)
-    parser.add_argument("--keep-uploaded-files", action="store_true")
-    parser.add_argument("--output", default="outputs/private_health/schema.json")
-    parser.add_argument("--usage-log", default="outputs/private_health/token_usage.jsonl")
+    parser = argparse.ArgumentParser(description="Konkrd private-health extraction pipeline")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    discover = subparsers.add_parser(
+        "discover",
+        help="Generate a feat discovered JSON schema from sample PDFs",
+    )
+    discover.add_argument("--samples", nargs="+")
+    discover.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    discover.add_argument("--categories", nargs="+", default=list(DEFAULT_CATEGORIES))
+    discover.add_argument("--per-category", type=int, default=5)
+    discover.add_argument("--seed", type=int)
+    discover.add_argument("--provider")
+    discover.add_argument("--model")
+    discover.add_argument("--document-input")
+    discover.add_argument("--timeout", type=float, default=600.0)
+    discover.add_argument("--keep-uploaded-files", action="store_true")
+    discover.add_argument("--output", default="outputs/private_health/schema.json")
+    discover.add_argument("--usage-log", default="outputs/private_health/token_usage.jsonl")
+
+    extract = subparsers.add_parser("extract", help="Extract one PDF into structured JSON")
+    extract.add_argument("--pdf", required=True)
+    extract.add_argument("--schema", required=True)
+    extract.add_argument("--output")
+    extract.add_argument("--provider", default=None)
+    extract.add_argument("--model", default=None)
+    extract.add_argument(
+        "--no-fallback",
+        action="store_true",
+        help="Fail instead of using heuristic extraction when the model call is unavailable.",
+    )
+
+    batch = subparsers.add_parser("batch", help="Run extraction over collected PDFs")
+    batch.add_argument("--vertical", default="private_health")
+    batch.add_argument("--schema", required=True)
+    batch.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    batch.add_argument("--evaluate", action="store_true")
+    batch.add_argument("--provider", default=None)
+    batch.add_argument("--model", default=None)
+    batch.add_argument(
+        "--no-fallback",
+        action="store_true",
+        help="Fail instead of using heuristic extraction when the model call is unavailable.",
+    )
+
     return parser
 
 
-def main() -> int:
-    parser = build_parser()
-    args = parser.parse_args()
+def command_discover(args: argparse.Namespace) -> int:
+    from src.common.structured_output import StructuredOutputFailure
+    from src.schema.discovery import SchemaDiscovery
+
     try:
         selection = resolve_selection(
             provider=args.provider,
@@ -48,7 +83,8 @@ def main() -> int:
             document_input=args.document_input,
         )
     except ValueError as exc:
-        parser.error(str(exc))
+        raise SystemExit(str(exc)) from exc
+
     categories = tuple(category.lower() for category in args.categories)
     input_root = Path(args.input_root)
     output_path = next_available_path(Path(args.output))
@@ -63,7 +99,6 @@ def main() -> int:
                 per_category=args.per_category,
                 seed=args.seed,
             )
-        if not args.samples:
             print_samples(sample_paths, input_root, categories)
 
         schema_data = SchemaDiscovery(
@@ -99,13 +134,12 @@ def main() -> int:
             details=details,
         )
         try:
-            error_path = (
-                output_path.parent / "errors" / "schema_discovery" / f"{run_id}.json"
+            error_path = write_failure_artifact(
+                output_path.parent,
+                "schema_discovery",
+                run_id,
+                failure,
             )
-            if not error_path.exists():
-                error_path = write_failure_artifact(
-                    output_path.parent, "schema_discovery", run_id, failure
-                )
             print(f"Failure artifact: {error_path}")
         except Exception as artifact_exc:
             print(f"Could not write failure artifact: {artifact_exc}")
@@ -135,6 +169,174 @@ def main() -> int:
     return 0
 
 
+def command_extract(args: argparse.Namespace) -> int:
+    from src.pipeline.extractor import LLMExtractor
+    from src.pipeline.ingestor import PDFIngestor
+    from src.pipeline.router import FormatRouter
+
+    schema = SchemaLoader().load(args.schema)
+    issues = SchemaValidator().validate(schema)
+    if issues:
+        print("Schema validation issues:")
+        for issue in issues:
+            print(f"- {issue}")
+        return 1
+
+    ingestor = PDFIngestor()
+    router = FormatRouter()
+    extractor = LLMExtractor(
+        schema=schema,
+        provider=args.provider,
+        model=args.model,
+        allow_fallback=not args.no_fallback,
+    )
+
+    parsed = ingestor.ingest(args.pdf)
+    extraction_input = router.route(parsed)
+    result = extractor.extract(extraction_input)
+
+    output_path = args.output or default_output_path(schema.vertical, Path(args.pdf))
+    result.write_json(output_path)
+    print(f"Wrote extraction to {output_path}")
+    return 0
+
+
+def command_batch(args: argparse.Namespace) -> int:
+    from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
+    from src.evaluation.reporter import EvaluationReporter
+    from src.pipeline.extractor import LLMExtractor
+    from src.pipeline.ingestor import PDFIngestor
+    from src.pipeline.router import FormatRouter
+
+    config = load_config()
+    schema = SchemaLoader().load(args.schema)
+    issues = SchemaValidator().validate(schema)
+    if issues:
+        print("Schema validation issues:")
+        for issue in issues:
+            print(f"- {issue}")
+        return 1
+
+    input_root = (
+        Path(args.input_root)
+        if args.input_root
+        else config.data_dir / args.vertical / "raw" / "PDFs"
+    )
+    pdf_paths = sorted(input_root.rglob("*.pdf"))
+    if not pdf_paths:
+        print(f"No PDFs found under {input_root}")
+        return 1
+
+    ingestor = PDFIngestor()
+    router = FormatRouter()
+    extractor = LLMExtractor(
+        schema=schema,
+        provider=args.provider,
+        model=args.model,
+        allow_fallback=not args.no_fallback,
+    )
+
+    reports = []
+    provider_counts: dict[str, int] = {}
+    warning_counts: dict[str, int] = {}
+    warning_samples: list[str] = []
+    unmatched_documents = 0
+    low_confidence_matches = 0
+    fallback_documents = 0
+    extraction_errors = 0
+    gt_store = None
+    evaluator = None
+    reporter = None
+    if args.evaluate and args.vertical in {"private_health", "private_health_au"}:
+        gt_store = PrivateHealthGroundTruthStore(
+            config.data_dir / "private_health" / "labelled"
+        )
+        evaluator = ExtractionEvaluator()
+        reporter = EvaluationReporter()
+
+    for pdf_path in pdf_paths:
+        try:
+            parsed = ingestor.ingest(str(pdf_path))
+            extraction_input = router.route(parsed)
+            result = extractor.extract(extraction_input)
+        except Exception as exc:
+            extraction_errors += 1
+            print(f"Extraction failed for {pdf_path.name}: {exc}")
+            continue
+        output_path = default_output_path(schema.vertical, pdf_path)
+        result.write_json(output_path)
+        provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
+        if args.evaluate and result.provider == "heuristic":
+            fallback_documents += 1
+        for warning in result.warnings:
+            warning_counts[warning] = warning_counts.get(warning, 0) + 1
+            if len(warning_samples) < 5 and warning not in warning_samples:
+                warning_samples.append(warning)
+        print(f"Extracted {pdf_path.name} -> {output_path}")
+
+        if gt_store and evaluator:
+            product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
+            if ground_truth:
+                report = evaluator.evaluate(
+                    extracted=result,
+                    ground_truth=ground_truth,
+                    product_key=product_match.id_master if product_match else None,
+                )
+                if product_match:
+                    report.match_score = product_match.match_score
+                    report.low_confidence_match = product_match.low_confidence_match
+                    if product_match.low_confidence_match:
+                        low_confidence_matches += 1
+                reports.append(report)
+            else:
+                unmatched_documents += 1
+
+    if evaluator and reporter:
+        summary = evaluator.aggregate(
+            reports,
+            total_documents=len(pdf_paths),
+            unmatched_documents=unmatched_documents,
+            low_confidence_matches=low_confidence_matches,
+            fallback_documents=fallback_documents,
+            extraction_errors=extraction_errors,
+        )
+        report_root = config.outputs_dir / args.vertical / "evaluation"
+        reporter.write_json(reports, summary, report_root / "report.json")
+        reporter.write_markdown(reports, summary, report_root / "report.md")
+        print(f"Wrote evaluation reports to {report_root}")
+        if fallback_documents:
+            print(
+                "Evaluation warning: heuristic fallback results were written and counted "
+                "separately; use --no-fallback for a pure model-quality run."
+            )
+    elif args.evaluate:
+        print("Evaluation skipped: no private-health ground truth matched the PDFs.")
+
+    print("\nBatch extraction summary:")
+    print(
+        "  Providers: "
+        + (
+            ", ".join(
+                f"{provider}={count}"
+                for provider, count in sorted(provider_counts.items())
+            )
+            if provider_counts
+            else "none"
+        )
+    )
+    print(f"  Warnings: {sum(warning_counts.values())}")
+    for warning in warning_samples:
+        print(f"  - {warning} ({warning_counts[warning]})")
+
+    return 0
+
+
+def default_output_path(vertical: str, pdf_path: Path) -> Path:
+    config = load_config()
+    relative_parts = pdf_path.with_suffix(".json").parts[-4:]
+    return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
+
+
 def next_available_path(path: Path) -> Path:
     if not path.exists():
         return path
@@ -145,6 +347,19 @@ def next_available_path(path: Path) -> Path:
             return candidate
 
     raise RuntimeError(f"Could not find an available output path for {path}")
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.command == "discover":
+        return command_discover(args)
+    if args.command == "extract":
+        return command_extract(args)
+    if args.command == "batch":
+        return command_batch(args)
+    parser.error(f"Unknown command: {args.command}")
+    return 2
 
 
 if __name__ == "__main__":

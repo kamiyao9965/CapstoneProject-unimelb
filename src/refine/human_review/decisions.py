@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import fcntl
 import os
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -11,6 +11,11 @@ from typing import Callable
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.json_contracts import validate_contract
 from src.refine.human_review.constants import SUPPORTED_ACTIONS
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows fallback
+    fcntl = None
 
 
 def empty_decisions(reviewer: str = "") -> dict:
@@ -92,11 +97,25 @@ def _update_decisions_file(
         flags |= os.O_NOFOLLOW
     descriptor = os.open(lock_path, flags, 0o600)
     with os.fdopen(descriptor, "r+") as lock:
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        payload = load_review_decisions(path) if path.exists() else empty_decisions()
-        updated = update(payload)
-        write_review_decisions(updated, path)
-        return updated
+        with _exclusive_lock(lock):
+            payload = load_review_decisions(path) if path.exists() else empty_decisions()
+            updated = update(payload)
+            write_review_decisions(updated, path)
+            return updated
+
+
+@contextmanager
+def _exclusive_lock(lock):
+    if fcntl is None:
+        yield
+        return
+    fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+    try:
+        yield
+    finally:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+
 def upsert_decision(
     decisions_payload: dict,
     item_id: str,

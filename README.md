@@ -44,7 +44,7 @@ repair retries. Invalid data never proceeds to the next stage.
 - macOS or Linux
 - Python 3.10–3.13 (MinerU constrains the supported range)
 - At least one provider API key
-- Source PDFs organised under `data/private_health/raw/PDFs/`
+- Existing source PDFs in the bundled `konkrd-data` dataset
 
 The repository contains no API keys or source PDFs.
 
@@ -66,12 +66,13 @@ Verify the offline suite before using credentials:
 .venv/bin/python -m unittest discover -s tests
 ```
 
-## 2. Add source documents
+## 2. Use the known source documents
 
-The sampler expects fund/category folders below the input root. For example:
+The project reads the known `konkrd-data` PDF dataset bundled with this
+workspace by default:
 
 ```text
-data/private_health/raw/PDFs/
+konkrd-data/data/private_health/raw/PDFs/
   AUF/
     hospital/
       product-a.pdf
@@ -85,6 +86,9 @@ data/private_health/raw/PDFs/
     extras/
       product-d.pdf
 ```
+
+If your dataset lives somewhere else, set `KONKRD_DATA_ROOT` to that
+`konkrd-data` directory or pass `--input-root` explicitly.
 
 Default categories are `hospital`, `extras`, `generalhealth`, and `combined`.
 Sampling is category-balanced, content-deduplicated by SHA-256, and supports a
@@ -192,8 +196,8 @@ Use explicit documents when needed:
 ```bash
 .venv/bin/python src/run.py \
   --samples \
-    data/private_health/raw/PDFs/AUF/hospital/product-a.pdf \
-    data/private_health/raw/PDFs/RBH/extras/product-d.pdf \
+    konkrd-data/data/private_health/raw/PDFs/AUF/hospital/product-a.pdf \
+    konkrd-data/data/private_health/raw/PDFs/RBH/extras/product-d.pdf \
   --output outputs/private_health/manual_schema.json
 ```
 
@@ -201,7 +205,7 @@ Important options:
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `--input-root` | `data/private_health/raw/PDFs` | PDF corpus root |
+| `--input-root` | `konkrd-data/data/private_health/raw/PDFs` | PDF corpus root |
 | `--categories` | four standard categories | Categories to sample |
 | `--per-category` | `5` | Documents sampled per category |
 | `--seed` | random | Reproducible sample selection |
@@ -220,13 +224,13 @@ artifact below `outputs/private_health/errors/schema_discovery/`.
 Markdown mode maps each selected source PDF from:
 
 ```text
-data/private_health/raw/PDFs/<relative-path>.pdf
+<input-root>/<relative-path>.pdf
 ```
 
 to:
 
 ```text
-data/private_health/raw/Markdown/<relative-path>.md
+konkrd-data/data/private_health/raw/Markdown/<relative-path>.md
 ```
 
 An existing mirror is reused. Otherwise MinerU converts only the selected PDF.
@@ -353,7 +357,8 @@ invalid field edits, and unsafe rename/merge/move upserts fail loudly.
   --eval-seed 7
 ```
 
-Review and apply the queue, then resume holdout evaluation:
+This writes `refinement_feedback.json` before stopping for review. Review and
+apply the queue, then publish the reviewed schema:
 
 ```bash
 .venv/bin/python src/refine/loop.py \
@@ -383,6 +388,9 @@ three-attempt maximum.
 Typical round contents:
 
 ```text
+outputs/private_health/refine/
+  final_schema.json              # latest completed round schema for extraction/evaluation
+
 round_1/
   schema.json
   schema_draft.json              # when consensus is enabled
@@ -398,6 +406,15 @@ round_1/
     review_queue.json
     review_decisions.json        # after review begins
     reviewed_schema.json         # after apply
+```
+
+Use `outputs/private_health/refine/final_schema.json` as the fixed schema for
+the downstream extraction and ground-truth evaluation pipeline:
+
+```bash
+.venv/bin/python src/run.py batch \
+  --schema outputs/private_health/refine/final_schema.json \
+  --evaluate
 ```
 
 ## 10. Analyze extraction artifacts directly

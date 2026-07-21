@@ -11,6 +11,7 @@ from src.common.json_artifacts import (
     read_artifact,
     write_artifact,
 )
+from src.common.data_paths import default_private_health_pdf_root
 from src.common.model_config import ModelSelection, resolve_selection
 from src.refine.human_review import write_review_queue
 from src.refine.pipeline import cli, rounds
@@ -45,7 +46,7 @@ def review_queue_metadata(samples: list[str] | None = None) -> dict[str, object]
 
 def make_args(tmp: str, **overrides) -> SimpleNamespace:
     values = {
-        "input_root": "data/private_health/raw/PDFs",
+        "input_root": str(default_private_health_pdf_root()),
         "per_category": 5,
         "seed": 42,
         "eval_per_category": 2,
@@ -206,6 +207,7 @@ class RunRoundModeTest(unittest.TestCase):
             )
             self.assertTrue((round_dir / "schema.json").exists())
             self.assertFalse((round_dir / "schema_draft.json").exists())
+            self.assertTrue((Path(tmp) / "final_schema.json").exists())
 
     def test_unattended_consensus_evaluates_auto_merge(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -221,16 +223,27 @@ class RunRoundModeTest(unittest.TestCase):
                 data_contract="private_health/discovered_schema",
             )
             self.assertIn("excess", [f["name"] for f in artifact["data"]["fields"]])
+            final_artifact = read_artifact(
+                Path(tmp) / "final_schema.json",
+                expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )
+            self.assertIn("excess", [f["name"] for f in final_artifact["data"]["fields"]])
             self.assertTrue((round_dir / "schema_draft.json").exists())
 
-    def test_attended_consensus_stops_before_evaluation(self) -> None:
+    def test_attended_consensus_evaluates_before_review_stop(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             result, round_dir, evaluate, _ = self.run_round(
                 tmp, consensus_runs=3, review_ui=True
             )
             self.assertIsNone(result)
-            evaluate.assert_not_called()
-            self.assertFalse((round_dir / "schema.json").exists())
+            evaluate.assert_called_once()
+            self.assertEqual(
+                evaluate.call_args.kwargs["exclude_paths"],
+                ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
+            )
+            self.assertTrue((round_dir / "schema.json").exists())
+            self.assertFalse((Path(tmp) / "final_schema.json").exists())
 
 
 class ResumeReviewTest(unittest.TestCase):
@@ -244,7 +257,7 @@ class ResumeReviewTest(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             evaluate.assert_not_called()
 
-    def test_missing_sample_metadata_fails_without_evaluating(self) -> None:
+    def test_reviewed_schema_publish_does_not_need_sample_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             round_dir = Path(tmp) / "round_1"
             consensus_dir = round_dir / "consensus"
@@ -260,10 +273,12 @@ class ResumeReviewTest(unittest.TestCase):
             with mock.patch.object(rounds, "evaluate_schema", evaluate):
                 exit_code = rounds.resume_review(args)
 
-            self.assertEqual(exit_code, 1)
+            self.assertEqual(exit_code, 0)
             evaluate.assert_not_called()
+            self.assertTrue((round_dir / "schema.json").exists())
+            self.assertTrue((Path(tmp) / "final_schema.json").exists())
 
-    def test_reviewed_schema_is_evaluated_into_round_dir(self) -> None:
+    def test_reviewed_schema_is_published_into_round_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             round_dir = Path(tmp) / "round_1"
             consensus_dir = round_dir / "consensus"
@@ -286,16 +301,18 @@ class ResumeReviewTest(unittest.TestCase):
             with mock.patch.object(rounds, "evaluate_schema", evaluate):
                 exit_code = rounds.resume_review(args)
             self.assertEqual(exit_code, 0)
-            evaluate.assert_called_once()
-            self.assertEqual(
-                evaluate.call_args.kwargs["exclude_paths"],
-                ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
-            )
+            evaluate.assert_not_called()
             artifact = read_artifact(
                 round_dir / "schema.json", expected_type="discovered_schema",
                 data_contract="private_health/discovered_schema",
             )
             self.assertIn("excess", [f["name"] for f in artifact["data"]["fields"]])
+            final_artifact = read_artifact(
+                Path(tmp) / "final_schema.json",
+                expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )
+            self.assertIn("excess", [f["name"] for f in final_artifact["data"]["fields"]])
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from src.common.data_paths import default_private_health_pdf_root
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
@@ -18,7 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
             "-> analyze -> feedback"
         )
     )
-    parser.add_argument("--input-root", default="data/private_health/raw/PDFs")
+    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
     parser.add_argument(
         "--per-category", type=int, default=5, help="PDFs/category for discovery"
     )

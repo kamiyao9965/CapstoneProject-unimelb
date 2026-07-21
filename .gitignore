@@ -1,4 +1,5 @@
 data/
+konkrd-data/
 __pycache__/
 .env
 .venv/

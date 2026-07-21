@@ -9,8 +9,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.common.model_config import resolve_selection
 from src.common.json_artifacts import build_success_artifact, write_artifact
+from src.common.data_paths import default_private_health_pdf_root
+from src.common.model_config import resolve_selection
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
 from src.stability.compare import compare
@@ -22,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run schema discovery N times on the SAME sampled PDFs and measure drift"
     )
     parser.add_argument("--runs", type=int, default=3, help="Number of discovery runs")
-    parser.add_argument("--input-root", default="data/private_health/raw/PDFs")
+    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42,
                         help="Sampling seed - fixed so every run sees the same PDFs")

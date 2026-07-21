@@ -24,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.common.data_paths import default_private_health_pdf_root
 from src.refine.artifacts.renderer import (
     render_consensus_schema,
     render_frequency_json,
@@ -67,7 +68,7 @@ class SchemaConsensusRefinement:
     def refine(
         self,
         base_schema_path: str | Path,
-        input_root: str | Path = "data/private_health/raw/PDFs",
+        input_root: str | Path | None = None,
         categories: tuple[str, ...] = DEFAULT_CATEGORIES,
         per_category: int = 5,
         runs: int = 10,
@@ -79,6 +80,7 @@ class SchemaConsensusRefinement:
     ) -> ConsensusOutputs:
         if runs <= 0:
             raise ValueError("runs must be greater than 0.")
+        input_root = input_root or default_private_health_pdf_root()
 
         base_schema = Path(base_schema_path)
         if not base_schema.exists():
@@ -198,7 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
         "schema, frequency voting, review queue (uses the selected provider API)"
     )
     parser.add_argument("--base-schema", default="outputs/private_health/schema.json")
-    parser.add_argument("--input-root", default="data/private_health/raw/PDFs")
+    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--runs", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)

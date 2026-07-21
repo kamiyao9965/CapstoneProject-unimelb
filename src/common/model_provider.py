@@ -22,8 +22,13 @@ from src.common.openai_run import (
     run_response,
     usage_value,
 )
-from anthropic import Anthropic, transform_schema
 from openai import OpenAI
+
+try:
+    from anthropic import Anthropic, transform_schema
+except ImportError:  # pragma: no cover - optional provider dependency
+    Anthropic = None
+    transform_schema = None
 
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
@@ -200,6 +205,10 @@ class AnthropicProvider:
         api_key, api_key_env = resolve_api_key(request.selection)
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY must be set to use the Anthropic provider.")
+        if Anthropic is None:
+            raise RuntimeError(
+                "The anthropic package must be installed to use the Anthropic provider."
+            )
         client = self.client or Anthropic(
             api_key=api_key,
             base_url=os.getenv("ANTHROPIC_BASE_URL") or None,
@@ -496,6 +505,10 @@ def _project_openai_node(
 
 def _project_anthropic_schema(schema: Mapping[str, object]) -> dict[str, object]:
     """Use the installed Anthropic SDK's documented schema transformation."""
+    if transform_schema is None:
+        raise RuntimeError(
+            "The anthropic package must be installed to use Anthropic structured output."
+        )
     normalized = _normalize_anthropic_node(dict(schema), path="$")
     try:
         projected = transform_schema(normalized)
