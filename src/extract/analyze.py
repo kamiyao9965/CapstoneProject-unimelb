@@ -14,17 +14,17 @@ from src.common.json_artifacts import (
     read_artifact,
     write_artifact,
 )
-from src.common.json_contracts import validate_contract
 from src.common.json_codec import loads_json
-from src.common.json_contracts import validate_inline_contract
+from src.common.json_contracts import validate_contract, validate_inline_contract
 from src.extract.contract import compile_extraction_contract
+from src.schema.sampler import category_from_path
 from src.schema.validation import (
     JSONScalar,
     SUPPORTED_PRODUCT_TYPES,
     validate_schema_mapping,
 )
 
-# Fields filled in fewer than this fraction of documents are flagged as weak:
+# Fields filled in fewer than this fraction of applicable documents are weak:
 # either the schema is asking for something the PDFs rarely contain, or the
 # field name/description is too ambiguous to extract reliably.
 WEAK_FILL_THRESHOLD = 0.25
@@ -37,6 +37,21 @@ class FieldSpec:
     required: bool = False
     values: list[JSONScalar] = field(default_factory=list)
     applies_to: tuple[str, ...] = tuple(sorted(SUPPORTED_PRODUCT_TYPES))
+
+
+@dataclass(frozen=True)
+class ExtractionRecord:
+    """Validated model data paired with its authoritative dataset category."""
+
+    data: dict[str, object]
+    source_document: str
+    source_category: str
+
+    def __post_init__(self) -> None:
+        if self.source_category not in SUPPORTED_PRODUCT_TYPES:
+            raise ValueError(
+                f"Unsupported source category: {self.source_category!r}."
+            )
 
 
 def load_field_specs(schema_data: dict[str, object]) -> list[FieldSpec]:
@@ -61,8 +76,8 @@ def load_field_specs(schema_data: dict[str, object]) -> list[FieldSpec]:
 def load_records(
     extraction_dir: Path,
     extraction_contract: dict[str, object],
-) -> tuple[list[dict], int]:
-    records: list[dict] = []
+) -> tuple[list[ExtractionRecord], int]:
+    records: list[ExtractionRecord] = []
     failures = 0
     for path in sorted(extraction_dir.glob("*.json")):
         try:
@@ -79,10 +94,28 @@ def load_records(
                 extraction_contract,
                 "runtime_extraction_result",
             )
+            source_documents = artifact["provenance"]["source_documents"]
+            if len(source_documents) != 1:
+                raise ValueError(
+                    "Extraction result must identify exactly one source document."
+                )
+            source_document = source_documents[0]
+            source_category = category_from_path(source_document)
+            if source_category is None:
+                raise ValueError(
+                    "Extraction source document must identify exactly one supported "
+                    "dataset category in its path."
+                )
         except ValueError:
             failures += 1
             continue
-        records.append(artifact["data"])
+        records.append(
+            ExtractionRecord(
+                data=artifact["data"],
+                source_document=source_document,
+                source_category=source_category,
+            )
+        )
     failures += sum(
         1
         for path in (extraction_dir / "errors" / "extraction").glob("*.json")
@@ -103,7 +136,11 @@ def is_filled(value: object) -> bool:
 class Analysis:
     documents: int
     error_docs: int
-    unclassified_docs: int
+    source_category_counts: dict[str, int]
+    product_type_correct: int
+    product_type_unclassified: int
+    product_type_accuracy: float
+    product_type_mismatches: dict[str, int]
     fill_rate: dict[str, float]
     evaluated_documents: dict[str, int]
     weak_fields: list[str]
@@ -113,15 +150,17 @@ class Analysis:
 
 
 def analyze(
-    records: list[dict],
+    records: list[ExtractionRecord],
     specs: list[FieldSpec],
     *,
     failed_artifacts: int = 0,
 ) -> Analysis:
     spec_by_name = {s.name: s for s in specs}
     error_docs = failed_artifacts
-    docs = [record for record in records if _product_type(record) is not None]
-    unclassified_docs = len(records) - len(docs)
+    source_category_counts: dict[str, int] = {}
+    product_type_correct = 0
+    product_type_unclassified = 0
+    product_type_mismatches: dict[str, int] = {}
 
     filled_counts = {s.name: 0 for s in specs}
     evaluated_documents = {s.name: 0 for s in specs}
@@ -129,10 +168,28 @@ def analyze(
     enum_violations: dict[str, list[JSONScalar]] = {}
     model_unfilled: dict[str, int] = {}
 
-    for record in docs:
-        product_type = _product_type(record)
+    for extraction in records:
+        record = extraction.data
+        source_category = extraction.source_category
+        source_category_counts[source_category] = (
+            source_category_counts.get(source_category, 0) + 1
+        )
+        predicted_product_type = _product_type(record)
+        if predicted_product_type is None:
+            product_type_unclassified += 1
+        if predicted_product_type == source_category:
+            product_type_correct += 1
+        else:
+            mismatch = (
+                f"{source_category} -> "
+                f"{predicted_product_type or 'unclassified'}"
+            )
+            product_type_mismatches[mismatch] = (
+                product_type_mismatches.get(mismatch, 0) + 1
+            )
+
         for name, spec in spec_by_name.items():
-            if product_type not in spec.applies_to:
+            if source_category not in spec.applies_to:
                 continue
             evaluated_documents[name] += 1
             value = record.get(name)
@@ -169,14 +226,20 @@ def analyze(
             and rate < WEAK_FILL_THRESHOLD
             and not spec_by_name[name].required
         )
-        if docs
+        if records
         else []
     )
 
     return Analysis(
-        documents=len(docs),
+        documents=len(records),
         error_docs=error_docs,
-        unclassified_docs=unclassified_docs,
+        source_category_counts=dict(sorted(source_category_counts.items())),
+        product_type_correct=product_type_correct,
+        product_type_unclassified=product_type_unclassified,
+        product_type_accuracy=(
+            product_type_correct / len(records) if records else 0.0
+        ),
+        product_type_mismatches=dict(sorted(product_type_mismatches.items())),
         fill_rate=fill_rate,
         evaluated_documents=evaluated_documents,
         weak_fields=weak_fields,
@@ -203,13 +266,33 @@ def _product_type(record: dict) -> str | None:
 def print_report(analysis: Analysis) -> None:
     print(
         f"Documents analyzed: {analysis.documents} "
-        f"({analysis.error_docs} errored, {analysis.unclassified_docs} unclassified)\n"
+        f"({analysis.error_docs} errored)"
     )
+    coverage = ", ".join(
+        f"{category}={count}"
+        for category, count in analysis.source_category_counts.items()
+    ) or "none"
+    print(f"Source category coverage: {coverage}")
+    print(
+        f"Product type classification: {analysis.product_type_accuracy:.0%} "
+        f"({analysis.product_type_correct}/{analysis.documents} correct, "
+        f"{analysis.product_type_unclassified} unclassified)"
+    )
+    if analysis.product_type_mismatches:
+        print("Product type mismatches:")
+        for transition, count in analysis.product_type_mismatches.items():
+            print(f"  {transition}: {count}")
+    print()
 
     print("Field fill rate (lowest first):")
     for name, rate in sorted(analysis.fill_rate.items(), key=lambda kv: kv[1]):
         marker = " <- weak" if name in analysis.weak_fields else ""
-        print(f"  {rate:>6.0%}  {name}{marker}")
+        rendered_rate = (
+            f"{rate:>6.0%}"
+            if analysis.evaluated_documents[name]
+            else f"{'N/A':>6}"
+        )
+        print(f"  {rendered_rate}  {name}{marker}")
     print()
 
     if analysis.missing_required:
@@ -235,16 +318,17 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
     if analysis.documents == 0:
         return [
             "No documents were successfully extracted; "
-            f"{analysis.error_docs} extraction attempt(s) failed and "
-            f"{analysis.unclassified_docs} record(s) had no valid product_type. "
-            "Fix extraction, parsing, or classification errors before refining the schema."
+            f"{analysis.error_docs} extraction or artifact validation attempt(s) failed. "
+            "Fix extraction, parsing, contract, or source-category errors before "
+            "refining the schema."
         ]
 
     lines: list[str] = []
     if analysis.weak_fields:
         lines.append(
             "The following fields were extractable in fewer than "
-            f"{int(WEAK_FILL_THRESHOLD * 100)}% of documents. Either drop them, split "
+            f"{int(WEAK_FILL_THRESHOLD * 100)}% of applicable holdout documents. "
+            "Either drop them, split "
             "them into more specific fields, or clarify their description so they map "
             "to what the PDFs actually contain: " + ", ".join(analysis.weak_fields) + "."
         )
@@ -263,6 +347,17 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
             "These enum fields saw values outside their allowed list; expand or correct "
             f"the allowed values: {details}."
         )
+    if analysis.product_type_mismatches:
+        details = "; ".join(
+            f"{transition}: {count}"
+            for transition, count in analysis.product_type_mismatches.items()
+        )
+        lines.append(
+            "Model product_type matched the authoritative directory category in "
+            f"{analysis.product_type_accuracy:.0%} of evaluated documents. Clarify the "
+            "product_type field description, aliases, or allowed-value guidance without "
+            f"changing field applicability. Mismatches: {details}."
+        )
     if not lines:
         lines.append("No systematic extraction failures detected; schema looks well-fitted.")
     return lines
@@ -274,7 +369,11 @@ def build_feedback_data(analysis: Analysis) -> dict[str, object]:
         "analysis": {
             "documents": analysis.documents,
             "error_docs": analysis.error_docs,
-            "unclassified_docs": analysis.unclassified_docs,
+            "source_category_counts": analysis.source_category_counts,
+            "product_type_correct": analysis.product_type_correct,
+            "product_type_unclassified": analysis.product_type_unclassified,
+            "product_type_accuracy": analysis.product_type_accuracy,
+            "product_type_mismatches": analysis.product_type_mismatches,
             "fill_rate": analysis.fill_rate,
             "evaluated_documents": analysis.evaluated_documents,
             "weak_fields": analysis.weak_fields,

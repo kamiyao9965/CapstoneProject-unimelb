@@ -411,6 +411,12 @@ round_1/
 
 Only validated success envelopes contribute product values. Failed or malformed
 artifacts increment the error count and never affect fill-rate denominators.
+Field applicability is determined by the authoritative category directory in
+the source PDF path (`hospital`, `extras`, `generalhealth`, or `combined`) and
+the field's `applies_to` contract. The model's extracted `product_type` is
+reported separately as classification accuracy; it never decides which fields
+enter the denominator. A field with no applicable holdout document is shown as
+`N/A`, not `0%`.
 
 ## 11. Estimate cost
 

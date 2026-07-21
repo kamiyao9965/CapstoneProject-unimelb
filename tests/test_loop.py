@@ -135,7 +135,12 @@ class PipelineSelectionTest(unittest.TestCase):
                  mock.patch.object(steps, "build_feedback_data", return_value={
                      "instructions": ["feedback"],
                      "analysis": {"documents": 0, "error_docs": 0,
-                         "unclassified_docs": 0, "fill_rate": {},
+                         "fill_rate": {},
+                         "source_category_counts": {},
+                         "product_type_correct": 0,
+                         "product_type_unclassified": 0,
+                         "product_type_accuracy": 0.0,
+                         "product_type_mismatches": {},
                          "evaluated_documents": {}, "weak_fields": [],
                          "missing_required": {}, "enum_violations": {},
                          "model_unfilled": {}},
