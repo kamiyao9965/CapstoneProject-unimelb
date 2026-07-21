@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
-import fcntl
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
+from typing import IO, Callable
+
+try:  # POSIX
+    import fcntl
+
+    msvcrt = None
+except ImportError:  # Windows has no fcntl; use the msvcrt byte-range lock
+    fcntl = None
+    import msvcrt
+
+# Windows LK_LOCK gives up after ~10 attempts, so retry to stay blocking.
+_WINDOWS_LOCK_ATTEMPTS = 60
 
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.json_contracts import validate_contract
@@ -92,11 +103,43 @@ def _update_decisions_file(
         flags |= os.O_NOFOLLOW
     descriptor = os.open(lock_path, flags, 0o600)
     with os.fdopen(descriptor, "r+") as lock:
+        _lock_exclusive(lock)
+        try:
+            payload = (
+                load_review_decisions(path) if path.exists() else empty_decisions()
+            )
+            updated = update(payload)
+            write_review_decisions(updated, path)
+            return updated
+        finally:
+            _unlock(lock)
+
+
+def _lock_exclusive(lock: IO[str]) -> None:
+    """Block until this process holds an exclusive lock on the lock file."""
+    if fcntl is not None:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        payload = load_review_decisions(path) if path.exists() else empty_decisions()
-        updated = update(payload)
-        write_review_decisions(updated, path)
-        return updated
+        return
+    lock.seek(0)
+    for attempt in range(_WINDOWS_LOCK_ATTEMPTS):
+        try:
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+            return
+        except OSError:
+            if attempt == _WINDOWS_LOCK_ATTEMPTS - 1:
+                raise
+            time.sleep(0.1)
+
+
+def _unlock(lock: IO[str]) -> None:
+    if fcntl is not None:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+        return
+    try:
+        lock.seek(0)
+        msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+    except OSError:
+        pass  # lock is released when the descriptor closes
 def upsert_decision(
     decisions_payload: dict,
     item_id: str,

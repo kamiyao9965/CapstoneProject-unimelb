@@ -61,8 +61,14 @@ def field_payload_from_decision(
                     "required",
                     decision.required if decision.required is not None else False,
                 ),
-                "values": payload.get("values", decision.values),
-                "aliases": payload.get("aliases", decision.aliases),
+                # `or`, not get(key, default): the schema contract makes values
+                # and aliases mandatory keys, so an existing field always has
+                # them - usually as []. get(key, default) would return that []
+                # and silently discard the aliases/values the consensus voted
+                # for. (`required` above must keep get(key, default) because
+                # False is a meaningful falsy value.)
+                "values": payload.get("values") or decision.values,
+                "aliases": payload.get("aliases") or decision.aliases,
             }
         )
     return payload
