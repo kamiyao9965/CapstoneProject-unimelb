@@ -1,1 +1,1 @@
-"""Schema refinement loop: generate -> extract -> analyze -> review -> update."""
+"""Schema generation and refinement loop orchestration."""

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
-from src.common.document_preprocessor import MarkdownPreprocessor, prepare_documents
+from src.PDFingestor.adapter import DEFAULT_CACHE_DIR, render_pdf_paths_for_prompt
 from src.common.json_artifacts import (
     build_failure_artifact,
     write_failure_artifact,
@@ -48,15 +48,18 @@ class SchemaDiscovery:
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
-        preprocessor: MarkdownPreprocessor | None = None,
+        preprocessor: object | None = None,
+        pdfingestor_cache_dir: str | Path | None = None,
     ) -> None:
         self.selection = selection or ModelSelection("openai", model, "pdf")
         self.model = self.selection.model
         self.provider = provider or create_provider(self.selection, client=client)
-        # Markdown mode maps sampled PDFs to their mirrored Markdown paths
-        # before the provider request; PDF mode never touches the preprocessor.
+        # Discovery always consumes PDFingestor's Silver-layer text/table
+        # representation. The legacy preprocessor argument is retained for API
+        # compatibility but is not used.
         self.pdf_root = Path(pdf_root) if pdf_root else None
         self.preprocessor = preprocessor
+        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -134,8 +137,10 @@ class SchemaDiscovery:
             system_prompt += self.extra_instructions
         logical_run_id = run_id or uuid4().hex
         try:
-            document_paths = prepare_documents(
-                self.selection, pdf_paths, self.pdf_root, self.preprocessor
+            document_text = render_pdf_paths_for_prompt(
+                pdf_paths,
+                cache_dir=self.pdfingestor_cache_dir,
+                pdf_root=self.pdf_root,
             )
         except Exception as exc:
             self._write_failure(
@@ -145,8 +150,8 @@ class SchemaDiscovery:
         request = ProviderRequest(
             selection=self.selection,
             system_prompt=system_prompt,
-            user_text=user_text_factory(pdf_paths),
-            document_paths=document_paths,
+            user_text=f"{user_text_factory(pdf_paths)}\n\n{document_text}",
+            document_paths=(),
             timeout_seconds=self.timeout_seconds,
             cleanup_documents=self.cleanup_uploaded_files,
             request_params=self.request_params,

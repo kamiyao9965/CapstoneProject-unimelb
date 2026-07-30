@@ -9,7 +9,7 @@ from src.common.json_artifacts import (
     build_success_artifact,
     write_artifact,
 )
-from src.extract.analyze import (
+from src.schema_application.analyze import (
     FieldSpec,
     analyze,
     build_feedback,
@@ -17,7 +17,7 @@ from src.extract.analyze import (
     load_field_specs,
     load_records,
 )
-from src.extract.contract import compile_extraction_contract
+from src.schema.contract import compile_extraction_contract
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
 

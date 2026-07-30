@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Mapping
 from uuid import uuid4
 
-from src.common.document_preprocessor import MarkdownPreprocessor, prepare_documents
+from src.PDFingestor.adapter import DEFAULT_CACHE_DIR, render_pdf_paths_for_prompt
 from src.common.json_artifacts import (
     build_failure_artifact,
     build_success_artifact,
@@ -25,8 +25,8 @@ from src.common.model_provider import (
 )
 from src.common.openai_run import append_jsonl
 from src.common.structured_output import StructuredOutputFailure, run_structured_output
-from src.extract.contract import compile_extraction_contract
-from src.extract.prompts import EXTRACTION_PROMPT
+from src.schema.contract import compile_extraction_contract
+from src.schema_application.prompts import EXTRACTION_PROMPT
 from src.schema.validation import validate_schema_mapping
 
 
@@ -47,7 +47,8 @@ class SchemaExtractor:
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
-        preprocessor: MarkdownPreprocessor | None = None,
+        preprocessor: object | None = None,
+        pdfingestor_cache_dir: str | Path | None = None,
     ) -> None:
         validate_contract(schema_data, "private_health/discovered_schema")
         validate_schema_mapping(schema_data)
@@ -58,6 +59,7 @@ class SchemaExtractor:
         self.provider = provider or create_provider(self.selection, client=client)
         self.pdf_root = Path(pdf_root) if pdf_root else None
         self.preprocessor = preprocessor
+        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -77,8 +79,10 @@ class SchemaExtractor:
         started = time.perf_counter()
         logical_run_id = run_id or uuid4().hex
         self._log(f"Extracting {pdf_path.name} with {self.selection.provider}/{self.model}...")
-        document_paths = prepare_documents(
-            self.selection, (pdf_path,), self.pdf_root, self.preprocessor
+        document_text = render_pdf_paths_for_prompt(
+            (pdf_path,),
+            cache_dir=self.pdfingestor_cache_dir,
+            pdf_root=self.pdf_root,
         )
         request = ProviderRequest(
             selection=self.selection,
@@ -86,9 +90,12 @@ class SchemaExtractor:
             user_text=(
                 "Discovered schema data:\n"
                 f"{json.dumps(self.schema_data, ensure_ascii=False)}\n\n"
-                "Extract from the attached document."
+                "Extract from this PDFingestor structured representation. "
+                "Text and Markdown tables are already in source reading order; "
+                "do not assume there is an attached raw PDF.\n\n"
+                f"{document_text}"
             ),
-            document_paths=document_paths,
+            document_paths=(),
             timeout_seconds=self.timeout_seconds,
             cleanup_documents=self.cleanup_uploaded_files,
             request_params={},

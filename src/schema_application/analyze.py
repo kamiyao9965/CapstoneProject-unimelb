@@ -17,7 +17,7 @@ from src.common.json_artifacts import (
 from src.common.json_contracts import validate_contract
 from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_inline_contract
-from src.extract.contract import compile_extraction_contract
+from src.schema.contract import compile_extraction_contract
 from src.schema.validation import (
     JSONScalar,
     SUPPORTED_PRODUCT_TYPES,

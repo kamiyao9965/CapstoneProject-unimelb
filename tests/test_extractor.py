@@ -8,7 +8,7 @@ from unittest import mock
 
 from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest
-from src.extract.extractor import SchemaExtractor
+from src.schema_application.extractor import SchemaExtractor
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
 VALID_RECORD = {
@@ -95,12 +95,16 @@ class ExtractManyOutputTest(unittest.TestCase):
             pdf_path = root / "example.pdf"
             pdf_path.touch()
             usage_path = root / "usage.jsonl"
-            output_path = SchemaExtractor(
-                schema_data=VALID_DISCOVERED_SCHEMA,
-                provider=RecordingProvider(),
-                usage_log_path=usage_path,
-                log=None,
-            ).extract_many([pdf_path], root / "extractions")[0]
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: example\nstructured content",
+            ):
+                output_path = SchemaExtractor(
+                    schema_data=VALID_DISCOVERED_SCHEMA,
+                    provider=RecordingProvider(),
+                    usage_log_path=usage_path,
+                    log=None,
+                ).extract_many([pdf_path], root / "extractions")[0]
 
             usage = json.loads(usage_path.read_text(encoding="utf-8"))
             artifact = json.loads(output_path.read_text(encoding="utf-8"))
@@ -125,18 +129,22 @@ class ExtractManyOutputTest(unittest.TestCase):
             pdf_path.touch()
             provider = RecordingProvider()
             selection = ModelSelection("openai", "gpt-5", "pdf")
-            record = SchemaExtractor(
-                schema_data=VALID_DISCOVERED_SCHEMA,
-                selection=selection,
-                provider=provider,
-                usage_log_path=None,
-                log=None,
-            ).extract_one(pdf_path)
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: example\nstructured content",
+            ):
+                record = SchemaExtractor(
+                    schema_data=VALID_DISCOVERED_SCHEMA,
+                    selection=selection,
+                    provider=provider,
+                    usage_log_path=None,
+                    log=None,
+                ).extract_one(pdf_path)
 
         self.assertEqual(record, VALID_RECORD)
         self.assertIsNotNone(provider.request)
         self.assertEqual(provider.request.selection, selection)
-        self.assertEqual(provider.request.document_paths, (pdf_path,))
+        self.assertEqual(provider.request.document_paths, ())
         self.assertIn("Discovered schema data", provider.request.user_text)
         self.assertEqual(provider.request.structured_output.name, "extraction_result")
         self.assertTrue(provider.request.structured_output.strict)
@@ -178,18 +186,22 @@ class ExtractManyOutputTest(unittest.TestCase):
             pdf_path = Path(tmp) / "example.pdf"
             pdf_path.touch()
             provider = RecordingProvider()
-            SchemaExtractor(
-                schema_data=schema,
-                selection=ModelSelection("openai", "gpt-5", "pdf"),
-                provider=provider,
-                usage_log_path=None,
-                log=None,
-            ).extract_one(pdf_path)
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: example\nstructured content",
+            ):
+                SchemaExtractor(
+                    schema_data=schema,
+                    selection=ModelSelection("openai", "gpt-5", "pdf"),
+                    provider=provider,
+                    usage_log_path=None,
+                    log=None,
+                ).extract_one(pdf_path)
 
         self.assertIsNotNone(provider.request)
         self.assertFalse(provider.request.structured_output.strict)
 
-    def test_extract_one_markdown_mode_sends_mirror_and_logs_source_pdf(self) -> None:
+    def test_extract_one_uses_pdfingestor_text_and_logs_source_pdf(self) -> None:
         class RecordingProvider:
             def __init__(self) -> None:
                 self.request: ProviderRequest | None = None
@@ -202,10 +214,6 @@ class ExtractManyOutputTest(unittest.TestCase):
                     model=request.selection.model,
                 )
 
-        class WritingPreprocessor:
-            def convert(self, source_pdf: Path, output_markdown: Path) -> None:
-                output_markdown.write_text("# converted\n", encoding="utf-8")
-
         with tempfile.TemporaryDirectory() as tmp:
             pdf_root = Path(tmp) / "PDFs"
             pdf_path = pdf_root / "HCF" / "hospital" / "example.pdf"
@@ -213,21 +221,22 @@ class ExtractManyOutputTest(unittest.TestCase):
             pdf_path.touch()
             usage_log = Path(tmp) / "usage.jsonl"
             provider = RecordingProvider()
-            record = SchemaExtractor(
-                schema_data=VALID_DISCOVERED_SCHEMA,
-                selection=ModelSelection("anthropic", "claude-test", "markdown"),
-                provider=provider,
-                pdf_root=pdf_root,
-                preprocessor=WritingPreprocessor(),
-                usage_log_path=usage_log,
-                log=None,
-            ).extract_one(pdf_path)
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: example\nstructured content",
+            ):
+                record = SchemaExtractor(
+                    schema_data=VALID_DISCOVERED_SCHEMA,
+                    selection=ModelSelection("anthropic", "claude-test", "markdown"),
+                    provider=provider,
+                    pdf_root=pdf_root,
+                    usage_log_path=usage_log,
+                    log=None,
+                ).extract_one(pdf_path)
 
             self.assertEqual(record, VALID_RECORD)
-            self.assertEqual(
-                provider.request.document_paths,
-                (Path(tmp) / "Markdown" / "HCF" / "hospital" / "example.md",),
-            )
+            self.assertEqual(provider.request.document_paths, ())
+            self.assertIn("PDFingestor structured representation", provider.request.user_text)
             logged = json.loads(usage_log.read_text(encoding="utf-8"))
             self.assertEqual(logged["source_pdf"], pdf_path.as_posix())
             self.assertEqual(logged["document_input"], "markdown")

@@ -1,4 +1,4 @@
-"""Compile a discovered private-health schema into an extraction JSON Schema."""
+"""Compile discovered schemas into runtime extraction JSON Schemas."""
 
 from __future__ import annotations
 

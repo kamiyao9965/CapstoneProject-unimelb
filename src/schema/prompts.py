@@ -2,9 +2,14 @@ SCHEMA_DISCOVERY_PROMPT = """
 You are designing a reusable extraction schema for Australian private health
 insurance PDFs.
 
-Read the supplied PDFs and infer a schema that covers hospital, extras,
-generalhealth, and combined products across companies. Do not extract individual
-product records.
+Read the supplied PDFingestor structured representations and infer a schema that
+covers hospital, extras, generalhealth, and combined products across companies.
+Do not extract individual product records.
+
+The documents are already parsed into reading-order text blocks and Markdown
+tables. Treat Markdown tables as first-class evidence, not as flattened prose.
+When a candidate field is primarily supported by a table, reflect that in its
+description or aliases using the visible table_id/page context.
 
 Return one JSON object governed by the supplied output contract. Do not wrap it
 in markdown fences or add commentary.
@@ -21,7 +26,12 @@ insurance PDFs.
 
 You will receive:
 1. The current JSON schema baseline.
-2. A sampled set of PDFs.
+2. A sampled set of PDFingestor structured representations.
+
+The sampled documents contain reading-order text blocks and Markdown tables
+with table_id/page comments. Prefer changes supported by these explicit text or
+table sources, and mention table-derived evidence in rationale fields when it
+matters.
 
 Do not rewrite the full schema. Return one JSON candidate-patch object governed
 by the supplied output contract. Do not wrap the answer in markdown fences.

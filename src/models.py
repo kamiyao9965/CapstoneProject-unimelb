@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -51,24 +51,6 @@ class VerticalSchema(BaseModel):
         }
 
 
-class ParsedDocument(BaseModel):
-    path: str
-    pages: int
-    tables: list[list[list[str]]] = Field(default_factory=list)
-    full_text: str
-    text_by_page: list[str] = Field(default_factory=list)
-    has_tables: bool
-    table_coverage: float
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class ExtractionInput(BaseModel):
-    mode: Literal["table_assisted", "text_only"]
-    text: str
-    tables: list[list[list[str]]] = Field(default_factory=list)
-    source_document: ParsedDocument
-
-
 class Evidence(BaseModel):
     text: str
     page: int | None = None
@@ -106,6 +88,8 @@ class ExtractionResult(BaseModel):
 class EvaluationReport(BaseModel):
     source_path: str
     product_key: str | None = None
+    extraction_provider: str | None = None
+    extraction_model: str | None = None
     field_precision: float
     field_recall: float
     field_presence_recall: float = 0.0
@@ -119,6 +103,8 @@ class EvaluationReport(BaseModel):
     ground_truth_fields: int = 0
     missing_fields: list[str] = Field(default_factory=list)
     incorrect_fields: list[str] = Field(default_factory=list)
+    section_metrics: dict[str, Any] = Field(default_factory=dict)
+    hallucinations_by_section: dict[str, int] = Field(default_factory=dict)
     match_score: float | None = None
     low_confidence_match: bool = False
 
@@ -134,4 +120,5 @@ class ProductMatch(BaseModel):
     product_item_ids: list[str] = Field(default_factory=list)
     match_score: float = 0.0
     low_confidence_match: bool = False
-
+    candidate_matches: list[dict[str, Any]] = Field(default_factory=list)
+    ambiguous_match: bool = False

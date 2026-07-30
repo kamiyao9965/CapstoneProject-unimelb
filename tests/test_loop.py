@@ -231,17 +231,13 @@ class RunRoundModeTest(unittest.TestCase):
             self.assertIn("excess", [f["name"] for f in final_artifact["data"]["fields"]])
             self.assertTrue((round_dir / "schema_draft.json").exists())
 
-    def test_attended_consensus_evaluates_before_review_stop(self) -> None:
+    def test_attended_consensus_pauses_before_holdout_schema_application(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             result, round_dir, evaluate, _ = self.run_round(
                 tmp, consensus_runs=3, review_ui=True
             )
             self.assertIsNone(result)
-            evaluate.assert_called_once()
-            self.assertEqual(
-                evaluate.call_args.kwargs["exclude_paths"],
-                ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
-            )
+            evaluate.assert_not_called()
             self.assertTrue((round_dir / "schema.json").exists())
             self.assertFalse((Path(tmp) / "final_schema.json").exists())
 
@@ -257,7 +253,7 @@ class ResumeReviewTest(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             evaluate.assert_not_called()
 
-    def test_reviewed_schema_publish_does_not_need_sample_metadata(self) -> None:
+    def test_reviewed_schema_runs_holdout_schema_application_before_publish(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             round_dir = Path(tmp) / "round_1"
             consensus_dir = round_dir / "consensus"
@@ -274,7 +270,9 @@ class ResumeReviewTest(unittest.TestCase):
                 exit_code = rounds.resume_review(args)
 
             self.assertEqual(exit_code, 0)
-            evaluate.assert_not_called()
+            evaluate.assert_called_once()
+            self.assertEqual(evaluate.call_args.args[1], VALID_DISCOVERED_SCHEMA)
+            self.assertEqual(evaluate.call_args.kwargs["exclude_paths"], tuple())
             self.assertTrue((round_dir / "schema.json").exists())
             self.assertTrue((Path(tmp) / "final_schema.json").exists())
 
@@ -301,7 +299,11 @@ class ResumeReviewTest(unittest.TestCase):
             with mock.patch.object(rounds, "evaluate_schema", evaluate):
                 exit_code = rounds.resume_review(args)
             self.assertEqual(exit_code, 0)
-            evaluate.assert_not_called()
+            evaluate.assert_called_once()
+            self.assertEqual(
+                evaluate.call_args.kwargs["exclude_paths"],
+                ("pdfs/discovery.pdf", "pdfs/consensus.pdf"),
+            )
             artifact = read_artifact(
                 round_dir / "schema.json", expected_type="discovered_schema",
                 data_contract="private_health/discovered_schema",

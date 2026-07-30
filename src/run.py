@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
+import yaml
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -18,6 +20,7 @@ from src.common.json_artifacts import (
 from src.common.data_paths import default_private_health_pdf_root
 from src.common.model_config import resolve_selection
 from src.config import load_config
+from src.models import ExtractionResult
 from src.schema.loader import SchemaLoader
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
 from src.schema.validator import SchemaValidator
@@ -53,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument(
         "--no-fallback",
         action="store_true",
-        help="Fail instead of using heuristic extraction when the model call is unavailable.",
+        help="Deprecated compatibility flag; schema_application extraction has no heuristic fallback.",
     )
 
     batch = subparsers.add_parser("batch", help="Run extraction over collected PDFs")
@@ -66,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument(
         "--no-fallback",
         action="store_true",
-        help="Fail instead of using heuristic extraction when the model call is unavailable.",
+        help="Deprecated compatibility flag; schema_application extraction has no heuristic fallback.",
     )
 
     return parser
@@ -170,10 +173,9 @@ def command_discover(args: argparse.Namespace) -> int:
 
 
 def command_extract(args: argparse.Namespace) -> int:
-    from src.pipeline.extractor import LLMExtractor
-    from src.pipeline.ingestor import PDFIngestor
-    from src.pipeline.router import FormatRouter
+    from src.schema_application.extractor import SchemaExtractor
 
+    schema_data = load_schema_data(args.schema)
     schema = SchemaLoader().load(args.schema)
     issues = SchemaValidator().validate(schema)
     if issues:
@@ -182,18 +184,21 @@ def command_extract(args: argparse.Namespace) -> int:
             print(f"- {issue}")
         return 1
 
-    ingestor = PDFIngestor()
-    router = FormatRouter()
-    extractor = LLMExtractor(
-        schema=schema,
-        provider=args.provider,
-        model=args.model,
-        allow_fallback=not args.no_fallback,
+    selection = resolve_selection(provider=args.provider, model=args.model)
+    extractor = SchemaExtractor(
+        schema_data=schema_data,
+        selection=selection,
     )
 
-    parsed = ingestor.ingest(args.pdf)
-    extraction_input = router.route(parsed)
-    result = extractor.extract(extraction_input)
+    record = extractor.extract_one(args.pdf)
+    result = ExtractionResult(
+        vertical=schema.vertical,
+        schema_version=schema.version,
+        source_path=str(args.pdf),
+        provider=selection.provider,
+        model=selection.model,
+        data=record,
+    )
 
     output_path = args.output or default_output_path(schema.vertical, Path(args.pdf))
     result.write_json(output_path)
@@ -204,11 +209,10 @@ def command_extract(args: argparse.Namespace) -> int:
 def command_batch(args: argparse.Namespace) -> int:
     from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
     from src.evaluation.reporter import EvaluationReporter
-    from src.pipeline.extractor import LLMExtractor
-    from src.pipeline.ingestor import PDFIngestor
-    from src.pipeline.router import FormatRouter
+    from src.schema_application.extractor import SchemaExtractor
 
     config = load_config()
+    schema_data = load_schema_data(args.schema)
     schema = SchemaLoader().load(args.schema)
     issues = SchemaValidator().validate(schema)
     if issues:
@@ -227,13 +231,10 @@ def command_batch(args: argparse.Namespace) -> int:
         print(f"No PDFs found under {input_root}")
         return 1
 
-    ingestor = PDFIngestor()
-    router = FormatRouter()
-    extractor = LLMExtractor(
-        schema=schema,
-        provider=args.provider,
-        model=args.model,
-        allow_fallback=not args.no_fallback,
+    selection = resolve_selection(provider=args.provider, model=args.model)
+    extractor = SchemaExtractor(
+        schema_data=schema_data,
+        selection=selection,
     )
 
     reports = []
@@ -242,8 +243,10 @@ def command_batch(args: argparse.Namespace) -> int:
     warning_samples: list[str] = []
     unmatched_documents = 0
     low_confidence_matches = 0
+    ambiguous_matches = 0
     fallback_documents = 0
     extraction_errors = 0
+    gt_match_diagnostics: list[dict[str, object]] = []
     gt_store = None
     evaluator = None
     reporter = None
@@ -256,9 +259,15 @@ def command_batch(args: argparse.Namespace) -> int:
 
     for pdf_path in pdf_paths:
         try:
-            parsed = ingestor.ingest(str(pdf_path))
-            extraction_input = router.route(parsed)
-            result = extractor.extract(extraction_input)
+            record = extractor.extract_one(pdf_path)
+            result = ExtractionResult(
+                vertical=schema.vertical,
+                schema_version=schema.version,
+                source_path=str(pdf_path),
+                provider=selection.provider,
+                model=selection.model,
+                data=record,
+            )
         except Exception as exc:
             extraction_errors += 1
             print(f"Extraction failed for {pdf_path.name}: {exc}")
@@ -290,6 +299,24 @@ def command_batch(args: argparse.Namespace) -> int:
                 reports.append(report)
             else:
                 unmatched_documents += 1
+                gt_match_diagnostics.append(
+                    {
+                        "source_path": str(pdf_path),
+                        "issue": "unmatched",
+                        "candidates": gt_store.rank_pdf_candidates(pdf_path) if gt_store else [],
+                    }
+                )
+            if product_match and product_match.ambiguous_match:
+                ambiguous_matches += 1
+                gt_match_diagnostics.append(
+                    {
+                        "source_path": str(pdf_path),
+                        "issue": "ambiguous",
+                        "selected_id_master": product_match.id_master,
+                        "selected_score": product_match.match_score,
+                        "candidates": product_match.candidate_matches,
+                    }
+                )
 
     if evaluator and reporter:
         summary = evaluator.aggregate(
@@ -300,14 +327,45 @@ def command_batch(args: argparse.Namespace) -> int:
             fallback_documents=fallback_documents,
             extraction_errors=extraction_errors,
         )
+        model_reports = [
+            report for report in reports
+            if report.extraction_provider and report.extraction_provider != "heuristic"
+        ]
+        model_summary = evaluator.aggregate(
+            model_reports,
+            total_documents=len(pdf_paths),
+            unmatched_documents=max(len(pdf_paths) - extraction_errors - len(model_reports), 0),
+            low_confidence_matches=low_confidence_matches,
+            fallback_documents=fallback_documents,
+            extraction_errors=extraction_errors,
+        )
+        summary["ambiguous_matches"] = float(ambiguous_matches)
+        model_summary["ambiguous_matches"] = float(ambiguous_matches)
         report_root = config.outputs_dir / args.vertical / "evaluation"
         reporter.write_json(reports, summary, report_root / "report.json")
         reporter.write_markdown(reports, summary, report_root / "report.md")
+        reporter.write_json(model_reports, model_summary, report_root / "report_model_only.json")
+        reporter.write_markdown(model_reports, model_summary, report_root / "report_model_only.md")
+        if gt_match_diagnostics:
+            import json
+
+            diagnostics_path = report_root / "ground_truth_match_diagnostics.json"
+            diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
+            diagnostics_path.write_text(
+                json.dumps(gt_match_diagnostics, indent=2),
+                encoding="utf-8",
+            )
         print(f"Wrote evaluation reports to {report_root}")
         if fallback_documents:
             print(
-                "Evaluation warning: heuristic fallback results were written and counted "
-                "separately; use --no-fallback for a pure model-quality run."
+                "Evaluation warning: heuristic fallback results were written to report.json; "
+                "use report_model_only.json for pure model-quality metrics or --no-fallback "
+                "to fail instead of falling back."
+            )
+        if gt_match_diagnostics:
+            print(
+                "Evaluation warning: wrote ground-truth match diagnostics for unmatched "
+                "or ambiguous PDFs."
             )
     elif args.evaluate:
         print("Evaluation skipped: no private-health ground truth matched the PDFs.")
@@ -335,6 +393,21 @@ def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
     return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
+
+
+def load_schema_data(schema_path: str | Path) -> dict[str, object]:
+    path = Path(schema_path)
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if (
+        isinstance(payload, dict)
+        and payload.get("artifact_type") == "discovered_schema"
+        and payload.get("status") == "success"
+        and isinstance(payload.get("data"), dict)
+    ):
+        return payload["data"]
+    if isinstance(payload, dict):
+        return payload
+    raise ValueError(f"Schema file must contain a JSON/YAML object: {path}")
 
 
 def next_available_path(path: Path) -> Path:

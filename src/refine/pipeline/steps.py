@@ -1,4 +1,4 @@
-"""API-backed steps used by the refinement loop."""
+"""API-backed steps used by schema generation and refinement."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.common.model_config import ModelSelection, resolve_selection
-from src.extract.analyze import (
+from src.schema_application.analyze import (
     analyze,
     build_feedback,
     build_feedback_data,
@@ -16,8 +16,8 @@ from src.extract.analyze import (
     load_records,
     print_report,
 )
-from src.extract.extractor import SchemaExtractor
-from src.extract.contract import compile_extraction_contract
+from src.schema_application.extractor import SchemaExtractor
+from src.schema.contract import compile_extraction_contract
 from src.refine.consensus import SchemaConsensusRefinement
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
@@ -110,7 +110,7 @@ def evaluate_schema(
     round_dir: Path,
     exclude_paths: Iterable[str | Path] = (),
 ):
-    """Extract holdout PDFs, analyze failures, and write refinement_feedback.json."""
+    """Apply a schema to holdout PDFs, find failures, and write feedback."""
     eval_paths = select_samples(
         input_root=Path(args.input_root),
         categories=DEFAULT_CATEGORIES,

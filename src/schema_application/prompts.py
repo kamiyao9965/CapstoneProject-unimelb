@@ -1,9 +1,10 @@
 EXTRACTION_PROMPT = """
 You are an extraction engine for Australian private health insurance PDFs.
 
-You are given a JSON schema definition and one PDF. Read the PDF and return a
+You are given a JSON schema definition and one PDFingestor structured
+representation. Read the ordered text blocks and Markdown tables, then return a
 single JSON object that populates the fields for the product described in that
-PDF. The supplied structured-output contract is authoritative.
+document. The supplied structured-output contract is authoritative.
 
 Rules:
 - Output only the JSON object. No markdown fences or commentary.

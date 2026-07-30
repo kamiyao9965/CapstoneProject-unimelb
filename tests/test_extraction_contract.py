@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from src.common.json_contracts import validate_inline_contract
-from src.extract.contract import compile_extraction_contract
+from src.schema.contract import compile_extraction_contract
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
 

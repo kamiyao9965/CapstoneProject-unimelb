@@ -15,11 +15,11 @@ repair retries. Invalid data never proceeds to the next stage.
 | Schema discovery | Generate a reusable private-health extraction contract from a balanced PDF sample |
 | Multi-provider execution | Switch between OpenAI, Anthropic, and DeepSeek through `.env` or CLI flags |
 | Native structured output | OpenAI JSON Schema, Anthropic JSON Schema, or DeepSeek JSON object mode |
-| Optional MinerU preprocessing | Convert sampled PDFs to mirrored Markdown before a model request |
+| PDFingestor preprocessing | Convert sampled PDFs into reading-order text blocks and Markdown tables before model requests |
 | Stability measurement | Repeat discovery on the same sample and measure semantic schema drift |
 | Candidate-patch consensus | Generate N patch sets, normalise aliases, vote on fields, and produce an auditable consensus |
 | Human review | Accept, reject, or edit proposals in Streamlit before applying them |
-| Holdout extraction | Compile the discovered fields into a runtime extraction JSON Schema and extract unseen PDFs |
+| Holdout schema application | Compile discovered fields into a runtime extraction JSON Schema, extract unseen PDFs, and find schema failures |
 | Failure analysis | Measure applicability, fill rate, required-field misses, enum violations, and model-reported unfilled fields |
 | Refinement loop | Feed validated failure analysis into a later discovery round |
 | Cost estimation | Estimate actual and projected spend from JSONL token-usage logs |
@@ -333,7 +333,31 @@ outputs/private_health/consensus/reviewed_schema.json
 Pending and rejected items are not applied. Unknown IDs, malformed decisions,
 invalid field edits, and unsafe rename/merge/move upserts fail loudly.
 
-## 9. Run the refinement and holdout flow
+## 9. Run schema generation with refinement
+
+The schema-generation loop runs in this order:
+
+```text
+PDF samples
+  -> schema discovery
+  -> optional voting / consensus
+  -> optional human review
+  -> holdout schema application
+  -> failure discovery
+  -> refinement feedback
+  -> next round schema discovery
+  -> final_schema.json
+```
+
+Module responsibilities:
+
+```text
+src/schema/               schema discovery and schema contract generation
+src/refine/               refinement-loop orchestration
+src/schema_application/   apply schema to holdout PDFs and discover failures
+src/refine/consensus.py   multi-run patch voting / consensus
+src/refine/human_review/  review queue, decisions, and apply
+```
 
 ### One round without consensus
 
@@ -357,15 +381,16 @@ invalid field edits, and unsafe rename/merge/move upserts fail loudly.
   --eval-seed 7
 ```
 
-This writes `refinement_feedback.json` before stopping for review. Review and
-apply the queue, then publish the reviewed schema:
+This stops after writing the consensus review queue. Review and apply the queue,
+then resume with the reviewed schema; holdout extraction, failure discovery,
+`refinement_feedback.json`, and `final_schema.json` are produced after resume:
 
 ```bash
 .venv/bin/python src/refine/loop.py \
   --resume-review outputs/private_health/refine/round_1
 ```
 
-### Feed reviewed analysis into another round
+### Feed reviewed-schema feedback into another round
 
 ```bash
 .venv/bin/python src/refine/loop.py \
@@ -420,7 +445,7 @@ the downstream extraction and ground-truth evaluation pipeline:
 ## 10. Analyze extraction artifacts directly
 
 ```bash
-.venv/bin/python src/extract/analyze.py \
+.venv/bin/python src/schema_application/analyze.py \
   --schema outputs/private_health/refine/round_1/schema.json \
   --extractions outputs/private_health/refine/round_1/extractions \
   --feedback-out outputs/private_health/refine/round_1/manual_feedback.json
@@ -494,7 +519,7 @@ token logs remain JSONL.
 .venv/bin/python src/refine/review.py --help
 .venv/bin/python src/stability/compare.py --help
 .venv/bin/python src/stability/measure.py --help
-.venv/bin/python src/extract/analyze.py --help
+.venv/bin/python src/schema_application/analyze.py --help
 ```
 
 These checks are offline. A passing suite does not prove live credentials,

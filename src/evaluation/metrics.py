@@ -60,35 +60,18 @@ class PrivateHealthGroundTruthStore:
 
     def match_pdf(self, pdf_path: str | Path) -> ProductMatch | None:
         path = Path(pdf_path)
-        normalized_stem = self._normalize_name(path.stem)
-        fund_code = self._extract_fund_code(path)
-        product_type = self._extract_product_type(path)
+        ranked_candidates = self.rank_pdf_candidates(path)
+        if not ranked_candidates:
+            return None
+        best_score = ranked_candidates[0]["score"]
+        best_row = self.products_by_master[str(ranked_candidates[0]["id_master"])]
 
-        best_row: dict[str, str] | None = None
-        best_score = 0.0
-        for row in self.products:
-            if fund_code and row["FundCode"] != fund_code and row["BrandCode"] != fund_code:
-                continue
-            if product_type and row["ProductType"].lower() != product_type.lower():
-                continue
-
-            candidates = [
-                self._normalize_name(row["Name Master"]),
-                self._normalize_name(Path(row.get("Pdf Filepath", "")).stem),
-            ]
-            score = max(SequenceMatcher(None, normalized_stem, candidate).ratio() for candidate in candidates if candidate)
-            if normalized_stem in candidates[0] or candidates[0] in normalized_stem:
-                score = max(score, 0.97)
-            if candidates[1] and (normalized_stem == candidates[1] or normalized_stem in candidates[1] or candidates[1] in normalized_stem):
-                score = max(score, 0.99)
-            if score > best_score:
-                best_score = score
-                best_row = row
-
-        if best_row is None or best_score < self.min_match_score:
+        if best_score < self.min_match_score:
             return None
 
         id_master = best_row["ID Master"]
+        runner_up_score = float(ranked_candidates[1]["score"]) if len(ranked_candidates) > 1 else 0.0
+        ambiguous_match = runner_up_score >= self.min_match_score and (best_score - runner_up_score) < 0.05
         return ProductMatch(
             pdf_path=str(path),
             id_master=id_master,
@@ -99,8 +82,55 @@ class PrivateHealthGroundTruthStore:
             hospital_tier=best_row.get("HospitalTier") or None,
             product_item_ids=self.variants_by_master.get(id_master, []),
             match_score=best_score,
-            low_confidence_match=best_score < self.low_confidence_threshold,
+            low_confidence_match=best_score < self.low_confidence_threshold or ambiguous_match,
+            candidate_matches=ranked_candidates,
+            ambiguous_match=ambiguous_match,
         )
+
+    def rank_pdf_candidates(self, pdf_path: str | Path, limit: int = 5) -> list[dict[str, Any]]:
+        path = Path(pdf_path)
+        normalized_stem = self._normalize_name(path.stem)
+        fund_code = self._extract_fund_code(path)
+        product_type = self._extract_product_type(path)
+
+        ranked: list[tuple[float, dict[str, str]]] = []
+        for row in self.products:
+            if fund_code and row["FundCode"] != fund_code and row["BrandCode"] != fund_code:
+                continue
+            if product_type and row["ProductType"].lower() != product_type.lower():
+                continue
+
+            name_candidates = [
+                self._normalize_name(row["Name Master"]),
+                self._normalize_name(Path(row.get("Pdf Filepath", "")).stem),
+            ]
+            score = max(
+                SequenceMatcher(None, normalized_stem, candidate).ratio()
+                for candidate in name_candidates
+                if candidate
+            )
+            if normalized_stem in name_candidates[0] or name_candidates[0] in normalized_stem:
+                score = max(score, 0.97)
+            if name_candidates[1] and (
+                normalized_stem == name_candidates[1]
+                or normalized_stem in name_candidates[1]
+                or name_candidates[1] in normalized_stem
+            ):
+                score = max(score, 0.99)
+            if score >= self.min_match_score:
+                ranked.append((score, row))
+
+        return [
+            {
+                "id_master": row["ID Master"],
+                "name_master": row["Name Master"].strip(),
+                "fund_code": row["FundCode"],
+                "brand_code": row["BrandCode"],
+                "product_type": row["ProductType"],
+                "score": score,
+            }
+            for score, row in sorted(ranked, key=lambda item: item[0], reverse=True)[:limit]
+        ]
 
     def load_ground_truth(self, pdf_path: str | Path) -> tuple[ProductMatch | None, dict[str, Any]]:
         match = self.match_pdf(pdf_path)
@@ -225,11 +255,15 @@ class ExtractionEvaluator:
         coverage = field_presence_recall
         hallucinations = [key for key in extracted_flat if key not in gt_flat]
         normalization_accuracy = self._normalization_accuracy(extracted.data, ground_truth)
+        section_metrics = self._section_metrics(extracted.data, ground_truth)
+        hallucinations_by_section = dict(Counter(key.split(".", 1)[0] for key in hallucinations))
 
         missing_fields = [key for key in gt_flat if key not in extracted_flat]
         return EvaluationReport(
             source_path=extracted.source_path,
             product_key=product_key,
+            extraction_provider=extracted.provider,
+            extraction_model=extracted.model,
             field_precision=precision,
             field_recall=recall,
             field_presence_recall=field_presence_recall,
@@ -243,6 +277,8 @@ class ExtractionEvaluator:
             ground_truth_fields=gt_count,
             missing_fields=missing_fields,
             incorrect_fields=incorrect_fields,
+            section_metrics=section_metrics,
+            hallucinations_by_section=hallucinations_by_section,
         )
 
     def aggregate(
@@ -272,7 +308,15 @@ class ExtractionEvaluator:
                 "low_confidence_matches": float(low_confidence_matches),
                 "fallback_documents": float(fallback_documents),
                 "extraction_errors": float(extraction_errors),
+                "product_accuracy": 0.0,
+                "hospital_category_recall": 0.0,
+                "hospital_coverage_accuracy": 0.0,
+                "extras_service_precision": 0.0,
+                "extras_service_recall": 0.0,
+                "extras_waiting_period_accuracy": 0.0,
+                "extras_limit_accuracy": 0.0,
             }
+        section_summary = self._aggregate_section_metrics(reports)
         return {
             "field_precision": mean(report.field_precision for report in reports),
             "field_recall": mean(report.field_recall for report in reports),
@@ -288,7 +332,33 @@ class ExtractionEvaluator:
             "low_confidence_matches": float(low_confidence_matches),
             "fallback_documents": float(fallback_documents),
             "extraction_errors": float(extraction_errors),
+            **section_summary,
         }
+
+    def _aggregate_section_metrics(self, reports: list[EvaluationReport]) -> dict[str, float]:
+        metric_paths = {
+            "product_accuracy": ("product", "accuracy"),
+            "hospital_category_recall": ("hospital", "category_recall"),
+            "hospital_coverage_accuracy": ("hospital", "coverage_accuracy"),
+            "extras_service_precision": ("extras", "service_precision"),
+            "extras_service_recall": ("extras", "service_recall"),
+            "extras_waiting_period_accuracy": ("extras", "waiting_period_accuracy"),
+            "extras_limit_accuracy": ("extras", "limit_accuracy"),
+        }
+        summary: dict[str, float] = {}
+        for output_key, path in metric_paths.items():
+            values: list[float] = []
+            for report in reports:
+                value = report.section_metrics
+                for part in path:
+                    if not isinstance(value, dict) or part not in value:
+                        value = None
+                        break
+                    value = value[part]
+                if isinstance(value, int | float):
+                    values.append(float(value))
+            summary[output_key] = mean(values) if values else 0.0
+        return summary
 
     def _flatten(self, payload: dict[str, Any], prefix: str = "") -> dict[str, Any]:
         flattened: dict[str, Any] = {}
@@ -320,6 +390,137 @@ class ExtractionEvaluator:
             return 1.0
         matches = sum(1 for name in extracted_names if name in gt_names)
         return matches / len(gt_names)
+
+    def _section_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "product": self._product_metrics(extracted, ground_truth),
+            "hospital": self._hospital_metrics(extracted, ground_truth),
+            "extras": self._extras_metrics(extracted, ground_truth),
+        }
+
+    def _product_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, float | int]:
+        extracted_product = self._product_fields(extracted)
+        gt_product = self._product_fields(ground_truth)
+        comparable = [key for key in gt_product if key in extracted_product]
+        matches = sum(
+            1 for key in comparable
+            if self._values_equal(extracted_product[key], gt_product[key])
+        )
+        return {
+            "matched": matches,
+            "comparable": len(comparable),
+            "ground_truth": len(gt_product),
+            "accuracy": matches / len(comparable) if comparable else 0.0,
+            "presence_recall": len(comparable) / len(gt_product) if gt_product else 0.0,
+        }
+
+    def _hospital_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, float | int]:
+        extracted_categories = self._keyed_items(
+            extracted.get("hospital", {}).get("clinical_categories", []),
+            "category",
+        )
+        gt_categories = self._keyed_items(
+            ground_truth.get("hospital", {}).get("clinical_categories", []),
+            "category",
+        )
+        extracted_keys = set(extracted_categories)
+        gt_keys = set(gt_categories)
+        common = extracted_keys & gt_keys
+        matched_coverage = sum(
+            1 for key in common
+            if self._values_equal(extracted_categories[key].get("coverage"), gt_categories[key].get("coverage"))
+        )
+        return {
+            "matched_categories": len(common),
+            "extracted_categories": len(extracted_keys),
+            "ground_truth_categories": len(gt_keys),
+            "coverage_matches": matched_coverage,
+            "category_precision": len(common) / len(extracted_keys) if extracted_keys else 0.0,
+            "category_recall": len(common) / len(gt_keys) if gt_keys else 0.0,
+            "coverage_accuracy": matched_coverage / len(common) if common else 0.0,
+        }
+
+    def _extras_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, float | int]:
+        extracted_services = self._keyed_items(extracted.get("extras", {}).get("services", []), "service")
+        gt_services = self._keyed_items(ground_truth.get("extras", {}).get("services", []), "service")
+        extracted_keys = set(extracted_services)
+        gt_keys = set(gt_services)
+        common = extracted_keys & gt_keys
+        covered_matches = sum(
+            1 for key in common
+            if self._values_equal(extracted_services[key].get("covered"), gt_services[key].get("covered"))
+        )
+        waiting_keys = [key for key in common if gt_services[key].get("waiting_period") is not None]
+        waiting_matches = sum(
+            1 for key in waiting_keys
+            if self._values_equal(
+                extracted_services[key].get("waiting_period"),
+                gt_services[key].get("waiting_period"),
+            )
+        )
+        limit_keys = [
+            key for key in common
+            if gt_services[key].get("limit_per_person") is not None
+            or gt_services[key].get("limit_per_policy") is not None
+        ]
+        limit_matches = sum(
+            1 for key in limit_keys
+            if self._values_equal(
+                extracted_services[key].get("limit_per_person"),
+                gt_services[key].get("limit_per_person"),
+            )
+            and self._values_equal(
+                extracted_services[key].get("limit_per_policy"),
+                gt_services[key].get("limit_per_policy"),
+            )
+        )
+        return {
+            "matched_services": len(common),
+            "extracted_services": len(extracted_keys),
+            "ground_truth_services": len(gt_keys),
+            "covered_matches": covered_matches,
+            "waiting_period_comparable": len(waiting_keys),
+            "waiting_period_matches": waiting_matches,
+            "limit_comparable": len(limit_keys),
+            "limit_matches": limit_matches,
+            "service_precision": len(common) / len(extracted_keys) if extracted_keys else 0.0,
+            "service_recall": len(common) / len(gt_keys) if gt_keys else 0.0,
+            "covered_accuracy": covered_matches / len(common) if common else 0.0,
+            "waiting_period_accuracy": waiting_matches / len(waiting_keys) if waiting_keys else 0.0,
+            "limit_accuracy": limit_matches / len(limit_keys) if limit_keys else 0.0,
+        }
+
+    @staticmethod
+    def _product_fields(payload: dict[str, Any]) -> dict[str, Any]:
+        fields: dict[str, Any] = {}
+        for section_name in ("hospital", "extras"):
+            section = payload.get(section_name, {})
+            if isinstance(section, dict):
+                for key in ("product_name", "hospital_tier"):
+                    if section.get(key) is not None:
+                        fields.setdefault(key, section[key])
+        if isinstance(payload.get("product"), dict):
+            for key in ("product_name", "product_type", "hospital_tier", "fund_code", "brand_code"):
+                value = payload["product"].get(key)
+                if value is not None:
+                    fields[key] = value
+        for key in ("product_name", "product_type", "hospital_tier"):
+            if payload.get(key) is not None:
+                fields[key] = payload[key]
+        return fields
+
+    @staticmethod
+    def _keyed_items(items: Any, key_name: str) -> dict[str, dict[str, Any]]:
+        if not isinstance(items, list):
+            return {}
+        result: dict[str, dict[str, Any]] = {}
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            key = item.get(key_name)
+            if key:
+                result[str(key)] = item
+        return result
 
     def _collect_names(self, payload: dict[str, Any]) -> set[str]:
         names: set[str] = set()

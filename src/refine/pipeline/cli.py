@@ -15,8 +15,8 @@ from src.refine.pipeline.rounds import next_round_index, resume_review, run_roun
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Schema refinement loop: generate -> consensus/review -> extract "
-            "-> analyze -> feedback"
+            "Schema generation loop: PDF samples -> discovery -> optional consensus "
+            "-> optional human review -> holdout schema application -> feedback"
         )
     )
     parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
@@ -57,14 +57,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "With --consensus-runs N>1: stop the round after writing the "
             "review queue so a human can accept/reject/edit proposals. "
-            "Evaluation then runs via --resume-review."
+            "Holdout extraction and failure discovery then run via --resume-review."
         ),
     )
     parser.add_argument(
         "--resume-review",
         help=(
             "Path to a round_N directory whose consensus/reviewed_schema.json "
-            "should be evaluated on the holdout set"
+            "should be applied to holdout PDFs before publishing final_schema.json"
         ),
     )
     parser.add_argument(
