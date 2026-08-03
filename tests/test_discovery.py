@@ -1,54 +1,44 @@
 from __future__ import annotations
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest import mock
 
+from src.common.model_config import ModelSelection
+from src.common.model_provider import ModelResponse, ProviderRequest
 from src.schema.discovery import SchemaDiscovery
 
 
-class FailingFileClient:
-    def __init__(self) -> None:
-        self.create_calls = 0
-        self.deleted: list[str] = []
-        self.files = self
+class SchemaDiscoveryInputTest(unittest.TestCase):
+    def test_pdfingestor_failure_stops_before_provider(self) -> None:
+        class RecordingProvider:
+            def __init__(self) -> None:
+                self.requests: list[ProviderRequest] = []
 
-    def create(self, *, file, purpose: str):
-        self.create_calls += 1
-        if self.create_calls == 2:
-            raise RuntimeError("upload failed")
-        return SimpleNamespace(id="file_001")
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                self.requests.append(request)
+                raise AssertionError("provider must not be called")
 
-    def delete(self, file_id: str) -> None:
-        self.deleted.append(file_id)
-
-
-class SchemaDiscoveryUploadCleanupTest(unittest.TestCase):
-    def test_partial_upload_failure_deletes_already_uploaded_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             first_pdf = Path(tmp) / "first.pdf"
-            second_pdf = Path(tmp) / "second.pdf"
             first_pdf.touch()
-            second_pdf.touch()
-            client = FailingFileClient()
+            provider = RecordingProvider()
             discovery = SchemaDiscovery(
-                client=client,
+                selection=ModelSelection("openai", "gpt-5", "markdown"),
+                provider=provider,
                 usage_log_path=None,
                 log=None,
             )
 
-            with mock.patch.dict(
-                os.environ,
-                {"MY_OPENAI_API_KEY": "test-only"},
-                clear=True,
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                side_effect=RuntimeError("PDFingestor failed"),
             ):
-                with self.assertRaisesRegex(RuntimeError, "upload failed"):
-                    discovery.discover([str(first_pdf), str(second_pdf)])
+                with self.assertRaisesRegex(RuntimeError, "PDFingestor failed"):
+                    discovery.discover([str(first_pdf)])
 
-            self.assertEqual(client.deleted, ["file_001"])
+            self.assertEqual(provider.requests, [])
 
 
 if __name__ == "__main__":

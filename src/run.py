@@ -173,7 +173,7 @@ def command_discover(args: argparse.Namespace) -> int:
 
 
 def command_extract(args: argparse.Namespace) -> int:
-    from src.schema_application.extractor import SchemaExtractor
+    from src.pipeline.extractor import Extractor
 
     schema_data = load_schema_data(args.schema)
     schema = SchemaLoader().load(args.schema)
@@ -185,7 +185,7 @@ def command_extract(args: argparse.Namespace) -> int:
         return 1
 
     selection = resolve_selection(provider=args.provider, model=args.model)
-    extractor = SchemaExtractor(
+    extractor = Extractor(
         schema_data=schema_data,
         selection=selection,
     )
@@ -209,7 +209,7 @@ def command_extract(args: argparse.Namespace) -> int:
 def command_batch(args: argparse.Namespace) -> int:
     from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
     from src.evaluation.reporter import EvaluationReporter
-    from src.schema_application.extractor import SchemaExtractor
+    from src.pipeline.extractor import Extractor
 
     config = load_config()
     schema_data = load_schema_data(args.schema)
@@ -232,7 +232,7 @@ def command_batch(args: argparse.Namespace) -> int:
         return 1
 
     selection = resolve_selection(provider=args.provider, model=args.model)
-    extractor = SchemaExtractor(
+    extractor = Extractor(
         schema_data=schema_data,
         selection=selection,
     )

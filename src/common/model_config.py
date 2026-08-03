@@ -12,7 +12,10 @@ from src.common.json_codec import loads_json
 
 DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "gpt-5"
-DEFAULT_DOCUMENT_INPUT = "pdf"
+# The application pipeline renders PDFs locally with PDFingestor and sends the
+# resulting text inline. Native PDF remains available to low-level provider
+# callers by selecting it explicitly.
+DEFAULT_DOCUMENT_INPUT = "markdown"
 
 SUPPORTED_PROVIDERS = frozenset({"openai", "anthropic", "deepseek"})
 SUPPORTED_DOCUMENT_INPUTS = frozenset({"pdf", "markdown"})

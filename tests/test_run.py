@@ -13,7 +13,7 @@ from src.run import build_parser
 
 class RunParserTest(unittest.TestCase):
     def test_no_flags_resolve_to_current_openai_pdf_defaults(self) -> None:
-        args = build_parser().parse_args([])
+        args = build_parser().parse_args(["discover"])
         selection = resolve_selection(
             provider=args.provider,
             model=args.model,
@@ -21,11 +21,11 @@ class RunParserTest(unittest.TestCase):
             environment={},
         )
 
-        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "pdf"))
+        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "markdown"))
 
     def test_provider_model_and_document_input_flags_are_exposed(self) -> None:
         args = build_parser().parse_args(
-            ["--provider", "anthropic", "--model", "claude-test", "--document-input", "markdown"]
+            ["discover", "--provider", "anthropic", "--model", "claude-test", "--document-input", "markdown"]
         )
 
         self.assertEqual(args.provider, "anthropic")
@@ -46,13 +46,14 @@ class RunParserTest(unittest.TestCase):
             output = Path(tmp) / "schema.json"
             argv = [
                 "run.py",
+                "discover",
                 "--samples", "sample.pdf",
                 "--input-root", str(Path(tmp) / "PDFs"),
                 "--output", str(output),
                 "--usage-log", str(Path(tmp) / "usage.jsonl"),
             ]
 
-            with mock.patch.object(run_module, "SchemaDiscovery", return_value=discovery) as factory, \
+            with mock.patch("src.schema.discovery.SchemaDiscovery", return_value=discovery) as factory, \
                  mock.patch("sys.argv", argv):
                 exit_code = run_module.main()
 
@@ -63,7 +64,7 @@ class RunParserTest(unittest.TestCase):
             self.assertEqual(artifact["artifact_type"], "discovered_schema")
 
     def test_default_output_is_json(self) -> None:
-        args = build_parser().parse_args([])
+        args = build_parser().parse_args(["discover"])
 
         self.assertEqual(args.output, "outputs/private_health/schema.json")
 

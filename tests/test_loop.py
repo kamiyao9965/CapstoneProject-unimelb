@@ -83,7 +83,7 @@ class ParserBackwardCompatTest(unittest.TestCase):
             environment={},
         )
 
-        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "pdf"))
+        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "markdown"))
 
 
 class PipelineSelectionTest(unittest.TestCase):

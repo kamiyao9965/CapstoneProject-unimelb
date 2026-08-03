@@ -103,7 +103,7 @@ switch models without editing the file structure:
 # Active selection
 LLM_PROVIDER=openai
 LLM_MODEL=gpt-5
-LLM_DOCUMENT_INPUT=pdf
+LLM_DOCUMENT_INPUT=markdown
 
 # Provider credentials
 MY_OPENAI_API_KEY=replace-with-your-openai-key
@@ -132,23 +132,23 @@ Do not paste real keys into issues, logs, screenshots, commits, or chat.
 
 ### Switch providers
 
-OpenAI with native PDF input:
+OpenAI with PDFingestor text input:
 
 ```dotenv
 LLM_PROVIDER=openai
 LLM_MODEL=gpt-5
-LLM_DOCUMENT_INPUT=pdf
+LLM_DOCUMENT_INPUT=markdown
 ```
 
-Anthropic with native PDF input:
+Anthropic with PDFingestor text input:
 
 ```dotenv
 LLM_PROVIDER=anthropic
 LLM_MODEL=claude-sonnet-4-5
-LLM_DOCUMENT_INPUT=pdf
+LLM_DOCUMENT_INPUT=markdown
 ```
 
-DeepSeek uses Markdown document input because the adapter does not upload PDFs:
+DeepSeek uses the same PDFingestor text input:
 
 ```dotenv
 LLM_PROVIDER=deepseek
@@ -160,13 +160,13 @@ The model identifier must exist at the configured endpoint. The project accepts
 the approved `deepseek-*` family, but it cannot make an unavailable provider
 model exist. Confirm the exact model ID with your DeepSeek account or proxy.
 
-The same selection can be overridden for one command:
+The same selection can be overridden for one discovery command:
 
 ```bash
-.venv/bin/python src/run.py \
+.venv/bin/python src/run.py discover \
   --provider anthropic \
   --model claude-sonnet-4-5 \
-  --document-input pdf
+  --document-input markdown
 ```
 
 ## 4. Run one-shot schema discovery
@@ -174,7 +174,7 @@ The same selection can be overridden for one command:
 Quick smoke-sized sample:
 
 ```bash
-.venv/bin/python src/run.py \
+.venv/bin/python src/run.py discover \
   --per-category 1 \
   --seed 42
 ```
@@ -194,7 +194,7 @@ so on. It never replaces the baseline automatically.
 Use explicit documents when needed:
 
 ```bash
-.venv/bin/python src/run.py \
+.venv/bin/python src/run.py discover \
   --samples \
     konkrd-data/data/private_health/raw/PDFs/AUF/hospital/product-a.pdf \
     konkrd-data/data/private_health/raw/PDFs/RBH/extras/product-d.pdf \
@@ -211,7 +211,7 @@ Important options:
 | `--seed` | random | Reproducible sample selection |
 | `--provider` | environment/default | Provider override |
 | `--model` | environment/default | Model override |
-| `--document-input` | environment/default | `pdf` or `markdown` |
+| `--document-input` | `markdown` | Must be `markdown`; PDFingestor renders source PDFs to inline text |
 | `--timeout` | `600` | Request/poll timeout seconds |
 | `--output` | `outputs/private_health/schema.json` | Preferred success path |
 | `--usage-log` | `outputs/private_health/token_usage.jsonl` | Per-attempt usage log |
@@ -219,23 +219,18 @@ Important options:
 On exhausted validation, the command exits non-zero and writes a redacted
 artifact below `outputs/private_health/errors/schema_discovery/`.
 
-## 5. Optional MinerU Markdown branch
+## 5. PDFingestor document preparation
 
-Markdown mode maps each selected source PDF from:
+Schema discovery and extraction always parse each selected source PDF locally
+with PDFingestor. The resulting reading-order text blocks and Markdown tables
+are sent inline to the selected model provider; the application pipeline does
+not upload the raw PDF or create a MinerU Markdown mirror.
 
-```text
-<input-root>/<relative-path>.pdf
-```
-
-to:
-
-```text
-konkrd-data/data/private_health/raw/Markdown/<relative-path>.md
-```
-
-An existing mirror is reused. Otherwise MinerU converts only the selected PDF.
-Conversion is opt-in, local, and fail-closed; failure stops before the provider
-request. The Markdown mirror is source input, not a pipeline output artifact.
+For that reason, keep `LLM_DOCUMENT_INPUT=markdown`. Selecting `pdf` is reserved
+for low-level provider calls that attach raw documents and is rejected by the
+PDFingestor discovery and extraction classes. A parsing failure is fail-closed:
+the provider is not called and the stage writes a failure artifact when an
+output path is available.
 
 ## 6. Measure schema stability
 
@@ -523,8 +518,8 @@ token logs remain JSONL.
 ```
 
 These checks are offline. A passing suite does not prove live credentials,
-provider model availability, provider-side schema acceptance, PDF upload, or a
-real MinerU conversion.
+provider model availability, provider-side schema acceptance, or parsing every
+source PDF in the corpus.
 
 ## Troubleshooting
 
@@ -536,7 +531,8 @@ redacted error artifact and usage log; invalid data is not saved as a schema.
 
 ### DeepSeek rejects PDF mode
 
-Set `LLM_DOCUMENT_INPUT=markdown`. DeepSeek does not use the PDF-upload branch.
+Set `LLM_DOCUMENT_INPUT=markdown`. All application providers receive the
+PDFingestor representation as inline text.
 
 ### Model is not approved for structured output
 

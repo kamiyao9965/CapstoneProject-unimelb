@@ -23,7 +23,7 @@ class StandaloneSelectionParserTest(unittest.TestCase):
                 environment={},
             )
 
-            self.assertEqual(selection, ModelSelection("openai", "gpt-5", "pdf"))
+            self.assertEqual(selection, ModelSelection("openai", "gpt-5", "markdown"))
 
     def test_both_commands_accept_explicit_selection_flags(self) -> None:
         for parser_builder in (build_consensus_parser, build_stability_parser):

@@ -54,7 +54,12 @@ class SchemaExtractor:
         validate_schema_mapping(schema_data)
         self.schema_data = dict(schema_data)
         self.extraction_contract = compile_extraction_contract(schema_data)
-        self.selection = selection or ModelSelection("openai", model, "pdf")
+        self.selection = selection or ModelSelection("openai", model, "markdown")
+        if self.selection.document_input != "markdown":
+            raise ValueError(
+                "SchemaExtractor uses PDFingestor's inline text representation; "
+                "set LLM_DOCUMENT_INPUT=markdown."
+            )
         self.model = self.selection.model
         self.provider = provider or create_provider(self.selection, client=client)
         self.pdf_root = Path(pdf_root) if pdf_root else None

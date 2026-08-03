@@ -51,12 +51,16 @@ class SchemaDiscovery:
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
     ) -> None:
-        self.selection = selection or ModelSelection("openai", model, "pdf")
+        self.selection = selection or ModelSelection("openai", model, "markdown")
+        if self.selection.document_input != "markdown":
+            raise ValueError(
+                "SchemaDiscovery uses PDFingestor's inline text representation; "
+                "set LLM_DOCUMENT_INPUT=markdown or pass --document-input markdown."
+            )
         self.model = self.selection.model
         self.provider = provider or create_provider(self.selection, client=client)
         # Discovery always consumes PDFingestor's Silver-layer text/table
-        # representation. The legacy preprocessor argument is retained for API
-        # compatibility but is not used.
+        # representation and sends it inline as Markdown-compatible text.
         self.pdf_root = Path(pdf_root) if pdf_root else None
         self.preprocessor = preprocessor
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)

@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import json
 from pathlib import Path
+from unittest import mock
 
 from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse
@@ -119,13 +120,18 @@ class SchemaValidationTest(unittest.TestCase):
             pdf_path.write_bytes(b"pdf")
             usage_log = Path(tmp) / "usage.jsonl"
 
-            with self.assertRaisesRegex(RuntimeError, "remained invalid"):
-                SchemaDiscovery(
-                    selection=ModelSelection("openai", "gpt-5", "pdf"),
+            discovery = SchemaDiscovery(
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
                     provider=StaticProvider(json.dumps({"fields": []})),
                     usage_log_path=usage_log,
                     log=None,
-                ).discover([str(pdf_path)])
+                )
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                return_value="# PDF: sample\nstructured content",
+            ):
+                with self.assertRaisesRegex(RuntimeError, "remained invalid"):
+                    discovery.discover([str(pdf_path)])
 
             attempts = [json.loads(line) for line in usage_log.read_text().splitlines()]
             self.assertEqual(len(attempts), 3)
@@ -139,13 +145,20 @@ class SchemaValidationTest(unittest.TestCase):
             pdf_path.write_bytes(b"pdf")
             output_path = root / "schema.json"
 
-            with self.assertRaises(RuntimeError):
-                SchemaDiscovery(
-                    selection=ModelSelection("openai", "gpt-5", "pdf"),
+            discovery = SchemaDiscovery(
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
                     provider=StaticProvider(json.dumps({"fields": []})),
                     usage_log_path=None,
                     log=None,
-                ).discover([str(pdf_path)], output_path=output_path, run_id="run-123")
+                )
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                return_value="# PDF: sample\nstructured content",
+            ):
+                with self.assertRaises(RuntimeError):
+                    discovery.discover(
+                        [str(pdf_path)], output_path=output_path, run_id="run-123"
+                    )
 
             failure_path = root / "errors" / "schema_discovery" / "run-123.json"
             self.assertTrue(failure_path.exists())

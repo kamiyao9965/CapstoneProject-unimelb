@@ -128,7 +128,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             pdf_path = Path(tmp) / "example.pdf"
             pdf_path.touch()
             provider = RecordingProvider()
-            selection = ModelSelection("openai", "gpt-5", "pdf")
+            selection = ModelSelection("openai", "gpt-5", "markdown")
             with mock.patch(
                 "src.schema_application.extractor.render_pdf_paths_for_prompt",
                 return_value="# PDF: example\nstructured content",
@@ -192,7 +192,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             ):
                 SchemaExtractor(
                     schema_data=schema,
-                    selection=ModelSelection("openai", "gpt-5", "pdf"),
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
                     provider=provider,
                     usage_log_path=None,
                     log=None,

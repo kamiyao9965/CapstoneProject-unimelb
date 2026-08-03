@@ -105,7 +105,7 @@ class ProviderContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             pdf_path = Path(tmp) / "sample.pdf"
             pdf_path.touch()
-            selection = ModelSelection("openai", "gpt-5", "pdf")
+            selection = ModelSelection("openai", "gpt-5", "markdown")
             provider = RecordingProvider()
             discovery = SchemaDiscovery(
                 selection=selection,
@@ -114,21 +114,22 @@ class ProviderContractTest(unittest.TestCase):
                 log=None,
             )
 
-            schema = discovery.discover([str(pdf_path)])
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                return_value="# PDF: sample\nstructured content",
+            ):
+                schema = discovery.discover([str(pdf_path)])
 
         self.assertIn("product_name", [field["name"] for field in schema["fields"]])
         self.assertEqual(len(provider.requests), 1)
         request = provider.requests[0]
         self.assertEqual(request.selection, selection)
-        self.assertEqual(request.document_paths, (pdf_path,))
+        self.assertEqual(request.document_paths, ())
+        self.assertIn("structured content", request.user_text)
         self.assertIn("Generate a private_health schema", request.user_text)
         self.assertEqual(request.structured_output.name, "discovered_schema")
 
-    def test_discovery_markdown_mode_sends_mirrors_and_logs_source_pdfs(self) -> None:
-        class WritingPreprocessor:
-            def convert(self, source_pdf: Path, output_markdown: Path) -> None:
-                output_markdown.write_text("# converted\n", encoding="utf-8")
-
+    def test_discovery_logs_source_pdfs_for_pdfingestor_text(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             pdf_root = Path(tmp) / "PDFs"
             pdf_path = pdf_root / "HCF" / "hospital" / "sample.pdf"
@@ -138,29 +139,28 @@ class ProviderContractTest(unittest.TestCase):
             selection = ModelSelection("anthropic", "claude-test", "markdown")
             provider = RecordingProvider()
 
-            SchemaDiscovery(
+            discovery = SchemaDiscovery(
                 selection=selection,
                 provider=provider,
                 pdf_root=pdf_root,
-                preprocessor=WritingPreprocessor(),
                 usage_log_path=usage_log,
                 log=None,
-            ).discover([str(pdf_path)])
+            )
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                return_value="# PDF: sample\nstructured content",
+            ):
+                discovery.discover([str(pdf_path)])
 
             request = provider.requests[0]
             self.assertEqual(
-                request.document_paths,
-                (Path(tmp) / "Markdown" / "HCF" / "hospital" / "sample.md",),
+                request.document_paths, (),
             )
             logged = json.loads(usage_log.read_text(encoding="utf-8"))
             self.assertEqual(logged["sample_pdfs"], [pdf_path.as_posix()])
             self.assertEqual(logged["document_input"], "markdown")
 
-    def test_discovery_markdown_conversion_failure_stops_before_provider(self) -> None:
-        class FailingPreprocessor:
-            def convert(self, source_pdf: Path, output_markdown: Path) -> None:
-                raise RuntimeError(f"conversion failed for {source_pdf}")
-
+    def test_discovery_pdfingestor_failure_stops_before_provider(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             pdf_root = Path(tmp) / "PDFs"
             pdf_path = pdf_root / "sample.pdf"
@@ -168,15 +168,19 @@ class ProviderContractTest(unittest.TestCase):
             pdf_path.touch()
             provider = RecordingProvider()
 
-            with self.assertRaisesRegex(RuntimeError, "conversion failed"):
-                SchemaDiscovery(
+            discovery = SchemaDiscovery(
                     selection=ModelSelection("anthropic", "claude-test", "markdown"),
                     provider=provider,
                     pdf_root=pdf_root,
-                    preprocessor=FailingPreprocessor(),
                     usage_log_path=None,
                     log=None,
-                ).discover([str(pdf_path)])
+                )
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                side_effect=RuntimeError("PDFingestor failed"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "PDFingestor failed"):
+                    discovery.discover([str(pdf_path)])
 
             self.assertEqual(provider.requests, [])
 

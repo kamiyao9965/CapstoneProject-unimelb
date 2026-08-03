@@ -11,10 +11,10 @@ from src.common.model_config import (
 
 
 class ModelSelectionTest(unittest.TestCase):
-    def test_defaults_to_openai_gpt5_and_pdf(self) -> None:
+    def test_defaults_to_openai_gpt5_and_markdown(self) -> None:
         selection = resolve_selection(environment={})
 
-        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "pdf"))
+        self.assertEqual(selection, ModelSelection("openai", "gpt-5", "markdown"))
 
     def test_explicit_values_override_environment_defaults(self) -> None:
         selection = resolve_selection(
@@ -83,7 +83,7 @@ class ModelSelectionTest(unittest.TestCase):
                 provider="deepseek",
                 environment={"LLM_MODEL": "deepseek-chat"},
             ),
-            ModelSelection("deepseek", "deepseek-chat", "pdf"),
+            ModelSelection("deepseek", "deepseek-chat", "markdown"),
         )
 
     def test_structured_output_capabilities_cover_approved_model_families(self) -> None:
