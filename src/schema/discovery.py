@@ -145,6 +145,10 @@ class SchemaDiscovery:
                 pdf_paths,
                 cache_dir=self.pdfingestor_cache_dir,
                 pdf_root=self.pdf_root,
+                table_format="tsv",
+                comment_level="lite",
+                include_document_metadata=True,
+                include_document_title=True,
             )
         except Exception as exc:
             self._write_failure(

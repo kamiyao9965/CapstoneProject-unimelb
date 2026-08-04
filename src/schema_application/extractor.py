@@ -88,6 +88,9 @@ class SchemaExtractor:
             (pdf_path,),
             cache_dir=self.pdfingestor_cache_dir,
             pdf_root=self.pdf_root,
+            table_format="tsv",
+            comment_level="lite",
+            include_document_metadata=False,
         )
         request = ProviderRequest(
             selection=self.selection,
@@ -96,7 +99,7 @@ class SchemaExtractor:
                 "Discovered schema data:\n"
                 f"{json.dumps(self.schema_data, ensure_ascii=False)}\n\n"
                 "Extract from this PDFingestor structured representation. "
-                "Text and Markdown tables are already in source reading order; "
+                "Text and delimited tables are already in source reading order; "
                 "do not assume there is an attached raw PDF.\n\n"
                 f"{document_text}"
             ),
