@@ -54,6 +54,28 @@ class ExtractionContractTest(unittest.TestCase):
                 contract,
             )
 
+    def test_extras_service_name_is_constrained_to_canonical_enum(self) -> None:
+        schema = dict(VALID_DISCOVERED_SCHEMA)
+        schema["fields"] = [*schema["fields"], {
+            "name": "extras_benefits", "type": "list[object]",
+            "description": "Canonical extras rows", "applies_to": ["extras"],
+            "required": False, "values": [], "aliases": [],
+        }]
+        contract = compile_extraction_contract(schema)
+        base = {
+            "product_type": "extras", "product_name": "Example",
+            "_unfilled": [], "_notes": None,
+        }
+        validate_inline_contract(
+            {**base, "extras_benefits": [{"service_name": "GeneralDental", "limit": 500}]},
+            contract,
+        )
+        with self.assertRaises(ValueError):
+            validate_inline_contract(
+                {**base, "extras_benefits": [{"service_name": "Per visit benefit"}]},
+                contract,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

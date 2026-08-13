@@ -45,8 +45,40 @@ class AllExtractionFailuresTest(unittest.TestCase):
 
             records, failures = load_records(root, {"type": "object"})
 
-            self.assertEqual(records, [{"product_type": "hospital"}])
+            self.assertEqual(records[0]["product_type"], "hospital")
+            self.assertEqual(records[0]["_product_type_evidence"]["model"], "hospital")
             self.assertEqual(failures, 1)
+
+    def test_retried_failure_is_not_counted_after_same_schema_pdf_succeeds(self) -> None:
+        provenance = {
+            "run_id": "success", "provider": "deepseek", "model": "deepseek-v4-pro",
+            "document_input": "markdown", "source_documents": ["sample.pdf"],
+            "source_artifacts": ["schema_sha256:schema", "pdf_sha256:pdf"],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            success = build_success_artifact(
+                artifact_type="extraction_result", contract_version="1.0.0",
+                data={"product_type": "hospital"}, provenance=provenance,
+                data_contract_schema={"type": "object"},
+            )
+            failure = build_failure_artifact(
+                artifact_type="extraction_error", contract_version="1.0.0",
+                provenance={**provenance, "run_id": "failure"},
+                error_code="failed", message="empty response",
+            )
+            write_artifact(
+                root / "success.json", success,
+                data_contract_schema={"type": "object"},
+            )
+            write_artifact(
+                root / "errors" / "extraction" / "failure.json", failure,
+            )
+
+            records, failures = load_records(root, {"type": "object"})
+
+            self.assertEqual(len(records), 1)
+            self.assertEqual(failures, 0)
 
     def test_success_artifact_that_violates_runtime_contract_is_a_failure(self) -> None:
         provenance = {
@@ -112,8 +144,124 @@ class AllExtractionFailuresTest(unittest.TestCase):
         data = build_feedback_data(analysis)
 
         self.assertEqual(data["analysis"]["enum_violations"], {"cover_status": ["unknown"]})
-        self.assertEqual(len(data["instructions"]), 1)
-        self.assertIn("cover_status", data["instructions"][0])
+        self.assertTrue(
+            any("cover_status" in instruction for instruction in data["instructions"])
+        )
+        self.assertIn("business_fidelity", data["analysis"])
+        self.assertIn("rule_summary", data["analysis"]["business_fidelity"])
+
+    def test_feedback_flags_fields_filled_outside_applies_to(self) -> None:
+        analysis = analyze(
+            [
+                {
+                    "product_type": "combined",
+                    "excess_options": [{"amount": "$750"}],
+                    "extras_services": [{"service": "General Dental"}],
+                },
+                {
+                    "product_type": "extras",
+                    "excess_options": None,
+                    "extras_services": [{"service": "Optical"}],
+                },
+            ],
+            [
+                FieldSpec("excess_options", applies_to=("hospital",)),
+                FieldSpec("extras_services", applies_to=("extras",)),
+            ],
+        )
+
+        data = build_feedback_data(analysis)
+
+        self.assertEqual(
+            analysis.applies_to_mismatches,
+            {
+                "excess_options": {"combined": 1},
+                "extras_services": {"combined": 1},
+            },
+        )
+        self.assertEqual(
+            data["analysis"]["applies_to_mismatches"],
+            analysis.applies_to_mismatches,
+        )
+        self.assertTrue(
+            any("applies_to" in instruction for instruction in data["instructions"])
+        )
+        self.assertTrue(
+            any(
+                "excess_options: add combined" in instruction
+                for instruction in data["instructions"]
+            )
+        )
+        self.assertIn(
+            "excess_options",
+            data["analysis"]["business_fidelity"]["protected_fields"],
+        )
+
+    def test_business_fidelity_warns_against_generic_replacement(self) -> None:
+        analysis = analyze(
+            [{"product_type": "hospital", "coverage_status": []}],
+            [
+                FieldSpec("coverage_status", type="list[object]", applies_to=("hospital",)),
+            ],
+        )
+
+        data = build_feedback_data(analysis)
+
+        self.assertTrue(
+            any(
+                "coverage_status is generic" in risk
+                for risk in data["analysis"]["business_fidelity"]["replacement_risks"]
+            )
+        )
+        self.assertIn("Business fidelity guardrail", data["instructions"][0])
+
+    def test_business_fidelity_treats_ambulance_cover_as_protected_alias(self) -> None:
+        analysis = analyze(
+            [{"product_type": "hospital", "exclusions": [], "ambulance_cover": "Emergency"}],
+            [
+                FieldSpec("exclusions", type="list[object]", applies_to=("hospital",)),
+                FieldSpec("ambulance_cover", applies_to=("hospital",)),
+            ],
+        )
+
+        fidelity = build_feedback_data(analysis)["analysis"]["business_fidelity"]
+
+        self.assertIn("ambulance_benefit", fidelity["protected_fields"])
+        self.assertNotIn(
+            "exclusions is generic and must not replace ambulance_benefit.",
+            fidelity["replacement_risks"],
+        )
+
+    def test_business_fidelity_protects_annual_limits(self) -> None:
+        analysis = analyze(
+            [{"product_type": "extras", "annual_limits": [{"amount": "$500"}]}],
+            [FieldSpec("annual_limits", type="list[object]", applies_to=("extras",))],
+        )
+
+        fidelity = build_feedback_data(analysis)["analysis"]["business_fidelity"]
+
+        self.assertIn("annual_limits", fidelity["protected_fields"])
+
+    def test_override_product_type_takes_precedence_for_analysis(self) -> None:
+        analysis = analyze(
+            [
+                {
+                    "product_type": "hospital",
+                    "ambulance_benefit": "Emergency ambulance",
+                    "_product_type_evidence": {
+                        "directory": "hospital",
+                        "override": "extras",
+                        "effective": "extras",
+                        "model": "hospital",
+                        "conflict": True,
+                    },
+                }
+            ],
+            [FieldSpec("ambulance_benefit", applies_to=("extras",))],
+        )
+
+        self.assertEqual(analysis.evaluated_documents["ambulance_benefit"], 1)
+        self.assertEqual(analysis.fill_rate["ambulance_benefit"], 1.0)
 
 
 class ProductApplicabilityTest(unittest.TestCase):

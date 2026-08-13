@@ -78,7 +78,7 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
 
 
 def publish_final_schema(schema_path: Path, out_dir: Path) -> Path:
-    """Publish the latest completed round schema to a stable path for extraction."""
+    """Atomically replace the stable schema with the latest completed round."""
     artifact = read_artifact(
         schema_path,
         expected_type="discovered_schema",
@@ -89,6 +89,7 @@ def publish_final_schema(schema_path: Path, out_dir: Path) -> Path:
         final_schema_path,
         artifact,
         data_contract="private_health/discovered_schema",
+        overwrite=True,
     )
     return final_schema_path
 
@@ -168,6 +169,7 @@ def resume_review(args) -> int:
         artifact["data"],
         round_dir,
         exclude_paths=schema_build_samples,
+        overwrite_feedback=True,
     )
     print("\n[refinement-feedback]\n" + feedback_out)
     final_schema_path = publish_final_schema(schema_path, Path(args.out_dir))
@@ -178,6 +180,35 @@ def resume_review(args) -> int:
         "To feed it into the next round:\n"
         f"  python src/refine/loop.py --resume-feedback {round_dir / 'refinement_feedback.json'}"
     )
+    return 0
+
+
+def resume_extraction(args) -> int:
+    """Resume holdout extraction for a round, reusing validated PDF artifacts."""
+    round_dir = Path(args.resume_extraction)
+    schema_path = round_dir / "schema.json"
+    if not schema_path.exists():
+        print(f"{schema_path} not found; the round has no schema to evaluate.")
+        return 1
+    artifact = read_artifact(
+        schema_path,
+        expected_type="discovered_schema",
+        data_contract="private_health/discovered_schema",
+    )
+    schema_build_samples = _schema_build_samples_from_review_queue(
+        round_dir / "consensus" / QUEUE_FILENAME
+    )
+    print("[resume-extraction] reusing successes and retrying unfinished holdout PDFs")
+    _analysis, feedback_out = evaluate_schema(
+        args,
+        artifact["data"],
+        round_dir,
+        exclude_paths=schema_build_samples,
+        overwrite_feedback=True,
+    )
+    print("\n[refinement-feedback]\n" + feedback_out)
+    final_schema_path = publish_final_schema(schema_path, round_dir.parent)
+    print(f"[final-schema] wrote {final_schema_path}")
     return 0
 
 

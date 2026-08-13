@@ -120,6 +120,44 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         self.assertFalse(field["required"])
         self.assertEqual(field["aliases"], [])
 
+    def test_non_identity_required_vote_is_downgraded(self) -> None:
+        schema = self.render(
+            [make_decision("waiting_periods", "core", field_type="list[object]", required=True)]
+        )
+        field = next(f for f in schema["fields"] if f["name"] == "waiting_periods")
+        self.assertFalse(field["required"])
+
+    def test_existing_non_identity_required_field_is_downgraded(self) -> None:
+        schema = dict(BASE_SCHEMA)
+        schema["fields"] = [*BASE_SCHEMA["fields"], {
+            "name": "waiting_periods",
+            "type": "list[object]",
+            "description": "Waiting periods by service or condition.",
+            "applies_to": ["hospital", "extras", "combined"],
+            "required": True,
+            "values": [],
+            "aliases": [],
+        }]
+        with tempfile.TemporaryDirectory() as tmp:
+            base_path = Path(tmp) / "base.json"
+            base_artifact = build_success_artifact(
+                artifact_type="discovered_schema", contract_version="1.0.0",
+                data=schema, provenance=PROVENANCE,
+                data_contract="private_health/discovered_schema",
+            )
+            write_artifact(
+                base_path, base_artifact, data_contract="private_health/discovered_schema"
+            )
+            out_path = Path(tmp) / "consensus_schema.json"
+            render_consensus_schema(base_path, [], out_path)
+            rendered = read_artifact(
+                out_path, expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )["data"]
+
+        field = next(f for f in rendered["fields"] if f["name"] == "waiting_periods")
+        self.assertFalse(field["required"])
+
     def test_new_field_maps_group_to_product_type(self) -> None:
         schema = self.render(
             [

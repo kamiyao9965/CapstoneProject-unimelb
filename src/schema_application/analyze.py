@@ -17,6 +17,11 @@ from src.common.json_artifacts import (
 from src.common.json_contracts import validate_contract
 from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_inline_contract
+from src.schema.business_fidelity import (
+    BUSINESS_FIDELITY_RULES,
+    protected_fields_in_schema,
+    replacement_risk_summary,
+)
 from src.schema.contract import compile_extraction_contract
 from src.schema.validation import (
     JSONScalar,
@@ -64,6 +69,7 @@ def load_records(
 ) -> tuple[list[dict], int]:
     records: list[dict] = []
     failures = 0
+    successful_identities: set[tuple[str, str]] = set()
     for path in sorted(extraction_dir.glob("*.json")):
         try:
             artifact = loads_json(path.read_text(encoding="utf-8"))
@@ -79,16 +85,42 @@ def load_records(
                 extraction_contract,
                 "runtime_extraction_result",
             )
+            record = dict(artifact["data"])
+            record["_product_type_evidence"] = _product_type_evidence(artifact)
+            identity = _artifact_identity(artifact)
+            if identity is not None:
+                successful_identities.add(identity)
         except ValueError:
             failures += 1
             continue
-        records.append(artifact["data"])
-    failures += sum(
-        1
-        for path in (extraction_dir / "errors" / "extraction").glob("*.json")
-        if path.is_file()
-    )
+        records.append(record)
+    for path in (extraction_dir / "errors" / "extraction").glob("*.json"):
+        if not path.is_file():
+            continue
+        try:
+            failure_artifact = loads_json(path.read_text(encoding="utf-8"))
+            validate_contract(failure_artifact, "artifact_envelope")
+            identity = _artifact_identity(failure_artifact)
+        except ValueError:
+            identity = None
+        if identity is None or identity not in successful_identities:
+            failures += 1
     return records, failures
+
+
+def _artifact_identity(artifact: object) -> tuple[str, str] | None:
+    """Return the schema/PDF identity shared by success and failure artifacts."""
+    if not isinstance(artifact, dict):
+        return None
+    provenance = artifact.get("provenance") or {}
+    if not isinstance(provenance, dict):
+        return None
+    source_artifacts = provenance.get("source_artifacts") or []
+    schema_hash = _source_artifact_value(source_artifacts, "schema_sha256")
+    pdf_hash = _source_artifact_value(source_artifacts, "pdf_sha256")
+    if schema_hash and pdf_hash:
+        return schema_hash, pdf_hash
+    return None
 
 
 def is_filled(value: object) -> bool:
@@ -106,10 +138,12 @@ class Analysis:
     unclassified_docs: int
     fill_rate: dict[str, float]
     evaluated_documents: dict[str, int]
+    applies_to_mismatches: dict[str, dict[str, int]]
     weak_fields: list[str]
     missing_required: dict[str, int]      # field -> docs missing it
     enum_violations: dict[str, list[JSONScalar]]  # field -> bad values seen
     model_unfilled: dict[str, int]         # field -> times model self-reported unfilled
+    business_fidelity: dict[str, object]
 
 
 def analyze(
@@ -125,14 +159,26 @@ def analyze(
 
     filled_counts = {s.name: 0 for s in specs}
     evaluated_documents = {s.name: 0 for s in specs}
+    applies_to_mismatches: dict[str, dict[str, int]] = {}
     missing_required: dict[str, int] = {}
     enum_violations: dict[str, list[JSONScalar]] = {}
     model_unfilled: dict[str, int] = {}
+    schema_field_payloads = [
+        {
+            "name": spec.name,
+            "type": spec.type,
+            "applies_to": list(spec.applies_to),
+        }
+        for spec in specs
+    ]
 
     for record in docs:
         product_type = _product_type(record)
         for name, spec in spec_by_name.items():
             if product_type not in spec.applies_to:
+                if is_filled(record.get(name)):
+                    counts = applies_to_mismatches.setdefault(name, {})
+                    counts[product_type] = counts.get(product_type, 0) + 1
                 continue
             evaluated_documents[name] += 1
             value = record.get(name)
@@ -179,6 +225,10 @@ def analyze(
         unclassified_docs=unclassified_docs,
         fill_rate=fill_rate,
         evaluated_documents=evaluated_documents,
+        applies_to_mismatches={
+            name: dict(sorted(counts.items()))
+            for name, counts in sorted(applies_to_mismatches.items())
+        },
         weak_fields=weak_fields,
         missing_required=missing_required,
         enum_violations={
@@ -189,15 +239,55 @@ def analyze(
             for key, values in enum_violations.items()
         },
         model_unfilled=model_unfilled,
+        business_fidelity={
+            "protected_fields": protected_fields_in_schema(schema_field_payloads),
+            "replacement_risks": replacement_risk_summary(schema_field_payloads),
+            "rule_summary": BUSINESS_FIDELITY_RULES,
+        },
     )
 
 
 def _product_type(record: dict) -> str | None:
+    evidence = record.get("_product_type_evidence")
+    if isinstance(evidence, dict):
+        override_value = evidence.get("override")
+        if isinstance(override_value, str):
+            override = override_value.strip().lower()
+            if override in SUPPORTED_PRODUCT_TYPES:
+                return override
     value = record.get("product_type")
     if not isinstance(value, str):
         return None
     normalized = value.strip().lower()
     return normalized if normalized in SUPPORTED_PRODUCT_TYPES else None
+
+
+def _product_type_evidence(artifact: dict) -> dict[str, str | bool | None]:
+    provenance = artifact.get("provenance") or {}
+    source_artifacts = provenance.get("source_artifacts") or []
+    evidence = {
+        "directory": _source_artifact_value(source_artifacts, "directory_product_type"),
+        "override": _source_artifact_value(source_artifacts, "override_product_type"),
+        "effective": _source_artifact_value(source_artifacts, "effective_product_type"),
+        "model": _source_artifact_value(source_artifacts, "model_product_type"),
+        "conflict": "product_type_conflict:directory_override" in source_artifacts,
+    }
+    if evidence["model"] is None:
+        data = artifact.get("data") or {}
+        model_value = data.get("product_type") if isinstance(data, dict) else None
+        if isinstance(model_value, str) and model_value.strip():
+            evidence["model"] = model_value.strip().lower()
+    return evidence
+
+
+def _source_artifact_value(source_artifacts: object, prefix: str) -> str | None:
+    if not isinstance(source_artifacts, list):
+        return None
+    marker = f"{prefix}:"
+    for item in source_artifacts:
+        if isinstance(item, str) and item.startswith(marker):
+            return item[len(marker):]
+    return None
 
 
 def print_report(analysis: Analysis) -> None:
@@ -216,6 +306,26 @@ def print_report(analysis: Analysis) -> None:
         print("Required fields missing in some documents:")
         for name, count in sorted(analysis.missing_required.items(), key=lambda kv: -kv[1]):
             print(f"  {name}: missing in {count}")
+        print()
+
+    if analysis.applies_to_mismatches:
+        print("Fields filled outside schema applies_to:")
+        for name, counts in analysis.applies_to_mismatches.items():
+            details = ", ".join(
+                f"{product_type} ({count})"
+                for product_type, count in counts.items()
+            )
+            print(f"  {name}: {details}")
+        print()
+
+    protected = analysis.business_fidelity.get("protected_fields") or []
+    risks = analysis.business_fidelity.get("replacement_risks") or []
+    if protected or risks:
+        print("Business fidelity guardrail:")
+        if protected:
+            print(f"  Protected fields: {', '.join(map(str, protected))}")
+        for risk in risks:
+            print(f"  {risk}")
         print()
 
     if analysis.enum_violations:
@@ -241,6 +351,31 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
         ]
 
     lines: list[str] = []
+    protected = analysis.business_fidelity.get("protected_fields") or []
+    risks = analysis.business_fidelity.get("replacement_risks") or []
+    if protected or risks:
+        details = []
+        if protected:
+            details.append("preserve " + ", ".join(map(str, protected)))
+        details.extend(str(risk) for risk in risks)
+        lines.append(
+            "Business fidelity guardrail: do not improve fill rate by deleting "
+            "or replacing specific comparison fields with generic catch-all "
+            "fields. Critical fields may be split, renamed, narrowed, or have "
+            "their applies_to/type/description fixed, but must not be replaced "
+            "by coverage_status, conditions, exclusions, annual_limits, or "
+            "source_references alone. " + " ".join(details)
+        )
+    if analysis.applies_to_mismatches:
+        details = "; ".join(
+            f"{name}: add {', '.join(counts)}"
+            for name, counts in analysis.applies_to_mismatches.items()
+        )
+        lines.append(
+            "These fields were extracted with non-empty values for product types not "
+            "listed in their applies_to. Update the schema applicability instead of "
+            f"treating these values as extraction noise: {details}."
+        )
     if analysis.weak_fields:
         lines.append(
             "The following fields were extractable in fewer than "
@@ -277,10 +412,12 @@ def build_feedback_data(analysis: Analysis) -> dict[str, object]:
             "unclassified_docs": analysis.unclassified_docs,
             "fill_rate": analysis.fill_rate,
             "evaluated_documents": analysis.evaluated_documents,
+            "applies_to_mismatches": analysis.applies_to_mismatches,
             "weak_fields": analysis.weak_fields,
             "missing_required": analysis.missing_required,
             "enum_violations": analysis.enum_violations,
             "model_unfilled": analysis.model_unfilled,
+            "business_fidelity": analysis.business_fidelity,
         },
     }
 

@@ -73,6 +73,8 @@ class ExtractionResult(BaseModel):
     )
     provider: str = "heuristic"
     model: str | None = None
+    schema_sha256: str | None = None
+    source_sha256: str | None = None
     data: dict[str, Any] = Field(default_factory=dict)
     evidences: dict[str, list[Evidence]] = Field(default_factory=dict)
     normalized_names: list[NormalizationResult] = Field(default_factory=list)
@@ -81,7 +83,9 @@ class ExtractionResult(BaseModel):
     def write_json(self, output_path: str | Path) -> Path:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
+        temporary = path.with_name(f".{path.name}.tmp")
+        temporary.write_text(self.model_dump_json(indent=2), encoding="utf-8")
+        temporary.replace(path)
         return path
 
 
@@ -96,7 +100,11 @@ class EvaluationReport(BaseModel):
     value_accuracy: float = 0.0
     normalization_accuracy: float
     coverage: float
-    hallucination_rate: float
+    hallucination_rate: float | None = None
+    hallucination_evaluated: bool = False
+    canonical_name_recall: float = 0.0
+    phis_document_class: str = "partial"
+    phis_classification: dict[str, Any] = Field(default_factory=dict)
     matched_fields: int = 0
     comparable_fields: int = 0
     extracted_fields: int = 0

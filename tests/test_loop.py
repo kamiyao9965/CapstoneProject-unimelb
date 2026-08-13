@@ -60,6 +60,7 @@ def make_args(tmp: str, **overrides) -> SimpleNamespace:
         "autonomous": False,
         "resume_feedback": None,
         "resume_review": None,
+        "resume_extraction": None,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -71,6 +72,7 @@ class ParserBackwardCompatTest(unittest.TestCase):
         self.assertEqual(args.consensus_runs, 1)
         self.assertFalse(args.review_ui)
         self.assertIsNone(args.resume_review)
+        self.assertIsNone(args.resume_extraction)
         self.assertFalse(args.autonomous)
         self.assertEqual(args.rounds, 1)
 
@@ -138,8 +140,14 @@ class PipelineSelectionTest(unittest.TestCase):
                      "analysis": {"documents": 0, "error_docs": 0,
                          "unclassified_docs": 0, "fill_rate": {},
                          "evaluated_documents": {}, "weak_fields": [],
+                         "applies_to_mismatches": {},
                          "missing_required": {}, "enum_violations": {},
-                         "model_unfilled": {}},
+                         "model_unfilled": {},
+                         "business_fidelity": {
+                             "protected_fields": [],
+                             "replacement_risks": [],
+                             "rule_summary": "Business fidelity guardrail",
+                         }},
                  }):
                 steps.evaluate_schema(args, VALID_DISCOVERED_SCHEMA, round_dir)
 
@@ -315,6 +323,67 @@ class ResumeReviewTest(unittest.TestCase):
                 data_contract="private_health/discovered_schema",
             )
             self.assertIn("excess", [f["name"] for f in final_artifact["data"]["fields"]])
+
+
+class ResumeExtractionTest(unittest.TestCase):
+    def test_reuses_round_schema_then_publishes_after_evaluation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            round_dir = Path(tmp) / "round_1"
+            write_schema(round_dir / "schema.json")
+            args = make_args(tmp, resume_extraction=str(round_dir))
+            evaluate = mock.Mock(return_value=(None, "feedback"))
+
+            with mock.patch.object(rounds, "evaluate_schema", evaluate):
+                exit_code = rounds.resume_extraction(args)
+
+            self.assertEqual(exit_code, 0)
+            evaluate.assert_called_once()
+            self.assertEqual(evaluate.call_args.args[2], round_dir)
+            self.assertTrue(evaluate.call_args.kwargs["overwrite_feedback"])
+            self.assertTrue((Path(tmp) / "final_schema.json").exists())
+
+    def test_missing_round_schema_fails_without_evaluation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            round_dir = Path(tmp) / "round_1"
+            args = make_args(tmp, resume_extraction=str(round_dir))
+            with mock.patch.object(rounds, "evaluate_schema") as evaluate:
+                exit_code = rounds.resume_extraction(args)
+
+            self.assertEqual(exit_code, 1)
+            evaluate.assert_not_called()
+
+
+class FinalSchemaPublicationTest(unittest.TestCase):
+    def test_latest_completed_round_replaces_stable_final_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp)
+            first_schema = out_dir / "round_1" / "schema.json"
+            second_schema = out_dir / "round_2" / "schema.json"
+            write_schema(first_schema)
+
+            second_provenance = {**PROVENANCE, "run_id": "round-2"}
+            second_artifact = build_success_artifact(
+                artifact_type="discovered_schema",
+                contract_version="1.0.0",
+                data=VALID_DISCOVERED_SCHEMA,
+                provenance=second_provenance,
+                data_contract="private_health/discovered_schema",
+            )
+            write_artifact(
+                second_schema,
+                second_artifact,
+                data_contract="private_health/discovered_schema",
+            )
+
+            rounds.publish_final_schema(first_schema, out_dir)
+            rounds.publish_final_schema(second_schema, out_dir)
+
+            final_artifact = read_artifact(
+                out_dir / "final_schema.json",
+                expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )
+            self.assertEqual(final_artifact["provenance"]["run_id"], "round-2")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,12 @@ from src.common.data_paths import default_private_health_pdf_root
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
-from src.refine.pipeline.rounds import next_round_index, resume_review, run_round
+from src.refine.pipeline.rounds import (
+    next_round_index,
+    resume_extraction,
+    resume_review,
+    run_round,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -68,6 +73,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--resume-extraction",
+        help=(
+            "Path to an incomplete round_N directory. Reuse successful extraction "
+            "artifacts, retry failed/unfinished PDFs, then write feedback and publish "
+            "final_schema.json."
+        ),
+    )
+    parser.add_argument(
         "--autonomous",
         action="store_true",
         help=(
@@ -99,8 +112,12 @@ def main() -> int:
     if args.review_ui and args.consensus_runs <= 1:
         parser.error("--review-ui requires --consensus-runs N greater than 1.")
 
+    if args.resume_review and args.resume_extraction:
+        parser.error("Choose only one of --resume-review and --resume-extraction.")
     if args.resume_review:
         return resume_review(args)
+    if args.resume_extraction:
+        return resume_extraction(args)
 
     Path(args.out_dir).mkdir(parents=True, exist_ok=True)
     return _run_from_start(args)

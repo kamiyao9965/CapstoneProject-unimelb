@@ -186,6 +186,48 @@ class StructuredOutputTest(unittest.TestCase):
         self.assertEqual(failure.attempts[0].response.usage.total_tokens, 11)
         self.assertIn("refused", failure.errors[0]["message"])
 
+    def test_empty_provider_response_is_retried_and_can_recover(self) -> None:
+        import json
+
+        empty_response = ModelResponse(
+            text="",
+            provider="deepseek",
+            model="deepseek-v4-pro",
+            response_id="empty-1",
+            usage=ModelUsage(input_tokens=8, output_tokens=3, total_tokens=11),
+        )
+
+        class EmptyThenValidProvider:
+            def __init__(self) -> None:
+                self.calls = 0
+                self.requests: list[ProviderRequest] = []
+
+            def generate(self, provider_request: ProviderRequest) -> ModelResponse:
+                self.calls += 1
+                self.requests.append(provider_request)
+                if self.calls == 1:
+                    raise ProviderResponseError(
+                        "DeepSeek structured output response was empty.",
+                        empty_response,
+                    )
+                return ModelResponse(
+                    text=json.dumps(VALID_DISCOVERED_SCHEMA),
+                    provider="deepseek",
+                    model="deepseek-v4-pro",
+                )
+
+        provider = EmptyThenValidProvider()
+        result = run_structured_output(
+            provider,
+            request(),
+            data_contract="private_health/discovered_schema",
+            business_validator=validate_schema_mapping,
+        )
+
+        self.assertEqual(len(result.attempts), 2)
+        self.assertEqual(provider.calls, 2)
+        self.assertIn("response was empty", provider.requests[1].user_text)
+
 
 if __name__ == "__main__":
     unittest.main()

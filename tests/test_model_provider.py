@@ -461,13 +461,13 @@ class ProviderContractTest(unittest.TestCase):
 
         with mock.patch.dict(os.environ, {}, clear=True):
             provider = create_provider(
-                ModelSelection("deepseek", "deepseek-chat", "pdf"),
+                ModelSelection("deepseek", "deepseek-v4-flash", "pdf"),
                 client=ExplodingClient(),
             )
             with self.assertRaisesRegex(ValueError, "markdown"):
                 provider.generate(
                     ProviderRequest(
-                        selection=ModelSelection("deepseek", "deepseek-chat", "pdf"),
+                        selection=ModelSelection("deepseek", "deepseek-v4-flash", "pdf"),
                         system_prompt="system", user_text="user", document_paths=(),
                         timeout_seconds=1, cleanup_documents=True, request_params={},
                         background=False, poll_interval=0, log=None,
@@ -497,7 +497,7 @@ class ProviderContractTest(unittest.TestCase):
             markdown_path = Path(tmp) / "sample.md"
             markdown_path.write_text("# policy\n", encoding="utf-8")
             with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True):
-                selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+                selection = ModelSelection("deepseek", "deepseek-v4-flash", "markdown")
                 response = create_provider(selection, client=fake_client).generate(
                     ProviderRequest(
                         selection=selection,
@@ -516,7 +516,7 @@ class ProviderContractTest(unittest.TestCase):
         self.assertEqual(response.usage.output_tokens, 7)
         self.assertEqual(response.usage.total_tokens, 27)
         self.assertEqual(response.api_key_env, "DEEPSEEK_API_KEY")
-        self.assertEqual(completions.kwargs["model"], "deepseek-chat")
+        self.assertEqual(completions.kwargs["model"], "deepseek-v4-flash")
         self.assertEqual(completions.kwargs["temperature"], 0.2)
         self.assertEqual(
             completions.kwargs["messages"][0],
@@ -570,7 +570,7 @@ class ProviderContractTest(unittest.TestCase):
             )],
             usage=None,
         )
-        selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+        selection = ModelSelection("deepseek", "deepseek-v4-flash", "markdown")
         with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "empty"):
                 create_provider(
@@ -592,7 +592,7 @@ class ProviderContractTest(unittest.TestCase):
     def test_deepseek_provider_configures_official_endpoint_and_env_override(self) -> None:
         from src.common import model_provider
 
-        selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+        selection = ModelSelection("deepseek", "deepseek-v4-flash", "markdown")
         request = ProviderRequest(
             selection=selection,
             system_prompt="system", user_text="user", document_paths=(),
@@ -632,7 +632,7 @@ class ProviderContractTest(unittest.TestCase):
     def test_deepseek_provider_requires_api_key_before_client_construction(self) -> None:
         from src.common import model_provider
 
-        selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+        selection = ModelSelection("deepseek", "deepseek-v4-flash", "markdown")
         with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(
                 model_provider, "OpenAI",
@@ -771,7 +771,7 @@ class ProviderContractTest(unittest.TestCase):
                 completions=SimpleNamespace(create=lambda **_: response)
             )
         )
-        selection = ModelSelection("deepseek", "deepseek-chat", "markdown")
+        selection = ModelSelection("deepseek", "deepseek-v4-flash", "markdown")
 
         with mock.patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "truncated"):

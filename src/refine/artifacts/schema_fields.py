@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.refine.candidates.aggregator import FieldDecision
 from src.refine.candidates.patch import MANUAL_EDIT_PATCH_TYPES
+from src.schema.validation import CORE_REQUIRED_FIELDS
 
 VALID_PRODUCT_TYPES = ("hospital", "extras", "generalhealth", "combined")
 
@@ -65,7 +66,15 @@ def field_payload_from_decision(
                 "aliases": payload.get("aliases", decision.aliases),
             }
         )
+    normalize_required_flag(payload)
     return payload
+
+
+def normalize_required_flag(field: dict[str, object]) -> None:
+    """Only identity fields should force a cross-document non-null value."""
+    name = field.get("name")
+    if isinstance(name, str) and name not in CORE_REQUIRED_FIELDS:
+        field["required"] = False
 
 
 def decision_requires_manual_edit(decision: FieldDecision) -> bool:

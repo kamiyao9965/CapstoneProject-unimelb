@@ -11,6 +11,7 @@ from src.refine.artifacts.schema_fields import (
     decision_requires_manual_edit,
     field_payload_from_decision,
     fields_by_name,
+    normalize_required_flag,
 )
 from src.refine.candidates.aggregator import FieldDecision
 from src.common.json_artifacts import (
@@ -59,6 +60,8 @@ def render_consensus_schema(
             existing_field,
         )
 
+    for field in existing_fields.values():
+        normalize_required_flag(field)
     consensus_schema["fields"] = list(existing_fields.values())
     validate_schema_mapping(consensus_schema)
     artifact = build_success_artifact(

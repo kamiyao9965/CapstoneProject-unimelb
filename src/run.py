@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 
@@ -63,7 +65,25 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("--vertical", default="private_health")
     batch.add_argument("--schema", required=True)
     batch.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    batch.add_argument(
+        "--limit",
+        type=int,
+        help="Process at most the first N PDFs in sorted path order",
+    )
     batch.add_argument("--evaluate", action="store_true")
+    batch.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse successful outputs whose PDF, schema, provider, and model match.",
+    )
+    batch.add_argument(
+        "--trust-legacy-cache",
+        action="store_true",
+        help=(
+            "With --resume, adopt pre-checkpoint outputs after path/provider/model/mtime "
+            "checks. Their hashes are written once so later resumes are exact."
+        ),
+    )
     batch.add_argument("--provider", default=None)
     batch.add_argument("--model", default=None)
     batch.add_argument(
@@ -189,6 +209,8 @@ def command_extract(args: argparse.Namespace) -> int:
         schema_data=schema_data,
         selection=selection,
     )
+    schema_hash = extractor.schema_hash
+    schema_path = Path(args.schema)
 
     record = extractor.extract_one(args.pdf)
     result = ExtractionResult(
@@ -230,12 +252,23 @@ def command_batch(args: argparse.Namespace) -> int:
     if not pdf_paths:
         print(f"No PDFs found under {input_root}")
         return 1
+    if args.limit is not None:
+        if args.limit <= 0:
+            print("--limit must be greater than zero")
+            return 1
+        pdf_paths = pdf_paths[:args.limit]
+        print(f"Selected {len(pdf_paths)} PDF(s) with --limit {args.limit}")
 
     selection = resolve_selection(provider=args.provider, model=args.model)
     extractor = Extractor(
         schema_data=schema_data,
         selection=selection,
     )
+    # Batch resume/failure artifacts need the same schema identity as the
+    # single-document command.  Define it before entering the per-PDF try block
+    # so both the normal and exception paths can safely reference it.
+    schema_path = Path(args.schema)
+    schema_hash = extractor.schema_hash
 
     reports = []
     provider_counts: dict[str, int] = {}
@@ -246,6 +279,7 @@ def command_batch(args: argparse.Namespace) -> int:
     ambiguous_matches = 0
     fallback_documents = 0
     extraction_errors = 0
+    resumed_documents = 0
     gt_match_diagnostics: list[dict[str, object]] = []
     gt_store = None
     evaluator = None
@@ -258,22 +292,51 @@ def command_batch(args: argparse.Namespace) -> int:
         reporter = EvaluationReporter()
 
     for pdf_path in pdf_paths:
+        output_path = default_output_path(schema.vertical, pdf_path)
+        source_hash = file_sha256(pdf_path)
         try:
-            record = extractor.extract_one(pdf_path)
-            result = ExtractionResult(
-                vertical=schema.vertical,
-                schema_version=schema.version,
-                source_path=str(pdf_path),
-                provider=selection.provider,
-                model=selection.model,
-                data=record,
-            )
+            result = None
+            if args.resume:
+                result = load_cached_batch_result(
+                    output_path=output_path,
+                    pdf_path=pdf_path,
+                    schema_path=schema_path,
+                    schema_hash=schema_hash,
+                    source_hash=source_hash,
+                    provider=selection.provider,
+                    model=selection.model,
+                    trust_legacy=args.trust_legacy_cache,
+                )
+            if result is not None:
+                resumed_documents += 1
+                print(f"Resumed {pdf_path.name} <- {output_path}")
+            else:
+                record = extractor.extract_one(pdf_path)
+                result = ExtractionResult(
+                    vertical=schema.vertical,
+                    schema_version=schema.version,
+                    source_path=str(pdf_path),
+                    provider=selection.provider,
+                    model=selection.model,
+                    schema_sha256=schema_hash,
+                    source_sha256=source_hash,
+                    data=record,
+                )
+                result.write_json(output_path)
+                print(f"Extracted {pdf_path.name} -> {output_path}")
         except Exception as exc:
             extraction_errors += 1
             print(f"Extraction failed for {pdf_path.name}: {exc}")
+            safely_record_batch_failure(
+                vertical=schema.vertical,
+                pdf_path=pdf_path,
+                schema_hash=schema_hash,
+                source_hash=source_hash,
+                provider=selection.provider,
+                model=selection.model,
+                error=exc,
+            )
             continue
-        output_path = default_output_path(schema.vertical, pdf_path)
-        result.write_json(output_path)
         provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
         if args.evaluate and result.provider == "heuristic":
             fallback_documents += 1
@@ -281,16 +344,31 @@ def command_batch(args: argparse.Namespace) -> int:
             warning_counts[warning] = warning_counts.get(warning, 0) + 1
             if len(warning_samples) < 5 and warning not in warning_samples:
                 warning_samples.append(warning)
-        print(f"Extracted {pdf_path.name} -> {output_path}")
-
         if gt_store and evaluator:
-            product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
-            if ground_truth:
-                report = evaluator.evaluate(
-                    extracted=result,
-                    ground_truth=ground_truth,
-                    product_key=product_match.id_master if product_match else None,
+            try:
+                product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
+                if ground_truth:
+                    report = evaluator.evaluate(
+                        extracted=result,
+                        ground_truth=ground_truth,
+                        product_key=product_match.id_master if product_match else None,
+                    )
+                else:
+                    report = None
+            except Exception as exc:
+                print(f"Evaluation failed for {pdf_path.name}: {exc}")
+                safely_record_batch_failure(
+                    vertical=schema.vertical,
+                    pdf_path=pdf_path,
+                    schema_hash=schema_hash,
+                    source_hash=source_hash,
+                    provider=selection.provider,
+                    model=selection.model,
+                    error=exc,
+                    stage="evaluation",
                 )
+                continue
+            if report is not None:
                 if product_match:
                     report.match_score = product_match.match_score
                     report.low_confidence_match = product_match.low_confidence_match
@@ -339,6 +417,24 @@ def command_batch(args: argparse.Namespace) -> int:
             fallback_documents=fallback_documents,
             extraction_errors=extraction_errors,
         )
+        high_confidence_reports = [report for report in reports if not report.low_confidence_match]
+        high_confidence_model_reports = [
+            report for report in model_reports if not report.low_confidence_match
+        ]
+        summary["high_confidence_only"] = evaluator.aggregate(
+            high_confidence_reports,
+            total_documents=len(high_confidence_reports),
+        )
+        summary["high_confidence_only"]["excluded_low_confidence_documents"] = (
+            len(reports) - len(high_confidence_reports)
+        )
+        model_summary["high_confidence_only"] = evaluator.aggregate(
+            high_confidence_model_reports,
+            total_documents=len(high_confidence_model_reports),
+        )
+        model_summary["high_confidence_only"]["excluded_low_confidence_documents"] = (
+            len(model_reports) - len(high_confidence_model_reports)
+        )
         summary["ambiguous_matches"] = float(ambiguous_matches)
         model_summary["ambiguous_matches"] = float(ambiguous_matches)
         report_root = config.outputs_dir / args.vertical / "evaluation"
@@ -371,6 +467,9 @@ def command_batch(args: argparse.Namespace) -> int:
         print("Evaluation skipped: no private-health ground truth matched the PDFs.")
 
     print("\nBatch extraction summary:")
+    print(f"  Completed: {len(pdf_paths) - extraction_errors}/{len(pdf_paths)}")
+    print(f"  Resumed: {resumed_documents}")
+    print(f"  Failed: {extraction_errors}")
     print(
         "  Providers: "
         + (
@@ -393,6 +492,102 @@ def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
     return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
+
+
+def file_sha256(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_cached_batch_result(
+    *,
+    output_path: Path,
+    pdf_path: Path,
+    schema_path: Path,
+    schema_hash: str,
+    source_hash: str,
+    provider: str,
+    model: str,
+    trust_legacy: bool,
+) -> ExtractionResult | None:
+    if not output_path.is_file():
+        return None
+    try:
+        result = ExtractionResult.model_validate_json(
+            output_path.read_text(encoding="utf-8")
+        )
+    except Exception:
+        return None
+    try:
+        same_source = Path(result.source_path).resolve() == pdf_path.resolve()
+    except OSError:
+        same_source = False
+    if not same_source or result.provider != provider or result.model != model:
+        return None
+    if result.schema_sha256 == schema_hash and result.source_sha256 == source_hash:
+        return result
+    is_legacy = result.schema_sha256 is None and result.source_sha256 is None
+    if not (trust_legacy and is_legacy):
+        return None
+    newest_input = max(pdf_path.stat().st_mtime, schema_path.stat().st_mtime)
+    if output_path.stat().st_mtime < newest_input:
+        return None
+    result.schema_sha256 = schema_hash
+    result.source_sha256 = source_hash
+    result.write_json(output_path)
+    return result
+
+
+def record_batch_failure(
+    *,
+    vertical: str,
+    pdf_path: Path,
+    schema_hash: str,
+    source_hash: str,
+    provider: str,
+    model: str,
+    error: Exception,
+    stage: str = "extraction",
+) -> Path:
+    run_id = uuid4().hex
+    failure = build_failure_artifact(
+        artifact_type=f"batch_{stage}_error",
+        contract_version="1.0.0",
+        provenance={
+            "run_id": run_id,
+            "provider": provider,
+            "model": model,
+            "source_documents": [pdf_path.as_posix()],
+            "source_artifacts": [
+                f"schema_sha256:{schema_hash}",
+                f"pdf_sha256:{source_hash}",
+            ],
+        },
+        error_code=f"{stage}_failed",
+        message=str(error),
+        details=[],
+    )
+    return write_failure_artifact(
+        load_config().outputs_dir / vertical / "extractions",
+        f"batch_{stage}",
+        run_id,
+        failure,
+    )
+
+
+def safely_record_batch_failure(**kwargs: object) -> Path | None:
+    try:
+        return record_batch_failure(**kwargs)  # type: ignore[arg-type]
+    except Exception as artifact_error:
+        pdf_path = kwargs.get("pdf_path")
+        print(
+            f"Could not write failure artifact for {pdf_path}: {artifact_error}; "
+            "continuing with the remaining PDFs."
+        )
+        return None
 
 
 def load_schema_data(schema_path: str | Path) -> dict[str, object]:

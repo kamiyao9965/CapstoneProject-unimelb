@@ -8,17 +8,34 @@
     "analysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["documents", "error_docs", "unclassified_docs", "fill_rate", "evaluated_documents", "weak_fields", "missing_required", "enum_violations", "model_unfilled"],
+      "required": ["documents", "error_docs", "unclassified_docs", "fill_rate", "evaluated_documents", "applies_to_mismatches", "weak_fields", "missing_required", "enum_violations", "model_unfilled", "business_fidelity"],
       "properties": {
         "documents": {"type": "integer", "minimum": 0},
         "error_docs": {"type": "integer", "minimum": 0},
         "unclassified_docs": {"type": "integer", "minimum": 0},
         "fill_rate": {"type": "object", "additionalProperties": {"type": "number"}},
         "evaluated_documents": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "applies_to_mismatches": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 1}
+          }
+        },
         "weak_fields": {"type": "array", "items": {"type": "string"}},
         "missing_required": {"type": "object", "additionalProperties": {"type": "integer"}},
         "enum_violations": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": ["string", "number", "integer", "boolean"]}}},
-        "model_unfilled": {"type": "object", "additionalProperties": {"type": "integer"}}
+        "model_unfilled": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "business_fidelity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protected_fields", "replacement_risks", "rule_summary"],
+          "properties": {
+            "protected_fields": {"type": "array", "items": {"type": "string"}},
+            "replacement_risks": {"type": "array", "items": {"type": "string"}},
+            "rule_summary": {"type": "string", "minLength": 1}
+          }
+        }
       }
     }
   }

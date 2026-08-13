@@ -4,11 +4,14 @@ import csv
 import math
 import re
 from collections import Counter, defaultdict
+from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
+from src.evaluation.adapter import adapt_final_schema_for_evaluation
+from src.evaluation.taxonomy import canonical_extras_services, canonical_hospital_category
 from src.models import EvaluationReport, ExtractionResult, ProductMatch
 
 
@@ -90,35 +93,57 @@ class PrivateHealthGroundTruthStore:
     def rank_pdf_candidates(self, pdf_path: str | Path, limit: int = 5) -> list[dict[str, Any]]:
         path = Path(pdf_path)
         normalized_stem = self._normalize_name(path.stem)
+        normalized_path = self._normalize_path(path)
+        compact_path = self._normalize_name(path.as_posix())
         fund_code = self._extract_fund_code(path)
         product_type = self._extract_product_type(path)
+        path_tier = self._extract_hospital_tier(path)
+        path_excesses = self._extract_excesses(path.as_posix())
+        path_dates = self._extract_dates(path.as_posix())
+        path_variant_ids = {
+            product_item_id
+            for product_item_ids in self.variants_by_master.values()
+            for product_item_id in product_item_ids
+            if self._normalize_name(product_item_id) in compact_path
+        }
 
-        ranked: list[tuple[float, dict[str, str]]] = []
+        ranked: list[tuple[bool, float, dict[str, str], dict[str, Any]]] = []
         for row in self.products:
             if fund_code and row["FundCode"] != fund_code and row["BrandCode"] != fund_code:
                 continue
             if product_type and row["ProductType"].lower() != product_type.lower():
                 continue
 
+            gt_pdf_path = row.get("Pdf Filepath", "")
+            exact_filepath = self._filepath_matches(path, gt_pdf_path)
             name_candidates = [
                 self._normalize_name(row["Name Master"]),
-                self._normalize_name(Path(row.get("Pdf Filepath", "")).stem),
+                self._normalize_name(Path(gt_pdf_path).stem),
             ]
-            score = max(
+            name_score = max(
                 SequenceMatcher(None, normalized_stem, candidate).ratio()
                 for candidate in name_candidates
                 if candidate
             )
-            if normalized_stem in name_candidates[0] or name_candidates[0] in normalized_stem:
-                score = max(score, 0.97)
-            if name_candidates[1] and (
-                normalized_stem == name_candidates[1]
-                or normalized_stem in name_candidates[1]
-                or name_candidates[1] in normalized_stem
-            ):
-                score = max(score, 0.99)
+            score = 1.0 if exact_filepath else name_score
+            evidence: dict[str, Any] = {
+                "exact_pdf_filepath": exact_filepath,
+                "name_similarity": round(name_score, 6),
+                "product_type_match": not product_type or row["ProductType"].lower() == product_type.lower(),
+            }
+            if not exact_filepath:
+                score = self._apply_disambiguators(
+                    score,
+                    row,
+                    path_tier=path_tier,
+                    path_excesses=path_excesses,
+                    path_dates=path_dates,
+                    path_variant_ids=path_variant_ids,
+                    evidence=evidence,
+                )
+                score = min(max(score, 0.0), 0.999)
             if score >= self.min_match_score:
-                ranked.append((score, row))
+                ranked.append((exact_filepath, score, row, evidence))
 
         return [
             {
@@ -128,9 +153,89 @@ class PrivateHealthGroundTruthStore:
                 "brand_code": row["BrandCode"],
                 "product_type": row["ProductType"],
                 "score": score,
+                "match_evidence": evidence,
             }
-            for score, row in sorted(ranked, key=lambda item: item[0], reverse=True)[:limit]
+            for _, score, row, evidence in sorted(
+                ranked,
+                key=lambda item: (item[0], item[1]),
+                reverse=True,
+            )[:limit]
         ]
+
+    def _apply_disambiguators(
+        self,
+        score: float,
+        row: dict[str, str],
+        *,
+        path_tier: str | None,
+        path_excesses: set[str],
+        path_dates: set[str],
+        path_variant_ids: set[str],
+        evidence: dict[str, Any],
+    ) -> float:
+        row_tier = self._normalize_name(row.get("HospitalTier", "")) or None
+        if path_tier and row_tier:
+            tier_match = path_tier == row_tier
+            evidence["hospital_tier_match"] = tier_match
+            score += 0.08 if tier_match else -0.18
+
+        row_text = " ".join((row.get("Name Master", ""), row.get("Pdf Filepath", "")))
+        row_excesses = self._extract_excesses(row_text)
+        if path_excesses and row_excesses:
+            excess_match = bool(path_excesses & row_excesses)
+            evidence["excess_match"] = excess_match
+            score += 0.10 if excess_match else -0.20
+
+        master_variants = set(self.variants_by_master.get(row["ID Master"], []))
+        if path_variant_ids:
+            variant_match = bool(path_variant_ids & master_variants)
+            evidence["variant_match"] = variant_match
+            score += 0.15 if variant_match else -0.25
+
+        row_dates = self._extract_dates(row_text)
+        if path_dates and row_dates:
+            date_match = bool(path_dates & row_dates)
+            evidence["effective_date_match"] = date_match
+            score += 0.05 if date_match else -0.10
+        return score
+
+    @classmethod
+    def _filepath_matches(cls, pdf_path: Path, gt_path: str) -> bool:
+        if not gt_path.strip():
+            return False
+        actual = cls._normalize_path(pdf_path)
+        labelled = cls._normalize_path(Path(gt_path))
+        return actual == labelled or actual.endswith(labelled) or labelled.endswith(actual)
+
+    @staticmethod
+    def _normalize_path(path: Path) -> str:
+        return re.sub(r"[^a-z0-9]+", "/", path.as_posix().casefold()).strip("/")
+
+    @classmethod
+    def _extract_hospital_tier(cls, path: Path) -> str | None:
+        normalized = cls._normalize_name(path.stem)
+        for tier in ("basicplus", "bronzeplus", "silverplus", "gold", "silver", "bronze", "basic"):
+            if tier in normalized:
+                return tier
+        return None
+
+    @staticmethod
+    def _extract_excesses(value: str) -> set[str]:
+        matches = re.findall(
+            r"(?:excess\D{0,8}\$?([1-9]\d{2,3})(?!\d)|"
+            r"\$([1-9]\d{2,3})(?!\d)|"
+            r"(?<!\d)([1-9]\d{2,3})\D{0,8}excess)",
+            value,
+            re.I,
+        )
+        return {number for groups in matches for number in groups if number}
+
+    @staticmethod
+    def _extract_dates(value: str) -> set[str]:
+        return {
+            re.sub(r"\D", "", match)
+            for match in re.findall(r"\b(?:20\d{2}[-_/]?\d{1,2}[-_/]?\d{1,2}|\d{1,2}[-_/]\d{1,2}[-_/]20\d{2})\b", value)
+        }
 
     def load_ground_truth(self, pdf_path: str | Path) -> tuple[ProductMatch | None, dict[str, Any]]:
         match = self.match_pdf(pdf_path)
@@ -233,18 +338,28 @@ class ExtractionEvaluator:
         ground_truth: dict[str, Any],
         product_key: str | None = None,
     ) -> EvaluationReport:
-        extracted_flat = self._flatten(extracted.data)
-        gt_flat = self._flatten(ground_truth)
+        evaluation_data = adapt_final_schema_for_evaluation(extracted.data)
+        hospital_categories_comparable = self._hospital_categories_comparable(
+            extracted.data, evaluation_data
+        )
+        extracted_flat = self._flatten(evaluation_data)
+        comparable_ground_truth = self._without_non_comparable_hospital_categories(
+            ground_truth
+        ) if not hospital_categories_comparable else ground_truth
+        gt_flat = self._flatten(comparable_ground_truth)
 
         matched_fields = 0
         incorrect_fields: list[str] = []
         present_gt_fields = [key for key in gt_flat if key in extracted_flat]
-        for key, value in extracted_flat.items():
-            if key in gt_flat and self._values_equal(value, gt_flat[key]):
+        for key in present_gt_fields:
+            if self._values_equal(extracted_flat[key], gt_flat[key]):
                 matched_fields += 1
             else:
                 incorrect_fields.append(key)
 
+        # Precision includes all adapted extraction fields.  This measures schema
+        # alignment, but is deliberately not called hallucination: proving a
+        # source conflict requires evidence that this GT-only evaluator lacks.
         extracted_count = len(extracted_flat)
         gt_count = len(gt_flat)
         comparable_count = len(present_gt_fields)
@@ -253,10 +368,14 @@ class ExtractionEvaluator:
         field_presence_recall = comparable_count / gt_count if gt_count else 0.0
         value_accuracy = matched_fields / comparable_count if comparable_count else 0.0
         coverage = field_presence_recall
-        hallucinations = [key for key in extracted_flat if key not in gt_flat]
-        normalization_accuracy = self._normalization_accuracy(extracted.data, ground_truth)
-        section_metrics = self._section_metrics(extracted.data, ground_truth)
-        hallucinations_by_section = dict(Counter(key.split(".", 1)[0] for key in hallucinations))
+        normalization_accuracy = self._normalization_accuracy(evaluation_data, comparable_ground_truth)
+        section_metrics = self._section_metrics(
+            evaluation_data, ground_truth,
+            hospital_categories_comparable=hospital_categories_comparable,
+        )
+        phis_document_class, phis_classification = self._classify_phis_surface(
+            evaluation_data, ground_truth
+        )
 
         missing_fields = [key for key in gt_flat if key not in extracted_flat]
         return EvaluationReport(
@@ -270,7 +389,11 @@ class ExtractionEvaluator:
             value_accuracy=value_accuracy,
             normalization_accuracy=normalization_accuracy,
             coverage=coverage,
-            hallucination_rate=(len(hallucinations) / extracted_count if extracted_count else 0.0),
+            hallucination_rate=None,
+            hallucination_evaluated=False,
+            canonical_name_recall=normalization_accuracy,
+            phis_document_class=phis_document_class,
+            phis_classification=phis_classification,
             matched_fields=matched_fields,
             comparable_fields=comparable_count,
             extracted_fields=extracted_count,
@@ -278,7 +401,7 @@ class ExtractionEvaluator:
             missing_fields=missing_fields,
             incorrect_fields=incorrect_fields,
             section_metrics=section_metrics,
-            hallucinations_by_section=hallucinations_by_section,
+            hallucinations_by_section={},
         )
 
     def aggregate(
@@ -290,17 +413,19 @@ class ExtractionEvaluator:
         low_confidence_matches: int = 0,
         fallback_documents: int = 0,
         extraction_errors: int = 0,
-    ) -> dict[str, float]:
+    ) -> dict[str, Any]:
         total = total_documents if total_documents is not None else len(reports)
         if not reports:
-            return {
+            empty = {
                 "field_precision": 0.0,
                 "field_recall": 0.0,
                 "field_presence_recall": 0.0,
                 "value_accuracy": 0.0,
                 "normalization_accuracy": 0.0,
                 "coverage": 0.0,
-                "hallucination_rate": 0.0,
+                "hallucination_rate": None,
+                "hallucination_evaluated_documents": 0.0,
+                "canonical_name_recall": 0.0,
                 "total_documents": float(total),
                 "matched_documents": 0.0,
                 "unmatched_documents": float(unmatched_documents),
@@ -316,15 +441,21 @@ class ExtractionEvaluator:
                 "extras_waiting_period_accuracy": 0.0,
                 "extras_limit_accuracy": 0.0,
             }
+            empty["macro"] = self._metric_view(empty)
+            empty["micro"] = self._micro_summary([])
+            empty["document_classes"] = {}
+            return empty
         section_summary = self._aggregate_section_metrics(reports)
-        return {
+        summary: dict[str, Any] = {
             "field_precision": mean(report.field_precision for report in reports),
             "field_recall": mean(report.field_recall for report in reports),
             "field_presence_recall": mean(report.field_presence_recall for report in reports),
             "value_accuracy": mean(report.value_accuracy for report in reports),
             "normalization_accuracy": mean(report.normalization_accuracy for report in reports),
             "coverage": mean(report.coverage for report in reports),
-            "hallucination_rate": mean(report.hallucination_rate for report in reports),
+            "hallucination_rate": self._mean_available(report.hallucination_rate for report in reports),
+            "hallucination_evaluated_documents": float(sum(report.hallucination_evaluated for report in reports)),
+            "canonical_name_recall": mean(report.canonical_name_recall for report in reports),
             "total_documents": float(total),
             "matched_documents": float(len(reports)),
             "unmatched_documents": float(unmatched_documents),
@@ -334,6 +465,82 @@ class ExtractionEvaluator:
             "extraction_errors": float(extraction_errors),
             **section_summary,
         }
+        summary["macro"] = self._metric_view(summary)
+        summary["micro"] = self._micro_summary(reports)
+        summary["document_classes"] = dict(Counter(report.phis_document_class for report in reports))
+        summary["by_document_class"] = {
+            document_class: self._subset_summary(
+                [report for report in reports if report.phis_document_class == document_class]
+            )
+            for document_class in sorted({report.phis_document_class for report in reports})
+        }
+        return summary
+
+    def _subset_summary(self, reports: list[EvaluationReport]) -> dict[str, Any]:
+        macro = {
+            "field_precision": mean(report.field_precision for report in reports),
+            "field_recall": mean(report.field_recall for report in reports),
+            "field_presence_recall": mean(report.field_presence_recall for report in reports),
+            "value_accuracy": mean(report.value_accuracy for report in reports),
+            "canonical_name_recall": mean(report.canonical_name_recall for report in reports),
+            **self._aggregate_section_metrics(reports),
+        }
+        return {"documents": len(reports), "macro": macro, "micro": self._micro_summary(reports)}
+
+    @staticmethod
+    def _metric_view(summary: dict[str, Any]) -> dict[str, Any]:
+        keys = (
+            "field_precision", "field_recall", "field_presence_recall", "value_accuracy",
+            "canonical_name_recall", "hospital_category_recall", "hospital_coverage_accuracy",
+            "extras_service_precision", "extras_service_recall",
+            "extras_waiting_period_accuracy", "extras_limit_accuracy",
+        )
+        return {key: summary.get(key) for key in keys}
+
+    def _micro_summary(self, reports: list[EvaluationReport]) -> dict[str, float]:
+        matched = sum(report.matched_fields for report in reports)
+        extracted = sum(report.extracted_fields for report in reports)
+        comparable = sum(report.comparable_fields for report in reports)
+        ground_truth = sum(report.ground_truth_fields for report in reports)
+        hospital = [
+            report.section_metrics["hospital"] for report in reports
+            if isinstance(report.section_metrics.get("hospital"), dict)
+        ]
+        extras = [
+            report.section_metrics["extras"] for report in reports
+            if isinstance(report.section_metrics.get("extras"), dict)
+        ]
+        product = [
+            report.section_metrics["product"] for report in reports
+            if isinstance(report.section_metrics.get("product"), dict)
+        ]
+        canonical_recognized = 0
+        canonical_ground_truth = 0
+        for report in reports:
+            sections = report.phis_classification.get("sections", {})
+            for section in sections.values():
+                canonical_recognized += int(section.get("recognized_item_count", 0))
+                canonical_ground_truth += int(section.get("ground_truth_item_count", 0))
+        return {
+            "field_precision": matched / extracted if extracted else 0.0,
+            "field_recall": matched / ground_truth if ground_truth else 0.0,
+            "field_presence_recall": comparable / ground_truth if ground_truth else 0.0,
+            "value_accuracy": matched / comparable if comparable else 0.0,
+            "canonical_name_recall": canonical_recognized / canonical_ground_truth if canonical_ground_truth else 0.0,
+            "product_accuracy": self._ratio_sum(product, "matched", "comparable"),
+            "hospital_category_precision": self._ratio_sum(hospital, "matched_categories", "extracted_categories"),
+            "hospital_category_recall": self._ratio_sum(hospital, "matched_categories", "ground_truth_categories"),
+            "hospital_coverage_accuracy": self._ratio_sum(hospital, "coverage_matches", "matched_categories"),
+            "extras_service_precision": self._ratio_sum(extras, "matched_services", "extracted_services"),
+            "extras_service_recall": self._ratio_sum(extras, "matched_services", "ground_truth_services"),
+            "extras_waiting_period_accuracy": self._ratio_sum(extras, "waiting_period_matches", "waiting_period_comparable"),
+            "extras_limit_accuracy": self._ratio_sum(extras, "limit_matches", "limit_comparable"),
+        }
+
+    @staticmethod
+    def _ratio_sum(rows: list[dict[str, Any]], numerator: str, denominator: str) -> float:
+        denominator_total = sum(int(row.get(denominator, 0)) for row in rows)
+        return sum(int(row.get(numerator, 0)) for row in rows) / denominator_total if denominator_total else 0.0
 
     def _aggregate_section_metrics(self, reports: list[EvaluationReport]) -> dict[str, float]:
         metric_paths = {
@@ -373,10 +580,16 @@ class ExtractionEvaluator:
                     for item in value:
                         item_key = item.get("category") or item.get("service") or item.get("name")
                         if item_key:
-                            for sub_key, sub_value in item.items():
-                                if sub_key in {"category", "service", "name"} or sub_value is None:
-                                    continue
-                                flattened[f"{full_key}.{item_key}.{sub_key}"] = self._normalize_value(sub_value)
+                            canonical_keys = (
+                                canonical_extras_services(item_key)
+                                if "service" in item else [canonical_hospital_category(item_key)]
+                            )
+                            for canonical_key in canonical_keys:
+                                normalized_key = self._normalize_string(str(canonical_key))
+                                for sub_key, sub_value in item.items():
+                                    if sub_key in {"category", "service", "name"} or sub_value is None:
+                                        continue
+                                    flattened[f"{full_key}.{normalized_key}.{sub_key}"] = self._normalize_value(sub_value)
                 else:
                     flattened[full_key] = tuple(self._normalize_value(v) for v in value if v is not None)
             else:
@@ -384,19 +597,133 @@ class ExtractionEvaluator:
         return flattened
 
     def _normalization_accuracy(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> float:
-        extracted_names = self._collect_names(extracted)
-        gt_names = self._collect_names(ground_truth)
+        extracted_names = {self._normalize_string(name) for name in self._collect_names(extracted)}
+        gt_names = {self._normalize_string(name) for name in self._collect_names(ground_truth)}
         if not gt_names:
             return 1.0
-        matches = sum(1 for name in extracted_names if name in gt_names)
-        return matches / len(gt_names)
+        return len(extracted_names & gt_names) / len(gt_names)
 
-    def _section_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, Any]:
+    def _section_metrics(
+        self, extracted: dict[str, Any], ground_truth: dict[str, Any], *,
+        hospital_categories_comparable: bool = True,
+    ) -> dict[str, Any]:
+        hospital_metrics: dict[str, Any] | None = None
+        if self._has_gt_items(ground_truth, "hospital", "clinical_categories"):
+            hospital_metrics = (
+                self._hospital_metrics(extracted, ground_truth)
+                if hospital_categories_comparable
+                else {
+                    "comparable": False,
+                    "non_comparable_reason": "no_extracted_clinical_category_surface",
+                }
+            )
         return {
             "product": self._product_metrics(extracted, ground_truth),
-            "hospital": self._hospital_metrics(extracted, ground_truth),
-            "extras": self._extras_metrics(extracted, ground_truth),
+            "hospital": hospital_metrics,
+            "extras": (
+                self._extras_metrics(extracted, ground_truth)
+                if self._has_gt_items(ground_truth, "extras", "services")
+                else None
+            ),
         }
+
+    def _classify_phis_surface(
+        self, extracted: dict[str, Any], ground_truth: dict[str, Any]
+    ) -> tuple[str, dict[str, Any]]:
+        """Infer whether the document exposes a complete canonical PHIS table.
+
+        This is a surface classification, not a statement about model quality:
+        it records how much of the labelled canonical taxonomy is visibly present
+        in the extraction and how much raw terminology maps to that taxonomy.
+        """
+        evidence: dict[str, Any] = {
+            "method": "canonical_surface_coverage_v1",
+            "complete_threshold": 0.8,
+            "non_standard_recognition_threshold": 0.5,
+            "sections": {},
+        }
+        section_scores: list[tuple[float, float, int]] = []
+        for section_name, item_name, key_name in (
+            ("hospital", "clinical_categories", "category"),
+            ("extras", "services", "service"),
+        ):
+            gt_section = ground_truth.get(section_name, {})
+            gt_items = gt_section.get(item_name, []) if isinstance(gt_section, dict) else []
+            if not gt_items:
+                continue
+            extracted_section = extracted.get(section_name, {})
+            extracted_items = extracted_section.get(item_name, []) if isinstance(extracted_section, dict) else []
+            raw_count = len(extracted_items) if isinstance(extracted_items, list) else 0
+            extracted_keys = set(self._keyed_items(extracted_items, key_name))
+            gt_keys = set(self._keyed_items(gt_items, key_name))
+            recognized = len(extracted_keys & gt_keys)
+            coverage = recognized / len(gt_keys) if gt_keys else 0.0
+            recognition = recognized / len(extracted_keys) if extracted_keys else 0.0
+            evidence["sections"][section_name] = {
+                "raw_item_count": raw_count,
+                "canonical_item_count": len(extracted_keys),
+                "recognized_item_count": recognized,
+                "ground_truth_item_count": len(gt_keys),
+                "canonical_coverage": coverage,
+                "taxonomy_recognition": recognition,
+            }
+            section_scores.append((coverage, recognition, raw_count))
+
+        if section_scores and all(coverage >= 0.8 and recognition >= 0.8 for coverage, recognition, _ in section_scores):
+            classification = "complete_phis"
+        elif section_scores and any(raw_count > 0 for _, _, raw_count in section_scores) and all(
+            recognition < 0.5 for _, recognition, raw_count in section_scores if raw_count > 0
+        ):
+            classification = "non_standard"
+        else:
+            classification = "partial"
+        evidence["classification"] = classification
+        return classification, evidence
+
+    @staticmethod
+    def _has_gt_items(
+        ground_truth: dict[str, Any],
+        section_name: str,
+        item_name: str,
+    ) -> bool:
+        section = ground_truth.get(section_name)
+        return isinstance(section, dict) and bool(section.get(item_name))
+
+    @staticmethod
+    def _has_extracted_items(
+        extracted: dict[str, Any], section_name: str, item_name: str
+    ) -> bool:
+        section = extracted.get(section_name)
+        return isinstance(section, dict) and bool(section.get(item_name))
+
+    @classmethod
+    def _hospital_categories_comparable(
+        cls, raw_extraction: dict[str, Any], adapted: dict[str, Any]
+    ) -> bool:
+        if cls._has_extracted_items(adapted, "hospital", "clinical_categories"):
+            return True
+        notes = str(raw_extraction.get("_notes") or "").casefold()
+        explicit_absence_markers = (
+            "clinical categories not explicitly listed",
+            "clinical categories are not explicitly listed",
+            "clinical categories table not present",
+            "clinical categories are not listed",
+            "clinical categories not in standard",
+            "clinical categories are general service categories rather than standard",
+        )
+        return not any(marker in notes for marker in explicit_absence_markers)
+
+    @staticmethod
+    def _without_non_comparable_hospital_categories(
+        ground_truth: dict[str, Any]
+    ) -> dict[str, Any]:
+        from copy import deepcopy
+
+        filtered = deepcopy(ground_truth)
+        hospital = filtered.get("hospital")
+        if isinstance(hospital, dict):
+            hospital.pop("clinical_categories", None)
+        return filtered
 
     def _product_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, float | int]:
         extracted_product = self._product_fields(extracted)
@@ -509,8 +836,7 @@ class ExtractionEvaluator:
                 fields[key] = payload[key]
         return fields
 
-    @staticmethod
-    def _keyed_items(items: Any, key_name: str) -> dict[str, dict[str, Any]]:
+    def _keyed_items(self, items: Any, key_name: str) -> dict[str, dict[str, Any]]:
         if not isinstance(items, list):
             return {}
         result: dict[str, dict[str, Any]] = {}
@@ -519,8 +845,19 @@ class ExtractionEvaluator:
                 continue
             key = item.get(key_name)
             if key:
-                result[str(key)] = item
+                canonical_keys = (
+                    canonical_extras_services(key)
+                    if key_name == "service"
+                    else [canonical_hospital_category(key)]
+                )
+                for canonical_key in canonical_keys:
+                    result[self._normalize_string(str(canonical_key))] = item
         return result
+
+    @staticmethod
+    def _mean_available(values: Any) -> float | None:
+        available = [float(value) for value in values if isinstance(value, int | float)]
+        return mean(available) if available else None
 
     def _collect_names(self, payload: dict[str, Any]) -> set[str]:
         names: set[str] = set()
@@ -531,22 +868,69 @@ class ExtractionEvaluator:
                 for item in value:
                     if isinstance(item, dict):
                         if "category" in item:
-                            names.add(str(item["category"]))
+                            names.add(canonical_hospital_category(item["category"]))
                         if "service" in item:
-                            names.add(str(item["service"]))
+                            names.update(canonical_extras_services(item["service"]))
         return names
 
     def _values_equal(self, left: Any, right: Any) -> bool:
-        if isinstance(left, float) or isinstance(right, float):
-            try:
-                return math.isclose(float(left), float(right), rel_tol=1e-5, abs_tol=1e-5)
-            except (TypeError, ValueError):
-                return False
+        left_number = self._normalized_number(left)
+        right_number = self._normalized_number(right)
+        if left_number is not None and right_number is not None:
+            return math.isclose(
+                float(left_number),
+                float(right_number),
+                rel_tol=1e-5,
+                abs_tol=1e-5,
+            )
+        if isinstance(left, str) and isinstance(right, str):
+            return self._normalize_string(left) == self._normalize_string(right)
+        if isinstance(left, list) and isinstance(right, list):
+            return self._normalize_value(left) == self._normalize_value(right)
         return left == right
 
     def _normalize_value(self, value: Any) -> Any:
         if isinstance(value, list):
-            return tuple(sorted(str(item) for item in value))
+            return tuple(sorted(self._normalize_value(item) for item in value))
         if isinstance(value, str):
-            return " ".join(value.split())
+            number = self._normalized_number(value)
+            return number if number is not None else self._normalize_string(value)
         return value
+
+    @staticmethod
+    def _normalized_number(value: Any) -> Decimal | None:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int | float | Decimal):
+            try:
+                return Decimal(str(value))
+            except InvalidOperation:
+                return None
+        if not isinstance(value, str):
+            return None
+        cleaned = value.strip()
+        # Only treat the entire string as an amount/number.  Values such as
+        # "2 months" remain semantic strings rather than becoming the number 2.
+        if not re.fullmatch(r"(?:AUD\s*)?\$?\s*[+-]?(?:\d[\d,]*)(?:\.\d+)?", cleaned, re.I):
+            return None
+        try:
+            return Decimal(re.sub(r"(?:AUD)|[$,\s]", "", cleaned, flags=re.I))
+        except InvalidOperation:
+            return None
+
+    @staticmethod
+    def _normalize_string(value: str) -> str:
+        # Split CamelCase before folding punctuation so GT enum/category names
+        # and human-readable labels share the same token stream.
+        value = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value)
+        value = value.casefold().replace("&", " and ")
+        tokens = re.findall(r"[a-z0-9]+", value)
+        tokens = [token for token in tokens if token not in {"and"}]
+        unit_aliases = {
+            "months": "month",
+            "years": "year",
+            "weeks": "week",
+            "days": "day",
+            "dollars": "dollar",
+        }
+        return "".join(unit_aliases.get(token, token) for token in tokens)

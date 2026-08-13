@@ -7,6 +7,11 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Iterable
 
+from src.schema.product_types import (
+    DEFAULT_OVERRIDE_PATH,
+    load_product_type_overrides,
+    resolve_product_type,
+)
 
 DEFAULT_CATEGORIES = ("combined", "extras", "generalhealth", "hospital")
 
@@ -17,6 +22,7 @@ def select_samples(
     per_category: int = 5,
     seed: int | None = None,
     exclude_paths: Iterable[str | Path] = (),
+    product_type_overrides_path: str | Path | None = DEFAULT_OVERRIDE_PATH,
 ) -> list[str]:
     if per_category <= 0:
         raise ValueError("--per-category must be greater than 0.")
@@ -24,7 +30,11 @@ def select_samples(
         raise ValueError(f"Input root does not exist: {input_root}")
 
     rng = random.Random(seed)
-    candidates = collect_candidates(input_root, categories)
+    candidates = collect_candidates(
+        input_root,
+        categories,
+        product_type_overrides_path=product_type_overrides_path,
+    )
     excluded = {Path(path).resolve() for path in exclude_paths}
     excluded_identities = {
         document_identity(path)
@@ -140,14 +150,21 @@ def _select_unique_documents(
 def collect_candidates(
     input_root: Path,
     categories: tuple[str, ...],
+    product_type_overrides_path: str | Path | None = DEFAULT_OVERRIDE_PATH,
 ) -> dict[str, dict[str, list[Path]]]:
     candidates: dict[str, dict[str, list[Path]]] = {
         category: defaultdict(list) for category in categories
     }
+    overrides = load_product_type_overrides(product_type_overrides_path)
 
     for pdf_path in sorted(input_root.rglob("*.pdf")):
-        parts = [part.lower() for part in pdf_path.parts]
-        category = next((item for item in categories if item in parts), None)
+        resolution = resolve_product_type(
+            pdf_path,
+            input_root=input_root,
+            categories=categories,
+            overrides=overrides,
+        )
+        category = resolution.effective_product_type
         if category:
             candidates[category][company_from_path(pdf_path, input_root, category)].append(pdf_path)
 
@@ -157,6 +174,8 @@ def collect_candidates(
 def company_from_path(pdf_path: Path, input_root: Path, category: str) -> str:
     relative_parts = pdf_path.relative_to(input_root).parts
     lowered = [part.lower() for part in relative_parts]
+    if category not in lowered:
+        return relative_parts[0] if len(relative_parts) > 1 else pdf_path.stem
     category_index = lowered.index(category)
 
     if category_index > 0:
@@ -167,12 +186,19 @@ def company_from_path(pdf_path: Path, input_root: Path, category: str) -> str:
 
 
 def print_samples(sample_paths: list[str], input_root: Path, categories: tuple[str, ...]) -> None:
+    overrides = load_product_type_overrides()
     print("Selected PDF samples:")
     for category in categories:
         print(f"[{category}]")
         for sample_path in sample_paths:
             path = Path(sample_path)
-            if category not in [part.lower() for part in path.parts]:
+            resolution = resolve_product_type(
+                path,
+                input_root=input_root,
+                categories=categories,
+                overrides=overrides,
+            )
+            if resolution.effective_product_type != category:
                 continue
             try:
                 print(f"- {path.relative_to(input_root)}")

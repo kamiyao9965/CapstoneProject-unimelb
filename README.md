@@ -156,9 +156,10 @@ LLM_MODEL=deepseek-v4-pro
 LLM_DOCUMENT_INPUT=markdown
 ```
 
-The model identifier must exist at the configured endpoint. The project accepts
-the approved `deepseek-*` family, but it cannot make an unavailable provider
-model exist. Confirm the exact model ID with your DeepSeek account or proxy.
+The official DeepSeek endpoint currently offers `deepseek-v4-flash` and
+`deepseek-v4-pro`. Flash is faster and cheaper; Pro is the higher-quality option.
+The model identifier must exist at the configured endpoint, so compatible proxies
+may expose a different set of model IDs.
 
 The same selection can be overridden for one discovery command:
 
@@ -405,6 +406,22 @@ then resume with the reviewed schema; holdout extraction, failure discovery,
 Autonomous mode removes the human stop; it does not weaken validation or the
 three-attempt maximum.
 
+### Resume interrupted holdout extraction
+
+If a provider failure interrupts or partially completes holdout extraction,
+resume the existing round without repeating successful PDF calls:
+
+```bash
+.venv/bin/python src/refine/loop.py \
+  --resume-extraction outputs/private_health/refine/round_1 \
+  --eval-per-category 5 \
+  --eval-seed 7
+```
+
+Successes are matched by schema and PDF hashes. Failed and unfinished PDFs are
+retried, individual failures are recorded without stopping later documents,
+and feedback counts a prior failure only when no later success supersedes it.
+
 Typical round contents:
 
 ```text
@@ -434,8 +451,12 @@ the downstream extraction and ground-truth evaluation pipeline:
 ```bash
 .venv/bin/python src/run.py batch \
   --schema outputs/private_health/refine/final_schema.json \
+  --limit 20 \
   --evaluate
 ```
+
+`--limit` processes the first N PDFs in deterministic sorted path order. Omit
+it to process every PDF under the input root.
 
 ## 10. Analyze extraction artifacts directly
 
@@ -542,7 +563,10 @@ documentation before changing the registry.
 ### Existing output path
 
 One-shot discovery chooses a numeric suffix. Other governed stages refuse to
-overwrite their expected artifacts; use a new output directory.
+overwrite their expected artifacts; use a new output directory. The stable
+`final_schema.json` publication path is the deliberate exception: after a round
+finishes validation and holdout evaluation, it is atomically replaced with that
+round's schema.
 
 ### No live API verification
 

@@ -20,7 +20,7 @@
       "document_inputs": ["pdf", "markdown"]
     },
     "deepseek": {
-      "model_patterns": ["deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro"],
+      "model_patterns": ["deepseek-v4-flash", "deepseek-v4-pro"],
       "structured_output_mode": "json_object",
       "document_inputs": ["markdown"]
     }

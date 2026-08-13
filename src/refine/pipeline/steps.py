@@ -109,6 +109,8 @@ def evaluate_schema(
     schema_data: dict[str, object],
     round_dir: Path,
     exclude_paths: Iterable[str | Path] = (),
+    *,
+    overwrite_feedback: bool = False,
 ):
     """Apply a schema to holdout PDFs, find failures, and write feedback."""
     eval_paths = select_samples(
@@ -151,5 +153,6 @@ def evaluate_schema(
         round_dir / "refinement_feedback.json",
         feedback_artifact,
         data_contract="private_health/refinement_feedback",
+        overwrite=overwrite_feedback,
     )
     return analysis, feedback

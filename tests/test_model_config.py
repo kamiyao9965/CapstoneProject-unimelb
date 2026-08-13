@@ -81,9 +81,9 @@ class ModelSelectionTest(unittest.TestCase):
         self.assertEqual(
             resolve_selection(
                 provider="deepseek",
-                environment={"LLM_MODEL": "deepseek-chat"},
+                environment={"LLM_MODEL": "deepseek-v4-flash"},
             ),
-            ModelSelection("deepseek", "deepseek-chat", "markdown"),
+            ModelSelection("deepseek", "deepseek-v4-flash", "markdown"),
         )
 
     def test_structured_output_capabilities_cover_approved_model_families(self) -> None:

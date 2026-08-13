@@ -127,6 +127,15 @@ class FullPipelineAdapterTest(unittest.TestCase):
         self.assertTrue(extract_args.no_fallback)
         self.assertTrue(batch_args.no_fallback)
 
+    def test_batch_limit_is_available(self) -> None:
+        args = build_parser().parse_args([
+            "batch",
+            "--schema", "schema.json",
+            "--limit", "20",
+        ])
+
+        self.assertEqual(args.limit, 20)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -71,7 +71,7 @@ class SchemaConsensusRefinement:
         input_root: str | Path | None = None,
         categories: tuple[str, ...] = DEFAULT_CATEGORIES,
         per_category: int = 5,
-        runs: int = 10,
+        runs: int = 3,
         seed: int | None = None,
         samples: list[str] | None = None,
         base_sample_paths: Iterable[str | Path] = (),
@@ -202,7 +202,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--base-schema", default="outputs/private_health/schema.json")
     parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
     parser.add_argument("--per-category", type=int, default=5)
-    parser.add_argument("--runs", type=int, default=5)
+    parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--provider")
     parser.add_argument("--model")

@@ -68,6 +68,111 @@ class RunParserTest(unittest.TestCase):
 
         self.assertEqual(args.output, "outputs/private_health/schema.json")
 
+    def test_batch_resume_flags_are_explicit(self) -> None:
+        args = build_parser().parse_args(
+            ["batch", "--schema", "schema.json", "--resume", "--trust-legacy-cache"]
+        )
+
+        self.assertTrue(args.resume)
+        self.assertTrue(args.trust_legacy_cache)
+
+
+class BatchResumeTest(unittest.TestCase):
+    def _result(self, pdf_path: Path, **overrides: object) -> run_module.ExtractionResult:
+        values = {
+            "vertical": "private_health",
+            "schema_version": "1.0.0",
+            "source_path": str(pdf_path),
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "data": {"product_name": "Example"},
+        }
+        values.update(overrides)
+        return run_module.ExtractionResult(**values)
+
+    def test_exact_hashes_resume(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf = root / "product.pdf"
+            schema = root / "schema.json"
+            output = root / "product.json"
+            pdf.write_bytes(b"pdf")
+            schema.write_text("{}", encoding="utf-8")
+            self._result(
+                pdf,
+                schema_sha256="schema-hash",
+                source_sha256=run_module.file_sha256(pdf),
+            ).write_json(output)
+
+            cached = run_module.load_cached_batch_result(
+                output_path=output,
+                pdf_path=pdf,
+                schema_path=schema,
+                schema_hash="schema-hash",
+                source_hash=run_module.file_sha256(pdf),
+                provider="deepseek",
+                model="deepseek-v4-pro",
+                trust_legacy=False,
+            )
+
+            self.assertIsNotNone(cached)
+
+    def test_changed_pdf_is_not_resumed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf = root / "product.pdf"
+            schema = root / "schema.json"
+            output = root / "product.json"
+            pdf.write_bytes(b"old")
+            schema.write_text("{}", encoding="utf-8")
+            self._result(
+                pdf,
+                schema_sha256="schema-hash",
+                source_sha256=run_module.file_sha256(pdf),
+            ).write_json(output)
+            pdf.write_bytes(b"new")
+
+            cached = run_module.load_cached_batch_result(
+                output_path=output,
+                pdf_path=pdf,
+                schema_path=schema,
+                schema_hash="schema-hash",
+                source_hash=run_module.file_sha256(pdf),
+                provider="deepseek",
+                model="deepseek-v4-pro",
+                trust_legacy=False,
+            )
+
+            self.assertIsNone(cached)
+
+    def test_legacy_cache_is_adopted_only_when_requested(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf = root / "product.pdf"
+            schema = root / "schema.json"
+            output = root / "product.json"
+            pdf.write_bytes(b"pdf")
+            schema.write_text("{}", encoding="utf-8")
+            self._result(pdf).write_json(output)
+            source_hash = run_module.file_sha256(pdf)
+
+            cached = run_module.load_cached_batch_result(
+                output_path=output,
+                pdf_path=pdf,
+                schema_path=schema,
+                schema_hash="schema-hash",
+                source_hash=source_hash,
+                provider="deepseek",
+                model="deepseek-v4-pro",
+                trust_legacy=True,
+            )
+
+            self.assertEqual(cached.schema_sha256, "schema-hash")
+            persisted = run_module.ExtractionResult.model_validate_json(
+                output.read_text(encoding="utf-8")
+            )
+            self.assertEqual(persisted.source_sha256, source_hash)
+
 
 if __name__ == "__main__":
     unittest.main()

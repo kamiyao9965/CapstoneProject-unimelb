@@ -12,6 +12,7 @@ SUPPORTED_FIELD_TYPES = frozenset(
 SUPPORTED_PRODUCT_TYPES = frozenset(
     {"hospital", "extras", "generalhealth", "combined"}
 )
+CORE_REQUIRED_FIELDS = frozenset({"product_type", "product_name", "fund_name", "insurer_name"})
 SNAKE_CASE_NAME = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
 JSONScalar: TypeAlias = str | int | float | bool
 
@@ -127,6 +128,11 @@ def validate_field_payload(
 
     if not isinstance(payload.get("required"), bool):
         raise ValueError(f"Schema field {name!r} required must be boolean.")
+    if payload.get("required") is True and name not in CORE_REQUIRED_FIELDS:
+        raise ValueError(
+            f"Schema field {name!r} must not be marked required; "
+            "only core product identity fields may be required."
+        )
     values = payload.get("values")
     if not isinstance(values, list):
         raise ValueError(f"Schema field {name!r} values must be a list.")

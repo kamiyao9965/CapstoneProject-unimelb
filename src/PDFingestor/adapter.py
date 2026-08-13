@@ -2,16 +2,59 @@ from __future__ import annotations
 
 import csv
 import io
+import re
+from collections import Counter
 from pathlib import Path
 from typing import Iterable, Literal, Sequence
 
+from src.PDFingestor.models import (
+    PageRepresentation,
+    ParsedPDF,
+    TableBlock,
+    TextBlock,
+    VisionBlock,
+)
 from src.PDFingestor.parser import PDFIngestor
-from src.PDFingestor.models import PageRepresentation, ParsedPDF, TableBlock
 
 
 DEFAULT_CACHE_DIR = Path("outputs/private_health/pdfingestor_cache")
 TableFormat = Literal["markdown", "tsv", "csv"]
 CommentLevel = Literal["full", "lite", "none"]
+
+
+def document_quality(documents: Iterable[ParsedPDF]) -> dict[str, object]:
+    """Summarize whether parsed PDFs contain meaningful model input."""
+    documents = tuple(documents)
+    pages = [page for document in documents for page in document.pages]
+    blocks = [block for page in pages for block in page.blocks]
+    tables = [block for block in blocks if block.type == "table"]
+    content = "\n".join(
+        block.markdown if block.type == "table" else block.content
+        for block in blocks
+    )
+    lowered = content.casefold()
+    headings = tuple(
+        heading for heading in ("hospital cover", "what's covered", "what’s covered", "what is covered")
+        if heading in lowered
+    )
+    non_whitespace_characters = sum(not character.isspace() for character in content)
+    hard_failures = []
+    if not pages:
+        hard_failures.append("no_pages")
+    if not blocks:
+        hard_failures.append("no_blocks")
+    if not non_whitespace_characters:
+        hard_failures.append("no_non_whitespace_content")
+    return {
+        "documents": len(documents),
+        "pages": len(pages),
+        "blocks": len(blocks),
+        "tables": len(tables),
+        "non_whitespace_characters": non_whitespace_characters,
+        "key_headings": list(headings),
+        "has_key_heading": bool(headings),
+        "hard_failures": hard_failures,
+    }
 
 
 def build_ingestor(
@@ -46,9 +89,13 @@ def render_documents_for_prompt(
     comment_level: CommentLevel = "full",
     include_document_metadata: bool = True,
     include_document_title: bool = True,
+    conservative_filter: bool = False,
 ) -> str:
     sections: list[str] = []
     for index, document in enumerate(documents, 1):
+        repeated_marginal_text = (
+            _repeated_marginal_text(document) if conservative_filter else set()
+        )
         title = f"# PDF: {document.pdf_id}" if include_document_title else f"# Document {index}"
         chunks = [title]
         if include_document_metadata:
@@ -64,6 +111,7 @@ def render_documents_for_prompt(
                     page,
                     table_format=table_format,
                     comment_level=comment_level,
+                    repeated_marginal_text=repeated_marginal_text,
                 )
                 for page in document.pages
             )
@@ -82,6 +130,7 @@ def render_pdf_paths_for_prompt(
     comment_level: CommentLevel = "full",
     include_document_metadata: bool = True,
     include_document_title: bool = True,
+    conservative_filter: bool = False,
 ) -> str:
     return render_documents_for_prompt(
         ingest_pdfs(
@@ -94,6 +143,7 @@ def render_pdf_paths_for_prompt(
         comment_level=comment_level,
         include_document_metadata=include_document_metadata,
         include_document_title=include_document_title,
+        conservative_filter=conservative_filter,
     )
 
 
@@ -102,10 +152,13 @@ def render_page(
     *,
     table_format: TableFormat = "markdown",
     comment_level: CommentLevel = "full",
+    repeated_marginal_text: set[str] | None = None,
 ) -> str:
     chunks = [_page_marker(page.page_num, comment_level)]
     for block in page.blocks:
         if block.type == "text":
+            if _drop_text_block(block, page, repeated_marginal_text or set()):
+                continue
             if comment_level == "full":
                 chunks.append(f"<!-- text block_id={block.block_id} -->")
             chunks.append(block.content)
@@ -120,6 +173,48 @@ def render_page(
         else:
             chunks.append(block.content)
     return "\n\n".join(chunk for chunk in chunks if chunk.strip()).strip()
+
+
+_PURE_URL = re.compile(r"^(?:https?://|www\.)\S+/?$", re.IGNORECASE)
+_PURE_PAGE_NUMBER = re.compile(
+    r"^(?:page\s*)?\d{1,4}(?:\s*(?:of|/)\s*\d{1,4})?$",
+    re.IGNORECASE,
+)
+
+
+def _drop_text_block(
+    block: TextBlock | VisionBlock,
+    page: PageRepresentation,
+    repeated_marginal_text: set[str],
+) -> bool:
+    text = _normalize_text(block.content)
+    if not text:
+        return True
+    if _PURE_URL.fullmatch(text) or _PURE_PAGE_NUMBER.fullmatch(text):
+        return True
+    return text in repeated_marginal_text and _is_marginal(block, page)
+
+
+def _repeated_marginal_text(document: ParsedPDF) -> set[str]:
+    counts: Counter[str] = Counter()
+    for page in document.pages:
+        for block in page.blocks:
+            if block.type != "text" or not _is_marginal(block, page):
+                continue
+            text = _normalize_text(block.content)
+            if text and len(text) <= 160:
+                counts[text] += 1
+    return {text for text, count in counts.items() if count >= 3}
+
+
+def _is_marginal(block: TextBlock | VisionBlock, page: PageRepresentation) -> bool:
+    if page.height <= 0:
+        return False
+    return block.top <= page.height * 0.12 or block.top >= page.height * 0.88
+
+
+def _normalize_text(value: str) -> str:
+    return " ".join(value.strip().split())
 
 
 def render_table(block: TableBlock, *, table_format: TableFormat = "markdown") -> str:

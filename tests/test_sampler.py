@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.schema.sampler import select_samples
+from src.schema.sampler import collect_candidates, select_samples
 
 
 class SelectSamplesTest(unittest.TestCase):
@@ -67,6 +67,27 @@ class SelectSamplesTest(unittest.TestCase):
                     per_category=2,
                     seed=1,
                 )
+
+    def test_product_type_override_moves_candidate_to_effective_bucket(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            override_path = root / "overrides.json"
+            mislabeled = root / "NTF" / "hospital" / "top-extras.pdf"
+            mislabeled.parent.mkdir(parents=True)
+            mislabeled.write_bytes(b"extras-policy")
+            override_path.write_text(
+                '{"NTF/hospital/top-extras.pdf": "extras"}',
+                encoding="utf-8",
+            )
+
+            candidates = collect_candidates(
+                root,
+                ("extras", "hospital"),
+                product_type_overrides_path=override_path,
+            )
+
+            self.assertEqual(candidates["extras"]["NTF"], [mislabeled])
+            self.assertEqual(candidates["hospital"], {})
 
 
 if __name__ == "__main__":

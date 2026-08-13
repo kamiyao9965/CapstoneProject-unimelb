@@ -114,6 +114,21 @@ class SchemaValidationTest(unittest.TestCase):
                 {"extras"},
             )
 
+    def test_rejects_non_identity_required_fields(self) -> None:
+        payload = json.loads(VALID_SCHEMA)
+        payload["fields"].append({
+            "name": "waiting_periods",
+            "type": "list[object]",
+            "description": "Waiting periods by service or condition.",
+            "applies_to": ["hospital", "extras"],
+            "required": True,
+            "values": [],
+            "aliases": [],
+        })
+
+        with self.assertRaisesRegex(ValueError, "must not be marked required"):
+            validate_schema_mapping(payload)
+
     def test_discovery_rejects_invalid_schema_before_writing_usage_log(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             pdf_path = Path(tmp) / "sample.pdf"

@@ -4,6 +4,7 @@ from src.refine.pipeline.cli import build_parser, main
 from src.refine.pipeline.rounds import (
     next_round_index,
     publish_final_schema,
+    resume_extraction,
     resume_review,
     run_round,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "main",
     "next_round_index",
     "publish_final_schema",
+    "resume_extraction",
     "resume_review",
     "run_consensus_stage",
     "run_round",

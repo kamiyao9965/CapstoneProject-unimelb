@@ -37,6 +37,11 @@ class CanonicalFieldNameTest(unittest.TestCase):
     def test_applies_default_aliases_after_snake_casing(self) -> None:
         self.assertEqual(canonical_field_name("Annual Benefit Limit"), "annual_limit")
         self.assertEqual(canonical_field_name("company_name"), "fund_name")
+        self.assertEqual(
+            canonical_field_name("Hospital Clinical Categories"),
+            "clinical_categories",
+        )
+        self.assertEqual(canonical_field_name("ambulance_coverage"), "ambulance_cover")
 
     def test_custom_aliases_replace_defaults(self) -> None:
         aliases = {"tariff": "premium"}
