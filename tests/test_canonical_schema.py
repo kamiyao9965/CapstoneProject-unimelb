@@ -160,6 +160,30 @@ class CanonicalSchemaLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "product-name identity"):
             validate_canonical_schema(schema)
 
+    def test_rejects_multiple_fields_bound_to_one_core_column(self) -> None:
+        schema = approved_travel_schema()
+        duplicate = copy.deepcopy(schema["fields"][0])
+        duplicate["name"] = "alternate_product_name"
+        schema["fields"].append(duplicate)
+
+        with self.assertRaisesRegex(ValueError, "duplicate core binding"):
+            validate_canonical_schema(schema)
+
+    def test_product_name_identity_must_be_a_string(self) -> None:
+        schema = approved_travel_schema()
+        schema["fields"][0]["type"] = "boolean"
+
+        with self.assertRaisesRegex(ValueError, "product-name.*string"):
+            validate_canonical_schema(schema)
+
+    def test_product_type_identity_must_be_an_enum(self) -> None:
+        schema = approved_travel_schema()
+        schema["fields"][1]["type"] = "string"
+        schema["fields"][1]["values"] = []
+
+        with self.assertRaisesRegex(ValueError, "product-type.*enum"):
+            validate_canonical_schema(schema)
+
 
 class CanonicalExtractionCompilerTests(unittest.TestCase):
     def test_compiles_reviewed_fields_into_multiple_product_contract(self) -> None:

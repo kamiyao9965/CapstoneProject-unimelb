@@ -47,6 +47,7 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
 
     field_by_name: dict[str, Mapping[str, object]] = {}
     extension_columns: set[str] = set()
+    core_bindings: set[str] = set()
     extension = payload["extension"]
     if not isinstance(extension, Mapping):
         raise ValueError("Canonical Schema extension must be an object.")
@@ -98,6 +99,13 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
                     f"Canonical Schema contains duplicate extension column: {column}"
                 )
             extension_columns.add(column)
+        elif strategy == "core_column":
+            target = str(storage["target"])
+            if target in core_bindings:
+                raise ValueError(
+                    f"Canonical Schema contains duplicate core binding: {target}"
+                )
+            core_bindings.add(target)
 
     identity = payload["identity"]
     if not isinstance(identity, Mapping):
@@ -106,12 +114,14 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
         field_by_name,
         str(identity["product_name_field"]),
         expected_target=_PRODUCT_NAME_TARGET,
+        expected_type="string",
         identity_label="product-name",
     )
     _validate_identity_binding(
         field_by_name,
         str(identity["product_type_field"]),
         expected_target=_PRODUCT_TYPE_TARGET,
+        expected_type="enum",
         identity_label="product-type",
     )
     return payload
@@ -217,6 +227,7 @@ def _validate_identity_binding(
     field_name: str,
     *,
     expected_target: str,
+    expected_type: str,
     identity_label: str,
 ) -> None:
     field = fields.get(field_name)
@@ -234,4 +245,9 @@ def _validate_identity_binding(
         raise ValueError(
             f"Canonical {identity_label} identity field {field_name!r} must be "
             "required and non-nullable."
+        )
+    if field.get("type") != expected_type:
+        raise ValueError(
+            f"Canonical {identity_label} identity field {field_name!r} must use "
+            f"type {expected_type!r}."
         )

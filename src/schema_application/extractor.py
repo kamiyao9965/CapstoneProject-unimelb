@@ -72,6 +72,12 @@ class SchemaExtractor:
             self.extraction_contract = compile_canonical_extraction_contract(
                 canonical_schema
             )
+            canonical_fields = canonical_schema["fields"]
+            assert isinstance(canonical_fields, list)
+            self.structured_output_strict = not any(
+                field["type"] == "list[object]" or field["required"] is False
+                for field in canonical_fields
+            )
             self.schema_prompt_label = "Approved Canonical Schema"
         else:
             validate_contract(schema_data, schema_contract)
@@ -81,6 +87,10 @@ class SchemaExtractor:
                 data_contract=schema_contract,
                 business_validator=schema_validator,
                 output_cardinality=output_cardinality,
+            )
+            self.structured_output_strict = not any(
+                field["type"] == "list[object]"
+                for field in self.schema_data["fields"]
             )
             self.schema_prompt_label = "Discovered schema"
         self.extraction_prompt = extraction_prompt
@@ -140,10 +150,7 @@ class SchemaExtractor:
             structured_output=StructuredOutputSpec(
                 name="extraction_result",
                 schema=self.extraction_contract,
-                strict=not any(
-                    field["type"] == "list[object]"
-                    for field in self.schema_data["fields"]
-                ),
+                strict=self.structured_output_strict,
             ),
         )
         try:

@@ -19,7 +19,6 @@ EXPECTED_TABLES = {
     "products",
     "product_releases",
     "product_release_documents",
-    "travel_product_details",
 }
 
 
@@ -50,21 +49,16 @@ class StorageSchemaTest(unittest.TestCase):
             [constraint["column_names"] for constraint in product_uniques],
         )
 
-    def test_postgresql_schema_uses_jsonb_for_flexible_payloads(self) -> None:
+    def test_fixed_postgresql_schema_uses_jsonb_for_raw_payloads_only(self) -> None:
         dialect = postgresql.dialect()
         raw_ddl = str(
             CreateTable(storage_metadata.tables["raw_extractions"]).compile(
                 dialect=dialect
             )
         )
-        travel_ddl = str(
-            CreateTable(storage_metadata.tables["travel_product_details"]).compile(
-                dialect=dialect
-            )
-        )
 
         self.assertIn("artifact JSONB", raw_ddl)
-        self.assertIn("attributes JSONB", travel_ddl)
+        self.assertNotIn("travel_product_details", storage_metadata.tables)
 
 
 if __name__ == "__main__":

@@ -317,6 +317,29 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
             )
 
+    def test_optional_canonical_scalar_disables_provider_strict_mode(self) -> None:
+        schema = approved_travel_schema()
+        schema["fields"] = [
+            field for field in schema["fields"] if field["name"] != "benefits"
+        ]
+        schema["fields"][2]["required"] = False
+
+        extractor = SchemaExtractor(
+            schema_data=schema,
+            selection=ModelSelection("openai", "gpt-5", "markdown"),
+            provider=mock.Mock(),
+            usage_log_path=None,
+            log=None,
+            schema_contract="travel_insurance/discovered_schema",
+            schema_validator=get_schema_validator(
+                "travel_insurance_schema_v1"
+            ),
+            output_cardinality="multiple",
+            extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+        )
+
+        self.assertFalse(extractor.structured_output_strict)
+
 
 if __name__ == "__main__":
     unittest.main()

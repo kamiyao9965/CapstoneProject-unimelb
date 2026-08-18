@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from sqlalchemy import (
     JSON,
-    Boolean,
     Column,
     Date,
     DateTime,
@@ -140,25 +139,6 @@ product_release_documents = Table(
     ForeignKeyConstraint(["release_id"], ["product_releases.release_id"]),
     ForeignKeyConstraint(["document_id"], ["documents.document_id"]),
 )
-
-travel_product_details = Table(
-    "travel_product_details",
-    storage_metadata,
-    Column(
-        "release_id",
-        String(71),
-        ForeignKey("product_releases.release_id"),
-        primary_key=True,
-    ),
-    Column("geographic_scope", String(64)),
-    Column("trip_frequency", String(64)),
-    Column("plan_tier", String(64)),
-    Column("customer_segment", String(64)),
-    Column("trip_style", String(64)),
-    Column("cruise_cover_available", Boolean),
-    Column("attributes", flexible_json, nullable=False),
-)
-
 
 def create_storage_schema(engine: Engine) -> None:
     """Create missing storage tables without modifying or deleting existing data."""
