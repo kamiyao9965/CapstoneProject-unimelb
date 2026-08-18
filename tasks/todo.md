@@ -1,6 +1,6 @@
 # Approved Canonical Schema Tasks
 
-- [ ] Define the Canonical Schema contract and lifecycle validator.
+- [x] Define the Canonical Schema contract and lifecycle validator.
   - Acceptance: approved schemas require a valid human review record; candidate
     schemas fail closed at compiler boundaries.
   - Verify: focused contract and semantic validation tests.

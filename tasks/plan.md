@@ -20,15 +20,15 @@ extraction, fixed core tables, and the legacy Travel mapping during migration.
 
 ### Phase 1: Contract and lifecycle
 
-- [ ] Define and allowlist the Canonical Schema JSON contract.
-- [ ] Add semantic validation for approval, identifiers, bindings, and storage
+- [x] Define and allowlist the Canonical Schema JSON contract.
+- [x] Add semantic validation for approval, identifiers, bindings, and storage
       combinations.
-- [ ] Prove candidate schemas cannot compile downstream outputs.
+- [x] Prove candidate schemas cannot compile downstream outputs.
 
 ### Checkpoint: Contract
 
-- [ ] Focused lifecycle and validation tests pass.
-- [ ] Existing contract catalog behavior remains compatible.
+- [x] Focused lifecycle and validation tests pass.
+- [x] Existing contract catalog behavior remains compatible.
 
 ### Phase 2: Generated extraction interface
 
