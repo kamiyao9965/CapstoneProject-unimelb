@@ -1,0 +1,365 @@
+{
+  "contract_version": "1.0.0",
+  "vertical": "travel_insurance",
+  "version": "1.0.0",
+  "status": "approved",
+  "description": "Canonical business schema approved for a local end-to-end Travel storage smoke test. One product record represents one distinct plan or tier and product-type combination.",
+  "review": {
+    "reviewed_by": "James",
+    "reviewed_at": "2026-08-19T09:41:37+10:00",
+    "rationale": "Approved for a local end-to-end PostgreSQL storage smoke test. Field semantics and storage strategies require further review before production use."
+  },
+  "output": {
+    "collection": "products",
+    "cardinality": "multiple",
+    "document_notes_field": "_document_notes"
+  },
+  "identity": {
+    "product_name_field": "product_name",
+    "product_type_field": "product_type"
+  },
+  "extension": {
+    "entity": "travel_product_details",
+    "table": "travel_product_details",
+    "attributes_column": "attributes"
+  },
+  "fields": [
+    {
+      "name": "product_name",
+      "type": "string",
+      "description": "Official full plan-level name, unique within the insurer. Include product scope or frequency and plan tier when the published plan name alone is ambiguous; do not include the insurer brand.",
+      "required": true,
+      "nullable": false,
+      "values": [],
+      "aliases": ["policy_name", "full_plan_name"],
+      "storage": {
+        "strategy": "core_column",
+        "target": "products.canonical_name"
+      }
+    },
+    {
+      "name": "product_type",
+      "type": "enum",
+      "description": "Primary mutually exclusive travel product classification. Business is represented by customer_segment and cruise by cruise fields rather than by this classifier.",
+      "required": true,
+      "nullable": false,
+      "values": [
+        "international_single_trip",
+        "international_multi_trip",
+        "domestic",
+        "inbound"
+      ],
+      "aliases": ["plan_type", "policy_type", "cover_type"],
+      "storage": {
+        "strategy": "core_column",
+        "target": "product_releases.source_product_type"
+      }
+    },
+    {
+      "name": "plan_name",
+      "type": "string",
+      "description": "Published plan tier or level, such as Basic, Comprehensive, or Comprehensive+. Use null when the product has no distinct tier name.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["tier", "cover_level"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "plan_name"
+      }
+    },
+    {
+      "name": "geographic_scope",
+      "type": "enum",
+      "description": "Normalised broad geographic scope used for filtering; detailed region wording belongs in geographic_coverage_details.",
+      "required": true,
+      "nullable": true,
+      "values": ["international", "domestic", "inbound"],
+      "aliases": ["travel_scope", "cover_region_type"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "geographic_scope"
+      }
+    },
+    {
+      "name": "trip_frequency",
+      "type": "enum",
+      "description": "Whether the plan covers one continuous journey or multiple journeys during an annual policy period.",
+      "required": true,
+      "nullable": true,
+      "values": ["single_trip", "annual_multi_trip"],
+      "aliases": ["frequency", "journey_type"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "trip_frequency"
+      }
+    },
+    {
+      "name": "customer_segment",
+      "type": "enum",
+      "description": "Normalised intended customer segment. Use business only for products specifically designed for business travel.",
+      "required": true,
+      "nullable": true,
+      "values": ["personal", "business"],
+      "aliases": ["market_segment", "traveller_type"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "customer_segment"
+      }
+    },
+    {
+      "name": "cruise_cover_available",
+      "type": "boolean",
+      "description": "Whether cruise cover is included or can be selected for the plan. Detailed requirements and conditions belong in cruise_cover_rules.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["cruise_option_available", "cruise_cover"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "cruise_cover_available"
+      }
+    },
+    {
+      "name": "max_trip_duration_days",
+      "type": "number",
+      "description": "Maximum duration in days for each journey, especially for annual multi-trip products. Use null when not stated or not applicable.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["max_days_per_trip", "max_journey_duration"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "max_trip_duration_days"
+      }
+    },
+    {
+      "name": "overall_policy_duration_days",
+      "type": "number",
+      "description": "Maximum overall policy period in days when explicitly stated. Use null rather than converting an imprecise duration.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["policy_term", "maximum_policy_days"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "overall_policy_duration_days"
+      }
+    },
+    {
+      "name": "age_eligibility_min",
+      "type": "number",
+      "description": "Minimum eligible traveller age in years when the PDS states a plan-level minimum. Benefit-specific age rules belong in benefits.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["min_age"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "age_eligibility_min"
+      }
+    },
+    {
+      "name": "age_eligibility_max",
+      "type": "number",
+      "description": "Maximum eligible traveller age in years when the PDS states a plan-level maximum. Benefit-specific age rules belong in benefits.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["max_age"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "age_eligibility_max"
+      }
+    },
+    {
+      "name": "rental_vehicle_excess_limit_aud",
+      "type": "number",
+      "description": "Headline maximum rental-vehicle insurance excess benefit in Australian dollars when explicitly stated for the plan. Detailed conditions and other currencies belong in benefits.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["rental_vehicle_excess_limit", "rental_car_excess_limit"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "rental_vehicle_excess_limit_aud"
+      }
+    },
+    {
+      "name": "personal_liability_limit_aud",
+      "type": "number",
+      "description": "Headline personal-liability benefit limit in Australian dollars when explicitly stated for the plan. The applicable basis and conditions belong in benefits.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["personal_liability_limit", "liability_limit"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "personal_liability_limit_aud"
+      }
+    },
+    {
+      "name": "baggage_overall_limit_aud",
+      "type": "number",
+      "description": "Headline overall baggage and personal-effects limit in Australian dollars when explicitly stated for the plan. Item sublimits and conditions belong in benefits.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["baggage_overall_limit", "luggage_limit"],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "baggage_overall_limit_aud"
+      }
+    },
+    {
+      "name": "geographic_coverage_details",
+      "type": "string",
+      "description": "Detailed PDS wording for covered countries, regions, destination-selection rules, exclusions, and other geographic conditions.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["area_of_travel", "regions", "geographic_coverage"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "residency_eligibility",
+      "type": "string",
+      "description": "Residency, Medicare, visa, departure-location, and return-location requirements for eligibility.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["eligibility", "residency_requirements"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "dependent_children_policy",
+      "type": "string",
+      "description": "Rules for dependent children, including age thresholds, inclusion in the premium, and travel-with-adult requirements.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["children_cover"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "pre_existing_medical_conditions_policy",
+      "type": "string",
+      "description": "Rules for pre-existing medical conditions, including automatic inclusions, assessment, exclusions, additional premiums, excesses, and approval requirements.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["pemc_policy", "existing_medical_conditions"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "pregnancy_cover",
+      "type": "string",
+      "description": "Pregnancy coverage, gestational limits, covered complications, exclusions, and any medical-assessment requirements.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["maternity_cover"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "excess_options",
+      "type": "list[object]",
+      "description": "Available policy excess choices. Preserve amount, currency, application basis, affected plan or benefit, and notes for each option.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["deductible_options"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "special_excesses",
+      "type": "list[object]",
+      "description": "Additional event-specific excesses. Preserve trigger, amount, currency, whether it stacks with the standard excess, and notes.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["additional_excess"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "cancellation_cover_selection",
+      "type": "string",
+      "description": "How cancellation or amendment cover is included or selected, including whether the policyholder chooses a sum insured and any plan-level rules.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["cancellation_sum_insured_rules"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "cruise_cover_rules",
+      "type": "string",
+      "description": "Detailed cruise-cover inclusions, optional-add-on requirements, cruise types, eligibility conditions, and exclusions.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["cruise_option", "cruise_requirements"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "benefits",
+      "type": "list[object]",
+      "description": "Plan benefits. Preserve a canonical category where available, included status, numeric or text limit, currency and limit basis, sublimits, excess, waiting period, conditions, required add-on, notes, and source evidence. Do not infer an amount or inclusion that the PDS does not state.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["cover_table", "policy_sections"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "add_ons_and_options",
+      "type": "list[object]",
+      "description": "Optional or bundled cover variations. Preserve name, description, availability by plan, additional-premium status, affected benefits, limits, eligibility, conditions, and evidence.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["optional_extras", "packs"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "notable_exclusions",
+      "type": "string",
+      "description": "Material plan exclusions and conditions that affect comparison or eligibility. Preserve the PDS meaning without broadening or narrowing it.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["key_exclusions"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "claims_and_assistance",
+      "type": "string",
+      "description": "Claims process, emergency-assistance triggers, prior-approval rules, notification requirements, and supporting-document requirements.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["how_to_claim", "assistance"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "cooling_off_and_refunds",
+      "type": "string",
+      "description": "Cooling-off period, cancellation timing, fees, refund eligibility, and no-claim or pre-departure conditions.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["refund_policy"],
+      "storage": {"strategy": "jsonb"}
+    },
+    {
+      "name": "evidence",
+      "type": "list[object]",
+      "description": "Source citations for plan-level facts. Preserve source document, page, section, quote or snippet, and the field or claim supported.",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": ["sources"],
+      "storage": {"strategy": "jsonb"}
+    }
+  ]
+}

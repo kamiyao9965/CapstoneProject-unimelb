@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
+from datetime import datetime
 
 from src.common.json_contracts import validate_contract
 
 
 _PRODUCT_NAME_TARGET = "products.canonical_name"
 _PRODUCT_TYPE_TARGET = "product_releases.source_product_type"
+_RFC3339_TIMESTAMP = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
 _RESERVED_TABLES = frozenset(
     {
         "verticals",
@@ -40,6 +45,12 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
     validate_contract(payload, "canonical_schema")
     if not isinstance(payload, dict):
         raise ValueError("Canonical Schema must be an object.")
+
+    if payload["status"] == "approved":
+        review = payload["review"]
+        if not isinstance(review, Mapping):
+            raise ValueError("Approved Canonical Schema review must be an object.")
+        _validate_review_timestamp(str(review["reviewed_at"]))
 
     fields = payload["fields"]
     if not isinstance(fields, list):
@@ -250,4 +261,23 @@ def _validate_identity_binding(
         raise ValueError(
             f"Canonical {identity_label} identity field {field_name!r} must use "
             f"type {expected_type!r}."
+        )
+
+
+def _validate_review_timestamp(value: str) -> None:
+    if not _RFC3339_TIMESTAMP.fullmatch(value):
+        raise ValueError(
+            "Canonical Schema review reviewed_at must be a timezone-aware "
+            "RFC 3339 timestamp."
+        )
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ValueError(
+            "Canonical Schema review reviewed_at must be a valid timestamp."
+        ) from exc
+    if parsed.utcoffset() is None:
+        raise ValueError(
+            "Canonical Schema review reviewed_at must include a timezone offset."
         )

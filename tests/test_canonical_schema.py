@@ -127,6 +127,13 @@ class CanonicalSchemaLifecycleTests(unittest.TestCase):
         with self.assertRaises(ContractValidationError):
             validate_canonical_schema(schema)
 
+    def test_approved_schema_rejects_placeholder_review_timestamp(self) -> None:
+        schema = approved_travel_schema()
+        schema["review"]["reviewed_at"] = "ISO-8601时间"
+
+        with self.assertRaisesRegex(ValueError, "reviewed_at"):
+            validate_canonical_schema(schema)
+
     def test_rejects_unknown_core_binding(self) -> None:
         schema = approved_travel_schema()
         schema["fields"][0]["storage"]["target"] = "documents.source_path"
