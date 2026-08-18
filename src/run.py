@@ -72,6 +72,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="Deprecated compatibility flag; schema_application extraction has no heuristic fallback.",
     )
 
+    crawl = subparsers.add_parser(
+        "crawl",
+        help="Discover and safely download public insurance document PDFs",
+    )
+    crawl.add_argument("--vertical", default="travel_insurance")
+    crawl.add_argument(
+        "--config",
+        default="configs/travel_insurance/sources.json",
+    )
+    crawl.add_argument(
+        "--data-root",
+        default="data/travel_insurance/raw/PDFs",
+    )
+    crawl.add_argument(
+        "--output-root",
+        default="outputs/travel_insurance/acquisition",
+    )
+    crawl.add_argument(
+        "--insurer",
+        action="append",
+        dest="insurers",
+        default=[],
+        help="Restrict collection to one configured insurer; repeat as needed",
+    )
+    crawl.add_argument("--include-archived", action="store_true")
+    crawl.add_argument(
+        "--discovery-only",
+        action="store_true",
+        help="Discover links and write metadata without downloading PDFs",
+    )
+
     return parser
 
 
@@ -389,6 +420,40 @@ def command_batch(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_crawl(args: argparse.Namespace) -> int:
+    if args.vertical != "travel_insurance":
+        print("The crawl command currently supports only --vertical travel_insurance.")
+        return 2
+    from src.scraper.travel import run_travel_acquisition
+
+    try:
+        outcome = run_travel_acquisition(
+            config_path=args.config,
+            data_root=args.data_root,
+            output_root=args.output_root,
+            insurer_codes=args.insurers,
+            include_archived=args.include_archived,
+            discovery_only=args.discovery_only,
+        )
+    except Exception as exc:
+        print(f"Travel-insurance acquisition failed: {exc}")
+        return 1
+
+    summary = outcome.data["summary"]
+    print(f"Acquisition artifact: {outcome.artifact_path.resolve()}")
+    print(
+        "Summary: "
+        f"providers={summary['providers_succeeded']}/{summary['providers_attempted']}, "
+        f"discovered={summary['documents_discovered']}, "
+        f"downloaded={summary['documents_downloaded']}, "
+        f"valid_pdfs={summary['valid_pdfs']}, "
+        f"errors={len(outcome.data['errors'])}"
+    )
+    for path in outcome.pdf_paths:
+        print(f"PDF: {path}")
+    return 0
+
+
 def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
@@ -431,6 +496,8 @@ def main() -> int:
         return command_extract(args)
     if args.command == "batch":
         return command_batch(args)
+    if args.command == "crawl":
+        return command_crawl(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

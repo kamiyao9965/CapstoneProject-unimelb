@@ -23,6 +23,7 @@ repair retries. Invalid data never proceeds to the next stage.
 | Failure analysis | Measure applicability, fill rate, required-field misses, enum violations, and model-reported unfilled fields |
 | Refinement loop | Feed validated failure analysis into a later discovery round |
 | Cost estimation | Estimate actual and projected spend from JSONL token-usage logs |
+| Travel document acquisition | Discover current PDS, SPDS, brochure, TMD, and FSG PDFs and preserve their product-release relationships |
 
 ## Safety guarantees
 
@@ -65,6 +66,39 @@ Verify the offline suite before using credentials:
 .venv/bin/python -m compileall src tests
 .venv/bin/python -m unittest discover -s tests
 ```
+
+## Travel insurance document acquisition
+
+The `crawl` command is an acquisition step, not an LLM step. It needs no
+OpenAI/Anthropic API key. The checked-in source configuration initially covers
+Allianz, Cover-More, and Southern Cross Travel Insurance:
+
+```bash
+.venv/bin/python src/run.py crawl \
+  --vertical travel_insurance \
+  --config configs/travel_insurance/sources.json
+```
+
+Restrict a smoke test to one insurer by repeating `--insurer` as needed:
+
+```bash
+.venv/bin/python src/run.py crawl \
+  --insurer cover_more \
+  --discovery-only
+```
+
+The crawler honours `robots.txt`, allows only configured public HTTPS domains,
+revalidates redirects, limits PDF size to 50 MiB, verifies the PDF signature,
+and stores content by SHA-256. Default local outputs are:
+
+```text
+data/travel_insurance/raw/PDFs/<insurer>/<document_type>/<sha256>_<title>.pdf
+outputs/travel_insurance/acquisition/<run_id>/acquisition.json
+```
+
+Both directories are intentionally ignored by Git. The acquisition artifact
+records separate retrieval, validation, and parse statuses, plus PDS/SPDS/
+brochure/TMD/FSG relationships and items that need human review.
 
 ## 2. Use the known source documents
 

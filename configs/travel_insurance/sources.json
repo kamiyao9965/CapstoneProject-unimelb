@@ -1,0 +1,115 @@
+{
+  "vertical": "travel_insurance",
+  "contract_version": "1.0.0",
+  "user_agent": "KonkrdTravelDocumentCollector/0.1",
+  "timeout_seconds": 30,
+  "request_interval_seconds": 1.0,
+  "retries": 2,
+  "max_redirects": 5,
+  "max_html_bytes": 5242880,
+  "max_pdf_bytes": 52428800,
+  "max_pdf_pages": 500,
+  "sample_pdf_pages": 5,
+  "providers": [
+    {
+      "insurer_code": "allianz",
+      "brand_code": "allianz",
+      "issuer": "Allianz Australia Insurance Limited",
+      "underwriter": "Allianz Australia Insurance Limited",
+      "allowed_domains": [
+        "allianz.com.au",
+        "travel.allianz.com.au",
+        "allianzpartners.com.au",
+        "allianz-partners.com"
+      ],
+      "start_pages": [
+        {
+          "url": "https://www.allianz.com.au/my-allianz/policy-information/policy-documents.html",
+          "required_context_hints": ["travel insurance"],
+          "follow_link_hints": []
+        },
+        {
+          "url": "https://www.allianz.com.au/my-allianz/policy-information/tmds.html",
+          "required_context_hints": ["travel insurance"],
+          "follow_link_hints": []
+        }
+      ],
+      "seed_documents": [
+        {
+          "url": "https://travel.allianz.com.au/pds",
+          "source_page": "https://www.allianz.com.au/my-allianz/policy-information/policy-documents.html",
+          "title": "Allianz Travel Insurance Product Disclosure Statement",
+          "section_heading": "Travel Insurance",
+          "version_status": "current"
+        },
+        {
+          "url": "https://www.allianz-partners.com/content/dam/onemarketing/awp/azpartnerscom/australia/travel-documents/tmd/TMDAP_TRV032-AGA-Travel-Insurance-TMD-03.26.pdf",
+          "source_page": "https://www.allianz.com.au/my-allianz/policy-information/tmds.html",
+          "title": "Allianz Global Assistance Travel Insurance Cover Target Market Determination",
+          "section_heading": "Travel Insurance",
+          "version_status": "current"
+        }
+      ],
+      "default_axes": {
+        "geographic_scopes": ["unknown"],
+        "trip_frequencies": ["unknown"],
+        "plan_tiers": ["unknown"]
+      }
+    },
+    {
+      "insurer_code": "cover_more",
+      "brand_code": "cover_more",
+      "issuer": "Cover-More Insurance Services Pty Ltd",
+      "underwriter": "Zurich Australian Insurance Limited",
+      "allowed_domains": ["covermore.com.au"],
+      "start_pages": [
+        {
+          "url": "https://www.covermore.com.au/pds",
+          "required_context_hints": [],
+          "follow_link_hints": []
+        }
+      ],
+      "seed_documents": [],
+      "default_axes": {
+        "geographic_scopes": ["unknown"],
+        "trip_frequencies": ["unknown"],
+        "plan_tiers": ["unknown"]
+      }
+    },
+    {
+      "insurer_code": "scti",
+      "brand_code": "southern_cross_travel_insurance",
+      "issuer": null,
+      "underwriter": null,
+      "allowed_domains": ["scti.com.au"],
+      "start_pages": [
+        {
+          "url": "https://scti.com.au/our-policies/comprehensive",
+          "required_context_hints": [],
+          "follow_link_hints": ["policy wording"]
+        },
+        {
+          "url": "https://scti.com.au/our-policies/annual-multi-trip",
+          "required_context_hints": [],
+          "follow_link_hints": ["policy wording"]
+        },
+        {
+          "url": "https://scti.com.au/our-policies/domestic/policy-wording",
+          "required_context_hints": [],
+          "follow_link_hints": []
+        },
+        {
+          "url": "https://scti.com.au/target-market-determinations",
+          "required_context_hints": [],
+          "follow_link_hints": []
+        }
+      ],
+      "seed_documents": [],
+      "default_axes": {
+        "geographic_scopes": ["unknown"],
+        "trip_frequencies": ["unknown"],
+        "plan_tiers": ["unknown"]
+      }
+    }
+  ]
+}

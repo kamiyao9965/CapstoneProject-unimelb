@@ -68,6 +68,24 @@ class RunParserTest(unittest.TestCase):
 
         self.assertEqual(args.output, "outputs/private_health/schema.json")
 
+    def test_crawl_parser_uses_insurer_not_llm_provider(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "crawl",
+                "--vertical",
+                "travel_insurance",
+                "--config",
+                "configs/travel_insurance/sources.json",
+                "--insurer",
+                "allianz",
+                "--insurer",
+                "scti",
+            ]
+        )
+
+        self.assertEqual(args.insurers, ["allianz", "scti"])
+        self.assertFalse(hasattr(args, "provider"))
+
 
 if __name__ == "__main__":
     unittest.main()

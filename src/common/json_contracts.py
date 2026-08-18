@@ -26,6 +26,9 @@ _CONTRACT_PATHS = {
     "private_health/review_queue": "private_health/review_queue.schema.json",
     "private_health/review_decisions": "private_health/review_decisions.schema.json",
     "private_health/refinement_feedback": "private_health/refinement_feedback.schema.json",
+    "travel_insurance/acquisition_run": (
+        "travel_insurance/acquisition_run.schema.json"
+    ),
 }
 
 
