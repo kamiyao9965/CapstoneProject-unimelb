@@ -25,6 +25,7 @@ repair retries. Invalid data never proceeds to the next stage.
 | Cost estimation | Estimate actual and projected spend from JSONL token-usage logs |
 | Travel document acquisition | Discover current PDS, SPDS, brochure, TMD, and FSG PDFs and preserve their product-release relationships |
 | Manifest-driven verticals | Select versioned paths, contracts, document models, capabilities, and allowlisted adapters without changing CLI orchestration |
+| Approved Canonical Schema | Compile one human-reviewed business contract into extraction validation and vertical PostgreSQL DDL previews |
 
 ## Safety guarantees
 
@@ -167,6 +168,51 @@ Apply the resulting schema to one PDS:
 The Travel discovery sampler intentionally uses PDS documents first. SPDS,
 brochures, TMDs, and FSGs remain recognised acquisition document types and will
 be joined to product releases in a later relationship-aware refinement stage.
+
+## Approved Canonical Schema
+
+The discovered schema is a model-generated candidate. It must not define
+database objects directly. After a human reviewer has finalised field meaning,
+types, requiredness, enum values, identity fields, and storage strategies, the
+reviewed file uses the Canonical Schema contract with:
+
+```json
+{
+  "status": "approved",
+  "review": {
+    "reviewed_by": "reviewer-name",
+    "reviewed_at": "2026-08-18T05:00:00Z",
+    "rationale": "Approved after Travel product and storage review."
+  }
+}
+```
+
+The approval record is a release gate, not an automatic claim of quality. The
+reviewer remains responsible for the business meaning and storage choices.
+Changing an approved schema creates a new version rather than editing the old
+version in place.
+
+Compile an approved schema without connecting to a database:
+
+```bash
+.venv/bin/python src/run.py canonical-compile \
+  --manifest configs/travel_insurance/manifest.json \
+  --schema path/to/approved_canonical_schema.json \
+  --output-dir outputs/travel_insurance/compiled_schema_v1
+```
+
+The output directory must not already exist. The command writes:
+
+```text
+extraction_contract.json  # runtime validation contract for model extraction
+vertical_table.sql        # PostgreSQL DDL preview for human review
+```
+
+It does not execute SQL, create a database, call an LLM, or approve a candidate
+schema. Candidate schemas and approved schemas with an invalid review record
+fail before the output directory is created. Operational tables such as
+documents, extraction runs, and raw JSONB remain fixed application-owned
+metadata; the Canonical Schema governs vertical business fields.
 
 ## 2. Use the known source documents
 
@@ -611,6 +657,7 @@ token logs remain JSONL.
 .venv/bin/python -m compileall src tests
 .venv/bin/python -m unittest discover -s tests
 .venv/bin/python src/run.py --help
+.venv/bin/python src/run.py canonical-compile --help
 .venv/bin/python src/refine/loop.py --help
 .venv/bin/python src/refine/consensus.py --help
 .venv/bin/python src/refine/review.py --help

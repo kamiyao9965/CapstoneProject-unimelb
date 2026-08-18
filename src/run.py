@@ -16,7 +16,9 @@ from src.common.json_artifacts import (
     build_success_artifact,
     write_artifact,
     write_failure_artifact,
+    write_text_output,
 )
+from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
 from src.config import load_config
 from src.models import ExtractionResult
@@ -110,12 +112,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Discover links and write metadata without downloading PDFs",
     )
 
+    canonical_compile = subparsers.add_parser(
+        "canonical-compile",
+        help="Compile one human-approved Canonical Schema without applying DDL",
+    )
+    canonical_compile.add_argument("--manifest")
+    canonical_compile.add_argument("--schema", required=True)
+    canonical_compile.add_argument("--output-dir", required=True)
+
     return parser
 
 
 def configure_command(args: argparse.Namespace) -> VerticalManifest:
     """Load one manifest and apply its defaults before a command runs."""
-    default_vertical = "travel_insurance" if args.command == "crawl" else "private_health"
+    default_vertical = (
+        "travel_insurance"
+        if args.command in {"crawl", "canonical-compile"}
+        else "private_health"
+    )
     requested_vertical = getattr(args, "vertical", None) or default_vertical
     manifest_path = args.manifest or default_manifest_path(requested_vertical)
     manifest = load_vertical_manifest(manifest_path)
@@ -132,6 +146,7 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
         "extract": "extraction",
         "batch": "extraction",
         "crawl": "acquisition",
+        "canonical-compile": "storage",
     }[args.command]
     manifest.require_capability(capability)
     if args.command == "batch" and args.evaluate:
@@ -155,6 +170,9 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
             if args.output_root
             else manifest.path("acquisition_output")
         )
+    elif args.command == "canonical-compile":
+        args.schema = Path(args.schema)
+        args.output_dir = Path(args.output_dir)
     return manifest
 
 
@@ -546,6 +564,51 @@ def command_crawl(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_canonical_compile(args: argparse.Namespace) -> int:
+    """Render reviewed extraction and PostgreSQL contracts without applying DDL."""
+    from sqlalchemy.dialects import postgresql
+    from sqlalchemy.schema import CreateTable
+
+    from src.schema.canonical import compile_canonical_extraction_contract
+    from src.storage.canonical import compile_vertical_storage_metadata
+
+    output_dir = Path(args.output_dir)
+    try:
+        schema_data = load_schema_data(args.schema)
+        if schema_data.get("vertical") != args.vertical_manifest.vertical:
+            raise ValueError(
+                f"Canonical Schema vertical {schema_data.get('vertical')!r} does not "
+                f"match manifest vertical {args.vertical_manifest.vertical!r}."
+            )
+        extraction_contract = compile_canonical_extraction_contract(schema_data)
+        compiled_storage = compile_vertical_storage_metadata(schema_data)
+        ddl = str(
+            CreateTable(compiled_storage.table).compile(
+                dialect=postgresql.dialect()
+            )
+        )
+        if output_dir.exists():
+            raise FileExistsError(
+                f"Refusing to overwrite existing output directory: {output_dir}"
+            )
+        output_dir.mkdir(parents=True, exist_ok=False)
+        extraction_path = write_text_output(
+            output_dir / "extraction_contract.json",
+            dumps_json(extraction_contract, ensure_ascii=False, indent=2) + "\n",
+        )
+        ddl_path = write_text_output(
+            output_dir / "vertical_table.sql",
+            ddl.rstrip() + ";\n",
+        )
+    except Exception as exc:
+        print(f"Canonical Schema compilation failed: {exc}")
+        return 1
+
+    print(f"Extraction contract: {extraction_path.resolve()}")
+    print(f"PostgreSQL DDL preview: {ddl_path.resolve()}")
+    return 0
+
+
 def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
@@ -594,6 +657,8 @@ def main() -> int:
         return command_batch(args)
     if args.command == "crawl":
         return command_crawl(args)
+    if args.command == "canonical-compile":
+        return command_canonical_compile(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

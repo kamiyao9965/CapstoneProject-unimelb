@@ -25,7 +25,7 @@
   - Verify: pure mapper tests, including invalid and repeated input.
   - Files: `src/storage/canonical.py`, `tests/test_canonical_storage.py`.
 
-- [ ] Add reviewed-schema compiler CLI and documentation.
+- [x] Add reviewed-schema compiler CLI and documentation.
   - Acceptance: approved schema writes generated extraction contract and SQL
     preview without overwriting; candidates fail with a clear message.
   - Verify: CLI tests and `src/run.py --help`.

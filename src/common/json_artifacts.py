@@ -158,6 +158,19 @@ def write_failure_artifact(
     return write_artifact(path, artifact, overwrite=overwrite)
 
 
+def write_text_output(
+    path: str | Path,
+    text: str,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """Atomically write a non-artifact text output without silent overwrite."""
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _write_text_atomic(destination, text, overwrite=overwrite)
+    return destination
+
+
 def _validate_component(value: str) -> None:
     if not _SAFE_COMPONENT.fullmatch(value):
         raise ArtifactError(f"{value!r} is not a safe path component.")

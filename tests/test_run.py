@@ -10,6 +10,7 @@ from src.common.model_config import ModelSelection, resolve_selection
 from src import run as run_module
 from src.run import build_parser, configure_command
 from src.verticals.manifest import PROJECT_ROOT
+from tests.test_canonical_schema import approved_travel_schema
 from tests.test_travel_schema_migration import (
     VALID_TRAVEL_EXTRACTION,
     VALID_TRAVEL_SCHEMA,
@@ -125,6 +126,101 @@ class RunParserTest(unittest.TestCase):
 
         self.assertEqual(args.insurers, ["allianz", "scti"])
         self.assertFalse(hasattr(args, "provider"))
+
+    def test_canonical_compile_defaults_to_storage_enabled_travel_manifest(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "canonical-compile",
+                "--schema",
+                "approved.json",
+                "--output-dir",
+                "compiled",
+            ]
+        )
+
+        manifest = configure_command(args)
+
+        self.assertEqual(manifest.vertical, "travel_insurance")
+        self.assertTrue(manifest.supports("storage"))
+
+    def test_canonical_compile_writes_contract_and_postgresql_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            schema_path = root / "approved.json"
+            schema_path.write_text(
+                json.dumps(approved_travel_schema()),
+                encoding="utf-8",
+            )
+            output_dir = root / "compiled"
+            argv = [
+                "run.py",
+                "canonical-compile",
+                "--schema",
+                str(schema_path),
+                "--output-dir",
+                str(output_dir),
+            ]
+
+            with mock.patch("sys.argv", argv):
+                exit_code = run_module.main()
+
+            extraction_contract = json.loads(
+                (output_dir / "extraction_contract.json").read_text(encoding="utf-8")
+            )
+            ddl = (output_dir / "vertical_table.sql").read_text(encoding="utf-8")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("products", extraction_contract["properties"])
+        self.assertIn("CREATE TABLE travel_product_details", ddl)
+        self.assertIn("JSONB", ddl)
+
+    def test_canonical_compile_rejects_candidate_without_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            schema = approved_travel_schema()
+            schema["status"] = "candidate"
+            schema["review"] = None
+            schema_path = root / "candidate.json"
+            schema_path.write_text(json.dumps(schema), encoding="utf-8")
+            output_dir = root / "compiled"
+            argv = [
+                "run.py",
+                "canonical-compile",
+                "--schema",
+                str(schema_path),
+                "--output-dir",
+                str(output_dir),
+            ]
+
+            with mock.patch("sys.argv", argv):
+                exit_code = run_module.main()
+
+            self.assertEqual(exit_code, 1)
+            self.assertFalse(output_dir.exists())
+
+    def test_canonical_compile_refuses_existing_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            schema_path = root / "approved.json"
+            schema_path.write_text(
+                json.dumps(approved_travel_schema()),
+                encoding="utf-8",
+            )
+            output_dir = root / "compiled"
+            output_dir.mkdir()
+            argv = [
+                "run.py",
+                "canonical-compile",
+                "--schema",
+                str(schema_path),
+                "--output-dir",
+                str(output_dir),
+            ]
+
+            with mock.patch("sys.argv", argv):
+                exit_code = run_module.main()
+
+        self.assertEqual(exit_code, 1)
 
     def test_travel_discovery_injects_manifest_contract_prompt_and_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

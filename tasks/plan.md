@@ -57,9 +57,9 @@ extraction, fixed core tables, and the legacy Travel mapping during migration.
 
 ### Phase 4: Integration and documentation
 
-- [ ] Add a reviewed-schema compile CLI that writes generated contracts without
+- [x] Add a reviewed-schema compile CLI that writes generated contracts without
       overwriting existing files.
-- [ ] Document the human approval and schema-version workflow.
+- [x] Document the human approval and schema-version workflow.
 - [ ] Run compileall, full offline tests, CLI help, diff review, and secret scan.
 
 ## Risks and mitigations
