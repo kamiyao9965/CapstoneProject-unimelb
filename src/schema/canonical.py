@@ -24,6 +24,17 @@ _RESERVED_TABLES = frozenset(
 )
 
 
+def is_canonical_schema(payload: object) -> bool:
+    """Identify the versioned Canonical Schema interface before validation."""
+    return (
+        isinstance(payload, Mapping)
+        and payload.get("contract_version") == "1.0.0"
+        and "status" in payload
+        and "extension" in payload
+        and "identity" in payload
+    )
+
+
 def validate_canonical_schema(payload: object) -> dict[str, object]:
     """Validate lifecycle, identity, and storage invariants without approving."""
     validate_contract(payload, "canonical_schema")

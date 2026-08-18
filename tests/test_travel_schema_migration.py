@@ -17,6 +17,8 @@ from src.verticals.registry import (
     get_prompt,
     get_schema_validator,
 )
+from tests.test_canonical_schema import approved_travel_schema
+from tests.test_canonical_storage import valid_extraction_payload
 
 
 VALID_TRAVEL_SCHEMA = {
@@ -250,6 +252,70 @@ class TravelExtractionMigrationTest(unittest.TestCase):
         self.assertEqual(len(result["products"]), 2)
         self.assertIsNotNone(provider.request)
         self.assertIn("every distinct plan", provider.request.system_prompt.lower())
+
+    def test_extractor_accepts_approved_canonical_schema(self) -> None:
+        class RecordingProvider:
+            def __init__(self) -> None:
+                self.request: ProviderRequest | None = None
+
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                self.request = request
+                return ModelResponse(
+                    text=json.dumps(valid_extraction_payload()),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        provider = RecordingProvider()
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "travel-pds.pdf"
+            pdf_path.touch()
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: travel-pds\nbenefit tables",
+            ):
+                result = SchemaExtractor(
+                    schema_data=approved_travel_schema(),
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
+                    provider=provider,
+                    usage_log_path=None,
+                    log=None,
+                    schema_contract="travel_insurance/discovered_schema",
+                    schema_validator=get_schema_validator(
+                        "travel_insurance_schema_v1"
+                    ),
+                    output_cardinality="multiple",
+                    extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+                ).extract_one(pdf_path)
+
+        self.assertEqual(result, valid_extraction_payload())
+        self.assertIsNotNone(provider.request)
+        self.assertIn(
+            "geographic_scope",
+            provider.request.structured_output.schema["properties"]
+            ["products"]["items"]["properties"],
+        )
+        self.assertIn("Approved Canonical Schema", provider.request.user_text)
+
+    def test_extractor_rejects_unapproved_canonical_schema(self) -> None:
+        schema = approved_travel_schema()
+        schema["status"] = "candidate"
+        schema["review"] = None
+
+        with self.assertRaisesRegex(ValueError, "human-approved"):
+            SchemaExtractor(
+                schema_data=schema,
+                selection=ModelSelection("openai", "gpt-5", "markdown"),
+                provider=mock.Mock(),
+                usage_log_path=None,
+                log=None,
+                schema_contract="travel_insurance/discovered_schema",
+                schema_validator=get_schema_validator(
+                    "travel_insurance_schema_v1"
+                ),
+                output_cardinality="multiple",
+                extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+            )
 
 
 if __name__ == "__main__":

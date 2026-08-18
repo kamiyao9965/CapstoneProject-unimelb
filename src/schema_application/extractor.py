@@ -26,6 +26,11 @@ from src.common.model_provider import (
 from src.common.openai_run import append_jsonl
 from src.common.structured_output import StructuredOutputFailure, run_structured_output
 from src.schema.contract import compile_extraction_contract
+from src.schema.canonical import (
+    compile_canonical_extraction_contract,
+    is_canonical_schema,
+    require_approved_canonical_schema,
+)
 from src.schema_application.prompts import EXTRACTION_PROMPT
 from src.schema.validation import validate_schema_mapping
 
@@ -54,15 +59,30 @@ class SchemaExtractor:
         output_cardinality: str = "single",
         extraction_prompt: str = EXTRACTION_PROMPT,
     ) -> None:
-        validate_contract(schema_data, schema_contract)
-        schema_validator(schema_data)
         self.schema_data = dict(schema_data)
-        self.extraction_contract = compile_extraction_contract(
-            schema_data,
-            data_contract=schema_contract,
-            business_validator=schema_validator,
-            output_cardinality=output_cardinality,
-        )
+        if is_canonical_schema(schema_data):
+            canonical_schema = require_approved_canonical_schema(schema_data)
+            output = canonical_schema["output"]
+            assert isinstance(output, Mapping)
+            if output["cardinality"] != output_cardinality:
+                raise ValueError(
+                    "Canonical Schema output cardinality does not match the vertical "
+                    f"manifest: {output['cardinality']!r} != {output_cardinality!r}."
+                )
+            self.extraction_contract = compile_canonical_extraction_contract(
+                canonical_schema
+            )
+            self.schema_prompt_label = "Approved Canonical Schema"
+        else:
+            validate_contract(schema_data, schema_contract)
+            schema_validator(schema_data)
+            self.extraction_contract = compile_extraction_contract(
+                schema_data,
+                data_contract=schema_contract,
+                business_validator=schema_validator,
+                output_cardinality=output_cardinality,
+            )
+            self.schema_prompt_label = "Discovered schema"
         self.extraction_prompt = extraction_prompt
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
@@ -103,7 +123,7 @@ class SchemaExtractor:
             selection=self.selection,
             system_prompt=self.extraction_prompt,
             user_text=(
-                "Discovered schema data:\n"
+                f"{self.schema_prompt_label} data:\n"
                 f"{json.dumps(self.schema_data, ensure_ascii=False)}\n\n"
                 "Extract from this PDFingestor structured representation. "
                 "Text and Markdown tables are already in source reading order; "
