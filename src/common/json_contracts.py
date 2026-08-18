@@ -30,6 +30,9 @@ _CONTRACT_PATHS = {
     "travel_insurance/acquisition_run": (
         "travel_insurance/acquisition_run.schema.json"
     ),
+    "travel_insurance/discovered_schema": (
+        "travel_insurance/discovered_schema.schema.json"
+    ),
 }
 
 

@@ -50,6 +50,10 @@ class SchemaDiscovery:
         pdf_root: str | Path | None = None,
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
+        vertical: str = "private_health",
+        discovery_contract: str = "private_health/discovered_schema",
+        discovery_prompt: str = SCHEMA_DISCOVERY_PROMPT,
+        schema_validator: Callable[[object], object] = validate_schema_mapping,
     ) -> None:
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
@@ -80,6 +84,10 @@ class SchemaDiscovery:
         # {"seed": 7}. Only what the caller sets is sent; support varies by model
         # (gpt-5 reasoning models may reject temperature), so this is opt-in.
         self.request_params = dict(request_params or {})
+        self.vertical = vertical
+        self.discovery_contract = discovery_contract
+        self.discovery_prompt = discovery_prompt
+        self.schema_validator = schema_validator
 
     def discover(
         self,
@@ -90,7 +98,7 @@ class SchemaDiscovery:
     ) -> dict[str, object]:
         return self._generate_from_pdfs(
             sample_pdfs=sample_pdfs,
-            system_prompt=SCHEMA_DISCOVERY_PROMPT,
+            system_prompt=self.discovery_prompt,
             user_text_factory=self._input_text,
             output_path=output_path,
             usage_event="schema_discovery",
@@ -166,8 +174,8 @@ class SchemaDiscovery:
         structured_contract = {
             "schema_discovery": (
                 "discovered_schema",
-                "private_health/discovered_schema",
-                validate_schema_mapping,
+                self.discovery_contract,
+                self.schema_validator,
             ),
             "schema_consensus_patch": (
                 "candidate_patch_set",
@@ -271,7 +279,7 @@ class SchemaDiscovery:
 
     def _input_text(self, pdf_paths: list[Path]) -> str:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
-        return f"Generate a private_health schema from these PDFs:\n{sample_list}"
+        return f"Generate a {self.vertical} schema from these PDFs:\n{sample_list}"
 
     def _patch_input_text(
         self,

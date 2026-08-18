@@ -10,6 +10,10 @@ from src.common.model_config import ModelSelection, resolve_selection
 from src import run as run_module
 from src.run import build_parser, configure_command
 from src.verticals.manifest import PROJECT_ROOT
+from tests.test_travel_schema_migration import (
+    VALID_TRAVEL_EXTRACTION,
+    VALID_TRAVEL_SCHEMA,
+)
 
 
 class RunParserTest(unittest.TestCase):
@@ -70,16 +74,20 @@ class RunParserTest(unittest.TestCase):
 
         self.assertEqual(args.output, PROJECT_ROOT / "outputs/private_health/schema.json")
 
-    def test_travel_manifest_blocks_unimplemented_discovery(self) -> None:
+    def test_explicit_vertical_cannot_conflict_with_manifest(self) -> None:
         args = build_parser().parse_args(
             [
-                "discover",
+                "batch",
                 "--manifest",
                 "configs/travel_insurance/manifest.json",
+                "--vertical",
+                "private_health",
+                "--schema",
+                "schema.json",
             ]
         )
 
-        with self.assertRaisesRegex(ValueError, "does not support 'discovery'"):
+        with self.assertRaisesRegex(ValueError, "conflicts with manifest"):
             configure_command(args)
 
     def test_crawl_defaults_come_from_travel_manifest(self) -> None:
@@ -117,6 +125,79 @@ class RunParserTest(unittest.TestCase):
 
         self.assertEqual(args.insurers, ["allianz", "scti"])
         self.assertFalse(hasattr(args, "provider"))
+
+    def test_travel_discovery_injects_manifest_contract_prompt_and_validator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            discovery = mock.Mock()
+            discovery.discover.return_value = VALID_TRAVEL_SCHEMA
+            output = Path(tmp) / "schema.json"
+            argv = [
+                "run.py",
+                "discover",
+                "--manifest",
+                "configs/travel_insurance/manifest.json",
+                "--samples",
+                "travel.pdf",
+                "--output",
+                str(output),
+                "--usage-log",
+                str(Path(tmp) / "usage.jsonl"),
+            ]
+
+            with mock.patch(
+                "src.schema.discovery.SchemaDiscovery", return_value=discovery
+            ) as factory, mock.patch("sys.argv", argv):
+                exit_code = run_module.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(factory.call_args.kwargs["vertical"], "travel_insurance")
+        self.assertEqual(
+            factory.call_args.kwargs["discovery_contract"],
+            "travel_insurance/discovered_schema",
+        )
+        self.assertIn(
+            "travel insurance",
+            factory.call_args.kwargs["discovery_prompt"].lower(),
+        )
+
+    def test_travel_extract_injects_multiple_product_runtime(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_path = root / "travel.pdf"
+            pdf_path.touch()
+            schema_path = root / "schema.json"
+            schema_path.write_text(json.dumps(VALID_TRAVEL_SCHEMA), encoding="utf-8")
+            output_path = root / "extraction.json"
+            extractor = mock.Mock()
+            extractor.extract_one.return_value = VALID_TRAVEL_EXTRACTION
+            argv = [
+                "run.py",
+                "extract",
+                "--manifest",
+                "configs/travel_insurance/manifest.json",
+                "--pdf",
+                str(pdf_path),
+                "--schema",
+                str(schema_path),
+                "--output",
+                str(output_path),
+            ]
+
+            with mock.patch(
+                "src.schema_application.extractor.SchemaExtractor",
+                return_value=extractor,
+            ) as factory, mock.patch("sys.argv", argv):
+                exit_code = run_module.main()
+
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(payload["data"]["products"]), 2)
+        self.assertEqual(
+            factory.call_args.kwargs["schema_contract"],
+            "travel_insurance/discovered_schema",
+        )
+        self.assertEqual(factory.call_args.kwargs["output_cardinality"], "multiple")
 
 
 if __name__ == "__main__":

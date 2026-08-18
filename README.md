@@ -115,12 +115,13 @@ src/verticals/manifest.py
 src/verticals/registry.py
 ```
 
-Private health currently enables discovery, refinement, extraction, and
-evaluation. Travel insurance currently enables acquisition only. Its manifest
-already records `product_release` as the extraction unit and `multiple` as the
-output cardinality, but discovery and extraction remain disabled until their
-JSON contracts, prompts, validators, and tests exist. The CLI fails explicitly
-if a disabled stage is requested.
+Private health enables discovery, refinement, extraction, and evaluation.
+Travel insurance enables acquisition, discovery, and extraction. Its manifest
+records `product_release` as the extraction unit and `multiple` as the output
+cardinality, so one PDS extraction produces a `products` array rather than
+collapsing several named plans into one record. Travel refinement and
+ground-truth evaluation remain disabled until their contracts and labelled
+datasets exist. The CLI fails explicitly if a disabled stage is requested.
 
 Manifest files cannot import arbitrary Python functions. Executable behavior
 must use an adapter ID registered in `src/verticals/registry.py`. This keeps a
@@ -137,6 +138,28 @@ Use an explicit manifest when selecting a vertical:
 
 Omitting `--manifest` preserves the existing defaults: private health for
 schema commands and travel insurance for `crawl`.
+
+Run Travel schema discovery over PDS samples:
+
+```bash
+.venv/bin/python src/run.py discover \
+  --manifest configs/travel_insurance/manifest.json \
+  --per-category 2 \
+  --seed 42
+```
+
+Apply the resulting schema to one PDS:
+
+```bash
+.venv/bin/python src/run.py extract \
+  --manifest configs/travel_insurance/manifest.json \
+  --schema outputs/travel_insurance/schema.json \
+  --pdf data/travel_insurance/raw/PDFs/scti/pds/example.pdf
+```
+
+The Travel discovery sampler intentionally uses PDS documents first. SPDS,
+brochures, TMDs, and FSGs remain recognised acquisition document types and will
+be joined to product releases in a later relationship-aware refinement stage.
 
 ## 2. Use the known source documents
 

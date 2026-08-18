@@ -43,7 +43,9 @@ class VerticalManifestTest(unittest.TestCase):
 
         self.assertEqual(manifest.vertical, "travel_insurance")
         self.assertTrue(manifest.supports("acquisition"))
-        self.assertFalse(manifest.supports("discovery"))
+        self.assertTrue(manifest.supports("discovery"))
+        self.assertTrue(manifest.supports("extraction"))
+        self.assertFalse(manifest.supports("refinement"))
         self.assertEqual(manifest.documents.extraction_unit, "product_release")
         self.assertEqual(manifest.documents.output_cardinality, "multiple")
         self.assertEqual(

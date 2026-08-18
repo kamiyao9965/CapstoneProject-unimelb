@@ -20,9 +20,7 @@ from src.common.json_artifacts import (
 from src.common.model_config import resolve_selection
 from src.config import load_config
 from src.models import ExtractionResult
-from src.schema.loader import SchemaLoader
 from src.schema.sampler import print_samples, select_samples
-from src.schema.validator import SchemaValidator
 from src.verticals.manifest import (
     ManifestValidationError,
     VerticalManifest,
@@ -163,6 +161,7 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
 def command_discover(args: argparse.Namespace) -> int:
     from src.common.structured_output import StructuredOutputFailure
     from src.schema.discovery import SchemaDiscovery
+    from src.verticals.registry import get_prompt, get_schema_validator
 
     try:
         selection = resolve_selection(
@@ -196,6 +195,12 @@ def command_discover(args: argparse.Namespace) -> int:
             timeout_seconds=args.timeout,
             usage_log_path=args.usage_log,
             pdf_root=input_root,
+            vertical=manifest.vertical,
+            discovery_contract=manifest.contract("discovered_schema"),
+            discovery_prompt=get_prompt(manifest.prompt("discovery")),
+            schema_validator=get_schema_validator(
+                manifest.adapter("schema_validator")
+            ),
         ).discover(sample_paths, output_path=output_path, run_id=run_id)
     except Exception as exc:
         details = (
@@ -259,34 +264,34 @@ def command_discover(args: argparse.Namespace) -> int:
 
 
 def command_extract(args: argparse.Namespace) -> int:
-    from src.pipeline.extractor import Extractor
-
+    manifest = args.vertical_manifest
     schema_data = load_schema_data(args.schema)
-    schema = SchemaLoader().load(args.schema)
-    issues = SchemaValidator().validate(schema)
-    if issues:
-        print("Schema validation issues:")
-        for issue in issues:
-            print(f"- {issue}")
+    if schema_data.get("vertical") != manifest.vertical:
+        print(
+            f"Schema vertical {schema_data.get('vertical')!r} does not match "
+            f"manifest vertical {manifest.vertical!r}."
+        )
         return 1
 
     selection = resolve_selection(provider=args.provider, model=args.model)
-    extractor = Extractor(
-        schema_data=schema_data,
-        selection=selection,
+    extractor = _build_schema_extractor(
+        manifest,
+        schema_data,
+        selection,
+        pdf_root=manifest.path("input_root"),
     )
 
     record = extractor.extract_one(args.pdf)
     result = ExtractionResult(
-        vertical=schema.vertical,
-        schema_version=schema.version,
+        vertical=manifest.vertical,
+        schema_version=str(schema_data["version"]),
         source_path=str(args.pdf),
         provider=selection.provider,
         model=selection.model,
         data=record,
     )
 
-    output_path = args.output or default_output_path(schema.vertical, Path(args.pdf))
+    output_path = args.output or default_output_path(manifest.vertical, Path(args.pdf))
     result.write_json(output_path)
     print(f"Wrote extraction to {output_path}")
     return 0
@@ -295,16 +300,15 @@ def command_extract(args: argparse.Namespace) -> int:
 def command_batch(args: argparse.Namespace) -> int:
     from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
     from src.evaluation.reporter import EvaluationReporter
-    from src.pipeline.extractor import Extractor
 
     config = load_config()
+    manifest = args.vertical_manifest
     schema_data = load_schema_data(args.schema)
-    schema = SchemaLoader().load(args.schema)
-    issues = SchemaValidator().validate(schema)
-    if issues:
-        print("Schema validation issues:")
-        for issue in issues:
-            print(f"- {issue}")
+    if schema_data.get("vertical") != manifest.vertical:
+        print(
+            f"Schema vertical {schema_data.get('vertical')!r} does not match "
+            f"manifest vertical {manifest.vertical!r}."
+        )
         return 1
 
     input_root = (
@@ -318,9 +322,11 @@ def command_batch(args: argparse.Namespace) -> int:
         return 1
 
     selection = resolve_selection(provider=args.provider, model=args.model)
-    extractor = Extractor(
-        schema_data=schema_data,
-        selection=selection,
+    extractor = _build_schema_extractor(
+        manifest,
+        schema_data,
+        selection,
+        pdf_root=input_root,
     )
 
     reports = []
@@ -347,8 +353,8 @@ def command_batch(args: argparse.Namespace) -> int:
         try:
             record = extractor.extract_one(pdf_path)
             result = ExtractionResult(
-                vertical=schema.vertical,
-                schema_version=schema.version,
+                vertical=manifest.vertical,
+                schema_version=str(schema_data["version"]),
                 source_path=str(pdf_path),
                 provider=selection.provider,
                 model=selection.model,
@@ -358,7 +364,7 @@ def command_batch(args: argparse.Namespace) -> int:
             extraction_errors += 1
             print(f"Extraction failed for {pdf_path.name}: {exc}")
             continue
-        output_path = default_output_path(schema.vertical, pdf_path)
+        output_path = default_output_path(manifest.vertical, pdf_path)
         result.write_json(output_path)
         provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
         if args.evaluate and result.provider == "heuristic":
@@ -473,6 +479,30 @@ def command_batch(args: argparse.Namespace) -> int:
         print(f"  - {warning} ({warning_counts[warning]})")
 
     return 0
+
+
+def _build_schema_extractor(
+    manifest: VerticalManifest,
+    schema_data: dict[str, object],
+    selection,
+    *,
+    pdf_root: Path,
+):
+    from src.schema_application.extractor import SchemaExtractor
+    from src.verticals.registry import get_prompt, get_schema_validator
+
+    return SchemaExtractor(
+        schema_data=schema_data,
+        selection=selection,
+        schema_contract=manifest.contract("discovered_schema"),
+        schema_validator=get_schema_validator(
+            manifest.adapter("schema_validator")
+        ),
+        output_cardinality=manifest.documents.output_cardinality,
+        extraction_prompt=get_prompt(manifest.prompt("extraction")),
+        usage_log_path=manifest.path("output_root") / "extraction_usage.jsonl",
+        pdf_root=pdf_root,
+    )
 
 
 def command_crawl(args: argparse.Namespace) -> int:

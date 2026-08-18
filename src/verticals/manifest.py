@@ -101,6 +101,14 @@ class VerticalManifest:
             )
         return value
 
+    def prompt(self, name: str) -> str:
+        value = self.prompts.get(name)
+        if not value:
+            raise ManifestValidationError(
+                f"Vertical {self.vertical!r} does not define prompt {name!r}."
+            )
+        return value
+
 
 def default_manifest_path(vertical: str) -> Path:
     try:

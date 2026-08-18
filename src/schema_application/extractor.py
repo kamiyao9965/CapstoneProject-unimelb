@@ -49,11 +49,21 @@ class SchemaExtractor:
         pdf_root: str | Path | None = None,
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
+        schema_contract: str = "private_health/discovered_schema",
+        schema_validator: Callable[[object], object] = validate_schema_mapping,
+        output_cardinality: str = "single",
+        extraction_prompt: str = EXTRACTION_PROMPT,
     ) -> None:
-        validate_contract(schema_data, "private_health/discovered_schema")
-        validate_schema_mapping(schema_data)
+        validate_contract(schema_data, schema_contract)
+        schema_validator(schema_data)
         self.schema_data = dict(schema_data)
-        self.extraction_contract = compile_extraction_contract(schema_data)
+        self.extraction_contract = compile_extraction_contract(
+            schema_data,
+            data_contract=schema_contract,
+            business_validator=schema_validator,
+            output_cardinality=output_cardinality,
+        )
+        self.extraction_prompt = extraction_prompt
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
             raise ValueError(
@@ -91,7 +101,7 @@ class SchemaExtractor:
         )
         request = ProviderRequest(
             selection=self.selection,
-            system_prompt=EXTRACTION_PROMPT,
+            system_prompt=self.extraction_prompt,
             user_text=(
                 "Discovered schema data:\n"
                 f"{json.dumps(self.schema_data, ensure_ascii=False)}\n\n"

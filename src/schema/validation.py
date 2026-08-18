@@ -51,11 +51,11 @@ def validate_schema_mapping(payload: object) -> dict[str, object]:
         if name in field_names:
             raise ValueError(f"Schema contains duplicate field name: {name}")
         field_names.add(name)
-    _validate_product_type_field(fields, product_types)
+    validate_product_type_field(fields, product_types)
     return payload
 
 
-def _validate_product_type_field(
+def validate_product_type_field(
     fields: list[object],
     product_types: list[str],
 ) -> None:
