@@ -6,7 +6,8 @@
     "discovery": true,
     "refinement": true,
     "extraction": true,
-    "evaluation": true
+    "evaluation": true,
+    "storage": false
   },
   "documents": {
     "categories": ["combined", "extras", "generalhealth", "hospital"],

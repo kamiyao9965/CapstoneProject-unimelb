@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "storage-mapping.schema.json",
+  "title": "Vertical extraction-to-storage mapping",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mapping_version",
+    "vertical",
+    "source_collection",
+    "identity",
+    "product_type_dimensions"
+  ],
+  "properties": {
+    "mapping_version": {"const": "1.0"},
+    "vertical": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "source_collection": {"enum": ["single", "products"]},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_name_field", "product_type_field"],
+      "properties": {
+        "product_name_field": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "product_type_field": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        }
+      }
+    },
+    "product_type_dimensions": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"$ref": "#/$defs/dimensions"}
+    }
+  },
+  "$defs": {
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "geographic_scope",
+        "trip_frequency",
+        "plan_tier",
+        "customer_segment",
+        "trip_style"
+      ],
+      "properties": {
+        "geographic_scope": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "trip_frequency": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "plan_tier": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "customer_segment": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "trip_style": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]*$"
+        }
+      }
+    }
+  }
+}

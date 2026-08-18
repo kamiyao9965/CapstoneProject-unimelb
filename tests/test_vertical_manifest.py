@@ -23,6 +23,7 @@ class VerticalManifestTest(unittest.TestCase):
         self.assertEqual(manifest.vertical, "private_health")
         self.assertTrue(manifest.supports("discovery"))
         self.assertTrue(manifest.supports("extraction"))
+        self.assertFalse(manifest.supports("storage"))
         self.assertEqual(
             manifest.documents.categories,
             ("combined", "extras", "generalhealth", "hospital"),
@@ -45,12 +46,17 @@ class VerticalManifestTest(unittest.TestCase):
         self.assertTrue(manifest.supports("acquisition"))
         self.assertTrue(manifest.supports("discovery"))
         self.assertTrue(manifest.supports("extraction"))
+        self.assertTrue(manifest.supports("storage"))
         self.assertFalse(manifest.supports("refinement"))
         self.assertEqual(manifest.documents.extraction_unit, "product_release")
         self.assertEqual(manifest.documents.output_cardinality, "multiple")
         self.assertEqual(
             manifest.path("acquisition_config"),
             PROJECT_ROOT / "configs/travel_insurance/sources.json",
+        )
+        self.assertEqual(
+            manifest.path("storage_mapping"),
+            PROJECT_ROOT / "configs/travel_insurance/storage_mapping.json",
         )
 
     def test_unknown_manifest_property_is_rejected(self) -> None:

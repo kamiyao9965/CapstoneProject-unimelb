@@ -20,13 +20,14 @@
     "capabilities": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["acquisition", "discovery", "refinement", "extraction", "evaluation"],
+      "required": ["acquisition", "discovery", "refinement", "extraction", "evaluation", "storage"],
       "properties": {
         "acquisition": {"type": "boolean"},
         "discovery": {"type": "boolean"},
         "refinement": {"type": "boolean"},
         "extraction": {"type": "boolean"},
-        "evaluation": {"type": "boolean"}
+        "evaluation": {"type": "boolean"},
+        "storage": {"type": "boolean"}
       }
     },
     "documents": {

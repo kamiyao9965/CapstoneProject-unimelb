@@ -1,0 +1,53 @@
+{
+  "mapping_version": "1.0",
+  "vertical": "travel_insurance",
+  "source_collection": "products",
+  "identity": {
+    "product_name_field": "product_name",
+    "product_type_field": "product_type"
+  },
+  "product_type_dimensions": {
+    "international_single_trip": {
+      "geographic_scope": "international",
+      "trip_frequency": "single_trip",
+      "plan_tier": null,
+      "customer_segment": null,
+      "trip_style": null
+    },
+    "international_multi_trip": {
+      "geographic_scope": "international",
+      "trip_frequency": "annual_multi_trip",
+      "plan_tier": null,
+      "customer_segment": null,
+      "trip_style": null
+    },
+    "domestic": {
+      "geographic_scope": "domestic",
+      "trip_frequency": null,
+      "plan_tier": null,
+      "customer_segment": null,
+      "trip_style": null
+    },
+    "inbound": {
+      "geographic_scope": "inbound",
+      "trip_frequency": null,
+      "plan_tier": null,
+      "customer_segment": null,
+      "trip_style": null
+    },
+    "business": {
+      "geographic_scope": null,
+      "trip_frequency": null,
+      "plan_tier": null,
+      "customer_segment": "business",
+      "trip_style": null
+    },
+    "cruise": {
+      "geographic_scope": null,
+      "trip_frequency": null,
+      "plan_tier": null,
+      "customer_segment": null,
+      "trip_style": "cruise"
+    }
+  }
+}

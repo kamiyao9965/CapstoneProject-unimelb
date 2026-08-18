@@ -6,7 +6,8 @@
     "discovery": true,
     "refinement": false,
     "extraction": true,
-    "evaluation": false
+    "evaluation": false,
+    "storage": true
   },
   "documents": {
     "categories": ["pds"],
@@ -18,7 +19,8 @@
     "input_root": "data/travel_insurance/raw/PDFs",
     "output_root": "outputs/travel_insurance",
     "acquisition_config": "configs/travel_insurance/sources.json",
-    "acquisition_output": "outputs/travel_insurance/acquisition"
+    "acquisition_output": "outputs/travel_insurance/acquisition",
+    "storage_mapping": "configs/travel_insurance/storage_mapping.json"
   },
   "path_environment": {},
   "contracts": {
