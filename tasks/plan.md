@@ -44,16 +44,16 @@ extraction, fixed core tables, and the legacy Travel mapping during migration.
 
 ### Phase 3: Generated storage interface
 
-- [ ] Compile the approved schema into vertical SQLAlchemy metadata linked to
+- [x] Compile the approved schema into vertical SQLAlchemy metadata linked to
       `product_releases`.
-- [ ] Generate deterministic core bindings and extension records from validated
+- [x] Generate deterministic core bindings and extension records from validated
       extraction payloads.
-- [ ] Preserve JSONB-designated fields in extension attributes.
+- [x] Preserve JSONB-designated fields in extension attributes.
 
 ### Checkpoint: Storage
 
-- [ ] SQLite table creation and PostgreSQL DDL compilation pass.
-- [ ] Repeated load-plan compilation produces identical records.
+- [x] SQLite table creation and PostgreSQL DDL compilation pass.
+- [x] Repeated load-plan compilation produces identical records.
 
 ### Phase 4: Integration and documentation
 

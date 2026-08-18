@@ -12,14 +12,14 @@
   - Verify: validate valid and invalid payload fixtures offline.
   - Files: `src/schema/canonical.py`, `tests/test_canonical_schema.py`.
 
-- [ ] Compile vertical SQLAlchemy metadata.
+- [x] Compile vertical SQLAlchemy metadata.
   - Acceptance: approved fields produce typed extension columns, enum checks,
     a release foreign key, and JSONB attributes.
   - Verify: SQLite creation and PostgreSQL DDL compilation.
   - Files: `src/storage/schema.py`, `src/storage/canonical.py`,
     `tests/test_canonical_storage.py`.
 
-- [ ] Compile deterministic load plans.
+- [x] Compile deterministic load plans.
   - Acceptance: validated products produce stable core bindings and extension
     records; JSONB fields are preserved without LLM inference.
   - Verify: pure mapper tests, including invalid and repeated input.
