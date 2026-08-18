@@ -60,7 +60,7 @@ extraction, fixed core tables, and the legacy Travel mapping during migration.
 - [x] Add a reviewed-schema compile CLI that writes generated contracts without
       overwriting existing files.
 - [x] Document the human approval and schema-version workflow.
-- [ ] Run compileall, full offline tests, CLI help, diff review, and secret scan.
+- [x] Run compileall, full offline tests, CLI help, diff review, and secret scan.
 
 ## Risks and mitigations
 

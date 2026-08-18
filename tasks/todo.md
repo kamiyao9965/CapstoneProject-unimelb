@@ -31,6 +31,6 @@
   - Verify: CLI tests and `src/run.py --help`.
   - Files: `src/run.py`, `README.md`, CLI tests.
 
-- [ ] Run final verification and review.
+- [x] Run final verification and review.
   - Verify: compileall, full unittest suite, diff review, secret scan, and clean
     Git status after atomic commits.
