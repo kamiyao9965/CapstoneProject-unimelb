@@ -116,6 +116,91 @@ def require_approved_canonical_schema(payload: object) -> dict[str, object]:
     return schema
 
 
+def compile_canonical_extraction_contract(
+    payload: object,
+) -> dict[str, object]:
+    """Compile one approved business contract into extraction JSON Schema."""
+    schema = require_approved_canonical_schema(payload)
+    fields = schema["fields"]
+    if not isinstance(fields, list):
+        raise ValueError("Canonical Schema fields must be a list.")
+
+    product_properties: dict[str, object] = {}
+    required_fields: list[str] = []
+    field_names: list[str] = []
+    for field in fields:
+        if not isinstance(field, Mapping):
+            raise ValueError("Canonical Schema field must be an object.")
+        name = str(field["name"])
+        field_names.append(name)
+        product_properties[name] = _canonical_field_contract(field)
+        if field["required"] is True:
+            required_fields.append(name)
+
+    product_properties["_unfilled"] = {
+        "type": "array",
+        "items": {"enum": field_names},
+        "uniqueItems": True,
+    }
+    product_properties["_notes"] = {"type": ["string", "null"]}
+    product_contract: dict[str, object] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [*required_fields, "_unfilled", "_notes"],
+        "properties": product_properties,
+    }
+
+    output = schema["output"]
+    if not isinstance(output, Mapping):
+        raise ValueError("Canonical Schema output must be an object.")
+    collection = str(output["collection"])
+    document_notes_field = str(output["document_notes_field"])
+    collection_contract: object
+    if output["cardinality"] == "multiple":
+        collection_contract = {
+            "type": "array",
+            "minItems": 1,
+            "items": product_contract,
+        }
+    else:
+        collection_contract = product_contract
+
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": False,
+        "required": [collection, document_notes_field],
+        "properties": {
+            collection: collection_contract,
+            document_notes_field: {"type": ["string", "null"]},
+        },
+    }
+
+
+def _canonical_field_contract(field: Mapping[str, object]) -> dict[str, object]:
+    field_type = str(field["type"])
+    nullable = field["nullable"] is True
+    if field_type == "enum":
+        values = list(field["values"])
+        return {"enum": [*values, None] if nullable else values}
+
+    json_type = {
+        "string": "string",
+        "number": "number",
+        "boolean": "boolean",
+    }.get(field_type)
+    if json_type is not None:
+        return {"type": [json_type, "null"] if nullable else json_type}
+
+    array_contract: dict[str, object] = {
+        "type": "array",
+        "items": {"type": "object", "additionalProperties": True},
+    }
+    if nullable:
+        return {"oneOf": [{"type": "null"}, array_contract]}
+    return array_contract
+
+
 def _validate_identity_binding(
     fields: Mapping[str, Mapping[str, object]],
     field_name: str,

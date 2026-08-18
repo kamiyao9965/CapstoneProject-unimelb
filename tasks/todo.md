@@ -6,7 +6,7 @@
   - Verify: focused contract and semantic validation tests.
   - Files: `contracts/`, `src/schema/`, `tests/test_canonical_schema.py`.
 
-- [ ] Compile extraction contracts from approved Canonical Schemas.
+- [x] Compile extraction contracts from approved Canonical Schemas.
   - Acceptance: Travel multiple-product output has closed field types,
     requiredness, enums, and document notes.
   - Verify: validate valid and invalid payload fixtures offline.

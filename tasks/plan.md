@@ -32,15 +32,15 @@ extraction, fixed core tables, and the legacy Travel mapping during migration.
 
 ### Phase 2: Generated extraction interface
 
-- [ ] Compile an approved schema into a strict products-array JSON Schema.
-- [ ] Preserve field requiredness, enum values, null policy, and open JSONB
+- [x] Compile an approved schema into a strict products-array JSON Schema.
+- [x] Preserve field requiredness, enum values, null policy, and open JSONB
       fields without provider calls.
 
 ### Checkpoint: Extraction
 
-- [ ] Generated extraction contract accepts valid fixtures and rejects invalid
+- [x] Generated extraction contract accepts valid fixtures and rejects invalid
       values.
-- [ ] Existing discovered-schema extraction tests remain green.
+- [x] Existing discovered-schema extraction tests remain green.
 
 ### Phase 3: Generated storage interface
 

@@ -4,7 +4,9 @@ import copy
 import unittest
 
 from src.common.json_contracts import ContractValidationError
+from src.common.json_contracts import validate_inline_contract
 from src.schema.canonical import (
+    compile_canonical_extraction_contract,
     require_approved_canonical_schema,
     validate_canonical_schema,
 )
@@ -157,6 +159,78 @@ class CanonicalSchemaLifecycleTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "product-name identity"):
             validate_canonical_schema(schema)
+
+
+class CanonicalExtractionCompilerTests(unittest.TestCase):
+    def test_compiles_reviewed_fields_into_multiple_product_contract(self) -> None:
+        contract = compile_canonical_extraction_contract(approved_travel_schema())
+
+        product_contract = contract["properties"]["products"]["items"]
+        self.assertFalse(product_contract["additionalProperties"])
+        self.assertEqual(
+            product_contract["properties"]["product_type"]["enum"],
+            ["international_single_trip", "domestic"],
+        )
+        self.assertEqual(
+            product_contract["properties"]["geographic_scope"]["enum"],
+            ["international", "domestic", "inbound", None],
+        )
+
+    def test_generated_contract_validates_a_complete_extraction(self) -> None:
+        contract = compile_canonical_extraction_contract(approved_travel_schema())
+        payload = {
+            "products": [
+                {
+                    "product_name": "International Comprehensive",
+                    "product_type": "international_single_trip",
+                    "geographic_scope": "international",
+                    "cruise_cover_available": True,
+                    "benefits": [{"name": "medical", "limit": "Unlimited"}],
+                    "_unfilled": [],
+                    "_notes": None,
+                }
+            ],
+            "_document_notes": None,
+        }
+
+        self.assertIs(validate_inline_contract(payload, contract), payload)
+
+    def test_generated_contract_rejects_unknown_enum_value(self) -> None:
+        contract = compile_canonical_extraction_contract(approved_travel_schema())
+        payload = {
+            "products": [
+                {
+                    "product_name": "International Comprehensive",
+                    "product_type": "unknown_type",
+                    "geographic_scope": "international",
+                    "cruise_cover_available": True,
+                    "benefits": [],
+                    "_unfilled": [],
+                    "_notes": None,
+                }
+            ],
+            "_document_notes": None,
+        }
+
+        with self.assertRaises(ContractValidationError):
+            validate_inline_contract(payload, contract)
+
+    def test_optional_field_is_not_required_but_remains_closed(self) -> None:
+        schema = approved_travel_schema()
+        schema["fields"][2]["required"] = False
+        contract = compile_canonical_extraction_contract(schema)
+        product_contract = contract["properties"]["products"]["items"]
+
+        self.assertNotIn("geographic_scope", product_contract["required"])
+        self.assertIn("geographic_scope", product_contract["properties"])
+
+    def test_candidate_cannot_compile_extraction_contract(self) -> None:
+        schema = approved_travel_schema()
+        schema["status"] = "candidate"
+        schema["review"] = None
+
+        with self.assertRaisesRegex(ValueError, "human-approved"):
+            compile_canonical_extraction_contract(schema)
 
 
 if __name__ == "__main__":
