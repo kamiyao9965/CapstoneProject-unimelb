@@ -1,31 +1,36 @@
-# Relational Storage Tasks
+# Approved Canonical Schema Tasks
 
-- [ ] Define and validate the Travel storage mapping.
-  - Acceptance: mapping has a version, vertical, collection path, identity
-    fields, and deterministic taxonomy mappings.
-  - Verify: focused mapping-contract tests.
+- [ ] Define the Canonical Schema contract and lifecycle validator.
+  - Acceptance: approved schemas require a valid human review record; candidate
+    schemas fail closed at compiler boundaries.
+  - Verify: focused contract and semantic validation tests.
+  - Files: `contracts/`, `src/schema/`, `tests/test_canonical_schema.py`.
 
-- [ ] Add storage capability to vertical manifests.
-  - Acceptance: Travel enables it; private health remains disabled.
-  - Verify: manifest tests.
+- [ ] Compile extraction contracts from approved Canonical Schemas.
+  - Acceptance: Travel multiple-product output has closed field types,
+    requiredness, enums, and document notes.
+  - Verify: validate valid and invalid payload fixtures offline.
+  - Files: `src/schema/canonical.py`, `tests/test_canonical_schema.py`.
 
-- [ ] Implement canonical database metadata.
-  - Acceptance: empty database can create all core and Travel tables.
-  - Verify: SQLite creation and PostgreSQL DDL compilation tests.
+- [ ] Compile vertical SQLAlchemy metadata.
+  - Acceptance: approved fields produce typed extension columns, enum checks,
+    a release foreign key, and JSONB attributes.
+  - Verify: SQLite creation and PostgreSQL DDL compilation.
+  - Files: `src/storage/schema.py`, `src/storage/canonical.py`,
+    `tests/test_canonical_storage.py`.
 
-- [ ] Implement fail-closed Travel mapping.
-  - Acceptance: valid artifacts produce deterministic records; malformed input
-    fails before database access.
-  - Verify: mapper unit tests.
+- [ ] Compile deterministic load plans.
+  - Acceptance: validated products produce stable core bindings and extension
+    records; JSONB fields are preserved without LLM inference.
+  - Verify: pure mapper tests, including invalid and repeated input.
+  - Files: `src/storage/canonical.py`, `tests/test_canonical_storage.py`.
 
-- [ ] Implement transactional idempotent persistence.
-  - Acceptance: repeated loads do not duplicate rows; a failed load rolls back.
-  - Verify: SQLite integration tests.
-
-- [ ] Add storage CLI commands and documentation.
-  - Acceptance: commands resolve credentials from an environment-variable name
-    without printing its value.
-  - Verify: CLI tests and `python src/run.py --help`.
+- [ ] Add reviewed-schema compiler CLI and documentation.
+  - Acceptance: approved schema writes generated extraction contract and SQL
+    preview without overwriting; candidates fail with a clear message.
+  - Verify: CLI tests and `src/run.py --help`.
+  - Files: `src/run.py`, `README.md`, CLI tests.
 
 - [ ] Run final verification and review.
-  - Verify: compileall, full unittest suite, diff review, and clean Git status.
+  - Verify: compileall, full unittest suite, diff review, secret scan, and clean
+    Git status after atomic commits.

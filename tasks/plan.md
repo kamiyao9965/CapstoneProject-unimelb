@@ -1,68 +1,78 @@
-# Implementation Plan: Relational Storage Vertical Slice
+# Implementation Plan: Approved Canonical Schema Compiler
 
 ## Overview
 
-Add an opt-in PostgreSQL storage stage after validated extraction. The slice
-will preserve raw JSON, normalise core product/release records, add Travel
-dimensions, and prove idempotent transactional loads without changing existing
-discovery or extraction behavior.
+Introduce an additive Canonical Schema boundary that turns one human-approved
+vertical contract into a runtime extraction JSON Schema, generated vertical
+SQLAlchemy metadata, and a deterministic load plan. Preserve current discovery,
+extraction, fixed core tables, and the legacy Travel mapping during migration.
 
 ## Architecture decisions
 
-- PostgreSQL is the production database; SQLite is test-only.
-- SQLAlchemy Core owns schema and transactions; Psycopg 3 is the driver.
-- Storage is additive and enabled per vertical manifest.
-- Raw extraction is always retained in JSON before relational mapping.
-- Database DDL is deterministic and never generated directly by the LLM.
+- Only explicitly approved Canonical Schemas can compile downstream artifacts.
+- Operational and cross-vertical identity tables remain fixed application code.
+- One generated product-release extension table represents vertical-specific
+  queryable fields in the first slice.
+- Open nested structures remain losslessly available in JSONB.
+- Current discovered-schema consumers stay backward compatible.
 
 ## Task list
 
-### Phase 1: Contracts and dependencies
+### Phase 1: Contract and lifecycle
 
-- [ ] Record the storage PRD, ADR, approved dependencies, and mapping contract.
-- [ ] Add manifest capability/path validation for opt-in storage.
+- [ ] Define and allowlist the Canonical Schema JSON contract.
+- [ ] Add semantic validation for approval, identifiers, bindings, and storage
+      combinations.
+- [ ] Prove candidate schemas cannot compile downstream outputs.
 
-### Checkpoint: Contracts
+### Checkpoint: Contract
 
-- [ ] Mapping and manifest contract tests pass.
-- [ ] Existing manifest defaults remain backward compatible.
+- [ ] Focused lifecycle and validation tests pass.
+- [ ] Existing contract catalog behavior remains compatible.
 
-### Phase 2: Storage foundation
+### Phase 2: Generated extraction interface
 
-- [ ] Define core and Travel SQLAlchemy tables with PostgreSQL JSONB variants.
-- [ ] Add deterministic schema creation and database URL validation.
-- [ ] Prove table creation on SQLite and DDL compilation for PostgreSQL.
+- [ ] Compile an approved schema into a strict products-array JSON Schema.
+- [ ] Preserve field requiredness, enum values, null policy, and open JSONB
+      fields without provider calls.
 
-### Checkpoint: Schema
+### Checkpoint: Extraction
 
-- [ ] Primary keys, foreign keys, unique constraints, and JSONB compile as
-      specified.
+- [ ] Generated extraction contract accepts valid fixtures and rejects invalid
+      values.
+- [ ] Existing discovered-schema extraction tests remain green.
 
-### Phase 3: End-to-end loading
+### Phase 3: Generated storage interface
 
-- [ ] Map one validated Travel artifact into deterministic storage records.
-- [ ] Persist raw and relational records in one transaction with idempotent
-      upserts.
-- [ ] Add `storage-init` and `storage-load` CLI commands.
+- [ ] Compile the approved schema into vertical SQLAlchemy metadata linked to
+      `product_releases`.
+- [ ] Generate deterministic core bindings and extension records from validated
+      extraction payloads.
+- [ ] Preserve JSONB-designated fields in extension attributes.
 
-### Checkpoint: Complete
+### Checkpoint: Storage
 
-- [ ] Loading the same artifact twice leaves row counts unchanged.
-- [ ] An invalid artifact leaves all tables unchanged.
-- [ ] Full offline suite, compileall, and CLI help pass.
-- [ ] README and project ownership documentation are current.
+- [ ] SQLite table creation and PostgreSQL DDL compilation pass.
+- [ ] Repeated load-plan compilation produces identical records.
+
+### Phase 4: Integration and documentation
+
+- [ ] Add a reviewed-schema compile CLI that writes generated contracts without
+      overwriting existing files.
+- [ ] Document the human approval and schema-version workflow.
+- [ ] Run compileall, full offline tests, CLI help, diff review, and secret scan.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| No local PostgreSQL server | PostgreSQL runtime cannot be exercised locally | SQLite end-to-end tests plus PostgreSQL dialect compilation; report live PG as unverified |
-| Open-ended benefit objects | Premature relational tables would be unstable | Preserve in JSONB until a closed nested contract is approved |
-| Schema discovery drift | Dynamic DDL could corrupt storage | Fixed canonical schema and versioned mapping boundary |
-| Duplicate loads | Duplicate products/releases | Deterministic IDs, unique constraints, and conflict-safe inserts |
-| Partial writes | Inconsistent product graph | One transaction per artifact |
+| Candidate schema reaches DDL | Unreviewed structure becomes persistent | Require approved state and review record at every compiler entry point |
+| Existing extraction breaks | Current vertical workflows regress | Additive contract and adapters; retain discovered-schema compiler |
+| Arbitrary SQL identifiers | Unsafe or invalid DDL | Strict snake_case validation and allowlisted core bindings |
+| Nested objects imply unstable tables | Premature relational model | JSONB-only strategy for `list[object]` in the first slice |
+| Two mapping authorities persist | Configuration drift | Mark legacy mapping compatibility-only and add parity coverage before removal |
 
 ## Open questions
 
-None for this slice. Cloud provisioning and relational benefit modelling remain
-explicitly out of scope.
+None for this implementation slice. A review UI and nested child-table
+generation require separate approval.
