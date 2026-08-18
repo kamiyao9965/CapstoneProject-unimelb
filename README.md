@@ -125,6 +125,8 @@ if a disabled stage is requested.
 Manifest files cannot import arbitrary Python functions. Executable behavior
 must use an adapter ID registered in `src/verticals/registry.py`. This keeps a
 configuration change from becoming an arbitrary-code execution path.
+Dataset roots may still be supplied through an explicitly declared environment
+override such as `KONKRD_DATA_ROOT`; command-line path flags take precedence.
 
 Use an explicit manifest when selecting a vertical:
 

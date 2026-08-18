@@ -20,6 +20,7 @@
     "acquisition_config": "configs/travel_insurance/sources.json",
     "acquisition_output": "outputs/travel_insurance/acquisition"
   },
+  "path_environment": {},
   "contracts": {
     "acquisition_run": "travel_insurance/acquisition_run",
     "discovered_schema": null,

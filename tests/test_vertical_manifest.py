@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from src.verticals.manifest import (
     PROJECT_ROOT,
@@ -78,6 +79,18 @@ class VerticalManifestTest(unittest.TestCase):
             manifest = load_vertical_manifest(path)
             with self.assertRaises(ManifestValidationError):
                 manifest.path("output_root")
+
+    def test_environment_path_override_preserves_external_dataset_support(self) -> None:
+        manifest = load_vertical_manifest(
+            PROJECT_ROOT / "configs/private_health/manifest.json"
+        )
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(
+            "os.environ", {"KONKRD_DATA_ROOT": tmp}
+        ):
+            self.assertEqual(
+                manifest.path("input_root"),
+                Path(tmp).resolve() / "data/private_health/raw/PDFs",
+            )
 
     def test_adapter_registry_rejects_unregistered_code(self) -> None:
         with self.assertRaises(ManifestValidationError):

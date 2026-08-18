@@ -53,6 +53,21 @@
       "additionalProperties": {"type": "string", "minLength": 1},
       "required": ["input_root", "output_root"]
     },
+    "path_environment": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["variable", "suffix"],
+        "properties": {
+          "variable": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+          "suffix": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).*$"
+          }
+        }
+      }
+    },
     "contracts": {
       "type": "object",
       "additionalProperties": {"type": ["string", "null"]}

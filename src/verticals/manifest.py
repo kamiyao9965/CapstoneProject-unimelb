@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
@@ -39,6 +40,7 @@ class VerticalManifest:
     capabilities: Mapping[str, bool]
     documents: DocumentModel
     paths: Mapping[str, str]
+    path_environment: Mapping[str, Mapping[str, str]]
     contracts: Mapping[str, str | None]
     prompts: Mapping[str, str | None]
     adapters: Mapping[str, str | None]
@@ -60,6 +62,15 @@ class VerticalManifest:
             raise ManifestValidationError(
                 f"Vertical {self.vertical!r} does not define path {name!r}."
             )
+        environment_override = self.path_environment.get(name)
+        configured_root = (
+            os.getenv(environment_override["variable"])
+            if environment_override
+            else None
+        )
+        if configured_root:
+            return (Path(configured_root).expanduser() / environment_override["suffix"]).resolve()
+
         candidate = Path(value)
         resolved = (
             candidate.resolve()
@@ -127,6 +138,12 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
             output_cardinality=str(documents["output_cardinality"]),
         ),
         paths=MappingProxyType(dict(payload["paths"])),
+        path_environment=MappingProxyType(
+            {
+                name: MappingProxyType(dict(config))
+                for name, config in payload.get("path_environment", {}).items()
+            }
+        ),
         contracts=MappingProxyType(dict(payload["contracts"])),
         prompts=MappingProxyType(dict(payload["prompts"])),
         adapters=MappingProxyType(dict(payload["adapters"])),

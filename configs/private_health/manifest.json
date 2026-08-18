@@ -19,6 +19,12 @@
     "output_root": "outputs/private_health",
     "alias_config": "configs/private_health/aliases.json"
   },
+  "path_environment": {
+    "input_root": {
+      "variable": "KONKRD_DATA_ROOT",
+      "suffix": "data/private_health/raw/PDFs"
+    }
+  },
   "contracts": {
     "discovered_schema": "private_health/discovered_schema",
     "candidate_patch_set": "private_health/candidate_patch_set",
