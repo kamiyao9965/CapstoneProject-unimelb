@@ -16,6 +16,7 @@ from src.common.model_config import ModelSelection, resolve_selection
 from src.refine.human_review import write_review_queue
 from src.refine.pipeline import cli, rounds
 from src.refine.pipeline import steps
+from src.verticals.manifest import PROJECT_ROOT
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
 
@@ -73,6 +74,20 @@ class ParserBackwardCompatTest(unittest.TestCase):
         self.assertIsNone(args.resume_review)
         self.assertFalse(args.autonomous)
         self.assertEqual(args.rounds, 1)
+
+    def test_manifest_applies_refinement_paths_and_categories(self) -> None:
+        args = cli.build_parser().parse_args([])
+        cli.configure_args(args)
+
+        self.assertEqual(
+            args.input_root,
+            PROJECT_ROOT / "konkrd-data/data/private_health/raw/PDFs",
+        )
+        self.assertEqual(args.out_dir, PROJECT_ROOT / "outputs/private_health/refine")
+        self.assertEqual(
+            args.vertical_manifest.documents.categories,
+            ("combined", "extras", "generalhealth", "hospital"),
+        )
 
     def test_provider_flags_resolve_to_the_default_selection(self) -> None:
         args = cli.build_parser().parse_args([])

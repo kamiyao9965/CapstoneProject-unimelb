@@ -5,11 +5,16 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from src.common.data_paths import default_private_health_pdf_root
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
 from src.refine.pipeline.rounds import next_round_index, resume_review, run_round
+from src.verticals.manifest import (
+    ManifestValidationError,
+    VerticalManifest,
+    default_manifest_path,
+    load_vertical_manifest,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,7 +24,8 @@ def build_parser() -> argparse.ArgumentParser:
             "-> optional human review -> holdout schema application -> feedback"
         )
     )
-    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    parser.add_argument("--manifest")
+    parser.add_argument("--input-root")
     parser.add_argument(
         "--per-category", type=int, default=5, help="PDFs/category for discovery"
     )
@@ -40,7 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model")
     parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
-    parser.add_argument("--out-dir", default="outputs/private_health/refine")
+    parser.add_argument("--out-dir")
     parser.add_argument("--rounds", type=int, default=1, help="Max rounds")
     parser.add_argument(
         "--consensus-runs",
@@ -82,9 +88,30 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def configure_args(args: argparse.Namespace) -> VerticalManifest:
+    manifest = load_vertical_manifest(
+        args.manifest or default_manifest_path("private_health")
+    )
+    manifest.require_capability("refinement")
+    args.vertical_manifest = manifest
+    args.input_root = (
+        Path(args.input_root) if args.input_root else manifest.path("input_root")
+    )
+    args.out_dir = (
+        Path(args.out_dir)
+        if args.out_dir
+        else manifest.path("output_root") / "refine"
+    )
+    return manifest
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    try:
+        configure_args(args)
+    except ManifestValidationError as exc:
+        parser.error(str(exc))
     try:
         args.selection = resolve_selection(
             provider=args.provider,
@@ -130,7 +157,7 @@ def _load_feedback(args, start_index: int) -> str | None:
     artifact = read_artifact(
         args.resume_feedback,
         expected_type="refinement_feedback",
-        data_contract="private_health/refinement_feedback",
+        data_contract=args.vertical_manifest.contract("refinement_feedback"),
     )
     feedback = dumps_json(artifact["data"], ensure_ascii=False)
     print(f"Seeding round {start_index} with feedback from {args.resume_feedback}")

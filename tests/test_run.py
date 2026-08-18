@@ -8,7 +8,8 @@ from unittest import mock
 
 from src.common.model_config import ModelSelection, resolve_selection
 from src import run as run_module
-from src.run import build_parser
+from src.run import build_parser, configure_command
+from src.verticals.manifest import PROJECT_ROOT
 
 
 class RunParserTest(unittest.TestCase):
@@ -65,8 +66,39 @@ class RunParserTest(unittest.TestCase):
 
     def test_default_output_is_json(self) -> None:
         args = build_parser().parse_args(["discover"])
+        configure_command(args)
 
-        self.assertEqual(args.output, "outputs/private_health/schema.json")
+        self.assertEqual(args.output, PROJECT_ROOT / "outputs/private_health/schema.json")
+
+    def test_travel_manifest_blocks_unimplemented_discovery(self) -> None:
+        args = build_parser().parse_args(
+            [
+                "discover",
+                "--manifest",
+                "configs/travel_insurance/manifest.json",
+            ]
+        )
+
+        with self.assertRaisesRegex(ValueError, "does not support 'discovery'"):
+            configure_command(args)
+
+    def test_crawl_defaults_come_from_travel_manifest(self) -> None:
+        args = build_parser().parse_args(["crawl"])
+        configure_command(args)
+
+        self.assertEqual(args.vertical, "travel_insurance")
+        self.assertEqual(
+            args.config,
+            PROJECT_ROOT / "configs/travel_insurance/sources.json",
+        )
+        self.assertEqual(
+            args.data_root,
+            PROJECT_ROOT / "data/travel_insurance/raw/PDFs",
+        )
+        self.assertEqual(
+            args.output_root,
+            PROJECT_ROOT / "outputs/travel_insurance/acquisition",
+        )
 
     def test_crawl_parser_uses_insurer_not_llm_provider(self) -> None:
         args = build_parser().parse_args(

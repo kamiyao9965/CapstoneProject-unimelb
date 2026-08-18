@@ -20,14 +20,21 @@ from src.schema_application.extractor import SchemaExtractor
 from src.schema.contract import compile_extraction_contract
 from src.refine.consensus import SchemaConsensusRefinement
 from src.schema.discovery import SchemaDiscovery
-from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
+from src.schema.sampler import select_samples
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+
+
+def _manifest(args):
+    return getattr(args, "vertical_manifest", None) or load_vertical_manifest(
+        default_manifest_path("private_health")
+    )
 
 
 def select_discovery_samples(args) -> tuple[str, ...]:
     return tuple(
         select_samples(
             input_root=Path(args.input_root),
-            categories=DEFAULT_CATEGORIES,
+            categories=_manifest(args).documents.categories,
             per_category=args.per_category,
             seed=args.seed,
         )
@@ -73,9 +80,13 @@ def generate_schema(
             "model": selection.model, "document_input": selection.document_input,
             "source_documents": resolved_sample_paths, "source_artifacts": [],
         },
-        data_contract="private_health/discovered_schema",
+        data_contract=_manifest(args).contract("discovered_schema"),
     )
-    write_artifact(out_path, artifact, data_contract="private_health/discovered_schema")
+    write_artifact(
+        out_path,
+        artifact,
+        data_contract=_manifest(args).contract("discovered_schema"),
+    )
     return schema_data
 
 
@@ -113,7 +124,7 @@ def evaluate_schema(
     """Apply a schema to holdout PDFs, find failures, and write feedback."""
     eval_paths = select_samples(
         input_root=Path(args.input_root),
-        categories=DEFAULT_CATEGORIES,
+        categories=_manifest(args).documents.categories,
         per_category=args.eval_per_category,
         seed=args.eval_seed,
         exclude_paths=exclude_paths,
@@ -145,11 +156,11 @@ def evaluate_schema(
             "document_input": None, "source_documents": list(eval_paths),
             "source_artifacts": [],
         },
-        data_contract="private_health/refinement_feedback",
+        data_contract=_manifest(args).contract("refinement_feedback"),
     )
     write_artifact(
         round_dir / "refinement_feedback.json",
         feedback_artifact,
-        data_contract="private_health/refinement_feedback",
+        data_contract=_manifest(args).contract("refinement_feedback"),
     )
     return analysis, feedback

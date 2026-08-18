@@ -17,13 +17,18 @@ from src.common.json_artifacts import (
     write_artifact,
     write_failure_artifact,
 )
-from src.common.data_paths import default_private_health_pdf_root
 from src.common.model_config import resolve_selection
 from src.config import load_config
 from src.models import ExtractionResult
 from src.schema.loader import SchemaLoader
-from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
+from src.schema.sampler import print_samples, select_samples
 from src.schema.validator import SchemaValidator
+from src.verticals.manifest import (
+    ManifestValidationError,
+    VerticalManifest,
+    default_manifest_path,
+    load_vertical_manifest,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,9 +39,10 @@ def build_parser() -> argparse.ArgumentParser:
         "discover",
         help="Generate a feat discovered JSON schema from sample PDFs",
     )
+    discover.add_argument("--manifest")
     discover.add_argument("--samples", nargs="+")
-    discover.add_argument("--input-root", default=str(default_private_health_pdf_root()))
-    discover.add_argument("--categories", nargs="+", default=list(DEFAULT_CATEGORIES))
+    discover.add_argument("--input-root")
+    discover.add_argument("--categories", nargs="+")
     discover.add_argument("--per-category", type=int, default=5)
     discover.add_argument("--seed", type=int)
     discover.add_argument("--provider")
@@ -44,10 +50,11 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--document-input")
     discover.add_argument("--timeout", type=float, default=600.0)
     discover.add_argument("--keep-uploaded-files", action="store_true")
-    discover.add_argument("--output", default="outputs/private_health/schema.json")
-    discover.add_argument("--usage-log", default="outputs/private_health/token_usage.jsonl")
+    discover.add_argument("--output")
+    discover.add_argument("--usage-log")
 
     extract = subparsers.add_parser("extract", help="Extract one PDF into structured JSON")
+    extract.add_argument("--manifest")
     extract.add_argument("--pdf", required=True)
     extract.add_argument("--schema", required=True)
     extract.add_argument("--output")
@@ -60,9 +67,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     batch = subparsers.add_parser("batch", help="Run extraction over collected PDFs")
-    batch.add_argument("--vertical", default="private_health")
+    batch.add_argument("--manifest")
+    batch.add_argument("--vertical")
     batch.add_argument("--schema", required=True)
-    batch.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    batch.add_argument("--input-root")
     batch.add_argument("--evaluate", action="store_true")
     batch.add_argument("--provider", default=None)
     batch.add_argument("--model", default=None)
@@ -76,18 +84,19 @@ def build_parser() -> argparse.ArgumentParser:
         "crawl",
         help="Discover and safely download public insurance document PDFs",
     )
-    crawl.add_argument("--vertical", default="travel_insurance")
+    crawl.add_argument("--manifest")
+    crawl.add_argument("--vertical")
     crawl.add_argument(
         "--config",
-        default="configs/travel_insurance/sources.json",
+        default=None,
     )
     crawl.add_argument(
         "--data-root",
-        default="data/travel_insurance/raw/PDFs",
+        default=None,
     )
     crawl.add_argument(
         "--output-root",
-        default="outputs/travel_insurance/acquisition",
+        default=None,
     )
     crawl.add_argument(
         "--insurer",
@@ -106,6 +115,51 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def configure_command(args: argparse.Namespace) -> VerticalManifest:
+    """Load one manifest and apply its defaults before a command runs."""
+    default_vertical = "travel_insurance" if args.command == "crawl" else "private_health"
+    requested_vertical = getattr(args, "vertical", None) or default_vertical
+    manifest_path = args.manifest or default_manifest_path(requested_vertical)
+    manifest = load_vertical_manifest(manifest_path)
+    if getattr(args, "vertical", None) and args.vertical != manifest.vertical:
+        raise ManifestValidationError(
+            f"--vertical {args.vertical!r} conflicts with manifest vertical "
+            f"{manifest.vertical!r}."
+        )
+    args.vertical = manifest.vertical
+    args.vertical_manifest = manifest
+
+    capability = {
+        "discover": "discovery",
+        "extract": "extraction",
+        "batch": "extraction",
+        "crawl": "acquisition",
+    }[args.command]
+    manifest.require_capability(capability)
+    if args.command == "batch" and args.evaluate:
+        manifest.require_capability("evaluation")
+
+    if args.command == "discover":
+        args.input_root = Path(args.input_root) if args.input_root else manifest.path("input_root")
+        args.categories = args.categories or list(manifest.documents.categories)
+        output_root = manifest.path("output_root")
+        args.output = Path(args.output) if args.output else output_root / "schema.json"
+        args.usage_log = (
+            Path(args.usage_log) if args.usage_log else output_root / "token_usage.jsonl"
+        )
+    elif args.command == "batch":
+        args.input_root = Path(args.input_root) if args.input_root else manifest.path("input_root")
+    elif args.command == "crawl":
+        args.config = Path(args.config) if args.config else manifest.path("acquisition_config")
+        args.data_root = Path(args.data_root) if args.data_root else manifest.path("input_root")
+        args.output_root = (
+            Path(args.output_root)
+            if args.output_root
+            else manifest.path("acquisition_output")
+        )
+    return manifest
+
+
 def command_discover(args: argparse.Namespace) -> int:
     from src.common.structured_output import StructuredOutputFailure
     from src.schema.discovery import SchemaDiscovery
@@ -119,6 +173,7 @@ def command_discover(args: argparse.Namespace) -> int:
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
+    manifest = args.vertical_manifest
     categories = tuple(category.lower() for category in args.categories)
     input_root = Path(args.input_root)
     output_path = next_available_path(Path(args.output))
@@ -192,12 +247,12 @@ def command_discover(args: argparse.Namespace) -> int:
             "source_documents": list(sample_paths),
             "source_artifacts": [],
         },
-        data_contract="private_health/discovered_schema",
+        data_contract=manifest.contract("discovered_schema"),
     )
     write_artifact(
         output_path,
         artifact,
-        data_contract="private_health/discovered_schema",
+        data_contract=manifest.contract("discovered_schema"),
     )
     print(f"Wrote schema draft to {output_path}")
     return 0
@@ -421,13 +476,13 @@ def command_batch(args: argparse.Namespace) -> int:
 
 
 def command_crawl(args: argparse.Namespace) -> int:
-    if args.vertical != "travel_insurance":
-        print("The crawl command currently supports only --vertical travel_insurance.")
-        return 2
-    from src.scraper.travel import run_travel_acquisition
+    from src.verticals.registry import get_acquisition_adapter
+
+    manifest = args.vertical_manifest
+    run_acquisition = get_acquisition_adapter(manifest.adapter("acquisition"))
 
     try:
-        outcome = run_travel_acquisition(
+        outcome = run_acquisition(
             config_path=args.config,
             data_root=args.data_root,
             output_root=args.output_root,
@@ -490,6 +545,10 @@ def next_available_path(path: Path) -> Path:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    try:
+        configure_command(args)
+    except ManifestValidationError as exc:
+        parser.error(str(exc))
     if args.command == "discover":
         return command_discover(args)
     if args.command == "extract":

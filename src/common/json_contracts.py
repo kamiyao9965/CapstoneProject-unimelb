@@ -16,6 +16,7 @@ from src.common.json_codec import loads_json
 CONTRACT_ROOT = Path(__file__).resolve().parents[2] / "contracts"
 _CONTRACT_PATHS = {
     "artifact_envelope": "artifact_envelope.schema.json",
+    "vertical_manifest": "vertical_manifest.schema.json",
     "private_health/discovered_schema": (
         "private_health/discovered_schema.schema.json"
     ),

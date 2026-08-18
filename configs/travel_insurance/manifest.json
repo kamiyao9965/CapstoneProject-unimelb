@@ -1,0 +1,40 @@
+{
+  "manifest_version": "1.0",
+  "vertical": "travel_insurance",
+  "capabilities": {
+    "acquisition": true,
+    "discovery": false,
+    "refinement": false,
+    "extraction": false,
+    "evaluation": false
+  },
+  "documents": {
+    "categories": ["pds", "spds", "brochure", "tmd", "fsg"],
+    "document_types": ["pds", "spds", "brochure", "tmd", "fsg"],
+    "extraction_unit": "product_release",
+    "output_cardinality": "multiple"
+  },
+  "paths": {
+    "input_root": "data/travel_insurance/raw/PDFs",
+    "output_root": "outputs/travel_insurance",
+    "acquisition_config": "configs/travel_insurance/sources.json",
+    "acquisition_output": "outputs/travel_insurance/acquisition"
+  },
+  "contracts": {
+    "acquisition_run": "travel_insurance/acquisition_run",
+    "discovered_schema": null,
+    "candidate_patch_set": null,
+    "refinement_feedback": null
+  },
+  "prompts": {
+    "discovery": null,
+    "patch": null,
+    "extraction": null
+  },
+  "adapters": {
+    "schema_validator": null,
+    "normalizer": null,
+    "evaluator": null,
+    "acquisition": "travel_public_documents_v1"
+  }
+}

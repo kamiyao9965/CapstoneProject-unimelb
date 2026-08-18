@@ -24,6 +24,7 @@ repair retries. Invalid data never proceeds to the next stage.
 | Refinement loop | Feed validated failure analysis into a later discovery round |
 | Cost estimation | Estimate actual and projected spend from JSONL token-usage logs |
 | Travel document acquisition | Discover current PDS, SPDS, brochure, TMD, and FSG PDFs and preserve their product-release relationships |
+| Manifest-driven verticals | Select versioned paths, contracts, document models, capabilities, and allowlisted adapters without changing CLI orchestration |
 
 ## Safety guarantees
 
@@ -75,8 +76,7 @@ Allianz, Cover-More, and Southern Cross Travel Insurance:
 
 ```bash
 .venv/bin/python src/run.py crawl \
-  --vertical travel_insurance \
-  --config configs/travel_insurance/sources.json
+  --manifest configs/travel_insurance/manifest.json
 ```
 
 Restrict a smoke test to one insurer by repeating `--insurer` as needed:
@@ -99,6 +99,42 @@ outputs/travel_insurance/acquisition/<run_id>/acquisition.json
 Both directories are intentionally ignored by Git. The acquisition artifact
 records separate retrieval, validation, and parse statuses, plus PDS/SPDS/
 brochure/TMD/FSG relationships and items that need human review.
+
+## Vertical manifests
+
+Each supported business vertical has one validated manifest under `configs/`.
+The manifest is the declarative boundary for paths, document categories,
+contract identifiers, prompt identifiers, pipeline capabilities, and adapter
+IDs:
+
+```text
+configs/private_health/manifest.json
+configs/travel_insurance/manifest.json
+contracts/vertical_manifest.schema.json
+src/verticals/manifest.py
+src/verticals/registry.py
+```
+
+Private health currently enables discovery, refinement, extraction, and
+evaluation. Travel insurance currently enables acquisition only. Its manifest
+already records `product_release` as the extraction unit and `multiple` as the
+output cardinality, but discovery and extraction remain disabled until their
+JSON contracts, prompts, validators, and tests exist. The CLI fails explicitly
+if a disabled stage is requested.
+
+Manifest files cannot import arbitrary Python functions. Executable behavior
+must use an adapter ID registered in `src/verticals/registry.py`. This keeps a
+configuration change from becoming an arbitrary-code execution path.
+
+Use an explicit manifest when selecting a vertical:
+
+```bash
+.venv/bin/python src/run.py crawl \
+  --manifest configs/travel_insurance/manifest.json
+```
+
+Omitting `--manifest` preserves the existing defaults: private health for
+schema commands and travel insurance for `crawl`.
 
 ## 2. Use the known source documents
 

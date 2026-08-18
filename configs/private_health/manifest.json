@@ -1,0 +1,38 @@
+{
+  "manifest_version": "1.0",
+  "vertical": "private_health",
+  "capabilities": {
+    "acquisition": false,
+    "discovery": true,
+    "refinement": true,
+    "extraction": true,
+    "evaluation": true
+  },
+  "documents": {
+    "categories": ["combined", "extras", "generalhealth", "hospital"],
+    "document_types": ["policy_document", "phis"],
+    "extraction_unit": "document",
+    "output_cardinality": "single"
+  },
+  "paths": {
+    "input_root": "konkrd-data/data/private_health/raw/PDFs",
+    "output_root": "outputs/private_health",
+    "alias_config": "configs/private_health/aliases.json"
+  },
+  "contracts": {
+    "discovered_schema": "private_health/discovered_schema",
+    "candidate_patch_set": "private_health/candidate_patch_set",
+    "refinement_feedback": "private_health/refinement_feedback"
+  },
+  "prompts": {
+    "discovery": "private_health_discovery_v1",
+    "patch": "private_health_patch_v1",
+    "extraction": "private_health_extraction_v1"
+  },
+  "adapters": {
+    "schema_validator": "private_health_schema_v1",
+    "normalizer": "private_health_extraction_v1",
+    "evaluator": "private_health_labelled_v1",
+    "acquisition": null
+  }
+}

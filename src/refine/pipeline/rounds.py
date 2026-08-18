@@ -12,6 +12,14 @@ from src.refine.pipeline.steps import (
     run_consensus_stage,
     select_discovery_samples,
 )
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+
+
+def _schema_contract(args) -> str:
+    manifest = getattr(args, "vertical_manifest", None) or load_vertical_manifest(
+        default_manifest_path("private_health")
+    )
+    return manifest.contract("discovered_schema")
 
 
 def next_round_index(out_dir: Path) -> int:
@@ -72,23 +80,32 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
     )
     print("\n[refinement-feedback]\n" + feedback_out)
 
-    final_schema_path = publish_final_schema(schema_path, Path(args.out_dir))
+    final_schema_path = publish_final_schema(
+        schema_path,
+        Path(args.out_dir),
+        data_contract=_schema_contract(args),
+    )
     print(f"[final-schema] wrote {final_schema_path}")
     return feedback_out
 
 
-def publish_final_schema(schema_path: Path, out_dir: Path) -> Path:
+def publish_final_schema(
+    schema_path: Path,
+    out_dir: Path,
+    *,
+    data_contract: str = "private_health/discovered_schema",
+) -> Path:
     """Publish the latest completed round schema to a stable path for extraction."""
     artifact = read_artifact(
         schema_path,
         expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
+        data_contract=data_contract,
     )
     final_schema_path = out_dir / "final_schema.json"
     write_artifact(
         final_schema_path,
         artifact,
-        data_contract="private_health/discovered_schema",
+        data_contract=data_contract,
     )
     return final_schema_path
 
@@ -111,12 +128,12 @@ def _run_consensus_stage(
     artifact = read_artifact(
         outputs.consensus_schema_path,
         expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
+        data_contract=_schema_contract(args),
     )
     write_artifact(
         schema_path,
         artifact,
-        data_contract="private_health/discovered_schema",
+        data_contract=_schema_contract(args),
     )
     suffix = " for human review" if args.review_ui else ""
     print(f"[consensus] wrote {schema_path}{suffix}")
@@ -152,11 +169,11 @@ def resume_review(args) -> int:
     artifact = read_artifact(
         reviewed_path,
         expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
+        data_contract=_schema_contract(args),
     )
     schema_path = round_dir / "schema.json"
     write_artifact(
-        schema_path, artifact, data_contract="private_health/discovered_schema"
+        schema_path, artifact, data_contract=_schema_contract(args)
     )
     print(f"[resume-review] wrote reviewed schema to {schema_path}")
     schema_build_samples = _schema_build_samples_from_review_queue(
@@ -170,7 +187,11 @@ def resume_review(args) -> int:
         exclude_paths=schema_build_samples,
     )
     print("\n[refinement-feedback]\n" + feedback_out)
-    final_schema_path = publish_final_schema(schema_path, Path(args.out_dir))
+    final_schema_path = publish_final_schema(
+        schema_path,
+        Path(args.out_dir),
+        data_contract=_schema_contract(args),
+    )
     print(f"[final-schema] wrote {final_schema_path}")
     print(
         "\nReviewed-schema extraction feedback is available at:\n"

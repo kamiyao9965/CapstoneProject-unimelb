@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vertical_manifest.schema.json",
+  "title": "Vertical pipeline manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "vertical",
+    "capabilities",
+    "documents",
+    "paths",
+    "contracts",
+    "prompts",
+    "adapters"
+  ],
+  "properties": {
+    "manifest_version": {"const": "1.0"},
+    "vertical": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acquisition", "discovery", "refinement", "extraction", "evaluation"],
+      "properties": {
+        "acquisition": {"type": "boolean"},
+        "discovery": {"type": "boolean"},
+        "refinement": {"type": "boolean"},
+        "extraction": {"type": "boolean"},
+        "evaluation": {"type": "boolean"}
+      }
+    },
+    "documents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["categories", "document_types", "extraction_unit", "output_cardinality"],
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "document_types": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "extraction_unit": {"enum": ["document", "product_release"]},
+        "output_cardinality": {"enum": ["single", "multiple"]}
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "minLength": 1},
+      "required": ["input_root", "output_root"]
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": {"type": ["string", "null"]}
+    },
+    "prompts": {
+      "type": "object",
+      "additionalProperties": {"type": ["string", "null"]}
+    },
+    "adapters": {
+      "type": "object",
+      "additionalProperties": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]*$"}
+    }
+  }
+}
