@@ -48,7 +48,11 @@ def _compile_product_contract(
 ) -> dict[str, object]:
     properties: dict[str, object] = {}
     field_names: list[str] = []
-    for field in schema["fields"]:
+    fields = list(schema["fields"])
+    product_type_field = schema.get("product_type_field")
+    if isinstance(product_type_field, Mapping):
+        fields.insert(0, product_type_field)
+    for field in fields:
         name = str(field["name"])
         field_names.append(name)
         properties[name] = _field_contract(field)

@@ -28,24 +28,24 @@ VALID_TRAVEL_SCHEMA = {
         "international_multi_trip",
         "domestic",
     ],
+    "product_type_field": {
+        "name": "product_type",
+        "type": "enum",
+        "description": "Product journey and trip-frequency classification",
+        "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+        ],
+        "required": True,
+        "values": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+        ],
+        "aliases": ["plan type"],
+    },
     "fields": [
-        {
-            "name": "product_type",
-            "type": "enum",
-            "description": "Product journey and trip-frequency classification",
-            "applies_to": [
-                "international_single_trip",
-                "international_multi_trip",
-                "domestic",
-            ],
-            "required": True,
-            "values": [
-                "international_single_trip",
-                "international_multi_trip",
-                "domestic",
-            ],
-            "aliases": ["plan type"],
-        },
         {
             "name": "product_name",
             "type": "string",
@@ -114,9 +114,23 @@ class TravelSchemaContractTest(unittest.TestCase):
 
     def test_travel_validator_rejects_product_type_mismatch(self) -> None:
         payload = json.loads(json.dumps(VALID_TRAVEL_SCHEMA))
-        payload["fields"][0]["values"] = ["domestic"]
+        payload["product_type_field"]["values"] = ["domestic"]
 
         with self.assertRaisesRegex(ValueError, "values.*product_types"):
+            get_schema_validator("travel_insurance_schema_v1")(payload)
+
+    def test_travel_contract_requires_explicit_product_type_field(self) -> None:
+        payload = json.loads(json.dumps(VALID_TRAVEL_SCHEMA))
+        del payload["product_type_field"]
+
+        with self.assertRaises(ValueError):
+            validate_contract(payload, "travel_insurance/discovered_schema")
+
+    def test_travel_validator_rejects_duplicate_product_type_in_fields(self) -> None:
+        payload = json.loads(json.dumps(VALID_TRAVEL_SCHEMA))
+        payload["fields"].append(payload["product_type_field"])
+
+        with self.assertRaisesRegex(ValueError, "reserved"):
             get_schema_validator("travel_insurance_schema_v1")(payload)
 
     def test_travel_manifest_enables_only_migrated_pipeline_stages(self) -> None:
@@ -172,6 +186,11 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
             provider.request.structured_output.schema["properties"]["vertical"],
             {"const": "travel_insurance"},
         )
+        self.assertEqual(
+            provider.request.structured_output.schema["properties"]
+            ["product_type_field"]["properties"]["name"],
+            {"const": "product_type"},
+        )
 
 
 class TravelExtractionMigrationTest(unittest.TestCase):
@@ -184,6 +203,10 @@ class TravelExtractionMigrationTest(unittest.TestCase):
         )
 
         validate_inline_contract(VALID_TRAVEL_EXTRACTION, contract)
+        product_properties = contract["properties"]["products"]["items"][
+            "properties"
+        ]
+        self.assertIn("product_type", product_properties)
         invalid = json.loads(json.dumps(VALID_TRAVEL_EXTRACTION))
         invalid["products"] = []
         with self.assertRaises(ValueError):

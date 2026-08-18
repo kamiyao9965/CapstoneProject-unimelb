@@ -199,6 +199,44 @@ class RunParserTest(unittest.TestCase):
         )
         self.assertEqual(factory.call_args.kwargs["output_cardinality"], "multiple")
 
+    def test_discovery_reuses_failure_artifact_written_by_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "schema.json"
+            run_id = "fixed-run-id"
+            error_path = root / "errors" / "schema_discovery" / f"{run_id}.json"
+
+            class FailingDiscovery:
+                def discover(self, *_args, **_kwargs):
+                    error_path.parent.mkdir(parents=True)
+                    error_path.write_text("already written", encoding="utf-8")
+                    raise RuntimeError("provider failed")
+
+            argv = [
+                "run.py",
+                "discover",
+                "--manifest",
+                "configs/travel_insurance/manifest.json",
+                "--samples",
+                "travel.pdf",
+                "--output",
+                str(output),
+                "--usage-log",
+                str(root / "usage.jsonl"),
+            ]
+
+            with mock.patch(
+                "src.schema.discovery.SchemaDiscovery",
+                return_value=FailingDiscovery(),
+            ), mock.patch("src.run.uuid4") as uuid_factory, mock.patch(
+                "src.run.write_failure_artifact"
+            ) as write_failure, mock.patch("sys.argv", argv):
+                uuid_factory.return_value.hex = run_id
+                exit_code = run_module.main()
+
+        self.assertEqual(exit_code, 1)
+        write_failure.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

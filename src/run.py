@@ -228,12 +228,19 @@ def command_discover(args: argparse.Namespace) -> int:
             details=details,
         )
         try:
-            error_path = write_failure_artifact(
-                output_path.parent,
-                "schema_discovery",
-                run_id,
-                failure,
+            error_path = (
+                output_path.parent
+                / "errors"
+                / "schema_discovery"
+                / f"{run_id}.json"
             )
+            if not error_path.is_file():
+                error_path = write_failure_artifact(
+                    output_path.parent,
+                    "schema_discovery",
+                    run_id,
+                    failure,
+                )
             print(f"Failure artifact: {error_path}")
         except Exception as artifact_exc:
             print(f"Could not write failure artifact: {artifact_exc}")

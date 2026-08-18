@@ -123,6 +123,13 @@ collapsing several named plans into one record. Travel refinement and
 ground-truth evaluation remain disabled until their contracts and labelled
 datasets exist. The CLI fails explicitly if a disabled stage is requested.
 
+The Travel discovered-schema contract exposes `product_type_field` separately
+from `fields`. This makes the required plan classifier structurally mandatory
+while `fields` remains the list of other discovered attributes. Extraction
+compiles both sections into each product record, so downstream results still
+contain an ordinary `product_type` value alongside fields such as product name
+and benefits.
+
 Manifest files cannot import arbitrary Python functions. Executable behavior
 must use an adapter ID registered in `src/verticals/registry.py`. This keeps a
 configuration change from becoming an arbitrary-code execution path.

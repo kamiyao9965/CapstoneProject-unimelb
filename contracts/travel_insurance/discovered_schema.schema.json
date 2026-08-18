@@ -9,6 +9,7 @@
     "version",
     "description",
     "product_types",
+    "product_type_field",
     "fields",
     "coverage_categories",
     "notes"
@@ -30,6 +31,59 @@
           "business",
           "cruise"
         ]
+      }
+    },
+    "product_type_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "description",
+        "applies_to",
+        "required",
+        "values",
+        "aliases"
+      ],
+      "properties": {
+        "name": {"const": "product_type"},
+        "type": {"const": "enum"},
+        "description": {"type": "string", "minLength": 1},
+        "applies_to": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "international_single_trip",
+              "international_multi_trip",
+              "domestic",
+              "inbound",
+              "business",
+              "cruise"
+            ]
+          }
+        },
+        "required": {"const": true},
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "international_single_trip",
+              "international_multi_trip",
+              "domestic",
+              "inbound",
+              "business",
+              "cruise"
+            ]
+          }
+        },
+        "aliases": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
       }
     },
     "fields": {
