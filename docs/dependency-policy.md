@@ -13,17 +13,17 @@ normalisation, and evaluation modules.
 
 - `SQLAlchemy>=2.0,<3`
   - Owner: `src/storage/`.
-  - Reason: defines one parameterised schema and transaction boundary that
-    targets PostgreSQL in production and SQLite for offline integration tests.
-    Hand-maintaining two SQL implementations would duplicate constraints and
-    weaken test confidence.
+  - Reason: defines one parameterised PostgreSQL schema, bound statements, and
+    transaction boundary. Offline tests validate metadata and PostgreSQL SQL
+    compilation without substituting another database dialect.
   - Approval: user approved database dependencies on 2026-08-18.
 
 - `psycopg[binary]>=3.2,<4`
   - Owner: PostgreSQL connection through `src/storage/`.
   - Reason: SQLAlchemy requires a DBAPI driver to connect to PostgreSQL. The
     binary extra supplies the client libraries for supported local platforms
-    and avoids a system `libpq` build prerequisite.
+    and avoids a system `libpq` build prerequisite. Storage commands reject
+    non-PostgreSQL URLs; SQLite is not a supported storage backend.
   - Approval: user approved database dependencies on 2026-08-18.
 
 ## Rules

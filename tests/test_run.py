@@ -143,6 +143,75 @@ class RunParserTest(unittest.TestCase):
         self.assertEqual(manifest.vertical, "travel_insurance")
         self.assertTrue(manifest.supports("storage"))
 
+    def test_storage_init_defaults_to_manifest_canonical_schema_and_env_url(self) -> None:
+        args = build_parser().parse_args(["storage-init"])
+
+        manifest = configure_command(args)
+
+        self.assertEqual(manifest.vertical, "travel_insurance")
+        self.assertEqual(
+            args.schema,
+            PROJECT_ROOT / "configs/travel_insurance/canonical_schema_v1.json",
+        )
+        self.assertEqual(args.database_url_env, "KONKRD_DATABASE_URL")
+        self.assertFalse(hasattr(args, "database_url"))
+
+    def test_storage_init_calls_postgresql_service_without_printing_url(self) -> None:
+        argv = [
+            "run.py",
+            "storage-init",
+            "--manifest",
+            "configs/travel_insurance/manifest.json",
+        ]
+
+        with mock.patch(
+            "src.storage.service.resolve_database_url",
+            return_value="postgresql+psycopg://user:secret@localhost/db",
+        ), mock.patch("src.storage.service.initialize_storage") as initialize, \
+             mock.patch("builtins.print") as print_message, \
+             mock.patch("sys.argv", argv):
+            exit_code = run_module.main()
+
+        self.assertEqual(exit_code, 0)
+        initialize.assert_called_once()
+        printed = " ".join(str(call) for call in print_message.call_args_list)
+        self.assertNotIn("secret", printed)
+
+    def test_storage_load_reports_stable_summary(self) -> None:
+        summary = mock.Mock(
+            run_id="run-1",
+            document_id="sha256:document",
+            schema_version_id="sha256:schema",
+            products_loaded=2,
+            release_ids=("release-1", "release-2"),
+        )
+        argv = [
+            "run.py",
+            "storage-load",
+            "--manifest",
+            "configs/travel_insurance/manifest.json",
+            "--artifact",
+            "outputs/travel_insurance/extractions/example.json",
+            "--insurer-code",
+            "cover_more",
+        ]
+
+        with mock.patch(
+            "src.storage.service.resolve_database_url",
+            return_value="postgresql+psycopg://user:secret@localhost/db",
+        ), mock.patch(
+            "src.storage.service.load_extraction_artifact",
+            return_value=summary,
+        ) as load, mock.patch("builtins.print") as print_message, \
+             mock.patch("sys.argv", argv):
+            exit_code = run_module.main()
+
+        self.assertEqual(exit_code, 0)
+        load.assert_called_once()
+        printed = " ".join(str(call) for call in print_message.call_args_list)
+        self.assertIn("products=2", printed)
+        self.assertNotIn("secret", printed)
+
     def test_canonical_compile_writes_contract_and_postgresql_preview(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

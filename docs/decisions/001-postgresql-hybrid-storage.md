@@ -28,7 +28,8 @@ Travel insurance is the first storage-enabled vertical and uses a versioned
 mapping between its extraction contract and the canonical storage model.
 
 Use SQLAlchemy Core as the database interface and Psycopg 3 as the PostgreSQL
-driver. SQLite is used only for fast offline integration tests.
+driver. Storage commands and storage integration tests target PostgreSQL
+directly; SQLite is not a supported substitute for the storage path.
 
 ## Alternatives considered
 
@@ -61,6 +62,7 @@ destructive or incompatible storage changes.
 - Every new vertical needs a mapping contract and tests before storage is
   enabled.
 - SQLAlchemy and Psycopg become runtime dependencies.
-- Offline SQLite tests provide high confidence in orchestration and
-  idempotency, but a live PostgreSQL smoke test remains a separate deployment
-  verification step.
+- Offline tests cover validation, deterministic mapping, PostgreSQL SQL
+  compilation, and transaction orchestration without substituting another
+  database dialect. A live PostgreSQL smoke test verifies DDL, idempotency, and
+  rollback behavior end to end.

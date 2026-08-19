@@ -28,8 +28,8 @@ the database.
 - PostgreSQL is the production database.
 - PostgreSQL relational tables and `JSONB` columns are used in one database;
   no separate document database is introduced.
-- SQLite is an offline test backend only. Passing SQLite tests does not claim a
-  live PostgreSQL deployment was verified.
+- Storage execution targets PostgreSQL directly. SQLite is not used as a
+  substitute because its JSON, constraint, and conflict semantics differ.
 - PDFs remain on disk or in object storage. The database stores document
   identity, hashes, paths, and provenance, not PDF bytes.
 - Travel insurance is the first storage-enabled vertical. Private health keeps
@@ -78,13 +78,13 @@ validated extraction artifact
 ### Package ownership
 
 ```text
-src/storage/schema.py       SQLAlchemy tables and schema creation
-src/storage/mapping.py      validated artifact -> storage records
-src/storage/repository.py   transactional, idempotent persistence
-src/storage/service.py      input validation and storage orchestration
-configs/<vertical>/storage_mapping.json
-                             declarative vertical field mapping
-tests/test_storage_*.py      offline unit and SQLite integration tests
+src/storage/schema.py       fixed SQLAlchemy tables and schema creation
+src/storage/canonical.py    approved schema -> table metadata and load plan
+src/storage/repository.py   transactional, idempotent PostgreSQL persistence
+src/storage/service.py      boundary validation and storage orchestration
+configs/<vertical>/canonical_schema_v*.json
+                             reviewed business fields and storage annotations
+tests/test_storage_*.py      offline boundary and PostgreSQL SQL tests
 ```
 
 `src/run.py` remains the public CLI entry point. Existing discovery and
@@ -126,20 +126,22 @@ extracted attributes are retained in JSON.
 
 ## Mapping contract
 
-Each storage-enabled vertical declares:
+Each approved Canonical Schema declares:
 
 - collection path (`products` for multi-product Travel output);
 - product name and product type source fields;
 - supported product-type decomposition into independent Travel dimensions;
 - fields retained as stable relational attributes.
 
-The mapping is strict and versioned. Unknown product fields are not discarded;
-they remain in `raw_extractions` and `travel_product_details.attributes`.
+The compiler is strict, deterministic, and versioned. Fields assigned the
+`jsonb` strategy remain in `raw_extractions` and the vertical extension
+table's `attributes` column.
 
 ## Validation and error behavior
 
 - Only successful `extraction_result` envelopes are accepted.
-- The extraction data is revalidated against the supplied discovered schema.
+- The extraction data is revalidated against the contract compiled from the
+  supplied approved Canonical Schema.
 - The artifact vertical and schema vertical must match the manifest.
 - The source document must exist so its content hash can be verified.
 - Missing product names, invalid collection cardinality, duplicate product
@@ -172,12 +174,12 @@ into SQL strings.
 
 - Pure unit tests validate deterministic IDs, mapping, taxonomy decomposition,
   and fail-closed inputs.
-- SQLite in-memory integration tests create the schema, load an artifact twice,
-  and assert stable row counts and rollback behavior.
+- Offline tests validate pure mapping, PostgreSQL statement compilation, and
+  transaction orchestration without connecting to another database dialect.
 - PostgreSQL dialect compilation tests assert that JSON columns compile to
   `JSONB` and required constraints are present.
-- A live PostgreSQL smoke test is optional and must use a user-provided
-  `KONKRD_DATABASE_URL`; it is not part of the offline suite.
+- A live PostgreSQL smoke test uses `KONKRD_TEST_DATABASE_URL` to create tables,
+  load the same artifact twice, inspect stable row counts, and test rollback.
 
 ## Boundaries
 
@@ -209,7 +211,8 @@ into SQL strings.
   core and Travel rows in one transaction.
 - Repeating the same load produces identical row counts.
 - Invalid artifacts write no rows.
-- Existing 291 offline tests continue to pass alongside the new storage tests.
+- The complete offline regression suite continues to pass alongside the new
+  storage tests.
 - CLI help and README document the new opt-in commands.
 
 ## Out of scope for this slice

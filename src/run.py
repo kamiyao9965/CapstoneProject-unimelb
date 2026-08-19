@@ -120,6 +120,32 @@ def build_parser() -> argparse.ArgumentParser:
     canonical_compile.add_argument("--schema", required=True)
     canonical_compile.add_argument("--output-dir", required=True)
 
+    storage_init = subparsers.add_parser(
+        "storage-init",
+        help="Create missing PostgreSQL core and vertical storage tables",
+    )
+    storage_init.add_argument("--manifest")
+    storage_init.add_argument("--schema")
+    storage_init.add_argument(
+        "--database-url-env",
+        default="KONKRD_DATABASE_URL",
+        help="Environment variable containing the PostgreSQL URL",
+    )
+
+    storage_load = subparsers.add_parser(
+        "storage-load",
+        help="Load one validated extraction artifact into PostgreSQL",
+    )
+    storage_load.add_argument("--manifest")
+    storage_load.add_argument("--schema")
+    storage_load.add_argument("--artifact", required=True)
+    storage_load.add_argument("--insurer-code", required=True)
+    storage_load.add_argument(
+        "--database-url-env",
+        default="KONKRD_DATABASE_URL",
+        help="Environment variable containing the PostgreSQL URL",
+    )
+
     return parser
 
 
@@ -127,7 +153,12 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
     """Load one manifest and apply its defaults before a command runs."""
     default_vertical = (
         "travel_insurance"
-        if args.command in {"crawl", "canonical-compile"}
+        if args.command in {
+            "crawl",
+            "canonical-compile",
+            "storage-init",
+            "storage-load",
+        }
         else "private_health"
     )
     requested_vertical = getattr(args, "vertical", None) or default_vertical
@@ -147,6 +178,8 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
         "batch": "extraction",
         "crawl": "acquisition",
         "canonical-compile": "storage",
+        "storage-init": "storage",
+        "storage-load": "storage",
     }[args.command]
     manifest.require_capability(capability)
     if args.command == "batch" and args.evaluate:
@@ -173,6 +206,10 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
     elif args.command == "canonical-compile":
         args.schema = Path(args.schema)
         args.output_dir = Path(args.output_dir)
+    elif args.command in {"storage-init", "storage-load"}:
+        args.schema = Path(args.schema) if args.schema else manifest.path("canonical_schema")
+        if args.command == "storage-load":
+            args.artifact = Path(args.artifact)
     return manifest
 
 
@@ -609,6 +646,52 @@ def command_canonical_compile(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_storage_init(args: argparse.Namespace) -> int:
+    """Create the approved PostgreSQL schema without destructive migrations."""
+    from src.storage.service import initialize_storage, resolve_database_url
+
+    try:
+        database_url = resolve_database_url(args.database_url_env)
+        initialize_storage(
+            database_url=database_url,
+            manifest=args.vertical_manifest,
+            schema_path=args.schema,
+        )
+    except Exception as exc:
+        print(f"PostgreSQL storage initialization failed: {exc}")
+        return 1
+    print(
+        f"PostgreSQL storage is ready for vertical={args.vertical_manifest.vertical}, "
+        f"schema={Path(args.schema).resolve()}"
+    )
+    return 0
+
+
+def command_storage_load(args: argparse.Namespace) -> int:
+    """Validate and atomically load one extraction artifact into PostgreSQL."""
+    from src.storage.service import load_extraction_artifact, resolve_database_url
+
+    try:
+        database_url = resolve_database_url(args.database_url_env)
+        summary = load_extraction_artifact(
+            database_url=database_url,
+            manifest=args.vertical_manifest,
+            schema_path=args.schema,
+            artifact_path=args.artifact,
+            insurer_code=args.insurer_code,
+        )
+    except Exception as exc:
+        print(f"PostgreSQL storage load failed: {exc}")
+        return 1
+    print(
+        "PostgreSQL load complete: "
+        f"run_id={summary.run_id}, document_id={summary.document_id}, "
+        f"schema_version_id={summary.schema_version_id}, "
+        f"products={summary.products_loaded}, releases={len(summary.release_ids)}"
+    )
+    return 0
+
+
 def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
@@ -659,6 +742,10 @@ def main() -> int:
         return command_crawl(args)
     if args.command == "canonical-compile":
         return command_canonical_compile(args)
+    if args.command == "storage-init":
+        return command_storage_init(args)
+    if args.command == "storage-load":
+        return command_storage_load(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

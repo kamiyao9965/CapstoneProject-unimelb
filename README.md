@@ -26,6 +26,7 @@ repair retries. Invalid data never proceeds to the next stage.
 | Travel document acquisition | Discover current PDS, SPDS, brochure, TMD, and FSG PDFs and preserve their product-release relationships |
 | Manifest-driven verticals | Select versioned paths, contracts, document models, capabilities, and allowlisted adapters without changing CLI orchestration |
 | Approved Canonical Schema | Compile one human-reviewed business contract into extraction validation and vertical PostgreSQL DDL previews |
+| PostgreSQL storage | Create core plus vertical tables and atomically load validated artifacts with deterministic IDs |
 
 ## Safety guarantees
 
@@ -214,6 +215,55 @@ fail before the output directory is created. Operational tables such as
 documents, extraction runs, and raw JSONB remain fixed application-owned
 metadata; the Canonical Schema governs vertical business fields.
 
+### Initialize and load PostgreSQL storage
+
+Storage is PostgreSQL-only. Add the connection URL to `.env`; successful
+commands never print its value:
+
+```dotenv
+KONKRD_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/konkrd
+```
+
+After exporting `.env`, create the missing fixed core tables and the extension
+table compiled from the approved Travel Canonical Schema:
+
+```bash
+set -a
+source .env
+set +a
+
+.venv/bin/python src/run.py storage-init \
+  --manifest configs/travel_insurance/manifest.json
+```
+
+The manifest defaults `--schema` to
+`configs/travel_insurance/canonical_schema_v1.json`. Supply `--schema` only for
+another explicitly reviewed version.
+
+Load one extraction artifact and its source-PDF provenance in one transaction:
+
+```bash
+.venv/bin/python src/run.py storage-load \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact outputs/travel_insurance/extractions/cover_more_business_canonical_v1.json \
+  --insurer-code cover_more
+```
+
+The loader revalidates the approval record, extraction data, vertical and
+schema version, source path, PDF signature, and content hashes before opening a
+transaction. It preserves the exact artifact in `raw_extractions` before
+upserting deterministic product and release rows. Repeating the same command
+is idempotent; a reused run or schema version with different content fails and
+rolls back the whole load. Flexible data uses PostgreSQL `JSONB`; no separate
+JSON database or SQLite fallback is used.
+
+Run the opt-in integration check only against a disposable PostgreSQL database:
+
+```bash
+KONKRD_TEST_DATABASE_URL=postgresql+psycopg:///konkrd_travel_smoke \
+  .venv/bin/python -m unittest tests.test_postgres_storage_live -v
+```
+
 ## 2. Use the known source documents
 
 The project reads the known `konkrd-data` PDF dataset bundled with this
@@ -257,6 +307,9 @@ LLM_DOCUMENT_INPUT=markdown
 MY_OPENAI_API_KEY=replace-with-your-openai-key
 ANTHROPIC_API_KEY=replace-with-your-anthropic-key
 DEEPSEEK_API_KEY=replace-with-your-deepseek-key
+
+# PostgreSQL storage
+KONKRD_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/konkrd
 
 # Optional compatible endpoint overrides
 # OPENAI_BASE_URL=https://...

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import unittest
 
-from sqlalchemy import Column, MetaData, String, Table, create_engine, inspect
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 
@@ -63,21 +62,14 @@ class CanonicalStorageMetadataTests(unittest.TestCase):
         self.assertIn("international", ddl)
         self.assertIn("FOREIGN KEY(release_id)", ddl)
 
-    def test_generated_table_can_be_created_after_core_release_table(self) -> None:
-        engine = create_engine("sqlite+pysqlite:///:memory:")
-        core = MetaData()
-        Table(
-            "product_releases",
-            core,
-            Column("release_id", String(71), primary_key=True),
-        )
-        core.create_all(engine)
-        compiled = compile_vertical_storage_metadata(approved_travel_schema())
+    def test_generated_table_compilation_is_deterministic(self) -> None:
+        first = compile_vertical_storage_metadata(approved_travel_schema())
+        second = compile_vertical_storage_metadata(approved_travel_schema())
 
-        compiled.create(engine)
-        compiled.create(engine)
+        first_ddl = str(CreateTable(first.table).compile(dialect=postgresql.dialect()))
+        second_ddl = str(CreateTable(second.table).compile(dialect=postgresql.dialect()))
 
-        self.assertIn("travel_product_details", inspect(engine).get_table_names())
+        self.assertEqual(first_ddl, second_ddl)
 
     def test_candidate_cannot_compile_storage_metadata(self) -> None:
         schema = approved_travel_schema()

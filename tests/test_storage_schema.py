@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 
@@ -23,30 +24,35 @@ EXPECTED_TABLES = {
 
 
 class StorageSchemaTest(unittest.TestCase):
-    def test_create_storage_schema_is_idempotent_on_empty_database(self) -> None:
-        engine = create_engine("sqlite+pysqlite:///:memory:")
+    def test_create_storage_schema_requests_idempotent_ddl(self) -> None:
+        connection = mock.Mock()
 
-        create_storage_schema(engine)
-        create_storage_schema(engine)
+        with mock.patch.object(storage_metadata, "create_all") as create_all:
+            create_storage_schema(connection)
+            create_storage_schema(connection)
 
-        self.assertEqual(set(inspect(engine).get_table_names()), EXPECTED_TABLES)
+        self.assertEqual(set(storage_metadata.tables), EXPECTED_TABLES)
+        self.assertEqual(create_all.call_count, 2)
+        create_all.assert_called_with(connection, checkfirst=True)
 
     def test_core_tables_have_primary_foreign_and_unique_constraints(self) -> None:
-        engine = create_engine("sqlite+pysqlite:///:memory:")
-        create_storage_schema(engine)
-        inspector = inspect(engine)
+        documents = storage_metadata.tables["documents"]
+        releases = storage_metadata.tables["product_releases"]
+        product_table = storage_metadata.tables["products"]
 
-        document_primary_key = inspector.get_pk_constraint("documents")
-        self.assertEqual(document_primary_key["constrained_columns"], ["document_id"])
-        release_foreign_keys = inspector.get_foreign_keys("product_releases")
+        self.assertEqual(list(documents.primary_key.columns.keys()), ["document_id"])
         self.assertEqual(
-            {foreign_key["referred_table"] for foreign_key in release_foreign_keys},
+            {foreign_key.column.table.name for foreign_key in releases.foreign_keys},
             {"documents", "products", "schema_versions"},
         )
-        product_uniques = inspector.get_unique_constraints("products")
+        product_uniques = [
+            list(constraint.columns.keys())
+            for constraint in product_table.constraints
+            if isinstance(constraint, UniqueConstraint)
+        ]
         self.assertIn(
             ["vertical_code", "insurer_code", "canonical_name"],
-            [constraint["column_names"] for constraint in product_uniques],
+            product_uniques,
         )
 
     def test_fixed_postgresql_schema_uses_jsonb_for_raw_payloads_only(self) -> None:
