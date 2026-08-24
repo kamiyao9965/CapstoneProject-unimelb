@@ -114,6 +114,23 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         self.assertEqual(field["applies_to"], ["hospital", "extras"])
         self.assertTrue(field["required"])
 
+    def test_existing_empty_aliases_and_values_do_not_drop_consensus_votes(self) -> None:
+        schema = self.render(
+            [
+                make_decision(
+                    "product_name",
+                    "core",
+                    aliases=["plan_name"],
+                    values=["retail"],
+                )
+            ]
+        )
+
+        field = next(f for f in schema["fields"] if f["name"] == "product_name")
+
+        self.assertEqual(field["aliases"], ["plan_name"])
+        self.assertEqual(field["values"], ["retail"])
+
     def test_new_core_field_is_not_assumed_required(self) -> None:
         schema = self.render([make_decision("excess", "core")])
         field = next(f for f in schema["fields"] if f["name"] == "excess")

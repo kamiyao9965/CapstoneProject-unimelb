@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 from src.refine.candidates.aggregator import FieldDecision
 from src.refine.artifacts.schema_fields import fields_by_name
@@ -18,6 +19,7 @@ from src.refine.human_review import (
     upsert_decision,
     write_review_decisions,
 )
+from src.refine.human_review import decisions as decisions_module
 
 BASE_SCHEMA = {
     "vertical": "private_health",
@@ -131,6 +133,31 @@ class BuildReviewQueueTest(unittest.TestCase):
 
 
 class DeriveStatusTest(unittest.TestCase):
+    def test_windows_lock_uses_blocking_byte_range_lock_and_unlock(self) -> None:
+        class FakeMSVCRT:
+            LK_LOCK = 1
+            LK_UNLCK = 2
+
+            def __init__(self) -> None:
+                self.calls: list[int] = []
+
+            def locking(self, _descriptor: int, mode: int, _bytes: int) -> None:
+                self.calls.append(mode)
+
+        fake_msvcrt = FakeMSVCRT()
+        with tempfile.TemporaryFile(mode="w+") as lock:
+            with (
+                mock.patch.object(decisions_module, "fcntl", None),
+                mock.patch.object(decisions_module, "msvcrt", fake_msvcrt, create=True),
+            ):
+                with decisions_module._exclusive_lock(lock):
+                    pass
+
+        self.assertEqual(
+            fake_msvcrt.calls,
+            [fake_msvcrt.LK_LOCK, fake_msvcrt.LK_UNLCK],
+        )
+
     def test_atomic_decision_updates_merge_with_latest_file_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "review_decisions.json"

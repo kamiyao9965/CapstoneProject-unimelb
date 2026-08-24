@@ -61,8 +61,10 @@ def field_payload_from_decision(
                     "required",
                     decision.required if decision.required is not None else False,
                 ),
-                "values": payload.get("values", decision.values),
-                "aliases": payload.get("aliases", decision.aliases),
+                # Existing contracts carry these keys even when the arrays are
+                # empty, so get(key, default) would discard consensus votes.
+                "values": payload.get("values") or decision.values,
+                "aliases": payload.get("aliases") or decision.aliases,
             }
         )
     return payload

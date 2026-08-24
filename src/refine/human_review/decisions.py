@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
+from typing import IO, Callable
 
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.json_contracts import validate_contract
@@ -14,8 +15,13 @@ from src.refine.human_review.constants import SUPPORTED_ACTIONS
 
 try:
     import fcntl
+    msvcrt = None
 except ImportError:  # pragma: no cover - Windows fallback
     fcntl = None
+    import msvcrt
+
+
+_WINDOWS_LOCK_ATTEMPTS = 60
 
 
 def empty_decisions(reviewer: str = "") -> dict:
@@ -105,15 +111,40 @@ def _update_decisions_file(
 
 
 @contextmanager
-def _exclusive_lock(lock):
-    if fcntl is None:
-        yield
-        return
-    fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+def _exclusive_lock(lock: IO[str]):
+    _lock_exclusive(lock)
     try:
         yield
     finally:
+        _unlock(lock)
+
+
+def _lock_exclusive(lock: IO[str]) -> None:
+    if fcntl is not None:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        return
+    assert msvcrt is not None
+    lock.seek(0)
+    for attempt in range(_WINDOWS_LOCK_ATTEMPTS):
+        try:
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+            return
+        except OSError:
+            if attempt == _WINDOWS_LOCK_ATTEMPTS - 1:
+                raise
+            time.sleep(0.1)
+
+
+def _unlock(lock: IO[str]) -> None:
+    if fcntl is not None:
         fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+        return
+    assert msvcrt is not None
+    try:
+        lock.seek(0)
+        msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
+    except OSError:
+        pass  # closing the descriptor also releases the Windows lock
 
 
 def upsert_decision(

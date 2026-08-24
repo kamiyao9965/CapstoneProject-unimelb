@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import io
 import unittest
 import tempfile
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from src.common.json_artifacts import (
@@ -10,12 +12,14 @@ from src.common.json_artifacts import (
     write_artifact,
 )
 from src.schema_application.analyze import (
+    ExtractionRecord,
     FieldSpec,
     analyze,
     build_feedback,
     build_feedback_data,
     load_field_specs,
     load_records,
+    print_report,
 )
 from src.schema.contract import compile_extraction_contract
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
@@ -25,7 +29,9 @@ class AllExtractionFailuresTest(unittest.TestCase):
     def test_failed_artifact_is_counted_but_never_returned_as_record(self) -> None:
         provenance = {
             "run_id": "test", "provider": "openai", "model": "gpt-5",
-            "document_input": "pdf", "source_documents": [], "source_artifacts": [],
+            "document_input": "pdf",
+            "source_documents": ["data/FUND/hospital/product.pdf"],
+            "source_artifacts": [],
         }
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -45,7 +51,41 @@ class AllExtractionFailuresTest(unittest.TestCase):
 
             records, failures = load_records(root, {"type": "object"})
 
-            self.assertEqual(records, [{"product_type": "hospital"}])
+            self.assertEqual(
+                records,
+                [
+                    ExtractionRecord(
+                        data={"product_type": "hospital"},
+                        source_document="data/FUND/hospital/product.pdf",
+                        source_category="hospital",
+                    )
+                ],
+            )
+            self.assertEqual(failures, 1)
+
+    def test_success_artifact_without_authoritative_source_category_is_a_failure(self) -> None:
+        provenance = {
+            "run_id": "test", "provider": "openai", "model": "gpt-5",
+            "document_input": "pdf",
+            "source_documents": ["data/FUND/unknown/product.pdf"],
+            "source_artifacts": [],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact = build_success_artifact(
+                artifact_type="extraction_result", contract_version="1.0.0",
+                data={"product_type": "hospital"}, provenance=provenance,
+                data_contract_schema={"type": "object"},
+            )
+            write_artifact(
+                root / "unlabelled.json",
+                artifact,
+                data_contract_schema={"type": "object"},
+            )
+
+            records, failures = load_records(root, {"type": "object"})
+
+            self.assertEqual(records, [])
             self.assertEqual(failures, 1)
 
     def test_success_artifact_that_violates_runtime_contract_is_a_failure(self) -> None:
@@ -100,7 +140,13 @@ class AllExtractionFailuresTest(unittest.TestCase):
 
     def test_feedback_data_is_built_from_structured_signals(self) -> None:
         analysis = analyze(
-            [{"product_type": "hospital", "cover_status": "unknown"}],
+            [
+                ExtractionRecord(
+                    data={"product_type": "hospital", "cover_status": "unknown"},
+                    source_document="data/FUND/hospital/product.pdf",
+                    source_category="hospital",
+                )
+            ],
             [
                 FieldSpec(
                     "cover_status", type="enum", values=["included"],
@@ -151,11 +197,27 @@ class ProductApplicabilityTest(unittest.TestCase):
 
         self.assertEqual(numeric_tier.values, [1, 2, True])
 
-    def test_fill_rate_uses_only_applicable_product_documents(self) -> None:
+    def test_fill_rate_uses_source_category_not_model_classification(self) -> None:
         analysis = analyze(
             [
-                {"product_type": "hospital", "hospital_excess": 500},
-                {"product_type": "extras", "annual_limit": None},
+                ExtractionRecord(
+                    data={
+                        "product_type": "extras",
+                        "hospital_excess": 500,
+                        "annual_limit": None,
+                    },
+                    source_document="data/FUND/hospital/hospital.pdf",
+                    source_category="hospital",
+                ),
+                ExtractionRecord(
+                    data={
+                        "product_type": "hospital",
+                        "hospital_excess": None,
+                        "annual_limit": 600,
+                    },
+                    source_document="data/FUND/extras/extras.pdf",
+                    source_category="extras",
+                ),
             ],
             [
                 FieldSpec("hospital_excess", applies_to=("hospital", "combined")),
@@ -164,19 +226,51 @@ class ProductApplicabilityTest(unittest.TestCase):
         )
 
         self.assertEqual(analysis.fill_rate["hospital_excess"], 1.0)
-        self.assertEqual(analysis.fill_rate["annual_limit"], 0.0)
+        self.assertEqual(analysis.fill_rate["annual_limit"], 1.0)
         self.assertEqual(analysis.evaluated_documents["hospital_excess"], 1)
         self.assertEqual(analysis.evaluated_documents["annual_limit"], 1)
+        self.assertEqual(analysis.product_type_accuracy, 0.0)
+        self.assertEqual(
+            analysis.product_type_mismatches,
+            {"extras -> hospital": 1, "hospital -> extras": 1},
+        )
 
-    def test_unclassified_records_are_not_used_as_evaluation_denominators(self) -> None:
+    def test_unclassified_model_result_still_uses_source_category_denominator(self) -> None:
         analysis = analyze(
-            [{"product_name": "Unknown product"}],
+            [
+                ExtractionRecord(
+                    data={"product_name": "Unknown product"},
+                    source_document="data/FUND/hospital/product.pdf",
+                    source_category="hospital",
+                )
+            ],
             [FieldSpec("product_name", required=True, applies_to=("hospital",))],
         )
 
-        self.assertEqual(analysis.documents, 0)
-        self.assertEqual(analysis.unclassified_docs, 1)
+        self.assertEqual(analysis.documents, 1)
+        self.assertEqual(analysis.product_type_unclassified, 1)
+        self.assertEqual(analysis.evaluated_documents["product_name"], 1)
         self.assertEqual(analysis.missing_required, {})
+        self.assertEqual(analysis.product_type_accuracy, 0.0)
+
+    def test_report_renders_zero_denominator_as_not_applicable(self) -> None:
+        analysis = analyze(
+            [
+                ExtractionRecord(
+                    data={"product_type": "extras", "hospital_excess": None},
+                    source_document="data/FUND/extras/product.pdf",
+                    source_category="extras",
+                )
+            ],
+            [FieldSpec("hospital_excess", applies_to=("hospital",))],
+        )
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            print_report(analysis)
+
+        self.assertIn("Source category coverage: extras=1", output.getvalue())
+        self.assertIn("N/A  hospital_excess", output.getvalue())
 
 
 if __name__ == "__main__":

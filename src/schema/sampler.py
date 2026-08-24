@@ -11,6 +11,16 @@ from typing import Iterable
 DEFAULT_CATEGORIES = ("combined", "extras", "generalhealth", "hospital")
 
 
+def category_from_path(
+    path: str | Path,
+    categories: tuple[str, ...] = DEFAULT_CATEGORIES,
+) -> str | None:
+    """Return the single authoritative dataset category encoded in a path."""
+    parts = {part.lower() for part in Path(path).parts}
+    matches = [category for category in categories if category.lower() in parts]
+    return matches[0] if len(matches) == 1 else None
+
+
 def select_samples(
     input_root: Path,
     categories: tuple[str, ...] = DEFAULT_CATEGORIES,
@@ -146,8 +156,7 @@ def collect_candidates(
     }
 
     for pdf_path in sorted(input_root.rglob("*.pdf")):
-        parts = [part.lower() for part in pdf_path.parts]
-        category = next((item for item in categories if item in parts), None)
+        category = category_from_path(pdf_path, categories)
         if category:
             candidates[category][company_from_path(pdf_path, input_root, category)].append(pdf_path)
 

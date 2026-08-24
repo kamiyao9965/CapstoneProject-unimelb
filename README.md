@@ -292,6 +292,12 @@ Default categories are `hospital`, `extras`, `generalhealth`, and `combined`.
 Sampling is category-balanced, content-deduplicated by SHA-256, and supports a
 fixed seed. Holdout selection excludes discovery documents by content identity.
 
+Holdout field applicability uses the authoritative category encoded in each
+source PDF path together with each field's `applies_to` contract. The model's
+extracted `product_type` is reported separately as classification accuracy and
+never controls fill-rate denominators. Fields with no applicable holdout sample
+are reported as `N/A` rather than `0%`.
+
 ## 3. Configure `.env`
 
 Create `.env` in the repository root. Keep all provider credentials so you can

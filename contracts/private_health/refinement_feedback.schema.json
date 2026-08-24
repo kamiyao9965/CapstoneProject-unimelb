@@ -8,11 +8,15 @@
     "analysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["documents", "error_docs", "unclassified_docs", "fill_rate", "evaluated_documents", "weak_fields", "missing_required", "enum_violations", "model_unfilled"],
+      "required": ["documents", "error_docs", "source_category_counts", "product_type_correct", "product_type_unclassified", "product_type_accuracy", "product_type_mismatches", "fill_rate", "evaluated_documents", "weak_fields", "missing_required", "enum_violations", "model_unfilled"],
       "properties": {
         "documents": {"type": "integer", "minimum": 0},
         "error_docs": {"type": "integer", "minimum": 0},
-        "unclassified_docs": {"type": "integer", "minimum": 0},
+        "source_category_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "product_type_correct": {"type": "integer", "minimum": 0},
+        "product_type_unclassified": {"type": "integer", "minimum": 0},
+        "product_type_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+        "product_type_mismatches": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
         "fill_rate": {"type": "object", "additionalProperties": {"type": "number"}},
         "evaluated_documents": {"type": "object", "additionalProperties": {"type": "integer"}},
         "weak_fields": {"type": "array", "items": {"type": "string"}},
