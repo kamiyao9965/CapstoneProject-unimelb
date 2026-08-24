@@ -196,6 +196,15 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
 
 
 class TravelExtractionMigrationTest(unittest.TestCase):
+    def test_travel_prompt_matches_closed_extraction_metadata_contract(self) -> None:
+        prompt = get_prompt("travel_insurance_extraction_v1")
+
+        self.assertIn('"products"', prompt)
+        self.assertIn('"_document_notes"', prompt)
+        self.assertIn('"_unfilled"', prompt)
+        self.assertIn('"_notes"', prompt)
+        self.assertIn('Never output "__typename"', prompt)
+
     def test_compiler_wraps_multiple_products_in_one_document_result(self) -> None:
         contract = compile_extraction_contract(
             VALID_TRAVEL_SCHEMA,
