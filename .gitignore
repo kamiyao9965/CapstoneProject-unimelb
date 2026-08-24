@@ -5,10 +5,21 @@ __pycache__/
 .venv/
 .DS_Store
 outputs/
-docs/
-AGENTS.md
-CLAUDE.md
-CODEX.md
-SPEC.md
-API.md
-/tasks
+
+# Local agent instructions and working notes
+/AGENTS.md
+/API.md
+/CLAUDE.md
+/CODEX.md
+/SPEC.md
+/docs/HANDOFF*.md
+
+# Planning and review artifacts
+/tasks/
+/docs/tasks/
+/docs/task-template.md
+/docs/specs/*-review.md
+
+# Local scratch outputs and personal office documents
+/tmp/
+/docs/*.docx
