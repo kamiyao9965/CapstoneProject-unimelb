@@ -17,7 +17,7 @@
           "canonical_name": {"type": "string"},
           "type": {"enum": ["string", "number", "boolean", "enum", "list[object]"]},
           "description": {"type": "string"},
-          "applies_to": {"type": "array", "items": {"enum": ["hospital", "extras", "generalhealth", "combined"]}, "uniqueItems": true},
+          "applies_to": {"type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"}, "uniqueItems": true},
           "required": {"type": "boolean"},
           "values": {"type": "array", "items": {"type": ["string", "number", "boolean"]}},
           "evidence_documents": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "quote_or_summary"], "properties": {"path": {"type": "string"}, "quote_or_summary": {"type": "string"}}}},

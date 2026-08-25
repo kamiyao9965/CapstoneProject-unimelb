@@ -54,6 +54,9 @@ class SchemaDiscovery:
         discovery_contract: str = "private_health/discovered_schema",
         discovery_prompt: str = SCHEMA_DISCOVERY_PROMPT,
         schema_validator: Callable[[object], object] = validate_schema_mapping,
+        patch_contract: str = "private_health/candidate_patch_set",
+        patch_prompt: str = SCHEMA_PATCH_PROMPT,
+        patch_validator: Callable[[object], object] = parse_patch_payload,
     ) -> None:
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
@@ -88,6 +91,9 @@ class SchemaDiscovery:
         self.discovery_contract = discovery_contract
         self.discovery_prompt = discovery_prompt
         self.schema_validator = schema_validator
+        self.patch_contract = patch_contract
+        self.patch_prompt = patch_prompt
+        self.patch_validator = patch_validator
 
     def discover(
         self,
@@ -121,7 +127,7 @@ class SchemaDiscovery:
         """
         return self._generate_from_pdfs(
             sample_pdfs=sample_pdfs,
-            system_prompt=SCHEMA_PATCH_PROMPT,
+            system_prompt=self.patch_prompt,
             user_text_factory=lambda pdf_paths: self._patch_input_text(pdf_paths, current_schema),
             output_path=output_path,
             usage_event="schema_consensus_patch",
@@ -179,8 +185,8 @@ class SchemaDiscovery:
             ),
             "schema_consensus_patch": (
                 "candidate_patch_set",
-                "private_health/candidate_patch_set",
-                parse_patch_payload,
+                self.patch_contract,
+                self.patch_validator,
             ),
         }.get(usage_event)
         if structured_contract is not None:

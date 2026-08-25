@@ -44,6 +44,10 @@ def get_prompt(prompt_id: str) -> str:
         from src.schema_application.prompts import EXTRACTION_PROMPT
 
         return EXTRACTION_PROMPT
+    if prompt_id == "private_health_patch_v1":
+        from src.schema.prompts import SCHEMA_PATCH_PROMPT
+
+        return SCHEMA_PATCH_PROMPT
     if prompt_id == "travel_insurance_discovery_v1":
         from src.schema.prompts import TRAVEL_INSURANCE_SCHEMA_DISCOVERY_PROMPT
 
@@ -52,4 +56,8 @@ def get_prompt(prompt_id: str) -> str:
         from src.schema_application.prompts import TRAVEL_INSURANCE_EXTRACTION_PROMPT
 
         return TRAVEL_INSURANCE_EXTRACTION_PROMPT
+    if prompt_id == "travel_insurance_patch_v1":
+        from src.schema.prompts import TRAVEL_INSURANCE_SCHEMA_PATCH_PROMPT
+
+        return TRAVEL_INSURANCE_SCHEMA_PATCH_PROMPT
     raise ManifestValidationError(f"Unregistered prompt {prompt_id!r}.")

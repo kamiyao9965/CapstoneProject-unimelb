@@ -142,7 +142,7 @@ class TravelSchemaContractTest(unittest.TestCase):
 
         self.assertTrue(manifest.supports("discovery"))
         self.assertTrue(manifest.supports("extraction"))
-        self.assertFalse(manifest.supports("refinement"))
+        self.assertTrue(manifest.supports("refinement"))
         self.assertEqual(manifest.documents.categories, ("pds",))
 
 
@@ -204,6 +204,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
         self.assertIn('"_unfilled"', prompt)
         self.assertIn('"_notes"', prompt)
         self.assertIn('Never output "__typename"', prompt)
+        self.assertIn("product_name must be unique", prompt)
 
     def test_compiler_wraps_multiple_products_in_one_document_result(self) -> None:
         contract = compile_extraction_contract(
@@ -305,6 +306,53 @@ class TravelExtractionMigrationTest(unittest.TestCase):
             ["products"]["items"]["properties"],
         )
         self.assertIn("Approved Canonical Schema", provider.request.user_text)
+
+    def test_canonical_extractor_repairs_duplicate_product_names(self) -> None:
+        invalid = valid_extraction_payload()
+        invalid["products"].append(dict(invalid["products"][0]))
+        repaired = valid_extraction_payload()
+        repaired_product = dict(repaired["products"][0])
+        repaired_product["product_name"] = "International Essentials"
+        repaired["products"].append(repaired_product)
+
+        class SequenceProvider:
+            def __init__(self) -> None:
+                self.requests: list[ProviderRequest] = []
+
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                self.requests.append(request)
+                payload = invalid if len(self.requests) == 1 else repaired
+                return ModelResponse(
+                    text=json.dumps(payload),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        provider = SequenceProvider()
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "travel-pds.pdf"
+            pdf_path.touch()
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: travel-pds\nbenefit tables",
+            ):
+                result = SchemaExtractor(
+                    schema_data=approved_travel_schema(),
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
+                    provider=provider,
+                    usage_log_path=None,
+                    log=None,
+                    schema_contract="travel_insurance/discovered_schema",
+                    schema_validator=get_schema_validator(
+                        "travel_insurance_schema_v1"
+                    ),
+                    output_cardinality="multiple",
+                    extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+                ).extract_one(pdf_path)
+
+        self.assertEqual(result, repaired)
+        self.assertEqual(len(provider.requests), 2)
+        self.assertIn("must be unique", provider.requests[1].user_text)
 
     def test_extractor_rejects_unapproved_canonical_schema(self) -> None:
         schema = approved_travel_schema()

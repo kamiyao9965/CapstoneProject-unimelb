@@ -6,6 +6,24 @@ documents.
 
 ## Runtime flows
 
+### Local operator UI
+
+```text
+Streamlit controls -> validated allowlisted argv -> existing CLI entry point
+  -> redacted console result
+```
+
+`src/tool_app.py` owns presentation and result states. `src/tool_ui/forms.py`
+owns operation-specific controls, while `src/tool_ui/commands.py` is the only
+UI-to-process boundary. It validates supported operations and values, launches
+an argument list without a shell, enforces timeouts, and redacts credential-like
+console output. It does not accept arbitrary commands or credential values.
+
+The UI contains no workflow logic. `src/run.py` and `src/refine/loop.py` remain
+the authoritative parsers and orchestrators, so every UI action is reproducible
+as the command preview shown on the page. The console is local-only and has no
+authentication boundary.
+
 ### One-shot discovery
 
 ```text
@@ -51,6 +69,28 @@ review_queue.json + review_decisions.json + base schema artifact
 
 Queue data is immutable. Status is derived from decisions. Pending and rejected
 items are never applied.
+
+Travel uses one discovery plus five independent patch runs. Conflict-free 4/5
+or 5/5 proposals are applied to the consensus base automatically; the review
+queue contains only uncertain or unsafe work. Applying the queue starts from
+that consensus base so automatic decisions are retained.
+
+### Travel Canonical review
+
+```text
+reviewed discovered schema -> deterministic Canonical candidate
+  -> mapping + PostgreSQL DDL preview -> explicit human approval
+  -> approved Canonical Schema -> extraction/storage gates
+```
+
+Candidate preview does not authorize extraction compilation, table creation, or
+loading. Production paths continue to require an approved review record.
+
+Within one multi-product extraction, the Canonical `product_name` identity must
+be unique. When a PDS uses one umbrella series name for several marketed tiers,
+each product name includes its tier label while `plan_tier` preserves the source
+label separately. Duplicate identities fail during structured-output business
+validation and enter the bounded repair cycle; they cannot reach storage.
 
 ## Structured-output boundary
 

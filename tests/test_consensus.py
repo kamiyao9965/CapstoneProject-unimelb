@@ -133,6 +133,7 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
             )
             ids = [item["id"] for item in queue["updates"]]
             self.assertIn("field:excess", ids)
+            self.assertIn("field:promo_text", ids)
 
             stability = read_artifact(
                 outputs.stability_path, expected_type="patch_stability",

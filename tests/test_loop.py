@@ -69,7 +69,7 @@ def make_args(tmp: str, **overrides) -> SimpleNamespace:
 class ParserBackwardCompatTest(unittest.TestCase):
     def test_defaults_keep_current_behavior(self) -> None:
         args = cli.build_parser().parse_args([])
-        self.assertEqual(args.consensus_runs, 1)
+        self.assertIsNone(args.consensus_runs)
         self.assertFalse(args.review_ui)
         self.assertIsNone(args.resume_review)
         self.assertFalse(args.autonomous)
@@ -78,6 +78,8 @@ class ParserBackwardCompatTest(unittest.TestCase):
     def test_manifest_applies_refinement_paths_and_categories(self) -> None:
         args = cli.build_parser().parse_args([])
         cli.configure_args(args)
+
+        self.assertEqual(args.consensus_runs, 1)
 
         self.assertEqual(
             args.input_root,
@@ -88,6 +90,15 @@ class ParserBackwardCompatTest(unittest.TestCase):
             args.vertical_manifest.documents.categories,
             ("combined", "extras", "generalhealth", "hospital"),
         )
+
+    def test_travel_manifest_defaults_to_five_consensus_runs(self) -> None:
+        args = cli.build_parser().parse_args(
+            ["--manifest", "configs/travel_insurance/manifest.json"]
+        )
+
+        cli.configure_args(args)
+
+        self.assertEqual(args.consensus_runs, 5)
 
     def test_provider_flags_resolve_to_the_default_selection(self) -> None:
         args = cli.build_parser().parse_args([])

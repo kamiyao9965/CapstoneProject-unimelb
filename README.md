@@ -70,6 +70,26 @@ Verify the offline suite before using credentials:
 .venv/bin/python -m unittest discover -s tests
 ```
 
+## Local operator UI
+
+Start the local Streamlit console from the project root:
+
+```bash
+.venv/bin/python -m streamlit run src/tool_app.py
+```
+
+The console wraps the existing CLI workflows for discovery, extraction, batch
+extraction, Travel document acquisition, Travel five-run refinement, Canonical
+Schema compilation, and PostgreSQL storage. It displays the exact command
+before execution and requires explicit confirmation for LLM, network, and
+database operations.
+
+The UI is not a second pipeline: `src/run.py` and `src/refine/loop.py` remain
+authoritative. Commands are assembled from an allowlist and launched as an
+argument vector without a shell. API keys and database URLs stay in environment
+variables and are never entered into the page. Run the UI only on a trusted
+local machine; it has no authentication or remote-deployment configuration.
+
 ## Travel insurance document acquisition
 
 The `crawl` command is an acquisition step, not an LLM step. It needs no
@@ -118,12 +138,13 @@ src/verticals/registry.py
 ```
 
 Private health enables discovery, refinement, extraction, and evaluation.
-Travel insurance enables acquisition, discovery, and extraction. Its manifest
+Travel insurance enables acquisition, discovery, five-run consensus refinement,
+extraction, and storage. Its manifest
 records `product_release` as the extraction unit and `multiple` as the output
 cardinality, so one PDS extraction produces a `products` array rather than
-collapsing several named plans into one record. Travel refinement and
-ground-truth evaluation remain disabled until their contracts and labelled
-datasets exist. The CLI fails explicitly if a disabled stage is requested.
+collapsing several named plans into one record. Travel ground-truth evaluation
+remains disabled until a labelled dataset exists; refinement therefore stops
+after human review instead of claiming a holdout accuracy result.
 
 The Travel discovered-schema contract exposes `product_type_field` separately
 from `fields`. This makes the required plan classifier structurally mandatory
@@ -503,8 +524,22 @@ The human-readable report is rendered in the terminal from validated JSON; no
 Markdown report is persisted. Alias normalisation is configured in
 `configs/private_health/aliases.json`.
 
-Only safe core/conditional field operations are auto-promoted. Reject votes,
-mixed actions, rename, merge, and move operations require human intervention.
+Private Health preserves its existing safe core/conditional promotion policy.
+Reject votes, mixed actions, rename, merge, and move operations require human
+intervention.
+
+For Travel, run the manifest-driven loop. Its default is five patch runs:
+
+```bash
+.venv/bin/python src/refine/loop.py \
+  --manifest configs/travel_insurance/manifest.json \
+  --review-ui
+```
+
+For Travel, only conflict-free 4/5 or 5/5 proposals are applied automatically.
+Conditional fields, identity changes, contract conflicts, and unsafe operations
+stay in the UI queue, while frequency and stability artifacts retain every
+proposal for audit.
 
 ## 8. Human review
 
@@ -518,6 +553,22 @@ Start the review UI:
 The UI reads immutable `review_queue.json` and saves accept/reject/edit choices
 to `review_decisions.json`. JSON edit errors are shown without replacing the
 previous valid decision.
+
+After applying a Travel review, resume the round and then review the deterministic
+Canonical database mapping:
+
+```bash
+.venv/bin/python src/refine/loop.py \
+  --manifest configs/travel_insurance/manifest.json \
+  --resume-review outputs/travel_insurance/refine/round_1
+
+.venv/bin/python -m streamlit run src/canonical_review_app.py -- \
+  --schema outputs/travel_insurance/refine/round_1/consensus/reviewed_schema.json
+```
+
+The mapping UI previews PostgreSQL DDL but does not execute it. Approval requires
+a reviewer, rationale, and explicit confirmation, and writes a new Canonical
+Schema file.
 
 Apply saved decisions from the UI or CLI:
 

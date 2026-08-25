@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
 
@@ -26,6 +27,9 @@ def apply_review(
     queue: dict,
     decisions_payload: dict,
     base_schema: dict,
+    *,
+    schema_validator: Callable[[object], object] = validate_schema_mapping,
+    allowed_product_types: set[str] | None = None,
 ) -> tuple[dict, dict]:
     """Apply accept/edit decisions onto the base schema.
 
@@ -47,7 +51,9 @@ def apply_review(
 
     reviewed = deepcopy(base_schema)
     fields = fields_by_name(reviewed.get("fields", []))
-    allowed_product_types = set(reviewed.get("product_types") or [])
+    allowed_product_types = allowed_product_types or set(
+        reviewed.get("product_types") or []
+    )
     summary = {"applied": [], "edited": [], "rejected": [], "pending": []}
 
     for item in queue_items:
@@ -61,7 +67,7 @@ def apply_review(
             fields[str(payload["name"])] = payload
 
     reviewed["fields"] = list(fields.values())
-    validate_schema_mapping(reviewed)
+    schema_validator(reviewed)
     return reviewed, summary
 
 
@@ -125,6 +131,22 @@ def apply_review_files(
         )
 
     decisions_payload = load_review_decisions(decisions_path)
+    metadata = queue.get("metadata", {})
+    schema_contract = str(
+        metadata.get("schema_contract") or "private_health/discovered_schema"
+    )
+    vertical = str(metadata.get("vertical") or "private_health")
+    if vertical == "travel_insurance":
+        from src.verticals.travel_insurance import (
+            SUPPORTED_TRAVEL_PRODUCT_TYPES,
+            validate_travel_schema_mapping,
+        )
+
+        schema_validator = validate_travel_schema_mapping
+        allowed_product_types = set(SUPPORTED_TRAVEL_PRODUCT_TYPES)
+    else:
+        schema_validator = validate_schema_mapping
+        allowed_product_types = None
     resolved_base_schema = Path(base_schema_path or queue["metadata"]["base_schema_path"])
     reviewed, summary = apply_review(
         queue,
@@ -132,8 +154,10 @@ def apply_review_files(
         read_artifact(
             resolved_base_schema,
             expected_type="discovered_schema",
-            data_contract="private_health/discovered_schema",
+            data_contract=schema_contract,
         )["data"],
+        schema_validator=schema_validator,
+        allowed_product_types=allowed_product_types,
     )
 
     resolved_output = (
@@ -152,11 +176,11 @@ def apply_review_files(
                 resolved_base_schema.as_posix(),
             ],
         },
-        data_contract="private_health/discovered_schema",
+        data_contract=schema_contract,
     )
     write_artifact(
         resolved_output,
         artifact,
-        data_contract="private_health/discovered_schema",
+        data_contract=schema_contract,
     )
     return resolved_output, summary

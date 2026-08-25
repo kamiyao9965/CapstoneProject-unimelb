@@ -31,6 +31,7 @@ class FieldDecision:
     applies_to: list[str] = field(default_factory=list)
     required: bool | None = None
     values: list[JSONScalar] = field(default_factory=list)
+    has_conflict: bool = False
 
     @property
     def frequency_label(self) -> str:
@@ -55,6 +56,7 @@ class FieldDecision:
             "applies_to": self.applies_to,
             "required": self.required,
             "values": self.values,
+            "has_conflict": self.has_conflict,
             "rationale_samples": self.rationale_samples,
             "reject_votes": self.reject_votes_label,
             "reject_rationale_samples": self.reject_rationale_samples,
@@ -150,7 +152,18 @@ def _build_decision(
         applies_to=list(_most_common_tuple([patch.applies_to for patch in patches])),
         required=_most_common_bool([patch.required for patch in patches]),
         values=list(_most_common_tuple([patch.values for patch in patches])),
+        has_conflict=_has_field_contract_conflict(patches),
     )
+
+
+def _has_field_contract_conflict(patches: list[SchemaPatch]) -> bool:
+    """Detect incompatible field contracts hidden by majority selection."""
+    signatures = {
+        (patch.field_type, patch.applies_to, patch.required, patch.values)
+        for patch in patches
+        if patch.patch_type == "add_field"
+    }
+    return len(signatures) > 1
 
 
 def _most_common(values: list[str]) -> str:

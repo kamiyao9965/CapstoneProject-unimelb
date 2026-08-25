@@ -9,6 +9,7 @@ from typing import Iterable
 from src.refine.artifacts.schema_fields import (
     decision_requires_manual_edit,
     decision_requires_schema_edit,
+    decision_is_auto_promotable,
     field_payload_from_decision,
     fields_by_name,
 )
@@ -23,6 +24,12 @@ def build_review_queue(
     base_schema_path: str | Path,
     generated_at: str | None = None,
     schema_build_samples: Iterable[str | Path] = (),
+    manual_only: bool = False,
+    vertical: str = "private_health",
+    schema_contract: str = "private_health/discovered_schema",
+    valid_product_types: tuple[str, ...] = ("hospital", "extras", "generalhealth", "combined"),
+    promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
+    protected_fields: frozenset[str] = frozenset(),
 ) -> dict:
     existing_fields = fields_by_name(base_schema.get("fields", []))
     return {
@@ -34,15 +41,29 @@ def build_review_queue(
             "schema_build_samples": list(
                 dict.fromkeys(str(path) for path in schema_build_samples)
             ),
+            "vertical": vertical,
+            "schema_contract": schema_contract,
         },
         "updates": [
-            _queue_item(decision, existing_fields.get(decision.canonical_name))
+            _queue_item(
+                decision,
+                existing_fields.get(decision.canonical_name),
+                valid_product_types,
+            )
             for decision in decisions
+            if not manual_only
+            or not decision_is_auto_promotable(
+                decision, promoted_decisions, protected_fields
+            )
         ],
     }
 
 
-def _queue_item(decision: FieldDecision, existing_field: dict | None) -> dict:
+def _queue_item(
+    decision: FieldDecision,
+    existing_field: dict | None,
+    valid_product_types: tuple[str, ...],
+) -> dict:
     return {
         "id": f"field:{decision.canonical_name}",
         "patch_types": decision.patch_types,
@@ -60,7 +81,10 @@ def _queue_item(decision: FieldDecision, existing_field: dict | None) -> dict:
         "reject_rationale_samples": decision.reject_rationale_samples,
         "needs_manual_edit": decision_requires_manual_edit(decision),
         "needs_schema_edit": decision_requires_schema_edit(decision),
-        "proposed_update": field_payload_from_decision(decision, existing_field),
+        "has_conflict": decision.has_conflict,
+        "proposed_update": field_payload_from_decision(
+            decision, existing_field, valid_product_types
+        ),
     }
 
 
@@ -69,22 +93,27 @@ def write_review_queue(
     path: str | Path,
     *,
     provenance: dict[str, object] | None = None,
+    data_contract: str = "private_health/review_queue",
 ) -> None:
     artifact = build_success_artifact(
         artifact_type="review_queue",
         contract_version="1.0.0",
         data=queue,
         provenance=provenance or _local_provenance(),
-        data_contract="private_health/review_queue",
+        data_contract=data_contract,
     )
-    write_artifact(path, artifact, data_contract="private_health/review_queue")
+    write_artifact(path, artifact, data_contract=data_contract)
 
 
-def load_review_queue(path: str | Path) -> dict:
+def load_review_queue(
+    path: str | Path,
+    *,
+    data_contract: str = "private_health/review_queue",
+) -> dict:
     payload = read_artifact(
         path,
         expected_type="review_queue",
-        data_contract="private_health/review_queue",
+        data_contract=data_contract,
     )["data"]
     if not isinstance(payload, dict) or "updates" not in payload:
         raise ValueError(f"Not a review queue file: {path}")

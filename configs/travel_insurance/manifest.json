@@ -4,7 +4,7 @@
   "capabilities": {
     "acquisition": true,
     "discovery": true,
-    "refinement": false,
+    "refinement": true,
     "extraction": true,
     "evaluation": false,
     "storage": true
@@ -21,18 +21,19 @@
     "acquisition_config": "configs/travel_insurance/sources.json",
     "acquisition_output": "outputs/travel_insurance/acquisition",
     "canonical_schema": "configs/travel_insurance/canonical_schema_v1.json",
-    "storage_mapping": "configs/travel_insurance/storage_mapping.json"
+    "storage_mapping": "configs/travel_insurance/storage_mapping.json",
+    "alias_config": "configs/travel_insurance/aliases.json"
   },
   "path_environment": {},
   "contracts": {
     "acquisition_run": "travel_insurance/acquisition_run",
     "discovered_schema": "travel_insurance/discovered_schema",
-    "candidate_patch_set": null,
+    "candidate_patch_set": "schema_refinement/candidate_patch_set",
     "refinement_feedback": null
   },
   "prompts": {
     "discovery": "travel_insurance_discovery_v1",
-    "patch": null,
+    "patch": "travel_insurance_patch_v1",
     "extraction": "travel_insurance_extraction_v1"
   },
   "adapters": {

@@ -65,12 +65,13 @@ def write_patch_stability(
     path: str | Path,
     *,
     provenance: dict[str, object],
+    data_contract: str = "private_health/patch_stability",
 ) -> None:
     artifact = build_success_artifact(
         artifact_type="patch_stability",
         contract_version="1.0.0",
         data=payload,
         provenance=provenance,
-        data_contract="private_health/patch_stability",
+        data_contract=data_contract,
     )
-    write_artifact(path, artifact, data_contract="private_health/patch_stability")
+    write_artifact(path, artifact, data_contract=data_contract)

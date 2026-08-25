@@ -42,6 +42,7 @@ from src.common.model_config import resolve_selection
 from src.common.json_artifacts import read_artifact
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
+from src.schema.validation import validate_schema_mapping
 
 
 @dataclass(frozen=True)
@@ -61,9 +62,24 @@ class SchemaConsensusRefinement:
         self,
         discovery: SchemaDiscovery,
         log: Callable[[str], None] | None = print,
+        *,
+        schema_contract: str = "private_health/discovered_schema",
+        patch_contract: str = "private_health/candidate_patch_set",
+        schema_validator: Callable[[object], object] = validate_schema_mapping,
+        valid_product_types: tuple[str, ...] = DEFAULT_CATEGORIES,
+        promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
+        manual_only_queue: bool = False,
+        protected_fields: frozenset[str] = frozenset(),
     ) -> None:
         self.discovery = discovery
         self.log = log
+        self.schema_contract = schema_contract
+        self.patch_contract = patch_contract
+        self.schema_validator = schema_validator
+        self.valid_product_types = valid_product_types
+        self.promoted_decisions = promoted_decisions
+        self.manual_only_queue = manual_only_queue
+        self.protected_fields = protected_fields
 
     def refine(
         self,
@@ -97,7 +113,7 @@ class SchemaConsensusRefinement:
         current_schema = read_artifact(
             base_schema,
             expected_type="discovered_schema",
-            data_contract="private_health/discovered_schema",
+            data_contract=self.schema_contract,
         )["data"]
         all_patches = []
         schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
@@ -136,14 +152,46 @@ class SchemaConsensusRefinement:
                     "source_documents": list(sample_paths),
                     "source_artifacts": [base_schema.as_posix()],
                 },
+                data_contract=self.patch_contract,
             )
             all_patches.extend(
-                normalize_patches(load_patch_file(patch_path), field_aliases, group_aliases)
+                normalize_patches(
+                    load_patch_file(
+                        patch_path,
+                        data_contract=self.patch_contract,
+                        allowed_product_types=set(self.valid_product_types),
+                    ),
+                    field_aliases,
+                    group_aliases,
+                )
             )
 
         decisions = aggregate_patches(all_patches, total_runs=runs)
-        render_frequency_json(decisions, frequency_path)
-        render_consensus_schema(base_schema, decisions, consensus_schema_path)
+        render_frequency_json(
+            decisions,
+            frequency_path,
+            data_contract="schema_refinement/field_frequency",
+        )
+        render_consensus_schema(
+            base_schema,
+            decisions,
+            consensus_schema_path,
+            schema_contract=self.schema_contract,
+            schema_validator=self.schema_validator,
+            valid_product_types=self.valid_product_types,
+            promoted_decisions=self.promoted_decisions,
+            protected_fields=self.protected_fields,
+        )
+        if self.manual_only_queue:
+            review_base_schema = read_artifact(
+                consensus_schema_path,
+                expected_type="discovered_schema",
+                data_contract=self.schema_contract,
+            )["data"]
+            review_base_path = consensus_schema_path
+        else:
+            review_base_schema = current_schema
+            review_base_path = base_schema
         report = render_report(decisions)
         write_patch_stability(
             compute_patch_stability(all_patches, total_runs=runs),
@@ -153,14 +201,21 @@ class SchemaConsensusRefinement:
                 "document_input": None, "source_documents": [],
                 "source_artifacts": [path.as_posix() for path in sorted(patch_dir.glob("*.json"))],
             },
+            data_contract="schema_refinement/patch_stability",
         )
         write_review_queue(
             build_review_queue(
                 decisions,
-                current_schema,
+                review_base_schema,
                 total_runs=runs,
-                base_schema_path=base_schema,
+                base_schema_path=review_base_path,
                 schema_build_samples=schema_build_samples,
+                manual_only=self.manual_only_queue,
+                vertical=str(current_schema.get("vertical") or ""),
+                schema_contract=self.schema_contract,
+                valid_product_types=self.valid_product_types,
+                promoted_decisions=self.promoted_decisions,
+                protected_fields=self.protected_fields,
             ),
             queue_path,
             provenance={
@@ -168,6 +223,7 @@ class SchemaConsensusRefinement:
                 "document_input": None, "source_documents": [],
                 "source_artifacts": [frequency_path.as_posix(), base_schema.as_posix()],
             },
+            data_contract="schema_refinement/review_queue",
         )
 
         return ConsensusOutputs(

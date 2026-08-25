@@ -51,10 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--consensus-runs",
         type=int,
-        default=1,
+        default=None,
         help=(
-            "Patch-voting runs per round before evaluation. 1 (default) keeps "
-            "single-generation behavior; N>1 multiplies API cost by ~N."
+            "Patch-voting runs per round before evaluation. Defaults to 1 for "
+            "private health and 5 for Travel; N>1 multiplies API cost by ~N."
         ),
     )
     parser.add_argument(
@@ -102,6 +102,8 @@ def configure_args(args: argparse.Namespace) -> VerticalManifest:
         if args.out_dir
         else manifest.path("output_root") / "refine"
     )
+    if args.consensus_runs is None:
+        args.consensus_runs = 5 if manifest.vertical == "travel_insurance" else 1
     return manifest
 
 

@@ -20,7 +20,7 @@ from src.refine.human_review import (
     write_review_queue,
 )
 
-APP_PATH = "src/review_app.py"
+APP_PATH = Path(__file__).resolve().parents[1] / "src/review_app.py"
 
 
 def build_fixture(tmp: str) -> Path:
@@ -72,7 +72,7 @@ def build_fixture(tmp: str) -> Path:
 @unittest.skipUnless(HAS_STREAMLIT, "streamlit not installed")
 class ReviewAppTest(unittest.TestCase):
     def render(self, fixture: Path) -> "AppTest":
-        at = AppTest.from_file(APP_PATH, default_timeout=20)
+        at = AppTest.from_file(str(APP_PATH), default_timeout=20)
         at.run()
         at.sidebar.text_input[0].set_value(str(fixture))
         at.run()

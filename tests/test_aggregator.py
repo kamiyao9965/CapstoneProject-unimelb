@@ -83,6 +83,7 @@ class AggregationDetailTest(unittest.TestCase):
         decision = aggregate_patches(patches, total_runs=3)[0]
         self.assertEqual(decision.target_group, "hospital_cover")
         self.assertEqual(decision.field_type, "number")
+        self.assertTrue(decision.has_conflict)
 
     def test_average_confidence_ignores_zero_values(self) -> None:
         patches = [

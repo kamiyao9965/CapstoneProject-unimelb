@@ -71,6 +71,15 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
         _print_review_stop(round_dir, round_dir / "consensus" / QUEUE_FILENAME)
         return None
 
+    if not _manifest(args).supports("evaluation"):
+        final_schema_path = publish_final_schema(
+            schema_path,
+            Path(args.out_dir),
+            data_contract=_schema_contract(args),
+        )
+        print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
+        return ""
+
     print("[schema-application] extracting holdout PDFs and discovering failures")
     _analysis, feedback_out = evaluate_schema(
         args,
@@ -176,6 +185,18 @@ def resume_review(args) -> int:
         schema_path, artifact, data_contract=_schema_contract(args)
     )
     print(f"[resume-review] wrote reviewed schema to {schema_path}")
+    if not _manifest(args).supports("evaluation"):
+        final_schema_path = publish_final_schema(
+            schema_path,
+            Path(args.out_dir),
+            data_contract=_schema_contract(args),
+        )
+        print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
+        print(
+            "Review the deterministic Canonical mapping next:\n"
+            f"  streamlit run src/canonical_review_app.py -- --schema {reviewed_path}"
+        )
+        return 0
     schema_build_samples = _schema_build_samples_from_review_queue(
         round_dir / "consensus" / QUEUE_FILENAME
     )
@@ -200,6 +221,12 @@ def resume_review(args) -> int:
         f"  python src/refine/loop.py --resume-feedback {round_dir / 'refinement_feedback.json'}"
     )
     return 0
+
+
+def _manifest(args):
+    return getattr(args, "vertical_manifest", None) or load_vertical_manifest(
+        default_manifest_path("private_health")
+    )
 
 
 def _schema_build_samples_from_review_queue(queue_path: Path) -> tuple[str, ...]:

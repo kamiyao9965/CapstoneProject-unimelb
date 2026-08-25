@@ -11,7 +11,7 @@
         "description": {"type": "string"},
         "applies_to": {
           "type": "array", "uniqueItems": true,
-          "items": {"enum": ["hospital", "extras", "generalhealth", "combined"]}
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"}
         },
         "required": {"type": "boolean"},
         "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
@@ -55,6 +55,7 @@
         "reject_rationale_samples": {"type": "array", "items": {"type": "string"}},
         "needs_manual_edit": {"type": "boolean"},
         "needs_schema_edit": {"type": "boolean"},
+        "has_conflict": {"type": "boolean"},
         "proposed_update": {"$ref": "#/$defs/fieldUpdate"}
       }
     }
@@ -72,7 +73,9 @@
         "consensus_source": {"const": "candidate_schema_patches"},
         "total_runs": {"type": "integer", "minimum": 1},
         "base_schema_path": {"type": "string", "minLength": 1},
-        "schema_build_samples": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        "schema_build_samples": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "vertical": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
+        "schema_contract": {"type": "string", "minLength": 1}
       }
     },
     "updates": {"type": "array", "items": {"$ref": "#/$defs/queueItem"}}

@@ -99,7 +99,7 @@ class SchemaPatch:
             values=_scalar_tuple(value.get("values"), "values"),
         )
 
-    def validate(self) -> None:
+    def validate(self, allowed_product_types: set[str] | frozenset[str] | None = None) -> None:
         if self.patch_type not in SUPPORTED_PATCH_TYPES:
             raise ValueError(f"Unsupported patch_type: {self.patch_type}")
         if not self.field_name and not self.canonical_name:
@@ -111,7 +111,8 @@ class SchemaPatch:
                 raise ValueError(f"Unsupported field type: {self.field_type}")
             if not self.description:
                 raise ValueError("add_field patch must include a description.")
-            if not self.applies_to or set(self.applies_to) - SUPPORTED_PRODUCT_TYPES:
+            supported = allowed_product_types or SUPPORTED_PRODUCT_TYPES
+            if not self.applies_to or set(self.applies_to) - supported:
                 raise ValueError(
                     "add_field patch applies_to must contain supported product types."
                 )
@@ -143,16 +144,29 @@ class SchemaPatch:
         }
 
 
-def load_patch_file(path: str | Path) -> list[SchemaPatch]:
+def load_patch_file(
+    path: str | Path,
+    *,
+    data_contract: str = "private_health/candidate_patch_set",
+    allowed_product_types: set[str] | frozenset[str] | None = None,
+) -> list[SchemaPatch]:
     artifact = read_artifact(
         path,
         expected_type="candidate_patch_set",
-        data_contract="private_health/candidate_patch_set",
+        data_contract=data_contract,
     )
-    return parse_patch_payload(artifact["data"], source_run=Path(path).stem)
+    return parse_patch_payload(
+        artifact["data"],
+        source_run=Path(path).stem,
+        allowed_product_types=allowed_product_types,
+    )
 
 
-def parse_patch_payload(payload: object, source_run: str = "") -> list[SchemaPatch]:
+def parse_patch_payload(
+    payload: object,
+    source_run: str = "",
+    allowed_product_types: set[str] | frozenset[str] | None = None,
+) -> list[SchemaPatch]:
     if isinstance(payload, list):
         raw_patches = payload
     elif isinstance(payload, dict):
@@ -165,7 +179,7 @@ def parse_patch_payload(payload: object, source_run: str = "") -> list[SchemaPat
         if not isinstance(item, dict):
             raise ValueError("Each patch must be a JSON object.")
         patch = SchemaPatch.from_dict(item, source_run=source_run)
-        patch.validate()
+        patch.validate(allowed_product_types)
         patches.append(patch)
     return patches
 
@@ -175,16 +189,17 @@ def write_patch_file(
     path: str | Path,
     *,
     provenance: Mapping[str, object],
+    data_contract: str = "private_health/candidate_patch_set",
 ) -> Path:
     artifact = build_success_artifact(
         artifact_type="candidate_patch_set",
         contract_version="1.0.0",
         data=payload,
         provenance=provenance,
-        data_contract="private_health/candidate_patch_set",
+        data_contract=data_contract,
     )
     return write_artifact(
-        path, artifact, data_contract="private_health/candidate_patch_set"
+        path, artifact, data_contract=data_contract
     )
 
 

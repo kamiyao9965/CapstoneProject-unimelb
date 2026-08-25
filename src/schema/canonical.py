@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.common.json_contracts import validate_contract
 
@@ -148,6 +149,34 @@ def require_approved_canonical_schema(payload: object) -> dict[str, object]:
     return schema
 
 
+def approve_canonical_schema(
+    payload: object,
+    *,
+    reviewer: str,
+    rationale: str,
+    reviewed_at: str | None = None,
+) -> dict[str, object]:
+    """Create an approved copy after an explicit human mapping decision."""
+    candidate = validate_canonical_schema(payload)
+    if candidate["status"] != "candidate":
+        raise ValueError("Only a Canonical Schema candidate can be approved.")
+    reviewer = reviewer.strip()
+    rationale = rationale.strip()
+    if not reviewer:
+        raise ValueError("Canonical Schema approval requires a reviewer.")
+    if not rationale:
+        raise ValueError("Canonical Schema approval requires a rationale.")
+    timestamp = reviewed_at or datetime.now(timezone.utc).isoformat()
+    approved = deepcopy(candidate)
+    approved["status"] = "approved"
+    approved["review"] = {
+        "reviewed_by": reviewer,
+        "reviewed_at": timestamp,
+        "rationale": rationale,
+    }
+    return validate_canonical_schema(approved)
+
+
 def compile_canonical_extraction_contract(
     payload: object,
 ) -> dict[str, object]:
@@ -207,6 +236,49 @@ def compile_canonical_extraction_contract(
             document_notes_field: {"type": ["string", "null"]},
         },
     }
+
+
+def validate_canonical_extraction_identities(
+    schema_payload: object,
+    extraction_payload: object,
+) -> object:
+    """Reject repeated product names before an extraction can be persisted."""
+    schema = require_approved_canonical_schema(schema_payload)
+    if not isinstance(extraction_payload, Mapping):
+        raise ValueError("Canonical extraction payload must be an object.")
+
+    output = schema["output"]
+    if not isinstance(output, Mapping):
+        raise ValueError("Canonical Schema output must be an object.")
+    extracted_products = extraction_payload.get(str(output["collection"]))
+    if output["cardinality"] == "multiple":
+        if not isinstance(extracted_products, list):
+            raise ValueError("Canonical multiple output must contain a product list.")
+        products = extracted_products
+    else:
+        products = [extracted_products]
+
+    identity = schema["identity"]
+    if not isinstance(identity, Mapping):
+        raise ValueError("Canonical Schema identity must be an object.")
+    product_name_field = str(identity["product_name_field"])
+    seen: set[str] = set()
+    for product in products:
+        if not isinstance(product, Mapping):
+            raise ValueError("Canonical extracted product must be an object.")
+        product_name = product.get(product_name_field)
+        if not isinstance(product_name, str) or not product_name.strip():
+            raise ValueError("Canonical product-name identity must be non-empty.")
+        identity_key = product_name.strip().casefold()
+        if identity_key in seen:
+            raise ValueError(
+                "Canonical extraction contains duplicate product identity: "
+                f"{product_name!r}. product_name must be unique within one "
+                "document; include the marketed plan tier when several plans "
+                "share an umbrella series name."
+            )
+        seen.add(identity_key)
+    return extraction_payload
 
 
 def _canonical_field_contract(field: Mapping[str, object]) -> dict[str, object]:

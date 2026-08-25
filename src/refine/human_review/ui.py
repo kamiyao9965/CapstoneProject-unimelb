@@ -180,6 +180,11 @@ def _render_review_item(item: dict, status_label: str) -> None:
             "This proposal combines patch actions. Plain Accept is disabled; "
             "review and save one explicit field payload."
         )
+    if item.get("has_conflict"):
+        st.warning(
+            "Patch runs disagreed on field type, applicability, requiredness, or "
+            "enum values. Review the explicit payload before accepting."
+        )
 
     st.markdown("**Proposed update**")
     st.json(item["proposed_update"])

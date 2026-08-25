@@ -25,19 +25,23 @@ def fields_by_name(fields: object) -> dict[str, dict[str, object]]:
     return result
 
 
-def applies_to_from_group(target_group: str) -> list[str]:
+def applies_to_from_group(
+    target_group: str,
+    valid_product_types: tuple[str, ...] = VALID_PRODUCT_TYPES,
+) -> list[str]:
     """Convert consensus group names to schema product types.
 
     Group names like `extras_cover` are useful during consensus, but schema
     `applies_to` should only contain product types such as `extras`.
     """
     candidate = target_group.removesuffix("_cover")
-    return [candidate] if candidate in VALID_PRODUCT_TYPES else []
+    return [candidate] if candidate in valid_product_types else []
 
 
 def field_payload_from_decision(
     decision: FieldDecision,
     existing_field: dict[str, object] | None = None,
+    valid_product_types: tuple[str, ...] = VALID_PRODUCT_TYPES,
 ) -> dict[str, object]:
     """Build the schema field payload implied by one consensus decision."""
     payload = dict(existing_field or {})
@@ -56,7 +60,7 @@ def field_payload_from_decision(
                 "description": payload.get("description") or decision.description,
                 "applies_to": payload.get("applies_to")
                 or decision.applies_to
-                or applies_to_from_group(decision.target_group),
+                or applies_to_from_group(decision.target_group, valid_product_types),
                 "required": payload.get(
                     "required",
                     decision.required if decision.required is not None else False,
@@ -82,3 +86,18 @@ def decision_requires_manual_edit(decision: FieldDecision) -> bool:
 def decision_requires_schema_edit(decision: FieldDecision) -> bool:
     """Return whether the action cannot be represented as one field upsert."""
     return bool(MANUAL_EDIT_PATCH_TYPES.intersection(decision.patch_types))
+
+
+def decision_is_auto_promotable(
+    decision: FieldDecision,
+    promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
+    protected_fields: frozenset[str] = frozenset(),
+) -> bool:
+    """Return whether configured support and safety rules allow auto-promotion."""
+    return (
+        decision.decision in promoted_decisions
+        and decision.reject_votes == 0
+        and not decision.has_conflict
+        and decision.canonical_name not in protected_fields
+        and not decision_requires_manual_edit(decision)
+    )

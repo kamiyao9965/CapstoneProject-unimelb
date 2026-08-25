@@ -29,6 +29,11 @@ _CONTRACT_PATHS = {
     "private_health/review_queue": "private_health/review_queue.schema.json",
     "private_health/review_decisions": "private_health/review_decisions.schema.json",
     "private_health/refinement_feedback": "private_health/refinement_feedback.schema.json",
+    "schema_refinement/candidate_patch_set": "private_health/candidate_patch_set.schema.json",
+    "schema_refinement/field_frequency": "private_health/field_frequency.schema.json",
+    "schema_refinement/patch_stability": "private_health/patch_stability.schema.json",
+    "schema_refinement/review_queue": "private_health/review_queue.schema.json",
+    "schema_refinement/review_decisions": "private_health/review_decisions.schema.json",
     "travel_insurance/acquisition_run": (
         "travel_insurance/acquisition_run.schema.json"
     ),

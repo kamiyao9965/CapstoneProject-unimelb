@@ -47,7 +47,11 @@ class VerticalManifestTest(unittest.TestCase):
         self.assertTrue(manifest.supports("discovery"))
         self.assertTrue(manifest.supports("extraction"))
         self.assertTrue(manifest.supports("storage"))
-        self.assertFalse(manifest.supports("refinement"))
+        self.assertTrue(manifest.supports("refinement"))
+        self.assertEqual(
+            manifest.contract("candidate_patch_set"),
+            "schema_refinement/candidate_patch_set",
+        )
         self.assertEqual(manifest.documents.extraction_unit, "product_release")
         self.assertEqual(manifest.documents.output_cardinality, "multiple")
         self.assertEqual(

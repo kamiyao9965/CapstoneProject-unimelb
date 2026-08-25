@@ -84,6 +84,41 @@ def make_queue(decisions=None) -> dict:
 
 
 class BuildReviewQueueTest(unittest.TestCase):
+    def test_manual_only_queue_omits_safe_core_but_keeps_uncertain_and_conflicted(self) -> None:
+        safe = make_decision("safe_core", decision="core", reject_votes=0)
+        uncertain = make_decision("uncertain", decision="conditional", reject_votes=0)
+        conflicted = make_decision(
+            "conflicted", decision="core", reject_votes=0, has_conflict=True
+        )
+
+        queue = build_review_queue(
+            [safe, uncertain, conflicted],
+            BASE_SCHEMA,
+            total_runs=5,
+            base_schema_path="base.json",
+            manual_only=True,
+            promoted_decisions=frozenset({"core"}),
+        )
+
+        self.assertEqual(
+            [item["canonical_name"] for item in queue["updates"]],
+            ["uncertain", "conflicted"],
+        )
+
+    def test_manual_only_queue_keeps_protected_identity_fields(self) -> None:
+        identity = make_decision("product_name", decision="core", reject_votes=0)
+        queue = build_review_queue(
+            [identity],
+            BASE_SCHEMA,
+            total_runs=5,
+            base_schema_path="base.json",
+            manual_only=True,
+            promoted_decisions=frozenset({"core"}),
+            protected_fields=frozenset({"product_name", "product_type"}),
+        )
+
+        self.assertEqual(queue["updates"][0]["canonical_name"], "product_name")
+
     def test_fields_by_name_rejects_malformed_entries_instead_of_dropping_them(self) -> None:
         with self.assertRaisesRegex(ValueError, "field 1"):
             fields_by_name([{"name": "valid"}, {"description": "missing name"}])
@@ -269,22 +304,24 @@ class ApplyReviewTest(unittest.TestCase):
             self.apply(queue, decisions)
 
     def test_edit_rejects_group_names_in_applies_to(self) -> None:
+        queue = make_queue()
         decisions = empty_decisions()
-        with self.assertRaises(ValueError):
-            upsert_decision(
-                decisions,
-                "field:annual_limit",
-                "edit",
-                edited_update={
-                    "name": "annual_limit",
-                    "type": "number",
-                    "description": "Annual limit",
-                    "applies_to": ["extras_cover", "extras"],
-                    "required": False,
-                    "values": [],
-                    "aliases": [],
-                },
-            )
+        upsert_decision(
+            decisions,
+            "field:annual_limit",
+            "edit",
+            edited_update={
+                "name": "annual_limit",
+                "type": "number",
+                "description": "Annual limit",
+                "applies_to": ["extras_cover", "extras"],
+                "required": False,
+                "values": [],
+                "aliases": [],
+            },
+        )
+        with self.assertRaisesRegex(ValueError, "unknown product types"):
+            self.apply(queue, decisions)
 
     def test_manual_patch_cannot_be_plainly_accepted(self) -> None:
         queue = make_queue(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 from typing import Callable, Mapping
 from uuid import uuid4
@@ -30,6 +31,7 @@ from src.schema.canonical import (
     compile_canonical_extraction_contract,
     is_canonical_schema,
     require_approved_canonical_schema,
+    validate_canonical_extraction_identities,
 )
 from src.schema_application.prompts import EXTRACTION_PROMPT
 from src.schema.validation import validate_schema_mapping
@@ -60,6 +62,7 @@ class SchemaExtractor:
         extraction_prompt: str = EXTRACTION_PROMPT,
     ) -> None:
         self.schema_data = dict(schema_data)
+        self.extraction_business_validator: Callable[[object], object] | None = None
         if is_canonical_schema(schema_data):
             canonical_schema = require_approved_canonical_schema(schema_data)
             output = canonical_schema["output"]
@@ -77,6 +80,10 @@ class SchemaExtractor:
             self.structured_output_strict = not any(
                 field["type"] == "list[object]" or field["required"] is False
                 for field in canonical_fields
+            )
+            self.extraction_business_validator = partial(
+                validate_canonical_extraction_identities,
+                canonical_schema,
             )
             self.schema_prompt_label = "Approved Canonical Schema"
         else:
@@ -158,6 +165,7 @@ class SchemaExtractor:
                 self.provider,
                 request,
                 data_contract_schema=self.extraction_contract,
+                business_validator=self.extraction_business_validator,
             )
         except StructuredOutputFailure as exc:
             duration = round(time.perf_counter() - started, 3)

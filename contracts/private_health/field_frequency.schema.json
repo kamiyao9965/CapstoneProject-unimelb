@@ -43,7 +43,7 @@
         "applies_to": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"enum": ["hospital", "extras", "generalhealth", "combined"]}
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"}
         },
         "required": {"type": ["boolean", "null"]},
         "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
@@ -51,6 +51,7 @@
         "reject_votes": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"},
         "reject_rationale_samples": {"type": "array", "items": {"type": "string"}},
         "evidence_documents": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+        ,"has_conflict": {"type": "boolean"}
       }
     }
   },

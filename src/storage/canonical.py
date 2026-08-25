@@ -24,6 +24,8 @@ from src.common.json_contracts import validate_inline_contract
 from src.schema.canonical import (
     compile_canonical_extraction_contract,
     require_approved_canonical_schema,
+    validate_canonical_extraction_identities,
+    validate_canonical_schema,
 )
 from src.storage.schema import flexible_json
 
@@ -64,6 +66,17 @@ def compile_vertical_storage_metadata(
 ) -> CompiledVerticalStorage:
     """Compile an approved schema into one product-release extension table."""
     schema = require_approved_canonical_schema(payload)
+    return _compile_vertical_storage_metadata(schema)
+
+
+def preview_vertical_storage_metadata(payload: object) -> CompiledVerticalStorage:
+    """Compile candidate metadata for review without authorizing DB execution."""
+    return _compile_vertical_storage_metadata(validate_canonical_schema(payload))
+
+
+def _compile_vertical_storage_metadata(
+    schema: Mapping[str, object],
+) -> CompiledVerticalStorage:
     extension = _mapping(schema["extension"], "extension")
     table_name = str(extension["table"])
     attributes_column = str(extension["attributes_column"])
@@ -127,6 +140,7 @@ def compile_canonical_load_plan(
         extraction_contract,
         name="canonical_extraction",
     )
+    validate_canonical_extraction_identities(schema, extraction_payload)
     if not isinstance(extraction_payload, Mapping):
         raise ValueError("Canonical extraction payload must be an object.")
 
@@ -147,7 +161,6 @@ def compile_canonical_load_plan(
         raise ValueError("Canonical Schema fields must be a list.")
 
     records: list[CanonicalProductLoad] = []
-    seen_identities: set[str] = set()
     for product_payload in product_payloads:
         product = _mapping(product_payload, "extracted product")
         product_name = product[product_name_field]
@@ -156,13 +169,6 @@ def compile_canonical_load_plan(
             raise ValueError("Canonical product-name identity must be non-empty.")
         if not isinstance(product_type, str) or not product_type.strip():
             raise ValueError("Canonical product-type identity must be non-empty.")
-        identity_key = product_name.strip().casefold()
-        if identity_key in seen_identities:
-            raise ValueError(
-                f"Canonical extraction contains duplicate product identity: {product_name!r}."
-            )
-        seen_identities.add(identity_key)
-
         core_values: dict[str, object] = {}
         extension_values: dict[str, object] = {}
         attributes: dict[str, object] = {}
