@@ -17,6 +17,7 @@ def schema(field_type: str, description: str = "Product name") -> str:
             "name": "product_name", "type": field_type,
             "description": description, "applies_to": ["hospital"],
             "required": True, "values": [], "aliases": [],
+            "enum_ref": None, "item_fields": [], "unique_items": False,
         }],
         "hospital_categories": [], "extras_services": [], "notes": [],
     }

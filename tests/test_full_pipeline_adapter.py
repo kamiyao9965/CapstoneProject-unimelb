@@ -60,6 +60,7 @@ class FullPipelineAdapterTest(unittest.TestCase):
                 "required": False,
                 "values": ["Gold", "Silver", "Bronze", "Basic"],
                 "aliases": ["tier"],
+                "enum_ref": None, "item_fields": [], "unique_items": False,
             }
         )
         with tempfile.TemporaryDirectory() as tmp:

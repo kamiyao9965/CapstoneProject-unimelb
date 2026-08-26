@@ -36,6 +36,16 @@ def applies_to_from_group(target_group: str) -> list[str]:
     return [candidate] if candidate in VALID_PRODUCT_TYPES else []
 
 
+def is_applicable_field_patch(
+    decision: FieldDecision,
+    existing_fields: dict[str, dict[str, object]],
+) -> bool:
+    """Reject field-only patch operations whose target is not a schema field."""
+    if set(decision.patch_types) == {"add_alias"}:
+        return decision.canonical_name in existing_fields
+    return True
+
+
 def field_payload_from_decision(
     decision: FieldDecision,
     existing_field: dict[str, object] | None = None,
@@ -46,14 +56,20 @@ def field_payload_from_decision(
     if patch_types == {"update_description"}:
         payload["description"] = decision.description
     elif patch_types == {"add_alias"}:
+        if existing_field is None:
+            raise ValueError(
+                f"add_alias target {decision.canonical_name!r} is not an "
+                "existing schema field"
+            )
         payload["aliases"] = sorted(
             set(payload.get("aliases") or []) | set(decision.aliases)
         )
     else:
+        replace_shape = "update_field_shape" in patch_types or existing_field is None
         payload.update(
             {
                 "name": decision.canonical_name,
-                "type": payload.get("type") or decision.field_type,
+                "type": decision.field_type if replace_shape else payload.get("type"),
                 "description": payload.get("description") or decision.description,
                 "applies_to": payload.get("applies_to")
                 or decision.applies_to
@@ -62,7 +78,16 @@ def field_payload_from_decision(
                     "required",
                     decision.required if decision.required is not None else False,
                 ),
-                "values": payload.get("values", decision.values),
+                "values": decision.values if replace_shape else payload.get("values", []),
+                "enum_ref": decision.enum_ref if replace_shape else payload.get("enum_ref"),
+                "item_fields": (
+                    [item.to_dict() for item in decision.item_fields]
+                    if replace_shape else payload.get("item_fields", [])
+                ),
+                "unique_items": (
+                    decision.unique_items if replace_shape
+                    else payload.get("unique_items", False)
+                ),
                 "aliases": payload.get("aliases", decision.aliases),
             }
         )
@@ -81,6 +106,8 @@ def decision_requires_manual_edit(decision: FieldDecision) -> bool:
     """Return whether collapsed patch semantics are unsafe to apply unattended."""
     patch_types = set(decision.patch_types)
     return (
+        decision.shape_tied
+        or
         len(patch_types) != 1
         or bool(MANUAL_EDIT_PATCH_TYPES.intersection(patch_types))
     )

@@ -11,6 +11,7 @@ from src.refine.artifacts.schema_fields import (
     decision_requires_schema_edit,
     field_payload_from_decision,
     fields_by_name,
+    is_applicable_field_patch,
 )
 from src.refine.candidates.aggregator import FieldDecision
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
@@ -38,6 +39,7 @@ def build_review_queue(
         "updates": [
             _queue_item(decision, existing_fields.get(decision.canonical_name))
             for decision in decisions
+            if is_applicable_field_patch(decision, existing_fields)
         ],
     }
 

@@ -2,13 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "jsonScalar": {"type": ["string", "number", "integer", "boolean"]},
+    "itemField": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
+      "properties": {
+        "name": {"type": "string"}, "type": {"enum": ["string", "number", "boolean", "enum"]},
+        "required": {"type": "boolean"}, "description": {"type": ["string", "null"]},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
+        "enum_ref": {"type": ["string", "null"]}
+      }
+    },
     "fieldUpdate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "type", "description", "applies_to", "required", "values", "aliases"],
+      "required": ["name", "type", "description", "applies_to", "required", "values", "aliases", "enum_ref", "item_fields", "unique_items"],
       "properties": {
         "name": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
-        "type": {"enum": ["string", "number", "boolean", "enum", "list[object]"]},
+        "type": {"enum": ["string", "number", "boolean", "enum", "list[string]", "list[number]", "list[boolean]", "list[enum]", "list[object]"]},
         "description": {"type": "string", "minLength": 1},
         "applies_to": {
           "type": "array", "minItems": 1, "uniqueItems": true,
@@ -16,7 +26,10 @@
         },
         "required": {"type": "boolean"},
         "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
-        "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "enum_ref": {"type": ["string", "null"]},
+        "item_fields": {"type": "array", "items": {"$ref": "#/$defs/itemField"}},
+        "unique_items": {"type": "boolean"}
       }
     },
     "decision": {

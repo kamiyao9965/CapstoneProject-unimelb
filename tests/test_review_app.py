@@ -34,9 +34,11 @@ def build_fixture(tmp: str) -> Path:
             {"name": "product_type", "type": "enum",
              "description": "Product classification",
              "applies_to": ["hospital", "extras"], "required": True,
-             "values": ["hospital", "extras"], "aliases": []},
+             "values": [], "aliases": [],
+             "enum_ref": "product_types", "item_fields": [], "unique_items": False},
             {"name": "product_name", "type": "string", "description": "Product name",
-             "applies_to": ["hospital"], "required": True, "values": [], "aliases": []}
+             "applies_to": ["hospital"], "required": True, "values": [], "aliases": [],
+             "enum_ref": None, "item_fields": [], "unique_items": False}
         ],
         "hospital_categories": [], "extras_services": [], "notes": [],
     }
@@ -106,6 +108,7 @@ class ReviewAppTest(unittest.TestCase):
                 "description": "Reviewed annual limit",
                 "applies_to": ["extras"], "required": False, "values": [],
                 "aliases": [],
+                "enum_ref": None, "item_fields": [], "unique_items": False,
             }
             at.text_area(key="edit:field:annual_limit").set_value(
                 json.dumps(edited)

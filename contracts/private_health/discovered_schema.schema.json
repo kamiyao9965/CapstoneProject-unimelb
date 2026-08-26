@@ -45,25 +45,47 @@
     }
   },
   "$defs": {
-    "field": {
+    "item_field": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "type",
-        "description",
-        "applies_to",
-        "required",
-        "values",
-        "aliases"
-      ],
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
       "properties": {
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
         },
+        "type": {"enum": ["string", "number", "boolean", "enum"]},
+        "required": {"type": "boolean"},
+        "description": {"type": ["string", "null"]},
+        "values": {"type": "array", "items": {"type": ["string", "number", "boolean"]}},
+        "enum_ref": {
+          "type": ["string", "null"],
+          "enum": ["product_types", "hospital_categories", "extras_services", null]
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "enum"}}}, "then": {
+          "oneOf": [
+            {"properties": {"values": {"minItems": 1}, "enum_ref": {"type": "null"}}},
+            {"properties": {"values": {"maxItems": 0}, "enum_ref": {"type": "string"}}}
+          ]
+        }, "else": {"properties": {"values": {"maxItems": 0}, "enum_ref": {"type": "null"}}}}
+      ]
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name", "type", "description", "applies_to", "required", "values",
+        "aliases", "enum_ref", "item_fields", "unique_items"
+      ],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
         "type": {
-          "enum": ["string", "number", "boolean", "enum", "list[object]"]
+          "enum": [
+            "string", "number", "boolean", "enum", "list[string]",
+            "list[number]", "list[boolean]", "list[enum]", "list[object]"
+          ]
         },
         "description": {"type": "string", "minLength": 1},
         "applies_to": {
@@ -79,11 +101,36 @@
           "type": "array",
           "items": {"type": ["string", "number", "boolean"]}
         },
+        "enum_ref": {
+          "type": ["string", "null"],
+          "enum": ["product_types", "hospital_categories", "extras_services", null]
+        },
+        "item_fields": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/item_field"}
+        },
+        "unique_items": {"type": "boolean"},
         "aliases": {
           "type": "array",
           "items": {"type": "string", "minLength": 1}
         }
-      }
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "list[object]"}}}, "then": {
+          "properties": {"item_fields": {"minItems": 1}, "values": {"maxItems": 0}, "enum_ref": {"type": "null"}}
+        }, "else": {"properties": {"item_fields": {"maxItems": 0}}}},
+        {"if": {"properties": {"type": {"enum": ["enum", "list[enum]"]}}}, "then": {
+          "oneOf": [
+            {"properties": {"values": {"minItems": 1}, "enum_ref": {"type": "null"}}},
+            {"properties": {"values": {"maxItems": 0}, "enum_ref": {"type": "string"}}}
+          ]
+        }, "else": {"properties": {"values": {"maxItems": 0}, "enum_ref": {"type": "null"}}}},
+        {"if": {"properties": {"type": {"enum": ["list[string]", "list[number]", "list[boolean]", "list[enum]"]}}}, "else": {"properties": {"unique_items": {"const": false}}}},
+        {"if": {"properties": {"name": {"const": "product_type"}}}, "then": {"properties": {
+          "type": {"const": "enum"}, "values": {"maxItems": 0},
+          "enum_ref": {"const": "product_types"}, "required": {"const": true}
+        }}}
+      ]
     },
     "canonical_item": {
       "type": "object",

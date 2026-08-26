@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.common.json_artifacts import read_artifact, write_artifact
+from src.schema.migration import migrate_legacy_discovered_schema
 from src.refine.human_review import QUEUE_FILENAME, load_review_queue
 from src.refine.pipeline.steps import (
     evaluate_schema,
@@ -84,6 +85,16 @@ def publish_final_schema(schema_path: Path, out_dir: Path) -> Path:
         expected_type="discovered_schema",
         data_contract="private_health/discovered_schema",
     )
+    migrated_data = migrate_legacy_discovered_schema(artifact["data"])
+    if migrated_data != artifact["data"]:
+        artifact = dict(artifact)
+        artifact["data"] = migrated_data
+        provenance = dict(artifact.get("provenance") or {})
+        provenance["source_artifacts"] = [
+            *(provenance.get("source_artifacts") or []),
+            "schema_migration:canonical-item-policy-v1",
+        ]
+        artifact["provenance"] = provenance
     final_schema_path = out_dir / "final_schema.json"
     write_artifact(
         final_schema_path,
@@ -157,7 +168,10 @@ def resume_review(args) -> int:
     )
     schema_path = round_dir / "schema.json"
     write_artifact(
-        schema_path, artifact, data_contract="private_health/discovered_schema"
+        schema_path,
+        artifact,
+        data_contract="private_health/discovered_schema",
+        overwrite=True,
     )
     print(f"[resume-review] wrote reviewed schema to {schema_path}")
     schema_build_samples = _schema_build_samples_from_review_queue(
@@ -172,7 +186,7 @@ def resume_review(args) -> int:
         overwrite_feedback=True,
     )
     print("\n[refinement-feedback]\n" + feedback_out)
-    final_schema_path = publish_final_schema(schema_path, Path(args.out_dir))
+    final_schema_path = publish_final_schema(schema_path, round_dir.parent)
     print(f"[final-schema] wrote {final_schema_path}")
     print(
         "\nReviewed-schema extraction feedback is available at:\n"

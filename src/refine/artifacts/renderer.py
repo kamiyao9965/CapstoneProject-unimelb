@@ -11,6 +11,7 @@ from src.refine.artifacts.schema_fields import (
     decision_requires_manual_edit,
     field_payload_from_decision,
     fields_by_name,
+    is_applicable_field_patch,
     normalize_required_flag,
 )
 from src.refine.candidates.aggregator import FieldDecision
@@ -20,6 +21,7 @@ from src.common.json_artifacts import (
     write_artifact,
 )
 from src.schema.validation import validate_schema_mapping
+from src.schema.migration import migrate_legacy_discovered_schema
 
 
 PROMOTED_DECISIONS = {"core", "conditional"}
@@ -30,11 +32,11 @@ def render_consensus_schema(
     decisions: list[FieldDecision],
     output_path: str | Path,
 ) -> None:
-    base_schema = read_artifact(
+    base_schema = migrate_legacy_discovered_schema(read_artifact(
         base_schema_path,
         expected_type="discovered_schema",
         data_contract="private_health/discovered_schema",
-    )["data"]
+    )["data"])
     if not isinstance(base_schema, dict):
         raise ValueError("Base schema JSON must be an object.")
 
@@ -42,17 +44,22 @@ def render_consensus_schema(
     existing_fields = fields_by_name(consensus_schema.get("fields", []))
 
     for decision in decisions:
+        if not is_applicable_field_patch(decision, existing_fields):
+            continue
         if decision.decision not in PROMOTED_DECISIONS:
             continue
         if decision.reject_votes or decision_requires_manual_edit(decision):
             continue
         patch_type = decision.patch_types[0]
         existing_field = existing_fields.get(decision.canonical_name)
-        if patch_type in {"update_description", "add_alias"} and existing_field is None:
+        if patch_type in {"update_description", "update_field_shape"} and existing_field is None:
             continue
         if patch_type == "add_field" and (
             not (decision.applies_to or applies_to_from_group(decision.target_group))
-            or (decision.field_type == "enum" and not decision.values)
+            or (
+                decision.field_type in {"enum", "list[enum]"}
+                and not decision.values and not decision.enum_ref
+            )
         ):
             continue
         existing_fields[decision.canonical_name] = field_payload_from_decision(

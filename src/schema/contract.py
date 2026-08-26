@@ -5,21 +5,47 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from src.common.json_contracts import validate_contract
+from src.schema.migration import migrate_legacy_discovered_schema
 from src.schema.validation import validate_schema_mapping
+from src.schema.field_contract import compile_field_contract
 
 
-def compile_extraction_contract(schema: Mapping[str, object]) -> dict[str, object]:
+def compile_extraction_contract(
+    schema: Mapping[str, object], *, product_type: str | None = None
+) -> dict[str, object]:
     validate_contract(schema, "private_health/discovered_schema")
+    schema = migrate_legacy_discovered_schema(schema)
     validate_schema_mapping(schema)
+    if product_type is not None:
+        supported = schema.get("product_types") or []
+        if product_type not in supported:
+            raise ValueError(
+                f"Effective product type {product_type!r} is not declared by the schema."
+            )
+
     properties: dict[str, object] = {}
     field_names: list[str] = []
+    applicable_field_names: list[str] = []
     for field in schema["fields"]:
         name = str(field["name"])
         field_names.append(name)
-        properties[name] = _field_contract(field, schema)
+        applicable = (
+            product_type is None
+            or product_type in (field.get("applies_to") or [])
+        )
+        properties[name] = (
+            compile_field_contract(field, schema)
+            if applicable or name == "product_type"
+            else {"type": "null"}
+        )
+        if applicable:
+            applicable_field_names.append(name)
+
+    if product_type is not None:
+        properties["product_type"] = {"const": product_type}
     properties["_unfilled"] = {
         "type": "array",
-        "items": {"enum": field_names},
+        "items": {"enum": applicable_field_names},
         "uniqueItems": True,
     }
     properties["_notes"] = {"type": ["string", "null"]}
@@ -30,45 +56,3 @@ def compile_extraction_contract(schema: Mapping[str, object]) -> dict[str, objec
         "required": [*field_names, "_unfilled", "_notes"],
         "properties": properties,
     }
-
-
-def _field_contract(
-    field: Mapping[str, object], schema: Mapping[str, object]
-) -> dict[str, object]:
-    field_type = field["type"]
-    if field_type == "string":
-        return {"type": ["string", "null"]}
-    if field_type == "number":
-        return {"type": ["number", "null"]}
-    if field_type == "boolean":
-        return {"type": ["boolean", "null"]}
-    if field_type == "enum":
-        return {"enum": [*field["values"], None]}
-    if field_type == "list[object]":
-        item_schema: dict[str, object] = {
-            "type": "object", "additionalProperties": True,
-        }
-        if field.get("name") == "extras_benefits":
-            canonical_services = [
-                str(item["canonical_name"])
-                for item in schema.get("extras_services", [])
-                if isinstance(item, Mapping) and item.get("canonical_name")
-            ]
-            if canonical_services:
-                service_contract = {"type": "string", "enum": canonical_services}
-                item_schema["properties"] = {
-                    key: service_contract for key in ("service_name", "service", "name")
-                }
-                item_schema["anyOf"] = [
-                    {"required": [key]} for key in ("service_name", "service", "name")
-                ]
-        return {
-            "oneOf": [
-                {"type": "null"},
-                {
-                    "type": "array",
-                    "items": item_schema,
-                },
-            ]
-        }
-    raise ValueError(f"Unsupported extraction field type: {field_type}")

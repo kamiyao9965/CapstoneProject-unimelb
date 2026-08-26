@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import unittest
 import tempfile
 from pathlib import Path
 
 from src.refine.candidates.aggregator import FieldDecision
-from src.refine.artifacts.schema_fields import fields_by_name
+from src.refine.artifacts.schema_fields import field_payload_from_decision, fields_by_name
 from src.refine.human_review import (
     apply_review,
     build_review_queue,
@@ -31,8 +32,9 @@ BASE_SCHEMA = {
             "description": "Product classification",
             "applies_to": ["hospital", "extras", "generalhealth", "combined"],
             "required": True,
-            "values": ["hospital", "extras", "generalhealth", "combined"],
+            "values": [],
             "aliases": [],
+            "enum_ref": "product_types", "item_fields": [], "unique_items": False,
         },
         {
             "name": "product_name",
@@ -42,6 +44,7 @@ BASE_SCHEMA = {
             "required": True,
             "values": [],
             "aliases": [],
+            "enum_ref": None, "item_fields": [], "unique_items": False,
         }
     ],
     "hospital_categories": [],
@@ -79,6 +82,46 @@ def make_queue(decisions=None) -> dict:
         base_schema_path="outputs/private_health/schema.json",
         generated_at="2026-07-08T00:00:00+00:00",
     )
+
+
+def taxonomy_schema() -> dict:
+    schema = deepcopy(BASE_SCHEMA)
+    schema["hospital_categories"] = [
+        {
+            "canonical_name": "Gynaecology",
+            "description": "Gynaecology treatments.",
+            "aliases": [],
+        },
+        {
+            "canonical_name": "Dialysis for Chronic Kidney Failure",
+            "description": "Dialysis for chronic kidney failure.",
+            "aliases": ["Dialysis"],
+        },
+    ]
+    schema["extras_services"] = [
+        {
+            "canonical_name": "Dietician",
+            "description": "Dietician and nutritionist consultations.",
+            "aliases": ["Dietitian"],
+        }
+    ]
+    return schema
+
+
+def taxonomy_alias_decision(
+    canonical_name: str,
+    alias: str,
+    target_collection: str,
+) -> FieldDecision:
+    decision = make_decision(
+        canonical_name,
+        patch_types=["add_alias"],
+        aliases=[alias],
+        target_group="",
+        reject_votes=0,
+    )
+    decision.target_collection = target_collection
+    return decision
 
 
 class BuildReviewQueueTest(unittest.TestCase):
@@ -128,6 +171,37 @@ class BuildReviewQueueTest(unittest.TestCase):
         self.assertEqual(proposed["description"], "Existing description")
         self.assertEqual(proposed["applies_to"], ["hospital", "extras"])
         self.assertTrue(proposed["required"])
+
+    def test_taxonomy_alias_is_skipped_from_field_review_queue(self) -> None:
+        queue = build_review_queue(
+            [
+                taxonomy_alias_decision(
+                    "gynaecology", "Gynecology", "hospital_categories"
+                )
+            ],
+            taxonomy_schema(),
+            total_runs=3,
+            base_schema_path="outputs/private_health/schema.json",
+            generated_at="2026-08-24T00:00:00+00:00",
+        )
+
+        self.assertEqual(queue["updates"], [])
+
+    def test_add_alias_for_existing_field_remains_in_queue(self) -> None:
+        queue = make_queue([
+            make_decision(
+                "product_name", patch_types=["add_alias"], aliases=["plan_name"]
+            )
+        ])
+        self.assertEqual(len(queue["updates"]), 1)
+        self.assertEqual(queue["updates"][0]["proposed_update"]["aliases"], ["plan_name"])
+
+    def test_payload_builder_rejects_add_alias_without_existing_field(self) -> None:
+        decision = make_decision(
+            "gynaecology", patch_types=["add_alias"], aliases=["Gynecology"]
+        )
+        with self.assertRaisesRegex(ValueError, "not an existing schema field"):
+            field_payload_from_decision(decision, None)
 
 
 class DeriveStatusTest(unittest.TestCase):
@@ -204,7 +278,7 @@ class ApplyReviewTest(unittest.TestCase):
             "clarified",
             {"name": "excess", "type": "number", "description": "Excess per admission",
              "applies_to": ["hospital"], "required": False, "values": [],
-             "aliases": []},
+             "aliases": [], "enum_ref": None, "item_fields": [], "unique_items": False},
         )
 
         reviewed, summary = self.apply(queue, decisions)
@@ -256,6 +330,7 @@ class ApplyReviewTest(unittest.TestCase):
                     "required": False,
                     "values": [],
                     "aliases": [],
+                    "enum_ref": None, "item_fields": [], "unique_items": False,
                 },
             )
 
@@ -286,6 +361,7 @@ class ApplyReviewTest(unittest.TestCase):
                 "required": False,
                 "values": [],
                 "aliases": [],
+                "enum_ref": None, "item_fields": [], "unique_items": False,
             },
         )
 
@@ -315,7 +391,6 @@ class ApplyReviewTest(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             self.apply(queue, decisions)
-
 
 if __name__ == "__main__":
     unittest.main()

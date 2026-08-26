@@ -8,7 +8,9 @@ import yaml
 
 from src.common.json_contracts import validate_contract
 from src.models import SchemaField, SchemaSection, VerticalSchema
+from src.schema.migration import migrate_legacy_discovered_schema
 from src.schema.validation import validate_schema_mapping
+from src.schema.field_contract import compile_field_contract
 
 
 class SchemaLoader:
@@ -139,6 +141,7 @@ class SchemaLoader:
 
     def _load_discovered_schema(self, payload: dict[str, Any]) -> VerticalSchema:
         validate_contract(payload, "private_health/discovered_schema")
+        payload = migrate_legacy_discovered_schema(payload)
         validate_schema_mapping(payload)
         hospital_categories = [
             str(item["canonical_name"])
@@ -203,7 +206,7 @@ class SchemaLoader:
         fields = [field for field in source_schema.get("fields", []) if isinstance(field, dict)]
         field_names = [str(field["name"]) for field in fields]
         properties: dict[str, Any] = {
-            str(field["name"]): self._discovered_field_to_json_schema(field)
+            str(field["name"]): compile_field_contract(field, source_schema)
             for field in fields
         }
         properties["_unfilled"] = {
@@ -230,7 +233,7 @@ class SchemaLoader:
                     "then": {
                         "properties": {
                             str(field["name"]): (
-                                self._discovered_field_to_json_schema(field)
+                                compile_field_contract(field, source_schema)
                                 if product_type in (field.get("applies_to") or [])
                                 else {"type": "null"}
                             )
@@ -243,29 +246,6 @@ class SchemaLoader:
         if all_of:
             contract["allOf"] = all_of
         return contract
-
-    def _discovered_field_to_json_schema(self, field: dict[str, Any]) -> dict[str, Any]:
-        field_type = str(field.get("type", "string"))
-        values = list(field.get("values") or [])
-        if field_type == "string":
-            return {"type": ["string", "null"]}
-        if field_type == "number":
-            return {"type": ["number", "null"]}
-        if field_type == "boolean":
-            return {"type": ["boolean", "null"]}
-        if field_type == "enum":
-            return {"enum": [*values, None]}
-        if field_type == "list[object]":
-            return {
-                "oneOf": [
-                    {"type": "null"},
-                    {
-                        "type": "array",
-                        "items": {"type": "object", "additionalProperties": True},
-                    },
-                ]
-            }
-        return {"type": ["string", "null"]}
 
     def _load_entity_schema_v2(self, payload: dict[str, Any]) -> VerticalSchema:
         canonical_values = payload.get("canonical_values", {})
@@ -395,8 +375,16 @@ class SchemaLoader:
     def _resolve_enum_values(enum_ref: str | None, canonical_values: dict[str, list[str]]) -> list[str]:
         if not enum_ref:
             return []
-        key = enum_ref.split(".", 1)[1] if "." in enum_ref else enum_ref
-        return list(canonical_values.get(key, []))
+        if enum_ref not in canonical_values:
+            raise ValueError(f"Unknown enum_ref {enum_ref!r}; dotted or implicit refs are not allowed.")
+        values = canonical_values[enum_ref]
+        if not isinstance(values, list) or not values:
+            raise ValueError(f"enum_ref {enum_ref!r} must resolve to a non-empty list.")
+        if any(not isinstance(value, (str, int, float, bool)) for value in values):
+            raise ValueError(f"enum_ref {enum_ref!r} must resolve to scalar values only.")
+        if len(values) != len(set((type(value).__name__, value) for value in values)):
+            raise ValueError(f"enum_ref {enum_ref!r} must not contain duplicates.")
+        return list(values)
 
     def _build_default_aliases(self, canonical_names: list[str]) -> dict[str, list[str]]:
         aliases: dict[str, list[str]] = {}

@@ -91,6 +91,7 @@ class ExtractionResult(BaseModel):
 
 class EvaluationReport(BaseModel):
     source_path: str
+    source_sha256: str | None = None
     product_key: str | None = None
     extraction_provider: str | None = None
     extraction_model: str | None = None
@@ -111,8 +112,13 @@ class EvaluationReport(BaseModel):
     ground_truth_fields: int = 0
     missing_fields: list[str] = Field(default_factory=list)
     incorrect_fields: list[str] = Field(default_factory=list)
+    unscored_extracted_fields: list[str] = Field(default_factory=list)
     section_metrics: dict[str, Any] = Field(default_factory=dict)
     hallucinations_by_section: dict[str, int] = Field(default_factory=dict)
+    claim_evidence: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    supported_claims: int = 0
+    contradicted_claims: int = 0
+    unverifiable_claims: int = 0
     match_score: float | None = None
     low_confidence_match: bool = False
 
@@ -126,6 +132,8 @@ class ProductMatch(BaseModel):
     product_type: str
     hospital_tier: str | None = None
     product_item_ids: list[str] = Field(default_factory=list)
+    component_id_masters: list[str] = Field(default_factory=list)
+    composite_match: bool = False
     match_score: float = 0.0
     low_confidence_match: bool = False
     candidate_matches: list[dict[str, Any]] = Field(default_factory=list)

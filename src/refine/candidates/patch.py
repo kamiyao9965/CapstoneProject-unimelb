@@ -12,7 +12,11 @@ from src.common.json_artifacts import (
     write_artifact,
 )
 from src.common.json_contracts import validate_contract
-from src.schema.validation import JSONScalar, SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES
+from src.schema.validation import (
+    JSONScalar, SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES,
+    validate_canonical_item_policy, validate_item_field_payload,
+    validate_reusable_description,
+)
 
 
 SUPPORTED_PATCH_TYPES = {
@@ -21,6 +25,7 @@ SUPPORTED_PATCH_TYPES = {
     "merge_fields",
     "move_field_group",
     "update_description",
+    "update_field_shape",
     "add_alias",
     "reject_field",
 }
@@ -55,6 +60,39 @@ class EvidenceDocument:
 
 
 @dataclass(frozen=True)
+class SchemaItemField:
+    name: str
+    field_type: str
+    required: bool
+    description: str = ""
+    values: tuple[JSONScalar, ...] = field(default_factory=tuple)
+    enum_ref: str | None = None
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "SchemaItemField":
+        return cls(
+            name=str(value.get("name") or "").strip(),
+            field_type=str(value.get("type") or "").strip(),
+            required=value.get("required") is True,
+            description=str(value.get("description") or "").strip(),
+            values=_scalar_tuple(value.get("values"), "item_fields.values"),
+            enum_ref=(str(value["enum_ref"]) if value.get("enum_ref") else None),
+        )
+
+    def validate(self, *, field_name: str = "patch", index: int = 0) -> None:
+        validate_item_field_payload(
+            self.to_dict(), field_name=field_name, index=index
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "name": self.name, "type": self.field_type, "required": self.required,
+            "description": self.description or None, "values": list(self.values),
+            "enum_ref": self.enum_ref,
+        }
+
+
+@dataclass(frozen=True)
 class SchemaPatch:
     patch_type: str
     target_group: str
@@ -69,6 +107,9 @@ class SchemaPatch:
     applies_to: tuple[str, ...] = field(default_factory=tuple)
     required: bool | None = None
     values: tuple[JSONScalar, ...] = field(default_factory=tuple)
+    enum_ref: str | None = None
+    item_fields: tuple[SchemaItemField, ...] = field(default_factory=tuple)
+    unique_items: bool = False
 
     @classmethod
     def from_dict(cls, value: dict[str, Any], source_run: str = "") -> "SchemaPatch":
@@ -97,6 +138,13 @@ class SchemaPatch:
                 else None
             ),
             values=_scalar_tuple(value.get("values"), "values"),
+            enum_ref=(str(value["enum_ref"]) if value.get("enum_ref") else None),
+            item_fields=tuple(
+                SchemaItemField.from_dict(item)
+                for item in (value.get("item_fields") or [])
+                if isinstance(item, dict)
+            ),
+            unique_items=value.get("unique_items") is True,
         )
 
     def validate(self) -> None:
@@ -106,7 +154,12 @@ class SchemaPatch:
             raise ValueError("Patch must include field_name or canonical_name.")
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError("Patch confidence must be between 0 and 1.")
-        if self.patch_type == "add_field":
+        if self.description:
+            validate_reusable_description(
+                self.description,
+                f"Schema patch {self.canonical_name!r} description",
+            )
+        if self.patch_type in {"add_field", "update_field_shape"}:
             if self.field_type not in SUPPORTED_FIELD_TYPES:
                 raise ValueError(f"Unsupported field type: {self.field_type}")
             if not self.description:
@@ -117,8 +170,40 @@ class SchemaPatch:
                 )
             if self.required is None:
                 raise ValueError("add_field patch must declare required as true or false.")
-            if self.field_type == "enum" and not self.values:
-                raise ValueError("add_field enum patch must declare allowed values.")
+            if self.field_type in {"enum", "list[enum]"}:
+                if bool(self.values) == bool(self.enum_ref):
+                    raise ValueError("add_field enum patch requires exactly one of values or enum_ref.")
+            elif self.values or self.enum_ref:
+                raise ValueError("Non-enum add_field patch cannot declare values or enum_ref.")
+            if self.field_type == "list[object]":
+                if not self.item_fields:
+                    raise ValueError("add_field list[object] patch must declare item_fields.")
+                for index, item_field in enumerate(self.item_fields):
+                    item_field.validate(
+                        field_name=self.canonical_name, index=index
+                    )
+                validate_canonical_item_policy(
+                    self.canonical_name,
+                    [item_field.to_dict() for item_field in self.item_fields],
+                )
+            elif self.item_fields:
+                raise ValueError("Non-object add_field patch cannot declare item_fields.")
+            if self.field_type not in {
+                "list[string]", "list[number]", "list[boolean]", "list[enum]"
+            } and self.unique_items:
+                raise ValueError(
+                    f"Patch type {self.field_type!r} cannot enable unique_items."
+                )
+            if self.canonical_name == "product_type" and (
+                self.field_type != "enum"
+                or self.values
+                or self.enum_ref != "product_types"
+                or self.required is not True
+            ):
+                raise ValueError(
+                    "product_type shape patches must use type=enum, values=[], "
+                    "enum_ref=product_types, and required=true."
+                )
         if self.patch_type == "update_description" and not self.description:
             raise ValueError("update_description patch must include a description.")
         if self.patch_type == "add_alias" and self.field_name == self.canonical_name:
@@ -135,6 +220,9 @@ class SchemaPatch:
             "applies_to": list(self.applies_to),
             "required": self.required,
             "values": list(self.values),
+            "enum_ref": self.enum_ref,
+            "item_fields": [item.to_dict() for item in self.item_fields],
+            "unique_items": self.unique_items,
             "evidence_documents": [
                 document.to_dict() for document in self.evidence_documents
             ],

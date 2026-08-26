@@ -87,7 +87,6 @@ class NormalizePatchTest(unittest.TestCase):
         self.assertEqual(decision.canonical_name, "annual_limit")
         self.assertEqual(decision.aliases, ["annual_benefit_limit"])
 
-
 class LoadAliasConfigTest(unittest.TestCase):
     def test_default_config_file_is_the_authoritative_default(self) -> None:
         self.assertTrue(DEFAULT_ALIAS_CONFIG.exists())

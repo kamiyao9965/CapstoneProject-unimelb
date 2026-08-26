@@ -20,6 +20,7 @@ from src.refine.human_review.constants import (
 from src.refine.human_review.decisions import decisions_by_id, load_review_decisions
 from src.refine.human_review.queue import load_review_queue
 from src.schema.validation import validate_field_payload, validate_schema_mapping
+from src.schema.migration import migrate_legacy_discovered_schema
 
 
 def apply_review(
@@ -45,7 +46,7 @@ def apply_review(
             f"(wrong file pairing?): {', '.join(unknown_ids)}"
         )
 
-    reviewed = deepcopy(base_schema)
+    reviewed = migrate_legacy_discovered_schema(base_schema)
     fields = fields_by_name(reviewed.get("fields", []))
     allowed_product_types = set(reviewed.get("product_types") or [])
     summary = {"applied": [], "edited": [], "rejected": [], "pending": []}

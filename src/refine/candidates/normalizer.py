@@ -72,6 +72,9 @@ def normalize_patch(
         applies_to=patch.applies_to,
         required=patch.required,
         values=patch.values,
+        enum_ref=patch.enum_ref,
+        item_fields=patch.item_fields,
+        unique_items=patch.unique_items,
     )
 
 

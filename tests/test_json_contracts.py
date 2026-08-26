@@ -23,7 +23,8 @@ VALID_DISCOVERED_SCHEMA = {
             "description": "Canonical private-health product classification.",
             "applies_to": ["hospital", "extras", "generalhealth", "combined"],
             "required": True,
-            "values": ["hospital", "extras", "generalhealth", "combined"],
+            "values": [],
+            "enum_ref": "product_types", "item_fields": [], "unique_items": False,
             "aliases": ["cover type"],
         },
         {
@@ -33,6 +34,7 @@ VALID_DISCOVERED_SCHEMA = {
             "applies_to": ["hospital", "extras", "generalhealth", "combined"],
             "required": True,
             "values": [],
+            "enum_ref": None, "item_fields": [], "unique_items": False,
             "aliases": ["cover name"],
         }
     ],

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from src.refine.candidates.patch import EvidenceDocument, SchemaPatch
+from src.refine.candidates.patch import EvidenceDocument, SchemaItemField, SchemaPatch
 from src.schema.validation import JSONScalar
 
 
@@ -31,6 +31,10 @@ class FieldDecision:
     applies_to: list[str] = field(default_factory=list)
     required: bool | None = None
     values: list[JSONScalar] = field(default_factory=list)
+    enum_ref: str | None = None
+    item_fields: list[SchemaItemField] = field(default_factory=list)
+    unique_items: bool = False
+    shape_tied: bool = False
 
     @property
     def frequency_label(self) -> str:
@@ -55,6 +59,10 @@ class FieldDecision:
             "applies_to": self.applies_to,
             "required": self.required,
             "values": self.values,
+            "enum_ref": self.enum_ref,
+            "item_fields": [item.to_dict() for item in self.item_fields],
+            "unique_items": self.unique_items,
+            "shape_tied": self.shape_tied,
             "rationale_samples": self.rationale_samples,
             "reject_votes": self.reject_votes_label,
             "reject_rationale_samples": self.reject_rationale_samples,
@@ -105,8 +113,9 @@ def _build_decision(
     conditional_threshold: float,
     candidate_threshold: float,
 ) -> FieldDecision:
-    source_runs = sorted({patch.source_run for patch in patches if patch.source_run})
-    frequency = len(source_runs) if source_runs else len(patches)
+    winning_shape, shape_patches, shape_tied = _winning_shape(patches)
+    source_runs = sorted({patch.source_run for patch in shape_patches if patch.source_run})
+    frequency = len(source_runs) if source_runs else len(shape_patches)
     ratio = frequency / total_runs if total_runs else 0
 
     if ratio >= core_threshold:
@@ -118,12 +127,12 @@ def _build_decision(
     else:
         decision = "noise"
 
-    confidences = [patch.confidence for patch in patches if patch.confidence > 0]
+    confidences = [patch.confidence for patch in shape_patches if patch.confidence > 0]
     average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
     aliases = sorted(
         {
             patch.field_name
-            for patch in patches
+            for patch in shape_patches
             if patch.field_name and patch.field_name != canonical_name
         }
     )
@@ -133,24 +142,92 @@ def _build_decision(
 
     return FieldDecision(
         canonical_name=canonical_name,
-        target_group=_most_common([patch.target_group for patch in patches]),
-        field_type=_most_common([patch.field_type for patch in patches]) or "string",
-        description=_first_non_empty([patch.description for patch in patches]),
+        target_group=_most_common([patch.target_group for patch in shape_patches]),
+        field_type=winning_shape.field_type,
+        description=_first_non_empty([patch.description for patch in shape_patches]),
         frequency=frequency,
         total_runs=total_runs,
         decision=decision,
         aliases=aliases,
         source_runs=source_runs,
         average_confidence=average_confidence,
-        evidence_documents=_unique_evidence(patches),
-        patch_types=sorted({patch.patch_type for patch in patches if patch.patch_type}),
-        rationale_samples=_sample_rationales(patches),
+        evidence_documents=_unique_evidence(shape_patches),
+        patch_types=sorted({patch.patch_type for patch in shape_patches if patch.patch_type}),
+        rationale_samples=_sample_rationales(shape_patches),
         reject_votes=reject_votes,
         reject_rationale_samples=_sample_rationales(reject_patches),
-        applies_to=list(_most_common_tuple([patch.applies_to for patch in patches])),
-        required=_most_common_bool([patch.required for patch in patches]),
-        values=list(_most_common_tuple([patch.values for patch in patches])),
+        applies_to=list(_most_common_tuple([patch.applies_to for patch in shape_patches])),
+        required=_most_common_bool([patch.required for patch in shape_patches]),
+        values=list(winning_shape.values),
+        enum_ref=winning_shape.enum_ref,
+        item_fields=list(winning_shape.item_fields),
+        unique_items=winning_shape.unique_items,
+        shape_tied=shape_tied,
     )
+
+
+@dataclass(frozen=True)
+class FieldShape:
+    field_type: str
+    values: tuple[JSONScalar, ...] = ()
+    enum_ref: str | None = None
+    item_fields: tuple[SchemaItemField, ...] = ()
+    unique_items: bool = False
+
+
+def _field_shape(patch: SchemaPatch) -> FieldShape:
+    is_enum = patch.field_type in {"enum", "list[enum]"}
+    values = _canonical_scalars(patch.values) if is_enum else ()
+    enum_ref = patch.enum_ref if is_enum else None
+    item_fields = ()
+    if patch.field_type == "list[object]":
+        item_fields = tuple(sorted(
+            (
+                SchemaItemField(
+                    name=item.name,
+                    field_type=item.field_type,
+                    required=item.required,
+                    description="",
+                    values=_canonical_scalars(item.values) if item.field_type == "enum" else (),
+                    enum_ref=item.enum_ref if item.field_type == "enum" else None,
+                )
+                for item in patch.item_fields
+            ),
+            key=lambda item: item.name,
+        ))
+    return FieldShape(
+        field_type=patch.field_type,
+        values=values,
+        enum_ref=enum_ref,
+        item_fields=item_fields,
+        unique_items=patch.unique_items if patch.field_type.startswith("list[") else False,
+    )
+
+
+def _winning_shape(
+    patches: list[SchemaPatch],
+) -> tuple[FieldShape, list[SchemaPatch], bool]:
+    # One run contributes at most one vote. Conflicting shapes within one run
+    # cancel that run rather than giving it disproportionate influence.
+    by_run: dict[str, list[SchemaPatch]] = defaultdict(list)
+    for index, patch in enumerate(patches):
+        by_run[patch.source_run or f"__anonymous_{index}"].append(patch)
+    votes: dict[FieldShape, list[SchemaPatch]] = defaultdict(list)
+    for run_patches in by_run.values():
+        shapes = {_field_shape(patch) for patch in run_patches}
+        if len(shapes) == 1:
+            shape = next(iter(shapes))
+            votes[shape].append(run_patches[0])
+    if not votes:
+        raise ValueError("No unambiguous field-shape votes remain for consensus.")
+    ranked = sorted(votes.items(), key=lambda item: (-len(item[1]), repr(item[0])))
+    tied = len(ranked) > 1 and len(ranked[0][1]) == len(ranked[1][1])
+    return ranked[0][0], ranked[0][1], tied
+
+
+def _canonical_scalars(values: tuple[JSONScalar, ...]) -> tuple[JSONScalar, ...]:
+    unique = {(type(value).__name__, repr(value)): value for value in values}
+    return tuple(unique[key] for key in sorted(unique))
 
 
 def _most_common(values: list[str]) -> str:

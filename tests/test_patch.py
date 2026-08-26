@@ -24,6 +24,9 @@ def make_patch_dict(**overrides) -> dict:
         "applies_to": ["hospital"],
         "required": False,
         "values": [],
+        "enum_ref": None,
+        "item_fields": [],
+        "unique_items": False,
         "evidence_documents": [
             {"path": "pdfs/a.pdf", "quote_or_summary": "Excess $500"},
         ],
@@ -112,6 +115,34 @@ class SchemaPatchValidateTest(unittest.TestCase):
     def test_rejects_scalar_applies_to_instead_of_silently_iterating_it(self) -> None:
         with self.assertRaisesRegex(ValueError, "applies_to"):
             SchemaPatch.from_dict(make_patch_dict(applies_to="hospital"))
+
+    def test_canonical_item_policy_uses_patch_target_field_context(self) -> None:
+        patch = SchemaPatch.from_dict(make_patch_dict(
+            field_name="extras_benefits",
+            canonical_name="extras_benefits",
+            target_group="extras_cover",
+            type="list[object]",
+            applies_to=["extras"],
+            item_fields=[{
+                "name": "service", "type": "enum", "required": True,
+                "description": None, "values": [], "enum_ref": "extras_services",
+            }],
+        ))
+
+        with self.assertRaisesRegex(ValueError, "legacy alias") as caught:
+            patch.validate()
+
+        self.assertIn('"service" to "service_name"', caught.exception.repair_hint)
+
+    def test_rejects_sample_location_in_patch_description(self) -> None:
+        patch = SchemaPatch.from_dict(make_patch_dict(
+            description="Excess amount observed in table_id=p3_t0."
+        ))
+
+        with self.assertRaisesRegex(ValueError, "sample-specific page") as caught:
+            patch.validate()
+
+        self.assertIn("evidence_documents/rationale", caught.exception.repair_hint)
 
 
 class ParsePatchPayloadTest(unittest.TestCase):

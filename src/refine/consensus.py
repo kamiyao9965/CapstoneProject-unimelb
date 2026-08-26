@@ -38,10 +38,12 @@ from src.refine.candidates.stability import (
     write_patch_stability,
 )
 from src.refine.human_review import build_review_queue, write_review_queue
+from src.refine.artifacts.schema_fields import fields_by_name, is_applicable_field_patch
 from src.common.model_config import resolve_selection
 from src.common.json_artifacts import read_artifact
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
+from src.schema.migration import migrate_legacy_discovered_schema
 
 
 @dataclass(frozen=True)
@@ -94,11 +96,11 @@ class SchemaConsensusRefinement:
         queue_path = resolved_output_dir / "review_queue.json"
 
         field_aliases, group_aliases = load_alias_config(alias_config_path)
-        current_schema = read_artifact(
+        current_schema = migrate_legacy_discovered_schema(read_artifact(
             base_schema,
             expected_type="discovered_schema",
             data_contract="private_health/discovered_schema",
-        )["data"]
+        )["data"])
         all_patches = []
         schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
 
@@ -142,6 +144,14 @@ class SchemaConsensusRefinement:
             )
 
         decisions = aggregate_patches(all_patches, total_runs=runs)
+        existing_fields = fields_by_name(current_schema.get("fields", []))
+        for decision in decisions:
+            if not is_applicable_field_patch(decision, existing_fields):
+                self._log(
+                    "Skipped unsupported add_alias target: "
+                    f"{decision.canonical_name} is not an existing schema field. "
+                    "Taxonomy aliases are not supported."
+                )
         render_frequency_json(decisions, frequency_path)
         render_consensus_schema(base_schema, decisions, consensus_schema_path)
         report = render_report(decisions)

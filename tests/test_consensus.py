@@ -7,6 +7,9 @@ from pathlib import Path
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.model_config import ModelSelection
 from src.refine.consensus import SchemaConsensusRefinement
+from src.refine.candidates.aggregator import aggregate_patches
+from src.refine.candidates.patch import SchemaItemField, SchemaPatch
+from src.refine.artifacts.schema_fields import decision_requires_manual_edit
 
 BASE_SCHEMA = {
     "vertical": "private_health", "version": "0.1-draft",
@@ -14,10 +17,12 @@ BASE_SCHEMA = {
     "fields": [{"name": "product_type", "type": "enum",
                 "description": "Product classification",
                 "applies_to": ["hospital", "extras"], "required": True,
-                "values": ["hospital", "extras"], "aliases": []},
+                "values": [], "aliases": [],
+                "enum_ref": "product_types", "item_fields": [], "unique_items": False},
                {"name": "product_name", "type": "string",
                 "description": "Product name", "applies_to": ["hospital", "extras"],
-                "required": True, "values": [], "aliases": []}],
+                "required": True, "values": [], "aliases": [],
+                "enum_ref": None, "item_fields": [], "unique_items": False}],
     "hospital_categories": [], "extras_services": [], "notes": [],
 }
 
@@ -30,6 +35,7 @@ def patch(name: str, group: str, confidence: float, description: str) -> dict:
         "type": "number" if "excess" in name.lower() else "string",
         "description": description, "applies_to": ["hospital"],
         "required": False, "values": [], "evidence_documents": [],
+        "enum_ref": None, "item_fields": [], "unique_items": False,
         "confidence": confidence, "rationale": "",
     }
 
@@ -178,6 +184,38 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
         refinement = SchemaConsensusRefinement(discovery=StubDiscovery([]), log=None)
         with self.assertRaises(FileNotFoundError):
             refinement.refine(base_schema_path="does/not/exist.json", runs=1)
+
+
+class AtomicShapeConsensusTest(unittest.TestCase):
+    def proposal(self, run: str, item_fields, description: str = "shape") -> SchemaPatch:
+        return SchemaPatch(
+            patch_type="update_field_shape", target_group="extras",
+            field_name="extras_benefits", canonical_name="extras_benefits",
+            field_type="list[object]", description=description, source_run=run,
+            applies_to=("extras",), required=False, item_fields=tuple(item_fields),
+        )
+
+    def test_votes_on_complete_normalized_shape(self) -> None:
+        service = SchemaItemField("service_name", "enum", True, values=("B", "A"))
+        limit = SchemaItemField("limit_raw", "string", False)
+        other = SchemaItemField("name", "string", True)
+        decision = aggregate_patches([
+            self.proposal("run1", [service, limit], "winner one"),
+            self.proposal("run2", [limit, SchemaItemField("service_name", "enum", True, values=("A", "B"))], "winner two"),
+            self.proposal("run3", [other], "loser description"),
+        ], total_runs=3)[0]
+        self.assertEqual([item.name for item in decision.item_fields], ["limit_raw", "service_name"])
+        self.assertNotEqual(decision.description, "loser description")
+        self.assertEqual(decision.frequency, 2)
+
+    def test_shape_tie_requires_manual_review_and_one_run_has_one_vote(self) -> None:
+        first = self.proposal("run1", [SchemaItemField("a", "string", True)])
+        duplicate = self.proposal("run1", [SchemaItemField("a", "string", True)])
+        second = self.proposal("run2", [SchemaItemField("b", "string", True)])
+        decision = aggregate_patches([first, duplicate, second], total_runs=2)[0]
+        self.assertTrue(decision.shape_tied)
+        self.assertEqual(decision.frequency, 1)
+        self.assertTrue(decision_requires_manual_edit(decision))
 
 
 if __name__ == "__main__":

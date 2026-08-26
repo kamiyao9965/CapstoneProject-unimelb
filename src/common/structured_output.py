@@ -160,11 +160,29 @@ def _validate_response(
         try:
             business_validator(payload)
         except ValueError as exc:
-            return None, [{
+            business_errors = getattr(exc, "errors", None)
+            if business_errors:
+                return None, [
+                    {
+                        "path": str(error.get("path", "$")),
+                        "message": str(error.get("message", exc)),
+                        "kind": "business_validation",
+                        **(
+                            {"repair_hint": str(error["repair_hint"])}
+                            if error.get("repair_hint") else {}
+                        ),
+                    }
+                    for error in business_errors
+                ]
+            error = {
                 "path": "$",
                 "message": str(exc),
                 "kind": "business_validation",
-            }]
+            }
+            repair_hint = getattr(exc, "repair_hint", None)
+            if isinstance(repair_hint, str) and repair_hint:
+                error["repair_hint"] = repair_hint
+            return None, [error]
     if not isinstance(payload, dict):
         return None, [{
             "path": "$",
@@ -188,6 +206,7 @@ def _repair_text(
     details = "\n".join(
         f"- {item['path']}: {item['message']}" for item in errors
     )
+    repair_hints = _business_repair_hints(errors)
     source_context = (
         f"{original_user_text}\n\n"
         if repair_number == 1 and _needs_source_context(errors)
@@ -198,6 +217,7 @@ def _repair_text(
         f"{source_context}"
         f"Repair attempt {repair_number}. The previous response failed validation:\n"
         f"{details}\n\n"
+        f"{repair_hints}"
         f"Previous response:\n{previous}\n\n"
         "Return the complete corrected JSON object. Do not omit unchanged fields, "
         "add commentary, or wrap it in Markdown."
@@ -209,6 +229,8 @@ def _contract_error_kind(error: Mapping[str, str]) -> str:
     message = error.get("message", "").lower()
     if "required by the contract" in message:
         return "required_key"
+    if path.endswith(".required") and "contract constant true" in message:
+        return "business_invariant"
     if "expected json type" in message or "output must be a json object" in message:
         return "type_error"
     if "enum values" in message or "contract constant" in message:
@@ -220,11 +242,52 @@ def _contract_error_kind(error: Mapping[str, str]) -> str:
 
 
 def _needs_source_context(errors: list[dict[str, str]]) -> bool:
-    context_kinds = {"business_validation", "enum_mismatch", "evidence_related"}
+    # Mechanical business invariants can be repaired from the previous JSON and
+    # the validation error. Re-sending all source PDFs makes the repair much
+    # larger while providing no useful evidence for those corrections.
+    context_kinds = {"enum_mismatch", "evidence_related"}
     return any(error.get("kind") in context_kinds for error in errors)
 
 
-def _bounded_previous_response(text: str, limit: int = 12000) -> str:
+def _business_repair_hints(errors: list[dict[str, str]]) -> str:
+    messages = "\n".join(item.get("message", "") for item in errors)
+    required_product_type_error = any(
+        item.get("path", "").endswith(".required")
+        and "contract constant True" in item.get("message", "")
+        for item in errors
+    )
+    hints = list(dict.fromkeys(
+        item["repair_hint"]
+        for item in errors
+        if item.get("repair_hint")
+    ))
+    if "Schema product_type field must be required." in messages or required_product_type_error:
+        hints.append(
+            'Find the field whose name is exactly "product_type" and set '
+            '"required": true. Keep "values": [] and '
+            '"enum_ref": "product_types".'
+        )
+    if "Schema product_type values must be empty" in messages:
+        hints.append(
+            'For the field named exactly "product_type", set "values": [] and '
+            '"enum_ref": "product_types".'
+        )
+    if "Schema product_type enum_ref must reference" in messages:
+        hints.append(
+            'For the field named exactly "product_type", set '
+            '"enum_ref": "product_types" and "values": [].'
+        )
+    if not hints:
+        return ""
+    return "Required correction:\n" + "\n".join(f"- {hint}" for hint in hints) + "\n\n"
+
+
+def _bounded_previous_response(text: str, limit: int = 100000) -> str:
     if len(text) <= limit:
         return text
-    return text[:limit] + "\n...[truncated previous response]..."
+    half = limit // 2
+    return (
+        text[:half]
+        + "\n...[middle of previous response truncated]...\n"
+        + text[-half:]
+    )

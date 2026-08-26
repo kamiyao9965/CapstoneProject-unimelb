@@ -145,6 +145,5 @@ class AggregationDetailTest(unittest.TestCase):
         decision = aggregate_patches(patches, total_runs=3)[0]
         self.assertEqual(len(decision.evidence_documents), 2)
 
-
 if __name__ == "__main__":
     unittest.main()

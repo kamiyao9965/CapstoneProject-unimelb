@@ -2,12 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "jsonScalar": {"type": ["string", "number", "integer", "boolean"]},
+    "itemField": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
+      "properties": {
+        "name": {"type": "string"}, "type": {"enum": ["string", "number", "boolean", "enum"]},
+        "required": {"type": "boolean"}, "description": {"type": ["string", "null"]},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
+        "enum_ref": {"type": ["string", "null"]}
+      }
+    },
     "fieldUpdate": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["name", "type", "description", "applies_to", "required", "values", "aliases", "enum_ref", "item_fields", "unique_items"],
       "properties": {
         "name": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
-        "type": {"enum": ["string", "number", "boolean", "enum", "list[object]"]},
+        "type": {"enum": ["string", "number", "boolean", "enum", "list[string]", "list[number]", "list[boolean]", "list[enum]", "list[object]"]},
         "description": {"type": "string"},
         "applies_to": {
           "type": "array", "uniqueItems": true,
@@ -15,7 +26,10 @@
         },
         "required": {"type": "boolean"},
         "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
-        "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "enum_ref": {"type": ["string", "null"]},
+        "item_fields": {"type": "array", "items": {"$ref": "#/$defs/itemField"}},
+        "unique_items": {"type": "boolean"}
       }
     },
     "evidence": {
@@ -39,12 +53,12 @@
         "id": {"type": "string", "pattern": "^field:[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
         "patch_types": {
           "type": "array", "uniqueItems": true,
-          "items": {"enum": ["add_field", "rename_field", "merge_fields", "move_field_group", "update_description", "add_alias", "reject_field"]}
+          "items": {"enum": ["add_field", "rename_field", "merge_fields", "move_field_group", "update_description", "update_field_shape", "add_alias", "reject_field"]}
         },
         "target_group": {"type": "string"},
         "canonical_name": {"type": "string", "minLength": 1},
         "field_name": {"type": "string", "minLength": 1},
-        "type": {"enum": ["string", "number", "boolean", "enum", "list[object]"]},
+        "type": {"enum": ["string", "number", "boolean", "enum", "list[string]", "list[number]", "list[boolean]", "list[enum]", "list[object]"]},
         "suggested_decision": {"enum": ["core", "conditional", "candidate", "noise"]},
         "frequency": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"},
         "reject_votes": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"},

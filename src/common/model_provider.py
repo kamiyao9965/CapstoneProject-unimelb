@@ -424,8 +424,7 @@ _OPENAI_SUPPORTED_KEYS = frozenset({
     "anyOf", "$ref", "$defs",
 })
 _OPENAI_REJECTED_KEYS = frozenset({
-    "allOf", "not", "dependentRequired", "dependentSchemas", "if", "then", "else",
-    "patternProperties",
+    "not", "dependentRequired", "dependentSchemas", "patternProperties",
 })
 
 
@@ -534,8 +533,11 @@ def _normalize_anthropic_node(
     *,
     path: str,
 ) -> dict[str, Any]:
+    # Conditional business rules remain authoritative for local validation, but
+    # native provider schema subsets cannot represent them consistently.
     normalized = {
-        key: value for key, value in schema.items() if key not in {"$schema", "$id"}
+        key: value for key, value in schema.items()
+        if key not in {"$schema", "$id", "allOf", "if", "then", "else"}
     }
     if normalized.get("type") == "object" and normalized.get("additionalProperties") is True:
         raise ValueError(

@@ -6,6 +6,7 @@ from pathlib import Path
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json, loads_json
 from src.common.json_contracts import validate_contract
+from src.schema.migration import migrate_legacy_discovered_schema
 
 # The dimensions we track for drift. Each maps to a set of identifier strings
 # pulled out of a schema so two schemas can be compared set-against-set.
@@ -75,7 +76,7 @@ def signature_from_artifact(artifact: object, label: str) -> SchemaSignature:
         raise ValueError(f"{label}: schema artifact is not successful")
     if artifact.get("artifact_type") != "discovered_schema":
         raise ValueError(f"{label}: expected a discovered_schema artifact")
-    data = artifact["data"]
+    data = migrate_legacy_discovered_schema(artifact["data"])
     validate_contract(data, "private_health/discovered_schema")
 
     product_types = data.get("product_types") or []

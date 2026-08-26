@@ -2,6 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "jsonScalar": {"type": ["string", "number", "integer", "boolean"]},
+    "itemField": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
+      "properties": {
+        "name": {"type": "string"},
+        "type": {"enum": ["string", "number", "boolean", "enum"]},
+        "required": {"type": "boolean"},
+        "description": {"type": ["string", "null"]},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
+        "enum_ref": {"type": ["string", "null"]}
+      }
+    },
     "evidence": {
       "type": "object",
       "additionalProperties": false,
@@ -17,13 +29,13 @@
       "required": [
         "field", "group", "type", "frequency", "decision", "patch_types",
         "aliases", "source_runs", "average_confidence", "description",
-        "applies_to", "required", "values", "rationale_samples",
+        "applies_to", "required", "values", "enum_ref", "item_fields", "unique_items", "shape_tied", "rationale_samples",
         "reject_votes", "reject_rationale_samples", "evidence_documents"
       ],
       "properties": {
         "field": {"type": "string", "minLength": 1},
         "group": {"type": "string"},
-        "type": {"enum": ["string", "number", "boolean", "enum", "list[object]"]},
+        "type": {"enum": ["string", "number", "boolean", "enum", "list[string]", "list[number]", "list[boolean]", "list[enum]", "list[object]"]},
         "frequency": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"},
         "decision": {"enum": ["core", "conditional", "candidate", "noise"]},
         "patch_types": {
@@ -32,7 +44,7 @@
           "items": {
             "enum": [
               "add_field", "rename_field", "merge_fields", "move_field_group",
-              "update_description", "add_alias", "reject_field"
+              "update_description", "update_field_shape", "add_alias", "reject_field"
             ]
           }
         },
@@ -47,6 +59,10 @@
         },
         "required": {"type": ["boolean", "null"]},
         "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},
+        "enum_ref": {"type": ["string", "null"]},
+        "item_fields": {"type": "array", "items": {"$ref": "#/$defs/itemField"}},
+        "unique_items": {"type": "boolean"},
+        "shape_tied": {"type": "boolean"},
         "rationale_samples": {"type": "array", "items": {"type": "string"}},
         "reject_votes": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"},
         "reject_rationale_samples": {"type": "array", "items": {"type": "string"}},

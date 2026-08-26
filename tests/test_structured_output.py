@@ -113,6 +113,71 @@ class StructuredOutputTest(unittest.TestCase):
 
         self.assertIn("duplicate field name", provider.requests[1].user_text)
 
+    def test_business_repair_keeps_large_json_without_resending_pdf_context(self) -> None:
+        import json
+
+        invalid = json.loads(json.dumps(VALID_DISCOVERED_SCHEMA))
+        product_type = next(
+            field for field in invalid["fields"] if field["name"] == "product_type"
+        )
+        product_type["required"] = False
+        invalid["notes"] = ["x" * 15000 + "TAIL_MARKER"]
+        provider = SequenceProvider([
+            json.dumps(invalid),
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+        ])
+        source_request = replace(
+            request(), user_text="PDF_SOURCE_CONTEXT_SHOULD_NOT_BE_RESENT"
+        )
+
+        run_structured_output(
+            provider,
+            source_request,
+            data_contract="private_health/discovered_schema",
+            business_validator=validate_schema_mapping,
+        )
+
+        repair_text = provider.requests[1].user_text
+        self.assertNotIn("PDF_SOURCE_CONTEXT_SHOULD_NOT_BE_RESENT", repair_text)
+        self.assertIn("TAIL_MARKER", repair_text)
+        self.assertIn('field whose name is exactly "product_type"', repair_text)
+        self.assertIn('"required": true', repair_text)
+
+    def test_business_repair_explains_canonical_extras_service_key(self) -> None:
+        import json
+
+        invalid = json.loads(json.dumps(VALID_DISCOVERED_SCHEMA))
+        invalid["extras_services"] = [
+            {"canonical_name": "GeneralDental", "description": "Dental", "aliases": []}
+        ]
+        invalid["fields"].append({
+            "name": "extras_benefits", "type": "list[object]",
+            "description": "Benefits", "applies_to": ["extras"],
+            "required": False, "values": [], "aliases": [], "enum_ref": None,
+            "unique_items": False,
+            "item_fields": [{
+                "name": "service", "type": "enum", "required": True,
+                "description": None, "values": [], "enum_ref": "extras_services",
+            }],
+        })
+        provider = SequenceProvider([
+            json.dumps(invalid),
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+        ])
+
+        run_structured_output(
+            provider,
+            request(),
+            data_contract="private_health/discovered_schema",
+            business_validator=validate_schema_mapping,
+        )
+
+        repair_text = provider.requests[1].user_text
+        self.assertIn('field named exactly "extras_benefits"', repair_text)
+        self.assertIn('service_name: type="enum", required=true', repair_text)
+        self.assertIn('enum_ref="extras_services"', repair_text)
+        self.assertIn('"service" to "service_name"', repair_text)
+
     def test_three_invalid_attempts_fail_closed(self) -> None:
         provider = SequenceProvider(["not json", "[]", "{}"])
 

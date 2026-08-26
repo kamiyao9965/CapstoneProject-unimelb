@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,8 +25,9 @@ BASE_SCHEMA = {
             "description": "Product classification",
             "applies_to": ["hospital", "extras", "combined"],
             "required": True,
-            "values": ["hospital", "extras", "combined"],
+            "values": [],
             "aliases": [],
+            "enum_ref": "product_types", "item_fields": [], "unique_items": False,
         },
         {
             "name": "product_name",
@@ -35,6 +37,7 @@ BASE_SCHEMA = {
             "required": True,
             "values": [],
             "aliases": [],
+            "enum_ref": None, "item_fields": [], "unique_items": False,
         }
     ],
     "hospital_categories": [],
@@ -122,7 +125,7 @@ class RenderConsensusSchemaTest(unittest.TestCase):
 
     def test_non_identity_required_vote_is_downgraded(self) -> None:
         schema = self.render(
-            [make_decision("waiting_periods", "core", field_type="list[object]", required=True)]
+            [make_decision("waiting_periods", "core", field_type="list[string]", required=True)]
         )
         field = next(f for f in schema["fields"] if f["name"] == "waiting_periods")
         self.assertFalse(field["required"])
@@ -137,6 +140,12 @@ class RenderConsensusSchemaTest(unittest.TestCase):
             "required": True,
             "values": [],
             "aliases": [],
+            "enum_ref": None,
+            "unique_items": False,
+            "item_fields": [
+                {"name": "category", "type": "string", "required": True,
+                 "description": None, "values": [], "enum_ref": None}
+            ],
         }]
         with tempfile.TemporaryDirectory() as tmp:
             base_path = Path(tmp) / "base.json"
@@ -221,6 +230,49 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         field = next(f for f in schema["fields"] if f["name"] == "product_name")
         self.assertEqual(field["aliases"], ["plan_name"])
 
+    def test_add_alias_does_not_modify_existing_taxonomy_item(self) -> None:
+        schema = deepcopy(BASE_SCHEMA)
+        schema["hospital_categories"] = [
+            {
+                "canonical_name": "Gynaecology",
+                "description": "Gynaecology treatments.",
+                "aliases": [],
+            }
+        ]
+        decision = make_decision(
+            "gynaecology",
+            "core",
+            patch_types=["add_alias"],
+            aliases=["Gynecology"],
+            applies_to=[],
+            target_group="",
+        )
+        decision.target_collection = "hospital_categories"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base_path = Path(tmp) / "base.json"
+            base_artifact = build_success_artifact(
+                artifact_type="discovered_schema",
+                contract_version="1.0.0",
+                data=schema,
+                provenance=PROVENANCE,
+                data_contract="private_health/discovered_schema",
+            )
+            write_artifact(
+                base_path,
+                base_artifact,
+                data_contract="private_health/discovered_schema",
+            )
+            out_path = Path(tmp) / "consensus_schema.json"
+            render_consensus_schema(base_path, [decision], out_path)
+            rendered = read_artifact(
+                out_path,
+                expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )["data"]
+
+        self.assertEqual(rendered["hospital_categories"][0]["aliases"], [])
+
     def test_unknown_group_is_not_auto_promoted(self) -> None:
         schema = self.render(
             [
@@ -253,6 +305,16 @@ class RenderConsensusSchemaTest(unittest.TestCase):
     def test_consensus_metadata_stays_in_frequency_artifact_not_schema(self) -> None:
         schema = self.render([make_decision("excess", "core")])
         self.assertNotIn("consensus", schema)
+
+    def test_update_field_shape_atomically_replaces_existing_shape(self) -> None:
+        schema = self.render([make_decision(
+            "product_name", "core", patch_types=["update_field_shape"],
+            field_type="enum", values=["Standard", "Premium"], enum_ref=None,
+        )])
+        field = next(item for item in schema["fields"] if item["name"] == "product_name")
+        self.assertEqual(field["type"], "enum")
+        self.assertEqual(field["values"], ["Standard", "Premium"])
+        self.assertEqual(field["item_fields"], [])
 
     def test_manual_edit_patch_types_are_not_auto_promoted(self) -> None:
         schema = self.render(

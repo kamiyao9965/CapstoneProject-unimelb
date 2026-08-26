@@ -39,7 +39,7 @@ DEFAULT_TABLE_SETTINGS: dict[str, Any] = {
     "intersection_tolerance": 3,
 }
 
-INGEST_VERSION = "pdfingestor.v5"
+INGEST_VERSION = "pdfingestor.v7"
 
 
 class PDFIngestor:
@@ -140,7 +140,7 @@ class PDFIngestor:
             table_objects = []
             warnings.append(f"pdfplumber table detection failed: {exc}")
 
-        tables = self._extract_pdfplumber_tables(page_num, table_objects, warnings)
+        tables = self._extract_pdfplumber_tables(page_num, page, table_objects, warnings)
         if self._should_try_camelot(tables, page):
             tables.extend(
                 self._extract_camelot_tables(
@@ -172,6 +172,7 @@ class PDFIngestor:
     def _extract_pdfplumber_tables(
         self,
         page_num: int,
+        page: Any,
         table_objects: Sequence[Any],
         warnings: list[str],
     ) -> list[TableBlock]:
@@ -185,6 +186,11 @@ class PDFIngestor:
                 continue
             if not raw_rows:
                 continue
+            raw_rows, recovered = enrich_graphical_coverage(page, table, raw_rows)
+            if recovered:
+                warnings.append(
+                    f"{table_id} recovered {recovered} graphical coverage markers"
+                )
             headers, rows, notes = split_headers(raw_rows)
             tables.append(
                 TableBlock(
@@ -389,6 +395,226 @@ def clean_rows(rows: Sequence[Sequence[Any]]) -> list[list[str]]:
         if any(cells):
             cleaned.append(cells)
     return cleaned
+
+
+def enrich_graphical_coverage(
+    page: Any,
+    table: Any,
+    raw_rows: list[list[str]],
+) -> tuple[list[list[str]], int]:
+    """Translate legend-backed PDF marks into text table coverage values.
+
+    Some PHIS tables draw Included/Excluded/Restricted as coloured vector icons,
+    check marks, or symbol-font glyphs.  pdfplumber correctly extracts the row
+    names but leaves the coverage cells empty.  This routine uses only a legend
+    on the same page, so it does not infer product coverage from tier defaults.
+    """
+    if len(raw_rows) < 5 or max(map(len, raw_rows), default=0) < 2:
+        return raw_rows, 0
+    table_rows = list(getattr(table, "rows", ()) or ())
+    if len(table_rows) != len(raw_rows):
+        return raw_rows, 0
+
+    column = max(map(len, raw_rows)) - 1
+    bbox = normalize_bbox(table.bbox)
+    words = page.extract_words(keep_blank_chars=False) or []
+    curves = [
+        curve for curve in (getattr(page, "curves", ()) or ())
+        if float(curve.get("width") or 0) <= 30
+        and float(curve.get("height") or 0) <= 30
+    ]
+    chars = list(getattr(page, "chars", ()) or ())
+    curve_status: dict[str, str] = {}
+    glyph_status: dict[str, str] = {}
+    legend_tops: list[float] = []
+
+    for word in words:
+        status = _coverage_status(word.get("text"))
+        if status is None:
+            continue
+        word_box = normalize_bbox((word["x0"], word["top"], word["x1"], word["bottom"]))
+        # Ignore prose mentions inside the table's vertical span.  A usable
+        # legend is either to the right of the table or beneath it.
+        if word_box[0] < bbox[2] and word_box[1] < bbox[3]:
+            continue
+        if word_box[1] >= bbox[3]:
+            legend_tops.append(word_box[1])
+        for curve in curves:
+            if _marker_precedes_label(curve, word_box):
+                curve_status[_color_key(curve.get("non_stroking_color"))] = status
+        for char in chars:
+            if _marker_precedes_label(char, word_box) and _is_symbol_glyph(char):
+                glyph_status[str(char.get("fontname") or "")] = status
+
+    if not curve_status and not glyph_status:
+        return raw_rows, 0
+
+    has_header = any(
+        token in _normalized_cell(cell)
+        for cell in raw_rows[0]
+        for token in ("coverage", "cover", "status", "clinicalcategory", "treatmentcategory")
+    )
+    result = [list(row) for row in raw_rows]
+    recovered = 0
+    row_offset = 0
+    if not has_header and _coverage_status(result[0][column]) is not None:
+        result.insert(0, ["Hospital treatment categories", "Coverage"])
+        row_offset = 1
+
+    for table_index, pdf_row in enumerate(table_rows):
+        output_index = table_index + row_offset
+        result[output_index] = pad_row(result[output_index], column + 1)
+        explicit = _coverage_status(result[output_index][column])
+        if explicit is not None:
+            if result[output_index][column] != explicit:
+                result[output_index][column] = explicit
+                recovered += 1
+            continue
+        cells = list(getattr(pdf_row, "cells", ()) or ())
+        if column >= len(cells) or cells[column] is None:
+            continue
+        status = _status_in_bbox(
+            normalize_bbox(cells[column]), curves, chars, curve_status, glyph_status
+        )
+        if status is not None:
+            result[output_index][column] = status
+            recovered += 1
+
+    # A table detector may stop at the last ruled row while the same marker
+    # column continues immediately below it.  Recover those legend-backed rows
+    # by aligning markers with words in the first column.
+    first_cells = list(getattr(table_rows[0], "cells", ()) or ())
+    last_cells = list(getattr(table_rows[-1], "cells", ()) or ())
+    if first_cells and last_cells and first_cells[0] and last_cells[column]:
+        label_x0, _, label_x1, _ = normalize_bbox(first_cells[0])
+        status_x0, _, status_x1, _ = normalize_bbox(last_cells[column])
+        cutoff = min(legend_tops) if legend_tops else float(page.height)
+        markers = _coverage_markers(
+            curves, chars, curve_status, glyph_status,
+            x0=status_x0, x1=status_x1, top=bbox[3], bottom=cutoff,
+        )
+        existing = {_normalized_cell(row[0]) for row in result if row}
+        for marker_top, marker_bottom, status in markers:
+            label_words = [
+                word for word in words
+                if float(word["x0"]) >= label_x0 - 2
+                and float(word["x1"]) <= label_x1 + 2
+                and float(word["bottom"]) >= marker_top - 2
+                and float(word["top"]) <= marker_bottom + 2
+            ]
+            label = " ".join(
+                str(word["text"]) for word in sorted(label_words, key=lambda item: float(item["x0"]))
+            ).strip()
+            key = _normalized_cell(label)
+            if label and key not in existing:
+                result.append([label, status])
+                existing.add(key)
+                recovered += 1
+    return result, recovered
+
+
+def _coverage_status(value: Any) -> str | None:
+    token = _normalized_cell(value)
+    return {
+        "r": "Restricted",
+        "restricted": "Restricted",
+        "restrictedservice": "Restricted",
+        "minimumbenefits": "Restricted",
+        "minimumbenefit": "Restricted",
+        "defaultbenefits": "Restricted",
+        "defaultbenefit": "Restricted",
+        "publichospitalbenefits": "Restricted",
+        "publichospitalonly": "Restricted",
+        "limitedbenefits": "Restricted",
+        "included": "Included",
+        "includedservice": "Included",
+        "covered": "Included",
+        "excluded": "Excluded",
+        "excludedservice": "Excluded",
+        "notcovered": "Excluded",
+    }.get(token)
+
+
+def _normalized_cell(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").casefold())
+
+
+def _color_key(value: Any) -> str:
+    return repr(value)
+
+
+def _center(box: Sequence[float]) -> tuple[float, float]:
+    normalized = normalize_bbox(box)
+    return ((normalized[0] + normalized[2]) / 2, (normalized[1] + normalized[3]) / 2)
+
+
+def _object_bbox(item: dict[str, Any]) -> BBox:
+    return normalize_bbox((item["x0"], item["top"], item["x1"], item["bottom"]))
+
+
+def _marker_precedes_label(marker: dict[str, Any], label_box: BBox) -> bool:
+    marker_box = _object_bbox(marker)
+    _, marker_y = _center(marker_box)
+    _, label_y = _center(label_box)
+    gap = label_box[0] - marker_box[2]
+    return -2 <= gap <= 30 and abs(marker_y - label_y) <= 10
+
+
+def _is_symbol_glyph(char: dict[str, Any]) -> bool:
+    text = str(char.get("text") or "")
+    font = str(char.get("fontname") or "").casefold()
+    return any(ord(value) < 32 for value in text) or "symbol" in font
+
+
+def _status_in_bbox(
+    bbox: BBox,
+    curves: Sequence[dict[str, Any]],
+    chars: Sequence[dict[str, Any]],
+    curve_status: dict[str, str],
+    glyph_status: dict[str, str],
+) -> str | None:
+    for curve in curves:
+        x, y = _center(_object_bbox(curve))
+        status = curve_status.get(_color_key(curve.get("non_stroking_color")))
+        if status and bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]:
+            return status
+    for char in chars:
+        x, y = _center(_object_bbox(char))
+        status = glyph_status.get(str(char.get("fontname") or ""))
+        if status and bbox[0] <= x <= bbox[2] and bbox[1] <= y <= bbox[3]:
+            return status
+    return None
+
+
+def _coverage_markers(
+    curves: Sequence[dict[str, Any]],
+    chars: Sequence[dict[str, Any]],
+    curve_status: dict[str, str],
+    glyph_status: dict[str, str],
+    *,
+    x0: float,
+    x1: float,
+    top: float,
+    bottom: float,
+) -> list[tuple[float, float, str]]:
+    found: list[tuple[float, float, str]] = []
+    for item, status in (
+        *(
+            (curve, curve_status.get(_color_key(curve.get("non_stroking_color"))))
+            for curve in curves
+        ),
+        *(
+            (char, glyph_status.get(str(char.get("fontname") or "")))
+            for char in chars
+        ),
+    ):
+        if status is None:
+            continue
+        item_box = _object_bbox(item)
+        x, y = _center(item_box)
+        if x0 <= x <= x1 and top < y < bottom:
+            found.append((item_box[1], item_box[3], status))
+    return sorted(found)
 
 
 def split_headers(raw_rows: list[list[str]]) -> tuple[list[str], list[list[str]], list[str]]:

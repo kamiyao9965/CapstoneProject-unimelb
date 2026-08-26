@@ -236,7 +236,7 @@ class ExtractManyOutputTest(unittest.TestCase):
         self.assertEqual(provider.request.structured_output.name, "extraction_result")
         self.assertTrue(provider.request.structured_output.strict)
 
-    def test_open_list_object_field_uses_non_strict_provider_schema(self) -> None:
+    def test_closed_list_object_field_uses_strict_provider_schema(self) -> None:
         class RecordingProvider:
             def __init__(self) -> None:
                 self.request: ProviderRequest | None = None
@@ -267,6 +267,13 @@ class ExtractManyOutputTest(unittest.TestCase):
                 "required": False,
                 "values": [],
                 "aliases": [],
+                "enum_ref": None, "unique_items": False,
+                "item_fields": [
+                    {"name": "label", "type": "string", "required": True,
+                     "description": None, "values": [], "enum_ref": None},
+                    {"name": "limit", "type": "number", "required": False,
+                     "description": None, "values": [], "enum_ref": None},
+                ],
             }
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -291,7 +298,7 @@ class ExtractManyOutputTest(unittest.TestCase):
                 ).extract_one(pdf_path)
 
         self.assertIsNotNone(provider.request)
-        self.assertFalse(provider.request.structured_output.strict)
+        self.assertTrue(provider.request.structured_output.strict)
 
     def test_extract_one_uses_pdfingestor_text_and_logs_source_pdf(self) -> None:
         class RecordingProvider:
@@ -337,6 +344,58 @@ class ExtractManyOutputTest(unittest.TestCase):
             logged = json.loads(usage_log.read_text(encoding="utf-8"))
             self.assertEqual(logged["source_pdf"], pdf_path.as_posix())
             self.assertEqual(logged["document_input"], "markdown")
+
+    def test_directory_product_type_is_a_per_document_contract_const(self) -> None:
+        class RecordingProvider:
+            def __init__(self) -> None:
+                self.request: ProviderRequest | None = None
+
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                self.request = request
+                return ModelResponse(
+                    text=json.dumps({
+                        "product_type": "generalhealth",
+                        "product_name": "General treatment",
+                        "_unfilled": [],
+                        "_notes": None,
+                    }),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_root = Path(tmp) / "PDFs"
+            pdf_path = pdf_root / "Fund" / "generalhealth" / "product.pdf"
+            pdf_path.parent.mkdir(parents=True)
+            pdf_path.touch()
+            provider = RecordingProvider()
+            with mock.patch(
+                "src.schema_application.extractor.render_documents_for_prompt",
+                return_value="# PDF: product\nstructured content",
+            ), mock.patch(
+                "src.schema_application.extractor.ingest_pdfs", return_value=(),
+            ), mock.patch(
+                "src.schema_application.extractor.document_quality",
+                return_value={"hard_failures": [], "has_key_heading": True},
+            ):
+                SchemaExtractor(
+                    schema_data=VALID_DISCOVERED_SCHEMA,
+                    provider=provider,
+                    pdf_root=pdf_root,
+                    usage_log_path=None,
+                    log=None,
+                ).extract_one(pdf_path)
+
+        self.assertEqual(
+            provider.request.structured_output.schema["properties"]["product_type"],
+            {"const": "generalhealth"},
+        )
+        self.assertIn(
+            'product_type must be exactly "generalhealth"',
+            provider.request.user_text,
+        )
+        self.assertIn("labelled-CSV taxonomy", provider.request.user_text)
+        self.assertIn("marketed product name containing 'Extras'", provider.request.user_text)
 
 
 if __name__ == "__main__":

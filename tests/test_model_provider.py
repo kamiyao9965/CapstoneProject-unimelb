@@ -28,11 +28,13 @@ VALID_SCHEMA_TEXT = json.dumps({
     "fields": [{
         "name": "product_type", "type": "enum",
         "description": "Product classification", "applies_to": ["hospital"],
-        "required": True, "values": ["hospital"], "aliases": [],
+        "required": True, "values": [], "aliases": [],
+        "enum_ref": "product_types", "item_fields": [], "unique_items": False,
     }, {
         "name": "product_name", "type": "string", "description": "Product name",
         "applies_to": ["hospital"], "required": True, "values": [],
         "aliases": [],
+        "enum_ref": None, "item_fields": [], "unique_items": False,
     }],
     "hospital_categories": [],
     "extras_services": [],

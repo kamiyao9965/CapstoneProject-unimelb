@@ -34,12 +34,15 @@ from src.common.model_provider import (
 from src.common.openai_run import append_jsonl
 from src.common.structured_output import StructuredOutputFailure, run_structured_output
 from src.schema.contract import compile_extraction_contract
+from src.schema.migration import migrate_legacy_discovered_schema
 from src.schema.product_types import (
     DEFAULT_OVERRIDE_PATH,
+    ProductTypeResolution,
     load_product_type_overrides,
     resolve_product_type,
 )
 from src.schema_application.normalizer import normalize_extraction
+from src.schema_application.extraction_validation import validate_unfilled_consistency
 from src.schema_application.prompts import EXTRACTION_PROMPT, EXTRACTION_PROMPT_VERSION
 from src.schema.validation import validate_schema_mapping
 
@@ -67,10 +70,10 @@ class SchemaExtractor:
         extraction_cache_dir: str | Path | None = None,
     ) -> None:
         validate_contract(schema_data, "private_health/discovered_schema")
-        validate_schema_mapping(schema_data)
-        self.schema_data = dict(schema_data)
+        self.schema_data = migrate_legacy_discovered_schema(schema_data)
+        validate_schema_mapping(self.schema_data)
         self.schema_hash = _schema_hash(self.schema_data)
-        self.extraction_contract = compile_extraction_contract(schema_data)
+        self.extraction_contract = compile_extraction_contract(self.schema_data)
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
             raise ValueError(
@@ -104,6 +107,17 @@ class SchemaExtractor:
             raise FileNotFoundError(pdf_path)
         started = time.perf_counter()
         logical_run_id = run_id or uuid4().hex
+        resolution = self._product_type_resolution(pdf_path)
+        extraction_contract = self._extraction_contract_for_resolution(resolution)
+        expected_product_type = (
+            "The directory/override classification follows the labelled-CSV taxonomy "
+            "and is authoritative for this document: "
+            f'product_type must be exactly "{resolution.effective_product_type}". '
+            "A marketed product name containing 'Extras' may still be labelled "
+            "generalhealth; do not treat that as a conflict or describe it as a "
+            "forced misclassification.\n\n"
+            if resolution.effective_product_type else ""
+        )
         self._log(f"Extracting {pdf_path.name} with {self.selection.provider}/{self.model}...")
         documents = ingest_pdfs(
             (pdf_path,), cache_dir=self.pdfingestor_cache_dir, pdf_root=self.pdf_root
@@ -127,6 +141,7 @@ class SchemaExtractor:
             selection=self.selection,
             system_prompt=EXTRACTION_PROMPT,
             user_text=(
+                f"{expected_product_type}"
                 "Compact field guide for extraction semantics:\n"
                 f"{_compact_field_guide(self.schema_data)}\n\n"
                 "Extract from this PDFingestor structured representation. "
@@ -143,18 +158,18 @@ class SchemaExtractor:
             log=self.log,
             structured_output=StructuredOutputSpec(
                 name="extraction_result",
-                schema=self.extraction_contract,
-                strict=not any(
-                    field["type"] == "list[object]"
-                    for field in self.schema_data["fields"]
-                ),
+                schema=extraction_contract,
+                strict=True,
             ),
         )
         try:
             result = run_structured_output(
                 self.provider,
                 request,
-                data_contract_schema=self.extraction_contract,
+                data_contract_schema=extraction_contract,
+                business_validator=lambda payload: validate_unfilled_consistency(
+                    payload, self.schema_data
+                ),
             )
         except StructuredOutputFailure as exc:
             duration = round(time.perf_counter() - started, 3)
@@ -171,7 +186,9 @@ class SchemaExtractor:
                 attempt.number, not attempt.errors,
             )
         assert result.data is not None
-        return normalize_extraction(result.data, self.schema_data)
+        normalized = normalize_extraction(result.data, self.schema_data)
+        validate_unfilled_consistency(normalized, self.schema_data)
+        return normalized
 
     def extract_many(self, pdf_paths: list[str | Path], out_dir: str | Path) -> list[Path]:
         out_dir = Path(out_dir)
@@ -181,6 +198,7 @@ class SchemaExtractor:
         run_cache: dict[str, dict[str, object]] = {}
         for pdf_value in pdf_paths:
             pdf_path = Path(pdf_value)
+            extraction_contract = self._extraction_contract_for_pdf(pdf_path)
             cached = self._cached_extraction(pdf_path, out_dir)
             if cached is not None:
                 self._log(f"Reusing cached extraction for {pdf_path.name}: {cached}")
@@ -188,7 +206,9 @@ class SchemaExtractor:
                 reserved_targets.add(cached)
                 continue
             cache_key = self._extraction_cache_key(pdf_path)
-            cached_data = run_cache.get(cache_key) or self._read_shared_cache(cache_key)
+            cached_data = run_cache.get(cache_key) or self._read_shared_cache(
+                cache_key, extraction_contract
+            )
             logical_run_id = uuid4().hex
             try:
                 record = cached_data or self.extract_one(pdf_path, run_id=logical_run_id)
@@ -216,7 +236,9 @@ class SchemaExtractor:
                 continue
             run_cache[cache_key] = record
             if cached_data is None:
-                self._write_shared_cache(cache_key, record, pdf_path, logical_run_id)
+                self._write_shared_cache(
+                    cache_key, record, pdf_path, logical_run_id, extraction_contract
+                )
             target = _available_target(out_dir / f"{pdf_path.stem}.json", reserved_targets)
             reserved_targets.add(target)
             artifact = build_success_artifact(
@@ -228,36 +250,42 @@ class SchemaExtractor:
                     logical_run_id,
                     model_product_type=record.get("product_type"),
                 ),
-                data_contract_schema=self.extraction_contract,
+                data_contract_schema=extraction_contract,
             )
-            write_artifact(target, artifact, data_contract_schema=self.extraction_contract)
+            write_artifact(target, artifact, data_contract_schema=extraction_contract)
             written.append(target)
         return written
 
     def _extraction_cache_key(self, pdf_path: Path) -> str:
+        effective_product_type = (
+            self._product_type_resolution(pdf_path).effective_product_type or "unclassified"
+        )
         material = "\0".join((
             _file_hash(pdf_path), self.schema_hash, EXTRACTION_PROMPT_VERSION,
-            self.selection.provider, self.selection.model,
+            self.selection.provider, self.selection.model, effective_product_type,
         ))
         return sha256(material.encode("utf-8")).hexdigest()
 
     def _shared_cache_path(self, cache_key: str) -> Path:
         return self.extraction_cache_dir / cache_key[:2] / f"{cache_key}.json"
 
-    def _read_shared_cache(self, cache_key: str) -> dict[str, object] | None:
+    def _read_shared_cache(
+        self, cache_key: str, extraction_contract: Mapping[str, object]
+    ) -> dict[str, object] | None:
         path = self._shared_cache_path(cache_key)
         if not path.exists():
             return None
         try:
             return dict(read_artifact(
                 path, expected_type="extraction_result",
-                data_contract_schema=self.extraction_contract,
+                data_contract_schema=extraction_contract,
             )["data"])
         except ArtifactError:
             return None
 
     def _write_shared_cache(
-        self, cache_key: str, record: Mapping[str, object], pdf_path: Path, run_id: str
+        self, cache_key: str, record: Mapping[str, object], pdf_path: Path, run_id: str,
+        extraction_contract: Mapping[str, object],
     ) -> None:
         cache_path = self._shared_cache_path(cache_key)
         if cache_path.exists():
@@ -265,11 +293,11 @@ class SchemaExtractor:
         artifact = build_success_artifact(
             artifact_type="extraction_result", contract_version="1.0.0", data=record,
             provenance=self._provenance(pdf_path, run_id),
-            data_contract_schema=self.extraction_contract,
+            data_contract_schema=extraction_contract,
         )
         write_artifact(
             cache_path, artifact,
-            data_contract_schema=self.extraction_contract,
+            data_contract_schema=extraction_contract,
         )
 
     def _provenance(
@@ -286,11 +314,7 @@ class SchemaExtractor:
             f"provider:{self.selection.provider}",
             f"model:{self.selection.model}",
         ]
-        resolution = resolve_product_type(
-            pdf_path,
-            input_root=self.pdf_root,
-            overrides=self.product_type_overrides,
-        )
+        resolution = self._product_type_resolution(pdf_path)
         if resolution.directory_product_type:
             source_artifacts.append(
                 f"directory_product_type:{resolution.directory_product_type}"
@@ -325,12 +349,13 @@ class SchemaExtractor:
         expected_prompt = f"prompt_version:{EXTRACTION_PROMPT_VERSION}"
         expected_provider = f"provider:{self.selection.provider}"
         expected_model = f"model:{self.selection.model}"
+        extraction_contract = self._extraction_contract_for_pdf(pdf_path)
         for candidate in sorted(out_dir.glob("*.json")):
             try:
                 artifact = read_artifact(
                     candidate,
                     expected_type="extraction_result",
-                    data_contract_schema=self.extraction_contract,
+                    data_contract_schema=extraction_contract,
                 )
             except ArtifactError:
                 continue
@@ -339,6 +364,26 @@ class SchemaExtractor:
             if {expected_schema, expected_pdf, expected_prompt, expected_provider, expected_model} <= source_artifacts:
                 return candidate
         return None
+
+    def _product_type_resolution(self, pdf_path: Path) -> ProductTypeResolution:
+        return resolve_product_type(
+            pdf_path,
+            input_root=self.pdf_root,
+            overrides=self.product_type_overrides,
+        )
+
+    def _extraction_contract_for_pdf(self, pdf_path: Path) -> dict[str, object]:
+        return self._extraction_contract_for_resolution(
+            self._product_type_resolution(pdf_path)
+        )
+
+    def _extraction_contract_for_resolution(
+        self, resolution: ProductTypeResolution
+    ) -> dict[str, object]:
+        return compile_extraction_contract(
+            self.schema_data,
+            product_type=resolution.effective_product_type,
+        )
 
     def _log(self, message: str) -> None:
         if self.log:
@@ -409,22 +454,31 @@ def _compact_field_guide(schema_data: Mapping[str, object]) -> str:
             continue
         description = _compact_text(field.get("description"))
         applies_to = _compact_list(field.get("applies_to"))
-        aliases = _compact_list(field.get("aliases"))
+        field_type = _compact_text(field.get("type"))
         details = []
         if description:
             details.append(f"description={description}")
         if applies_to:
             details.append(f"applies_to={applies_to}")
-        if aliases:
-            details.append(f"aliases={aliases}")
-        lines.append(f"- {name}: " + "; ".join(details))
-    extras_services = [
-        str(item.get("canonical_name"))
-        for item in schema_data.get("extras_services", [])
-        if isinstance(item, Mapping) and item.get("canonical_name")
-    ]
-    if extras_services:
-        lines.append("- extras_benefits.service_name allowed values: " + ", ".join(extras_services))
+        if field_type.startswith("list["):
+            details.append(f"unique_items={field.get('unique_items') is True}")
+        lines.append(f"- {name}: {field_type}; " + "; ".join(details))
+        if field_type == "list[object]":
+            lines.append("  Allowed item keys only (every key must be present):")
+            for item_field in field.get("item_fields", []):
+                if not isinstance(item_field, Mapping) or not item_field.get("name"):
+                    continue
+                item_name = item_field["name"]
+                item_type = item_field.get("type")
+                nullable = "non-null" if item_field.get("required") else "null if absent"
+                enum_ref = item_field.get("enum_ref")
+                values = item_field.get("values") or []
+                enum_detail = f"; enum_ref={enum_ref}" if enum_ref else ""
+                if values:
+                    enum_detail = f"; allowed={_compact_list(values)}"
+                lines.append(
+                    f"  - {item_name}: {item_type}; {nullable}{enum_detail}"
+                )
     return "\n".join(lines)
 
 

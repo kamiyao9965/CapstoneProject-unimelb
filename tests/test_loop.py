@@ -175,6 +175,7 @@ class RunRoundModeTest(unittest.TestCase):
                 "name": "excess", "type": "number", "description": "Excess",
                 "applies_to": ["hospital"], "required": False, "values": [],
                 "aliases": [],
+                "enum_ref": None, "item_fields": [], "unique_items": False,
             }]
             write_schema(schema_path, schema)
             queue_path = consensus_dir / "review_queue.json"
@@ -294,6 +295,7 @@ class ResumeReviewTest(unittest.TestCase):
                 "name": "excess", "type": "number", "description": "Excess",
                 "applies_to": ["hospital"], "required": False, "values": [],
                 "aliases": [],
+                "enum_ref": None, "item_fields": [], "unique_items": False,
             }]
             write_schema(consensus_dir / "reviewed_schema.json", schema)
             write_review_queue(
@@ -323,6 +325,40 @@ class ResumeReviewTest(unittest.TestCase):
                 data_contract="private_health/discovered_schema",
             )
             self.assertIn("excess", [f["name"] for f in final_artifact["data"]["fields"]])
+
+    def test_review_resume_replaces_consensus_schema_and_publishes_beside_round(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            refinement_dir = Path(tmp) / "custom_refine"
+            round_dir = refinement_dir / "round_1"
+            consensus_dir = round_dir / "consensus"
+            consensus_dir.mkdir(parents=True)
+            write_schema(round_dir / "schema.json")
+            reviewed = dict(VALID_DISCOVERED_SCHEMA)
+            reviewed["description"] = "Human-reviewed schema"
+            write_schema(consensus_dir / "reviewed_schema.json", reviewed)
+            write_review_queue(
+                {"metadata": review_queue_metadata(), "updates": []},
+                consensus_dir / "review_queue.json",
+            )
+            args = make_args(
+                str(Path(tmp) / "wrong_default_out"),
+                resume_review=str(round_dir),
+            )
+
+            with mock.patch.object(
+                rounds, "evaluate_schema", return_value=(None, "feedback")
+            ):
+                exit_code = rounds.resume_review(args)
+
+            self.assertEqual(exit_code, 0)
+            round_artifact = read_artifact(
+                round_dir / "schema.json",
+                expected_type="discovered_schema",
+                data_contract="private_health/discovered_schema",
+            )
+            self.assertEqual(round_artifact["data"]["description"], "Human-reviewed schema")
+            self.assertTrue((refinement_dir / "final_schema.json").exists())
+            self.assertFalse((Path(args.out_dir) / "final_schema.json").exists())
 
 
 class ResumeExtractionTest(unittest.TestCase):

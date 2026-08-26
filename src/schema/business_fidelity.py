@@ -44,7 +44,9 @@ Business fidelity guardrail:
 - Critical fields should be preserved unless they are split, renamed, or
   narrowed into equally specific fields with the same business meaning.
 - If a critical field is sparse, prefer fixing applies_to, description, type,
-  aliases, or nested object shape before dropping it.
+  aliases, or nested object shape before dropping it, unless refinement feedback
+  explicitly marks it for deletion under the project's ground-truth-aligned
+  sparse-field policy. That explicit deletion instruction takes precedence.
 - Generic catch-all fields such as coverage_status, conditions, exclusions,
   annual_limits, and source_references may complement the schema, but they must
   not replace specific fields needed for product comparison.

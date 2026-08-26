@@ -72,6 +72,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     batch.add_argument("--evaluate", action="store_true")
     batch.add_argument(
+        "--evaluation-manifest",
+        help=(
+            "Pinned evaluation manifest. When supplied, only its hash-verified PDFs "
+            "are processed and GT IDs are loaded without fuzzy matching."
+        ),
+    )
+    batch.add_argument(
         "--resume",
         action="store_true",
         help="Reuse successful outputs whose PDF, schema, provider, and model match.",
@@ -90,6 +97,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-fallback",
         action="store_true",
         help="Deprecated compatibility flag; schema_application extraction has no heuristic fallback.",
+    )
+
+    manifest = subparsers.add_parser(
+        "build-eval-manifest",
+        help="Build a reproducible exact-match private-health evaluation set",
+    )
+    manifest.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    manifest.add_argument("--count", type=int, default=50)
+    manifest.add_argument("--seed", type=int, required=True)
+    manifest.add_argument(
+        "--output",
+        default="configs/private_health/evaluation_manifest.json",
     )
 
     return parser
@@ -229,8 +248,10 @@ def command_extract(args: argparse.Namespace) -> int:
 
 
 def command_batch(args: argparse.Namespace) -> int:
+    from src.evaluation.document_classifier import PhisDocumentClassifier
     from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
     from src.evaluation.reporter import EvaluationReporter
+    from src.evaluation.manifest import EvaluationManifest
     from src.pipeline.extractor import Extractor
 
     config = load_config()
@@ -248,7 +269,19 @@ def command_batch(args: argparse.Namespace) -> int:
         if args.input_root
         else config.data_dir / args.vertical / "raw" / "PDFs"
     )
-    pdf_paths = sorted(input_root.rglob("*.pdf"))
+    evaluation_manifest = (
+        EvaluationManifest.load(args.evaluation_manifest)
+        if args.evaluation_manifest
+        else None
+    )
+    if evaluation_manifest and not args.evaluate:
+        print("--evaluation-manifest requires --evaluate")
+        return 1
+    pdf_paths = (
+        evaluation_manifest.resolve_paths(input_root)
+        if evaluation_manifest
+        else sorted(input_root.rglob("*.pdf"))
+    )
     if not pdf_paths:
         print(f"No PDFs found under {input_root}")
         return 1
@@ -258,6 +291,10 @@ def command_batch(args: argparse.Namespace) -> int:
             return 1
         pdf_paths = pdf_paths[:args.limit]
         print(f"Selected {len(pdf_paths)} PDF(s) with --limit {args.limit}")
+
+    source_hashes = {pdf_path: file_sha256(pdf_path) for pdf_path in pdf_paths}
+    unique_source_documents = len(set(source_hashes.values()))
+    duplicate_source_documents = len(pdf_paths) - unique_source_documents
 
     selection = resolve_selection(provider=args.provider, model=args.model)
     extractor = Extractor(
@@ -284,16 +321,19 @@ def command_batch(args: argparse.Namespace) -> int:
     gt_store = None
     evaluator = None
     reporter = None
+    document_classifier = None
+    evaluated_source_hashes: set[str] = set()
     if args.evaluate and args.vertical in {"private_health", "private_health_au"}:
         gt_store = PrivateHealthGroundTruthStore(
             config.data_dir / "private_health" / "labelled"
         )
         evaluator = ExtractionEvaluator()
         reporter = EvaluationReporter()
+        document_classifier = PhisDocumentClassifier()
 
     for pdf_path in pdf_paths:
         output_path = default_output_path(schema.vertical, pdf_path)
-        source_hash = file_sha256(pdf_path)
+        source_hash = source_hashes[pdf_path]
         try:
             result = None
             if args.resume:
@@ -345,17 +385,45 @@ def command_batch(args: argparse.Namespace) -> int:
             if len(warning_samples) < 5 and warning not in warning_samples:
                 warning_samples.append(warning)
         if gt_store and evaluator:
+            if source_hash in evaluated_source_hashes:
+                continue
+            evaluated_source_hashes.add(source_hash)
             try:
-                product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
+                if evaluation_manifest:
+                    manifest_entry = evaluation_manifest.entry_for(pdf_path, input_root)
+                    pinned_ids = (
+                        manifest_entry.component_id_masters
+                        or [manifest_entry.id_master]
+                    )
+                    product_match, ground_truth = gt_store.load_ground_truth_for_ids(
+                        pdf_path, pinned_ids
+                    )
+                else:
+                    product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
                 if ground_truth:
+                    source_documents = (
+                        document_classifier.load_documents(pdf_path)
+                        if document_classifier
+                        else None
+                    )
+                    document_classification = (
+                        document_classifier.classify_documents(
+                            source_documents or (), ground_truth
+                        )
+                        if document_classifier
+                        else None
+                    )
                     report = evaluator.evaluate(
                         extracted=result,
                         ground_truth=ground_truth,
                         product_key=product_match.id_master if product_match else None,
+                        document_classification=document_classification,
+                        source_documents=source_documents,
                     )
                 else:
                     report = None
             except Exception as exc:
+                evaluated_source_hashes.discard(source_hash)
                 print(f"Evaluation failed for {pdf_path.name}: {exc}")
                 safely_record_batch_failure(
                     vertical=schema.vertical,
@@ -399,23 +467,30 @@ def command_batch(args: argparse.Namespace) -> int:
     if evaluator and reporter:
         summary = evaluator.aggregate(
             reports,
-            total_documents=len(pdf_paths),
+            total_documents=unique_source_documents,
             unmatched_documents=unmatched_documents,
             low_confidence_matches=low_confidence_matches,
             fallback_documents=fallback_documents,
             extraction_errors=extraction_errors,
+            duplicate_source_documents=duplicate_source_documents,
         )
         model_reports = [
             report for report in reports
             if report.extraction_provider and report.extraction_provider != "heuristic"
         ]
+        model_low_confidence_matches = sum(
+            report.low_confidence_match for report in model_reports
+        )
         model_summary = evaluator.aggregate(
             model_reports,
-            total_documents=len(pdf_paths),
-            unmatched_documents=max(len(pdf_paths) - extraction_errors - len(model_reports), 0),
-            low_confidence_matches=low_confidence_matches,
+            total_documents=unique_source_documents,
+            unmatched_documents=max(
+                unique_source_documents - extraction_errors - len(model_reports), 0
+            ),
+            low_confidence_matches=model_low_confidence_matches,
             fallback_documents=fallback_documents,
             extraction_errors=extraction_errors,
+            duplicate_source_documents=duplicate_source_documents,
         )
         high_confidence_reports = [report for report in reports if not report.low_confidence_match]
         high_confidence_model_reports = [
@@ -436,21 +511,29 @@ def command_batch(args: argparse.Namespace) -> int:
             len(model_reports) - len(high_confidence_model_reports)
         )
         summary["ambiguous_matches"] = float(ambiguous_matches)
-        model_summary["ambiguous_matches"] = float(ambiguous_matches)
+        ambiguous_sources = {
+            str(item["source_path"])
+            for item in gt_match_diagnostics
+            if item.get("issue") == "ambiguous"
+        }
+        model_summary["ambiguous_matches"] = float(sum(
+            report.source_path in ambiguous_sources for report in model_reports
+        ))
+        model_summary["identical_to_full_report"] = (
+            len(model_reports) == len(reports)
+        )
         report_root = config.outputs_dir / args.vertical / "evaluation"
         reporter.write_json(reports, summary, report_root / "report.json")
         reporter.write_markdown(reports, summary, report_root / "report.md")
         reporter.write_json(model_reports, model_summary, report_root / "report_model_only.json")
         reporter.write_markdown(model_reports, model_summary, report_root / "report_model_only.md")
-        if gt_match_diagnostics:
-            import json
-
-            diagnostics_path = report_root / "ground_truth_match_diagnostics.json"
-            diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
-            diagnostics_path.write_text(
-                json.dumps(gt_match_diagnostics, indent=2),
-                encoding="utf-8",
-            )
+        reporter.write_claim_evidence(reports, report_root / "claim_evidence.json")
+        diagnostics_path = report_root / "ground_truth_match_diagnostics.json"
+        diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
+        diagnostics_path.write_text(
+            json.dumps(gt_match_diagnostics, indent=2),
+            encoding="utf-8",
+        )
         print(f"Wrote evaluation reports to {report_root}")
         if fallback_documents:
             print(
@@ -485,6 +568,33 @@ def command_batch(args: argparse.Namespace) -> int:
     for warning in warning_samples:
         print(f"  - {warning} ({warning_counts[warning]})")
 
+    return 0
+
+
+def command_build_eval_manifest(args: argparse.Namespace) -> int:
+    from src.evaluation.manifest import build_evaluation_manifest
+    from src.evaluation.metrics import PrivateHealthGroundTruthStore
+
+    if args.count <= 0:
+        print("--count must be greater than zero")
+        return 1
+    config = load_config()
+    store = PrivateHealthGroundTruthStore(
+        config.data_dir / "private_health" / "labelled"
+    )
+    try:
+        manifest, diagnostics = build_evaluation_manifest(
+            input_root=args.input_root,
+            ground_truth_store=store,
+            count=args.count,
+            seed=args.seed,
+        )
+    except (FileNotFoundError, KeyError, ValueError) as exc:
+        print(f"Could not build evaluation manifest: {exc}")
+        return 1
+    output = manifest.write(args.output)
+    print(f"Wrote {len(manifest.entries)} pinned evaluation documents to {output}")
+    print(json.dumps(diagnostics, indent=2, sort_keys=True))
     return 0
 
 
@@ -626,6 +736,8 @@ def main() -> int:
         return command_extract(args)
     if args.command == "batch":
         return command_batch(args)
+    if args.command == "build-eval-manifest":
+        return command_build_eval_manifest(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

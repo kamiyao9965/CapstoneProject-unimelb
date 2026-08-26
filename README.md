@@ -449,14 +449,27 @@ Use `outputs/private_health/refine/final_schema.json` as the fixed schema for
 the downstream extraction and ground-truth evaluation pipeline:
 
 ```bash
+.venv/bin/python src/run.py build-eval-manifest \
+  --input-root konkrd-data/data/private_health/raw/PDFs \
+  --count 50 \
+  --seed 20260825 \
+  --output configs/private_health/evaluation_manifest.json
+
 .venv/bin/python src/run.py batch \
   --schema outputs/private_health/refine/final_schema.json \
-  --limit 20 \
-  --evaluate
+  --input-root konkrd-data/data/private_health/raw/PDFs \
+  --evaluate \
+  --evaluation-manifest configs/private_health/evaluation_manifest.json
 ```
 
 `--limit` processes the first N PDFs in deterministic sorted path order. Omit
-it to process every PDF under the input root.
+it to process every PDF under the input root. For scored evaluations, prefer a
+manifest: it pins the original relative path, SHA-256, and GT master IDs, rejects
+duplicate/unmatched/ambiguous documents while sampling, and removes runtime
+fuzzy matching from the metric path. Evaluation also writes
+`outputs/private_health/evaluation/claim_evidence.json`; claims are classified as
+supported, contradicted, or unverifiable, and only source-grounded contradictions
+contribute to the hallucination rate.
 
 ## 10. Analyze extraction artifacts directly
 

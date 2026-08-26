@@ -130,6 +130,34 @@ class AllExtractionFailuresTest(unittest.TestCase):
         self.assertIn("before refining the schema", feedback)
         self.assertNotIn("No systematic extraction failures", feedback)
 
+    def test_weak_fields_are_explicitly_deleted_in_next_schema(self) -> None:
+        analysis = analyze(
+            [
+                {"product_type": "hospital", "rare_field": None},
+                {"product_type": "hospital", "rare_field": None},
+                {"product_type": "hospital", "rare_field": None},
+                {"product_type": "hospital", "rare_field": "seen once"},
+                {"product_type": "hospital", "rare_field": None},
+            ],
+            [FieldSpec("rare_field", applies_to=("hospital",))],
+        )
+
+        feedback = build_feedback(analysis)
+
+        self.assertEqual(analysis.weak_fields, ["rare_field"])
+        self.assertIn("Remove the following optional fields", feedback)
+        self.assertIn("not a request to rename, split, narrow, or rewrite", feedback)
+        self.assertIn("overrides the business-fidelity preference", feedback)
+
+    def test_ground_truth_aligned_field_is_not_deleted_when_sparse(self) -> None:
+        analysis = analyze(
+            [{"product_type": "hospital", "clinical_categories": None}],
+            [FieldSpec("clinical_categories", applies_to=("hospital",))],
+        )
+
+        self.assertEqual(analysis.fill_rate["clinical_categories"], 0.0)
+        self.assertNotIn("clinical_categories", analysis.weak_fields)
+
     def test_feedback_data_is_built_from_structured_signals(self) -> None:
         analysis = analyze(
             [{"product_type": "hospital", "cover_status": "unknown"}],
@@ -270,12 +298,12 @@ class ProductApplicabilityTest(unittest.TestCase):
         schema["product_types"] = ["hospital", "combined"]
         product_type = dict(VALID_DISCOVERED_SCHEMA["fields"][0])
         product_type["applies_to"] = ["hospital", "combined"]
-        product_type["values"] = ["hospital", "combined"]
         schema["fields"] = [product_type, {
             "name": "hospital_excess", "type": "number",
             "description": "Hospital excess", "applies_to": ["hospital", "combined"],
             "required": False, "values": [],
             "aliases": [],
+            "enum_ref": None, "item_fields": [], "unique_items": False,
         }]
         specs = load_field_specs(schema)
         hospital_excess = next(spec for spec in specs if spec.name == "hospital_excess")
@@ -292,6 +320,7 @@ class ProductApplicabilityTest(unittest.TestCase):
             "name": "numeric_tier", "type": "enum", "description": "Tier",
             "applies_to": list(schema["product_types"]), "required": False,
             "values": [1, 2, True], "aliases": [],
+            "enum_ref": None, "item_fields": [], "unique_items": False,
         }]
 
         specs = load_field_specs(schema)

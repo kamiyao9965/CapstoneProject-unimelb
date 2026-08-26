@@ -23,6 +23,7 @@ from src.schema.business_fidelity import (
     replacement_risk_summary,
 )
 from src.schema.contract import compile_extraction_contract
+from src.schema.migration import migrate_legacy_discovered_schema
 from src.schema.validation import (
     JSONScalar,
     SUPPORTED_PRODUCT_TYPES,
@@ -33,6 +34,22 @@ from src.schema.validation import (
 # either the schema is asking for something the PDFs rarely contain, or the
 # field name/description is too ambiguous to extract reliably.
 WEAK_FILL_THRESHOLD = 0.25
+
+# Fields directly scored from the labelled private-health CSVs. Sparse holdout
+# samples must not cause refinement to delete the target labels themselves.
+GROUND_TRUTH_ALIGNED_FIELDS = frozenset({
+    "product_type",
+    "product_name",
+    "fund_name",
+    "insurer_name",
+    "tier",
+    "product_tier",
+    "clinical_categories",
+    "hospital_clinical_categories",
+    "extras_benefits",
+    "extras_waiting_periods",
+    "extras_shared_limits",
+})
 
 
 @dataclass
@@ -46,6 +63,7 @@ class FieldSpec:
 
 def load_field_specs(schema_data: dict[str, object]) -> list[FieldSpec]:
     validate_contract(schema_data, "private_health/discovered_schema")
+    schema_data = migrate_legacy_discovered_schema(schema_data)
     data = validate_schema_mapping(schema_data)
     specs: list[FieldSpec] = []
     for item in data.get("fields") or []:
@@ -214,6 +232,7 @@ def analyze(
             if evaluated_documents[name]
             and rate < WEAK_FILL_THRESHOLD
             and not spec_by_name[name].required
+            and name not in GROUND_TRUTH_ALIGNED_FIELDS
         )
         if docs
         else []
@@ -378,10 +397,14 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
         )
     if analysis.weak_fields:
         lines.append(
-            "The following fields were extractable in fewer than "
-            f"{int(WEAK_FILL_THRESHOLD * 100)}% of documents. Either drop them, split "
-            "them into more specific fields, or clarify their description so they map "
-            "to what the PDFs actually contain: " + ", ".join(analysis.weak_fields) + "."
+            "Remove the following optional fields from the next schema because they "
+            "were extractable in fewer than "
+            f"{int(WEAK_FILL_THRESHOLD * 100)}% of applicable documents: "
+            + ", ".join(analysis.weak_fields)
+            + ". This is a ground-truth-aligned sparse-field deletion instruction, "
+            "not a request to rename, split, narrow, or rewrite these fields. It "
+            "overrides the business-fidelity preference to preserve sparse comparison "
+            "fields. Do not replace the removed fields with generic catch-all fields."
         )
     if analysis.missing_required:
         names = ", ".join(sorted(analysis.missing_required))

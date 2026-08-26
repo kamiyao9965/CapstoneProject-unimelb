@@ -1,0 +1,360 @@
+{
+  "version": "1.0",
+  "seed": 20260825,
+  "input_root": "/home/meicongc/projects/feat/CapstoneProject-unimelb/konkrd-data/data/private_health/raw/PDFs",
+  "entries": [
+    {
+      "source_relative_path": "AHB/hospital/DEF0443-CoreHospitalSilverPlus_Defence.pdf",
+      "source_sha256": "4980ab25c61bc02217e8d8b17d990d66bd13e70dfc994abc434c6d3bf3db5300",
+      "id_master": "1387483646",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "AHM/combined/deluxe-package-silver-plus.pdf",
+      "source_sha256": "3084710e5d5b957796de1ef847f991b634cd17558009d762501c64df935f404f",
+      "id_master": "1622703321",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "AHM/generalhealth/black-50-extras.pdf",
+      "source_sha256": "f7f50e81297a8555829d9ee3beb14a1dd8fda6ee8d70e4adb97ecc15cdeed168",
+      "id_master": "9678922950",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AHM/generalhealth/choosable-60-teeth-eyes-wellbeing-muscle-bone.pdf",
+      "source_sha256": "06794ee098ac7bf410aa4de55c23055c6ca125f39f806989407c7d8818212353",
+      "id_master": "1269475953",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AHM/generalhealth/choosable-60-teeth-wellbeing-muscle-bone.pdf",
+      "source_sha256": "914e360a724cb16938b0db140cc44b3243c06180663ab8c1740e33dc692d505c",
+      "id_master": "3795544839",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AHM/generalhealth/choosable-60-teeth-wellbeing.pdf",
+      "source_sha256": "cb56b00e8250e8317716daaa44348694a6f13f0f3df3313f34896709d1bf92a9",
+      "id_master": "1634485453",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AHM/generalhealth/classic-extras.pdf",
+      "source_sha256": "8e198c7896d83919d4ee9ced4a33578387dbaa94a79bb30266764924e3666120",
+      "id_master": "1470885913",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AHM/hospital/starter-basic.pdf",
+      "source_sha256": "eeaf4d199d7d884dfe25f523aa3f00b61fbd31ab3f355beac8f5252578ccc081",
+      "id_master": "6260210321",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "AHM/hospital/super-silver-plus.pdf",
+      "source_sha256": "68c373b66e4a72a76128a38ec0f1509efb7f7e668536cde359dd99fd35e9e3a4",
+      "id_master": "1751584211",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "AUF/combined/simple-saver-ycb-ycc-683auh.pdf",
+      "source_sha256": "6128d5740013e936863c05ceac09f486bc15453d463e2e59eb2af92c1d37c953",
+      "id_master": "9474180354",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "AUF/generalhealth/basic-extras-bse-671auh.pdf",
+      "source_sha256": "2670b6cb8e1efe01e9e450ca9117968b67015780cb96ddb676c7e59599ee5066",
+      "id_master": "1328116109",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AUF/generalhealth/classicextras-bgo-686auh.pdf",
+      "source_sha256": "4a9b3ae0256d048af3897d161c8164f66b2896f381b36492ab5a69d4c3d893ed",
+      "id_master": "5129428927",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "AUF/generalhealth/comp-extras-e2-520auh.pdf",
+      "source_sha256": "0da4486eb8dc23ba95d8ff93d4724ddd387d3be602fa06700c31a75a125a568c",
+      "id_master": "9946947183",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "BUP/generalhealth/Budget_Extras_60_VIC_S_20210113_180534 Bupa.pdf",
+      "source_sha256": "c676ee91c5e734c1660a15449bd85d3e7a45d17f00e7e368f867252512a4c71a",
+      "id_master": "1531362012",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "BUP/generalhealth/Essential_50_Visitors_Cover_Bupa.pdf",
+      "source_sha256": "4fd13fad12216e216a00a9c0c770c9534664af5d387213874e4e90809c9d5ce6",
+      "id_master": "1807770519",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "CBC/combined/premium-package-(gold)CBHS.pdf",
+      "source_sha256": "81114d55d4f7b9f908609c899e944b5d8fb114d83c239d166c40a58f83e69e87",
+      "id_master": "9283830734",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "CBC/hospital/cbhscorp_bronze_plus_hospital.pdf",
+      "source_sha256": "727f4899035e8d942674ebab885bfb51423982e1c403811744c88c62caf341c0",
+      "id_master": "2988501799",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "CBC/hospital/cbhscorp_entry_hospital.pdf",
+      "source_sha256": "8578e1da9d22759db9db7a75d202f2009aba91dba10129e594d1092b46b56fed",
+      "id_master": "6356518929",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "GMH/combined/Frank Freedom Starter Flexi-Bundle (Basic).pdf",
+      "source_sha256": "040192ac3152468bd548e18ed6d8f56a46c334a1c682a00d4ab1c2f399a2cec7",
+      "id_master": "1556320359",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "GMH/generalhealth/Frank Lots Extras 80%.pdf",
+      "source_sha256": "8a4b387fd67b19a86b9551d3012b4ef86d934977afdb940c142a3bbfeb0a0995",
+      "id_master": "1322906121",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "GMH/generalhealth/Frank Some Extras 50%.pdf",
+      "source_sha256": "08e4ec809874fd3ed72f8736b8cbb1082e33d71e2b6eae2304b50583d98ae36b",
+      "id_master": "8447034780",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "GMH/generalhealth/Frank Some Extras 80%.pdf",
+      "source_sha256": "eb4bed1ed9be687154a1e302add4236001bf7ecbb7aa253e5925a6783887985a",
+      "id_master": "1409893271",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "GMH/generalhealth/GMHBA SmartCare Complete Extras.pdf",
+      "source_sha256": "9975f805012dfdb91da6447f9c2305b47a97c102c680da4c64bb0d373ad90b67",
+      "id_master": "1557439812",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "GMH/generalhealth/SmartCare Complete Extras with sub-limits.pdf",
+      "source_sha256": "82cc6d4a3f5c82b949ea5c65eabc58b4b23b5d8a8d61c9e7ee9c5db772e904b8",
+      "id_master": "8449479865",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "GMH/generalhealth/SmartCare Starter Boost Extras with sub-limits.pdf",
+      "source_sha256": "2ce9e3ba373c33c0c5e578522664d0e5f694c2887b45bbddc28c7720b3cf3a29",
+      "id_master": "1766818594",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "GMH/hospital/GMHBA Bronze Plus Advantage Hospital $750.pdf",
+      "source_sha256": "5e4eb769ef31ca4661b5111db7a3250f95630b649a0724f829b695881cbfeb92",
+      "id_master": "4894749116",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "HCI/hospital/Gold HCI.pdf",
+      "source_sha256": "73060189d640e7f7fd3572997436c9e4190f6ce4be581c9811f43f7d8310dd1a",
+      "id_master": "1688896982",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "HIF/combined/HIF_SilverPlusNoMaternityCombo.pdf",
+      "source_sha256": "e905bd5b862bc08611f15cd53870b94430b86b3fadf72a513345af474eeb1a3b",
+      "id_master": "9483583950",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "LHM/combined/silver-plus-grow---500-750-excess-high-extras.pdf",
+      "source_sha256": "0e5358a736e0848b0e30aac00454d5bbee5f4da616cd642caeb67880976941be",
+      "id_master": "4433269699+1182017051",
+      "component_id_masters": [
+        "4433269699",
+        "1182017051"
+      ],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "LHS/generalhealth/core-family-extras-latrobe.pdf",
+      "source_sha256": "2a94b68706aa1c4b886cbb2ad70eaa4b314846b9c2e91ce4b98466471cc7c689",
+      "id_master": "1611193762",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "MBP/combined/medibank-basic-everyday-starter MP.pdf",
+      "source_sha256": "6e5435e8f7fff552fd8d67ebc90569846be00bc4d128be373baaad95a32ecde8",
+      "id_master": "1324984784",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "MBP/combined/medibank-silver-plus-families-hospital MP.pdf",
+      "source_sha256": "bb489269e74ae0d8e08253e1102eaa9a56438697002af23f6a822e2038922cd8",
+      "id_master": "1170255259",
+      "component_id_masters": [],
+      "product_type": "Combined"
+    },
+    {
+      "source_relative_path": "MBP/generalhealth/medibank-growing-family-60-extras.pdf",
+      "source_sha256": "8fb9eae968c1ce77c3c09093b8b5524f55125e39d7ca19ef04279837c9f7144e",
+      "id_master": "1748163470",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "MBP/generalhealth/my-choice-extras-complete-60 MP.pdf",
+      "source_sha256": "0528b96f5d252091678ae19e93b737d359ee3ad31c2b4ee83a4ba83578fc954d",
+      "id_master": "5317496782",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "MBP/generalhealth/my-choice-extras-complete-90 MP.pdf",
+      "source_sha256": "dd8c339557e6ab3ff0482a25412fc2a97ef29b6615ddfd2076f18a9319f5a769",
+      "id_master": "3004264536",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "MBP/generalhealth/my-choice-extras-core-60 MP.pdf",
+      "source_sha256": "284ca16d7b283aa3b1961c6da5e3c2f715e6027398697fd5c9a0263d70cc34a9",
+      "id_master": "7790711139",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "MDH/generalhealth/Dental - D MHF.pdf",
+      "source_sha256": "51b5dd5d6dd283c029bdd8402f0a755b8c777a368d86bb1512bb67ce8f10fa99",
+      "id_master": "9499524377",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "NIB/generalhealth/65.pdf",
+      "source_sha256": "80f4188b474ce3aafd617404157c80f4428a3ba04213cd58dd8655db6391c8c5",
+      "id_master": "1164170715",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "NIB/hospital/2786.pdf",
+      "source_sha256": "b27f5f39b861c5a763ced00a32d90c917453da12bfd1f530664752afe774df30",
+      "id_master": "1001697025",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB/hospital/Qantas Gold Top Hospital $750.pdf",
+      "source_sha256": "a946bcd95fbc7a45b1d51aefc1f26f2e0c1565496623a8a046a7926cf49f2e25",
+      "id_master": "1330998406",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB03/hospital/117.pdf",
+      "source_sha256": "66f64a85c5b0c4c68b3c81cba0c771b96cb62063f2f549862ec3030ffae8c2e4",
+      "id_master": "1556167337",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB03/hospital/122.pdf",
+      "source_sha256": "17fe755a99ac49e7e1e7c288d8a688d11ff4e842dfd97094bfbd7e27dfe228a8",
+      "id_master": "1635194604",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB04/extras/345.pdf",
+      "source_sha256": "ad4fb23b9822ca9cd491c653153b1350f8e6490dd032634c4ba60450113eedfb",
+      "id_master": "5922995815",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    },
+    {
+      "source_relative_path": "NIB04/hospital/342.pdf",
+      "source_sha256": "641a498a39b70711391b53c81dda38531ed3a10b687676e12d8248395ca0ead4",
+      "id_master": "1108144054",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB04/hospital/344.pdf",
+      "source_sha256": "51f2365fb581055622c6b653d4094c4de62934393f28fb2347be67063cb5afde",
+      "id_master": "1554170072",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB05/hospital/194.pdf",
+      "source_sha256": "11b85d999b97fe4a2ea522eb70ef38ef4b55344bb0cafe08cd65c07cdf31d8a6",
+      "id_master": "2874106980",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NIB05/hospital/196.pdf",
+      "source_sha256": "fce25db3d4bb84d4cc2b186c5ce6281e6ec3f9611bb9cdc39a54be59fd61e024",
+      "id_master": "1714770114",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "NTF/hospital/top-hospital Uni health.pdf",
+      "source_sha256": "0b8a3a185d0be7a20f305d5285036bf0a2793a440c77a6d7706105bdd056b246",
+      "id_master": "1153976687",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "QTU/hospital/Gold Hospital UH.pdf",
+      "source_sha256": "cac5c2b6860f77c6625b9537cb511b52afeb06ac509a3ef69db7f257910d1eac",
+      "id_master": "4149464170",
+      "component_id_masters": [],
+      "product_type": "Hospital"
+    },
+    {
+      "source_relative_path": "SPS/generalhealth/Freedom-Max-Extras HP.pdf",
+      "source_sha256": "ba6c2fefbe83136577894d342e5c167d3a42451bfa26aba1939a30c578d17888",
+      "id_master": "1302123327",
+      "component_id_masters": [],
+      "product_type": "GeneralHealth"
+    }
+  ]
+}
