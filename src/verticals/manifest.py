@@ -13,12 +13,6 @@ from src.common.json_codec import loads_json
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_MANIFESTS = MappingProxyType(
-    {
-        "private_health": PROJECT_ROOT / "configs/private_health/manifest.json",
-        "travel_insurance": PROJECT_ROOT / "configs/travel_insurance/manifest.json",
-    }
-)
 
 
 class ManifestValidationError(ValueError):
@@ -36,6 +30,14 @@ class DocumentModel:
 @dataclass(frozen=True)
 class VerticalManifest:
     manifest_version: str
+    display_name: str
+    product_types: tuple[str, ...]
+    taxonomies: tuple[str, ...]
+    identity_fields: tuple[str, ...]
+    consensus_runs: int
+    promoted_decisions: frozenset[str]
+    manual_only_queue: bool
+    protected_fields: frozenset[str]
     vertical: str
     capabilities: Mapping[str, bool]
     documents: DocumentModel
@@ -107,17 +109,28 @@ class VerticalManifest:
             raise ManifestValidationError(
                 f"Vertical {self.vertical!r} does not define prompt {name!r}."
             )
-        return value
+        candidate = (self.source_path.parent / value).resolve()
+        if not candidate.is_relative_to(self.source_path.parent) or not candidate.is_file():
+            raise ManifestValidationError(f"Missing or unsafe prompt {name!r}: {value}")
+        return str(candidate)
+
+
+def discover_manifests(config_root: str | Path | None = None) -> dict[str, VerticalManifest]:
+    manifests: dict[str, VerticalManifest] = {}
+    for path in sorted(Path(config_root or PROJECT_ROOT / "configs").glob("*/manifest.json")):
+        manifest = load_vertical_manifest(path)
+        if manifest.vertical in manifests:
+            raise ManifestValidationError(f"Duplicate vertical {manifest.vertical!r}.")
+        manifests[manifest.vertical] = manifest
+    return manifests
 
 
 def default_manifest_path(vertical: str) -> Path:
-    try:
-        return DEFAULT_MANIFESTS[vertical]
-    except KeyError as exc:
-        known = ", ".join(sorted(DEFAULT_MANIFESTS))
-        raise ManifestValidationError(
-            f"Unknown vertical {vertical!r}; configured verticals: {known}."
-        ) from exc
+    # Directory discovery has no hard-coded vertical list and rejects duplicate codes.
+    manifests = discover_manifests()
+    if vertical not in manifests:
+        raise ManifestValidationError(f"Unknown vertical {vertical!r}; configured verticals: {', '.join(manifests)}.")
+    return manifests[vertical].source_path
 
 
 def load_vertical_manifest(path: str | Path) -> VerticalManifest:
@@ -135,9 +148,17 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
     assert isinstance(payload, dict)
     documents = payload["documents"]
     assert isinstance(documents, dict)
-    return VerticalManifest(
+    manifest = VerticalManifest(
         manifest_version=str(payload["manifest_version"]),
         vertical=str(payload["vertical"]),
+        display_name=payload["display_name"],
+        product_types=tuple(payload["schema"]["product_types"]),
+        taxonomies=tuple(payload["schema"]["taxonomies"]),
+        identity_fields=tuple(payload["schema"]["identity_fields"]),
+        consensus_runs=payload["refinement"]["consensus_runs"],
+        promoted_decisions=frozenset(payload["refinement"]["promoted_decisions"]),
+        manual_only_queue=payload["refinement"]["manual_only_queue"],
+        protected_fields=frozenset(payload["refinement"]["protected_fields"]),
         capabilities=MappingProxyType(dict(payload["capabilities"])),
         documents=DocumentModel(
             categories=tuple(documents["categories"]),
@@ -157,3 +178,10 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
         adapters=MappingProxyType(dict(payload["adapters"])),
         source_path=source_path,
     )
+    for name in manifest.paths:
+        manifest.path(name)
+    for name in ("discovery", "patch", "extraction"):
+        path = Path(manifest.prompt(name))
+        if not path.read_text(encoding="utf-8").strip():
+            raise ManifestValidationError(f"Empty prompt {name!r}: {path}")
+    return manifest

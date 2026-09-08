@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +16,40 @@ from src.verticals.registry import get_acquisition_adapter
 
 
 class VerticalManifestTest(unittest.TestCase):
+    def test_registry_discovers_packages_and_rejects_duplicate_verticals(self) -> None:
+        from src.verticals.manifest import discover_manifests
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shutil.copytree(PROJECT_ROOT / "configs/private_health", root / "health")
+            manifests = discover_manifests(root)
+            self.assertEqual(list(manifests), ["private_health"])
+            shutil.copytree(root / "health", root / "duplicate")
+            with self.assertRaisesRegex(ManifestValidationError, "Duplicate"):
+                discover_manifests(root)
+
+    def test_prompt_files_are_package_relative_and_cannot_escape(self) -> None:
+        from src.verticals.registry import get_prompt
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "health"
+            shutil.copytree(PROJECT_ROOT / "configs/private_health", root)
+            path = root / "manifest.json"
+            manifest = load_vertical_manifest(path)
+            (root / "prompts/discovery.md").write_text("test prompt")
+            self.assertEqual(get_prompt(manifest.prompt("discovery")), "test prompt")
+            source = json.loads(path.read_text())
+            source["prompts"]["discovery"] = "../outside.md"
+            path.write_text(json.dumps(source))
+            with self.assertRaisesRegex(ManifestValidationError, "prompt"):
+                load_vertical_manifest(path)
+
+    def test_missing_prompt_fails_during_manifest_loading(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "health"
+            shutil.copytree(PROJECT_ROOT / "configs/private_health", root)
+            (root / "prompts/discovery.md").unlink()
+            with self.assertRaisesRegex(ManifestValidationError, "prompt"):
+                load_vertical_manifest(root / "manifest.json")
+
     def test_private_health_manifest_preserves_pipeline_defaults(self) -> None:
         manifest = load_vertical_manifest(
             PROJECT_ROOT / "configs/private_health/manifest.json"
@@ -88,9 +123,8 @@ class VerticalManifestTest(unittest.TestCase):
             path = Path(tmp) / "manifest.json"
             path.write_text(json.dumps(source), encoding="utf-8")
 
-            manifest = load_vertical_manifest(path)
             with self.assertRaises(ManifestValidationError):
-                manifest.path("output_root")
+                load_vertical_manifest(path)
 
     def test_environment_path_override_preserves_external_dataset_support(self) -> None:
         manifest = load_vertical_manifest(

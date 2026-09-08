@@ -10,8 +10,16 @@
     "storage": false
   },
   "documents": {
-    "categories": ["combined", "extras", "generalhealth", "hospital"],
-    "document_types": ["policy_document", "phis"],
+    "categories": [
+      "combined",
+      "extras",
+      "generalhealth",
+      "hospital"
+    ],
+    "document_types": [
+      "policy_document",
+      "phis"
+    ],
     "extraction_unit": "document",
     "output_cardinality": "single"
   },
@@ -32,14 +40,37 @@
     "refinement_feedback": "private_health/refinement_feedback"
   },
   "prompts": {
-    "discovery": "private_health_discovery_v1",
-    "patch": "private_health_patch_v1",
-    "extraction": "private_health_extraction_v1"
+    "discovery": "prompts/discovery.md",
+    "patch": "prompts/patch.md",
+    "extraction": "prompts/extraction.md"
   },
   "adapters": {
     "schema_validator": "private_health_schema_v1",
     "normalizer": "private_health_extraction_v1",
     "evaluator": "private_health_labelled_v1",
     "acquisition": null
+  },
+  "display_name": "Health insurance",
+  "schema": {
+    "product_types": [
+      "hospital",
+      "extras",
+      "generalhealth",
+      "combined"
+    ],
+    "taxonomies": [
+      "hospital_categories",
+      "extras_services"
+    ],
+    "identity_fields": []
+  },
+  "refinement": {
+    "consensus_runs": 1,
+    "promoted_decisions": [
+      "core",
+      "conditional"
+    ],
+    "manual_only_queue": false,
+    "protected_fields": []
   }
 }

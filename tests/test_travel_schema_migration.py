@@ -175,7 +175,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
                     log=None,
                     vertical="travel_insurance",
                     discovery_contract="travel_insurance/discovered_schema",
-                    discovery_prompt=get_prompt("travel_insurance_discovery_v1"),
+                    discovery_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("discovery")),
                     schema_validator=get_schema_validator(
                         "travel_insurance_schema_v1"
                     ),
@@ -197,7 +197,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
 
 class TravelExtractionMigrationTest(unittest.TestCase):
     def test_travel_prompt_matches_closed_extraction_metadata_contract(self) -> None:
-        prompt = get_prompt("travel_insurance_extraction_v1")
+        prompt = get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction"))
 
         self.assertIn('"products"', prompt)
         self.assertIn('"_document_notes"', prompt)
@@ -256,7 +256,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                         "travel_insurance_schema_v1"
                     ),
                     output_cardinality="multiple",
-                    extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+                    extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
                 ).extract_one(pdf_path)
 
         self.assertEqual(len(result["products"]), 2)
@@ -295,7 +295,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                         "travel_insurance_schema_v1"
                     ),
                     output_cardinality="multiple",
-                    extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+                    extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
                 ).extract_one(pdf_path)
 
         self.assertEqual(result, valid_extraction_payload())
@@ -347,7 +347,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                         "travel_insurance_schema_v1"
                     ),
                     output_cardinality="multiple",
-                    extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+                    extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
                 ).extract_one(pdf_path)
 
         self.assertEqual(result, repaired)
@@ -371,7 +371,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                     "travel_insurance_schema_v1"
                 ),
                 output_cardinality="multiple",
-                extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+                extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
             )
 
     def test_optional_canonical_scalar_disables_provider_strict_mode(self) -> None:
@@ -392,7 +392,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 "travel_insurance_schema_v1"
             ),
             output_cardinality="multiple",
-            extraction_prompt=get_prompt("travel_insurance_extraction_v1"),
+            extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
         )
 
         self.assertFalse(extractor.structured_output_strict)

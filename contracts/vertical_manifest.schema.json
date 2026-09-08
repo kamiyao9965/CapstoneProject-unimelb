@@ -12,56 +12,116 @@
     "paths",
     "contracts",
     "prompts",
-    "adapters"
+    "adapters",
+    "display_name",
+    "schema",
+    "refinement"
   ],
   "properties": {
-    "manifest_version": {"const": "1.0"},
-    "vertical": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "manifest_version": {
+      "const": "1.0"
+    },
+    "vertical": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
     "capabilities": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["acquisition", "discovery", "refinement", "extraction", "evaluation", "storage"],
+      "required": [
+        "acquisition",
+        "discovery",
+        "refinement",
+        "extraction",
+        "evaluation",
+        "storage"
+      ],
       "properties": {
-        "acquisition": {"type": "boolean"},
-        "discovery": {"type": "boolean"},
-        "refinement": {"type": "boolean"},
-        "extraction": {"type": "boolean"},
-        "evaluation": {"type": "boolean"},
-        "storage": {"type": "boolean"}
+        "acquisition": {
+          "type": "boolean"
+        },
+        "discovery": {
+          "type": "boolean"
+        },
+        "refinement": {
+          "type": "boolean"
+        },
+        "extraction": {
+          "type": "boolean"
+        },
+        "evaluation": {
+          "type": "boolean"
+        },
+        "storage": {
+          "type": "boolean"
+        }
       }
     },
     "documents": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["categories", "document_types", "extraction_unit", "output_cardinality"],
+      "required": [
+        "categories",
+        "document_types",
+        "extraction_unit",
+        "output_cardinality"
+      ],
       "properties": {
         "categories": {
           "type": "array",
-          "items": {"type": "string", "minLength": 1},
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "uniqueItems": true
         },
         "document_types": {
           "type": "array",
-          "items": {"type": "string", "minLength": 1},
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "uniqueItems": true
         },
-        "extraction_unit": {"enum": ["document", "product_release"]},
-        "output_cardinality": {"enum": ["single", "multiple"]}
+        "extraction_unit": {
+          "enum": [
+            "document",
+            "product_release"
+          ]
+        },
+        "output_cardinality": {
+          "enum": [
+            "single",
+            "multiple"
+          ]
+        }
       }
     },
     "paths": {
       "type": "object",
-      "additionalProperties": {"type": "string", "minLength": 1},
-      "required": ["input_root", "output_root"]
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "required": [
+        "input_root",
+        "output_root"
+      ]
     },
     "path_environment": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["variable", "suffix"],
+        "required": [
+          "variable",
+          "suffix"
+        ],
         "properties": {
-          "variable": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+          "variable": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
           "suffix": {
             "type": "string",
             "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).*$"
@@ -71,15 +131,108 @@
     },
     "contracts": {
       "type": "object",
-      "additionalProperties": {"type": ["string", "null"]}
+      "additionalProperties": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
     },
     "prompts": {
       "type": "object",
-      "additionalProperties": {"type": ["string", "null"]}
+      "additionalProperties": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
     },
     "adapters": {
       "type": "object",
-      "additionalProperties": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]*$"}
+      "additionalProperties": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_types",
+        "taxonomies",
+        "identity_fields"
+      ],
+      "properties": {
+        "product_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "taxonomies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "identity_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "refinement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consensus_runs",
+        "promoted_decisions",
+        "manual_only_queue",
+        "protected_fields"
+      ],
+      "properties": {
+        "consensus_runs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "promoted_decisions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "core",
+              "conditional"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "manual_only_queue": {
+          "type": "boolean"
+        },
+        "protected_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
     }
   }
 }

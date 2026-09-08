@@ -35,29 +35,14 @@ def get_schema_validator(adapter_id: str) -> SchemaValidator:
     raise ManifestValidationError(f"Unregistered schema validator {adapter_id!r}.")
 
 
-def get_prompt(prompt_id: str) -> str:
-    if prompt_id == "private_health_discovery_v1":
-        from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT
+def get_prompt(prompt_path: str) -> str:
+    """Read the package path already validated by VerticalManifest.prompt."""
+    from pathlib import Path
 
-        return SCHEMA_DISCOVERY_PROMPT
-    if prompt_id == "private_health_extraction_v1":
-        from src.schema_application.prompts import EXTRACTION_PROMPT
-
-        return EXTRACTION_PROMPT
-    if prompt_id == "private_health_patch_v1":
-        from src.schema.prompts import SCHEMA_PATCH_PROMPT
-
-        return SCHEMA_PATCH_PROMPT
-    if prompt_id == "travel_insurance_discovery_v1":
-        from src.schema.prompts import TRAVEL_INSURANCE_SCHEMA_DISCOVERY_PROMPT
-
-        return TRAVEL_INSURANCE_SCHEMA_DISCOVERY_PROMPT
-    if prompt_id == "travel_insurance_extraction_v1":
-        from src.schema_application.prompts import TRAVEL_INSURANCE_EXTRACTION_PROMPT
-
-        return TRAVEL_INSURANCE_EXTRACTION_PROMPT
-    if prompt_id == "travel_insurance_patch_v1":
-        from src.schema.prompts import TRAVEL_INSURANCE_SCHEMA_PATCH_PROMPT
-
-        return TRAVEL_INSURANCE_SCHEMA_PATCH_PROMPT
-    raise ManifestValidationError(f"Unregistered prompt {prompt_id!r}.")
+    try:
+        text = Path(prompt_path).read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError) as exc:
+        raise ManifestValidationError(f"Could not read prompt {prompt_path!r}.") from exc
+    if not text:
+        raise ManifestValidationError(f"Empty prompt {prompt_path!r}.")
+    return text

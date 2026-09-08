@@ -10,8 +10,16 @@
     "storage": true
   },
   "documents": {
-    "categories": ["pds"],
-    "document_types": ["pds", "spds", "brochure", "tmd", "fsg"],
+    "categories": [
+      "pds"
+    ],
+    "document_types": [
+      "pds",
+      "spds",
+      "brochure",
+      "tmd",
+      "fsg"
+    ],
     "extraction_unit": "product_release",
     "output_cardinality": "multiple"
   },
@@ -32,14 +40,42 @@
     "refinement_feedback": null
   },
   "prompts": {
-    "discovery": "travel_insurance_discovery_v1",
-    "patch": "travel_insurance_patch_v1",
-    "extraction": "travel_insurance_extraction_v1"
+    "discovery": "prompts/discovery.md",
+    "patch": "prompts/patch.md",
+    "extraction": "prompts/extraction.md"
   },
   "adapters": {
     "schema_validator": "travel_insurance_schema_v1",
     "normalizer": null,
     "evaluator": null,
     "acquisition": "travel_public_documents_v1"
+  },
+  "display_name": "Travel insurance",
+  "schema": {
+    "product_types": [
+      "international_single_trip",
+      "international_multi_trip",
+      "domestic",
+      "inbound",
+      "business",
+      "cruise"
+    ],
+    "taxonomies": [
+      "coverage_categories"
+    ],
+    "identity_fields": [
+      "product_name"
+    ]
+  },
+  "refinement": {
+    "consensus_runs": 5,
+    "promoted_decisions": [
+      "core"
+    ],
+    "manual_only_queue": true,
+    "protected_fields": [
+      "product_name",
+      "product_type"
+    ]
   }
 }

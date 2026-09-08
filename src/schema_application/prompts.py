@@ -1,47 +1,6 @@
-EXTRACTION_PROMPT = """
-You are an extraction engine for Australian private health insurance PDFs.
+"""Compatibility prompt exports; text is owned by each manifest package."""
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+from src.verticals.registry import get_prompt
 
-You are given a JSON schema definition and one PDFingestor structured
-representation. Read the ordered text blocks and Markdown tables, then return a
-single JSON object that populates the fields for the product described in that
-document. The supplied structured-output contract is authoritative.
-
-Rules:
-- Output only the JSON object. No markdown fences or commentary.
-- Use the field names from the schema as JSON keys.
-- If a field is not present in the PDF, set it to null. Do not guess.
-- For list[object] fields, return a JSON array of objects.
-- For enum fields, only use values allowed by the schema; if none fit, use null.
-- Add a top-level "_unfilled" array listing schema field names you could not
-  populate from this PDF, and a "_notes" string for anything ambiguous.
-
-The goal is faithful extraction, not completeness: a null is better than a
-fabricated value.
-""".strip()
-
-
-TRAVEL_INSURANCE_EXTRACTION_PROMPT = """
-You are an extraction engine for Australian travel insurance Product
-Disclosure Statements.
-
-Return every distinct plan or product described by the document. Do not merge
-Comprehensive, Basic, Domestic, Annual Multi-Trip, Business, Cruise, or other
-separately named plans into one record. product_name must be unique within the
-products array. When several tiers share one umbrella series name, include the
-marketed tier in product_name (for example, "Cover-More Corporate Essentials")
-instead of repeating the umbrella name. Keep the printed tier label in
-plan_tier when that field exists. The top-level JSON object must contain exactly
-"products" and "_document_notes". Never output "__typename" or any
-other property outside the supplied contract. Each item in "products" must
-independently satisfy the supplied schema, use null for unavailable values,
-include "_unfilled" with every missing field name, and include "_notes" as a
-string or null. Put document-level ambiguity in "_document_notes"; use null
-when there is no document-level ambiguity.
-
-Benefit tables are authoritative evidence for plan differences, limits,
-sub-limits, excesses, and exclusions. Do not guess, calculate a limit that is
-not printed, or treat rental vehicle excess as separate car insurance.
-
-Output only the JSON object governed by the supplied structured-output
-contract, without Markdown fences or commentary.
-""".strip()
+EXTRACTION_PROMPT = get_prompt(load_vertical_manifest(default_manifest_path("private_health")).prompt("extraction"))
+TRAVEL_INSURANCE_EXTRACTION_PROMPT = get_prompt(load_vertical_manifest(default_manifest_path("travel_insurance")).prompt("extraction"))

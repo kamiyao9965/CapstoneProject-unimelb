@@ -6,9 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import MappingProxyType
+from dataclasses import replace
 from unittest import mock
 
-from src.verticals.manifest import DocumentModel, PROJECT_ROOT, VerticalManifest
+from src.verticals.manifest import PROJECT_ROOT, load_vertical_manifest
 from tests.test_canonical_schema import approved_travel_schema
 from tests.test_canonical_storage import valid_extraction_payload
 
@@ -45,22 +46,9 @@ class StoragePreparationTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        self.manifest = VerticalManifest(
-            manifest_version="1.0",
-            vertical="travel_insurance",
-            capabilities=MappingProxyType({"storage": True}),
-            documents=DocumentModel(
-                categories=("pds",),
-                document_types=("pds", "spds", "brochure", "tmd", "fsg"),
-                extraction_unit="product_release",
-                output_cardinality="multiple",
-            ),
+        self.manifest = replace(
+            load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json"),
             paths=MappingProxyType({"input_root": str(self.input_root)}),
-            path_environment=MappingProxyType({}),
-            contracts=MappingProxyType({}),
-            prompts=MappingProxyType({}),
-            adapters=MappingProxyType({}),
-            source_path=self.root / "manifest.json",
         )
 
     def tearDown(self) -> None:

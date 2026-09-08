@@ -28,7 +28,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 ### T01 — 找出应保留、合并和删除的代码
 
-- [ ] 完成 T01。
+- [x] 完成 T01。
 - **目的：** 重新核对 main 差异与 spec B01–B20，从真实调用链判断删减空间。
 - **验收：** 每项边界有唯一 owner/处置；旧数据和模块删除有替代路径或理由；新增抽象必须对应当前重复，不按假设中的第三领域设计。
 - **验证：** `git ls-remote origin refs/heads/main refs/heads/feat/travel-insurance`、`git diff --name-status main...HEAD`、`git diff --check main...HEAD`；rg 搜索领域常量/默认路径/aliases/旧 loader 后追踪调用方。
@@ -36,7 +36,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 ### T02 — 验证并合入现有 Health / Travel
 
-- [ ] 完成 T02。
+- [x] 完成 T02。
 - **目的：** 建立包含两领域的 main 基线，再做统一改造。
 - **验收：** 两领域现有抽取/审核基线通过；处理已知空白问题，较大回归另拆修复；按仓库规则合并并核验远端提交，不强推或覆盖用户变更。
 - **验证：** V0、VCLI；`.venv/bin/python -m unittest tests.test_run tests.test_loop tests.test_travel_schema_migration tests.test_canonical_storage -v`；合并后读取远端 main 并核实提交包含关系。
@@ -44,13 +44,13 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 **检查点 A：**
 
-- [ ] 基线合并、删除项和回归证据齐全；这不是统一改造已完成的声明。
+- [x] 基线合并、删除项和回归证据齐全；这不是统一改造已完成的声明。
 
 ## B. 用现有模块统一配置和字段模型
 
 ### T03 — 一个配置解析和 prompt 加载入口
 
-- [ ] 完成 T03。
+- [x] 完成 T03。
 - **目的：** 扩展现有 manifest/registry，集中领域发现、能力、默认值、路径和文本加载。
 - **验收：** CLI/UI 可复用同一目录与解析结果；文档/抽样/产品分类分开；缺资源、冲突、越界在外部调用前失败，不新增上下文框架或应用配置层。
 - **验证：** `.venv/bin/python -m unittest tests.test_vertical_manifest tests.test_tool_ui -v`；两份 manifest 的有效配置、重复 code、缺 prompt 和路径覆盖负例。
@@ -58,7 +58,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 ### T04 — Health prompt 外置
 
-- [ ] 完成 T04。
+- [x] 完成 T04。
 - **目的：** 把 Health 三阶段知识移入一个配置包，代码只加载文本。
 - **验收：** 正文有单一来源；manifest 参数保留 Health 行为；格式调整与外置的差异明确记录，不意外改抽取要求，未迁移调用方只留具名过渡导出。
 - **验证：** `.venv/bin/python -m unittest tests.test_discovery tests.test_consensus tests.test_extractor -v`；请求文本前后对照，确认实际使用文件内容。
@@ -66,7 +66,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 ### T05 — Travel 复用同一 prompt 加载
 
-- [ ] 完成 T05。
+- [x] 完成 T05。
 - **目的：** 用同一机制接入 Travel，保留产品分类和多计划要求。
 - **验收：** 不增领域专用加载器；三个 prompt 与 manifest 引用一致；采集/批准 schema/存储配置保留，重复正文在 T18 清除。
 - **验证：** `.venv/bin/python -m unittest tests.test_travel_schema_migration tests.test_travel_consensus tests.test_vertical_manifest -v`；请求文本对照。
@@ -238,3 +238,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 第三领域方向和零代码接入实验另行决定，不阻塞本轮。不为尚未确定的领域提前增加抽象。
 
 注意：tasks 目录被 Git 忽略，实施提交时只明确纳入本 todo，不批量加入其他本地记录。
+
+基线完成记录：2026-09-08 远端 main 已核实为 063c13e，包含原 Travel 43 提交及回归修复。374 tests（373 pass / 1 DB skip），独立审查另跑22项全部通过。旧 ingestor/router→PDFingestor；旧 LLMExtractor→SchemaExtractor；旧爬虫配置→Travel sources。旧占位领域/YAML无当前生产调用；6份旧 CSV 在默认外置数据根未找到，不能称为已验证搬迁，历史 Git 仍保留；真实 Health 标签批处理未验证。
+
+T03–T05：manifest 自动发现，分离产品类型/采样类型、声明共识策略；六份 prompt 原文外置，单一加载入口，缺失/空文件/路径越界提前拒绝。377 tests（376 pass / 1 DB skip）、compileall/diff-check通过；旧常量暂时只重导出，T18移除。
