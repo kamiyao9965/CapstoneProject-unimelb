@@ -144,7 +144,7 @@ class SchemaPatch:
 def load_patch_file(
     path: str | Path,
     *,
-    data_contract: str = "private_health/candidate_patch_set",
+    data_contract: str = "schema_refinement/candidate_patch_set",
     allowed_product_types: set[str] | frozenset[str] | None = None,
 ) -> list[SchemaPatch]:
     artifact = read_artifact(
@@ -186,7 +186,7 @@ def write_patch_file(
     path: str | Path,
     *,
     provenance: Mapping[str, object],
-    data_contract: str = "private_health/candidate_patch_set",
+    data_contract: str = "schema_refinement/candidate_patch_set",
 ) -> Path:
     artifact = build_success_artifact(
         artifact_type="candidate_patch_set",

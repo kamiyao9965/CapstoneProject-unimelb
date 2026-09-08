@@ -11,7 +11,8 @@ from typing import IO, Callable
 
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.json_contracts import validate_contract
-from src.refine.human_review.constants import SUPPORTED_ACTIONS
+from src.refine.human_review.constants import SUPPORTED_ACTIONS, QUEUE_FILENAME
+from src.refine.human_review.queue import load_review_queue, review_identity, validate_review_identity
 
 try:
     import fcntl
@@ -24,11 +25,12 @@ except ImportError:  # pragma: no cover - Windows fallback
 _WINDOWS_LOCK_ATTEMPTS = 60
 
 
-def empty_decisions(reviewer: str = "") -> dict:
+def empty_decisions(reviewer: str = "", *, queue: dict | None = None) -> dict:
     return {
         "metadata": {
             "reviewed_at": datetime.now(timezone.utc).isoformat(),
             "reviewer": reviewer,
+            **(review_identity(queue) if queue is not None else {}),
         },
         "decisions": [],
     }
@@ -38,7 +40,7 @@ def load_review_decisions(path: str | Path) -> dict:
     payload = read_artifact(
         path,
         expected_type="review_decisions",
-        data_contract="private_health/review_decisions",
+        data_contract="schema_refinement/review_decisions",
     )["data"]
     if not isinstance(payload, dict) or "decisions" not in payload:
         raise ValueError(f"Not a review decisions file: {path}")
@@ -49,7 +51,7 @@ def write_review_decisions(decisions_payload: dict, path: str | Path) -> None:
     decisions_payload.setdefault("metadata", {})["reviewed_at"] = datetime.now(
         timezone.utc
     ).isoformat()
-    validate_contract(decisions_payload, "private_health/review_decisions")
+    validate_contract(decisions_payload, "schema_refinement/review_decisions")
     artifact = build_success_artifact(
         artifact_type="review_decisions",
         contract_version="1.0.0",
@@ -58,12 +60,12 @@ def write_review_decisions(decisions_payload: dict, path: str | Path) -> None:
             "run_id": None, "provider": None, "model": None,
             "document_input": None, "source_documents": [], "source_artifacts": [],
         },
-        data_contract="private_health/review_decisions",
+        data_contract="schema_refinement/review_decisions",
     )
     write_artifact(
         path,
         artifact,
-        data_contract="private_health/review_decisions",
+        data_contract="schema_refinement/review_decisions",
         overwrite=True,
     )
 
@@ -104,8 +106,13 @@ def _update_decisions_file(
     descriptor = os.open(lock_path, flags, 0o600)
     with os.fdopen(descriptor, "r+") as lock:
         with _exclusive_lock(lock):
-            payload = load_review_decisions(path) if path.exists() else empty_decisions()
+            queue = load_review_queue(path.parent / QUEUE_FILENAME)
+            payload = load_review_decisions(path) if path.exists() else empty_decisions(queue=queue)
+            validate_review_identity(queue, payload)
             updated = update(payload)
+            unknown = set(decisions_by_id(updated)) - {item["id"] for item in queue["updates"]}
+            if unknown:
+                raise ValueError("Decisions reference ids missing from the queue.")
             write_review_decisions(updated, path)
             return updated
 
@@ -165,7 +172,7 @@ def upsert_decision(
     }
     validate_contract(
         {"metadata": decisions_payload.get("metadata", {}), "decisions": [entry]},
-        "private_health/review_decisions",
+        "schema_refinement/review_decisions",
     )
     decisions_payload["decisions"] = [
         existing

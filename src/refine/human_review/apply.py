@@ -19,7 +19,11 @@ from src.refine.human_review.constants import (
     SUPPORTED_ACTIONS,
 )
 from src.refine.human_review.decisions import decisions_by_id, load_review_decisions
-from src.refine.human_review.queue import load_review_queue
+from src.refine.human_review.queue import load_review_queue, validate_review_identity, review_manifest
+from src.schema.loader import load_schema_data
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+from src.verticals.registry import get_schema_validator
+from src.common.json_contracts import load_contract
 from src.schema.validation import validate_field_payload, validate_schema_mapping
 
 
@@ -39,6 +43,7 @@ def apply_review(
     if not isinstance(base_schema, dict):
         raise ValueError("Base schema must be a JSON object.")
 
+    validate_review_identity(queue, decisions_payload, base_schema)
     queue_items = queue.get("updates", [])
     queue_ids = {item["id"] for item in queue_items}
     by_id = decisions_by_id(decisions_payload)
@@ -49,7 +54,7 @@ def apply_review(
             f"(wrong file pairing?): {', '.join(unknown_ids)}"
         )
 
-    reviewed = validate_schema_mapping(base_schema)
+    reviewed = validate_schema_mapping(base_schema, manifest=review_manifest(queue))
     fields = fields_by_name(reviewed.get("fields", []))
     allowed_product_types = allowed_product_types or set(
         reviewed.get("product_types") or []
@@ -68,7 +73,7 @@ def apply_review(
             fields[str(payload["name"])] = payload
 
     reviewed["fields"] = list(fields.values())
-    schema_validator(reviewed)
+    validate_schema_mapping(reviewed, manifest=review_manifest(queue))
     return reviewed, summary
 
 
@@ -135,30 +140,17 @@ def apply_review_files(
 
     decisions_payload = load_review_decisions(decisions_path)
     metadata = queue.get("metadata", {})
-    schema_contract = str(
-        metadata.get("schema_contract") or "private_health/discovered_schema"
-    )
-    vertical = str(metadata.get("vertical") or "private_health")
-    if vertical == "travel_insurance":
-        from src.verticals.travel_insurance import (
-            SUPPORTED_TRAVEL_PRODUCT_TYPES,
-            validate_travel_schema_mapping,
-        )
-
-        schema_validator = validate_travel_schema_mapping
-        allowed_product_types = set(SUPPORTED_TRAVEL_PRODUCT_TYPES)
-    else:
-        schema_validator = validate_schema_mapping
-        allowed_product_types = None
+    manifest = review_manifest(queue)
+    schema_contract = manifest.contract("discovered_schema")
+    if metadata.get("schema_contract") != schema_contract:
+        raise ValueError("Review queue schema contract does not match its vertical.")
+    schema_validator = get_schema_validator(manifest)
+    allowed_product_types = set(manifest.product_types)
     resolved_base_schema = Path(base_schema_path or queue["metadata"]["base_schema_path"])
     reviewed, summary = apply_review(
         queue,
         decisions_payload,
-        read_artifact(
-            resolved_base_schema,
-            expected_type="discovered_schema",
-            data_contract=schema_contract,
-        )["data"],
+        load_schema_data(resolved_base_schema, manifest),
         schema_validator=schema_validator,
         allowed_product_types=allowed_product_types,
     )
@@ -171,7 +163,7 @@ def apply_review_files(
         contract_version="1.0.0",
         data=reviewed,
         provenance={
-            "run_id": None, "provider": None, "model": None,
+            "run_id": metadata["queue_id"], "provider": None, "model": None,
             "document_input": None, "source_documents": [],
             "source_artifacts": [
                 (consensus_dir / QUEUE_FILENAME).as_posix(),
@@ -179,11 +171,11 @@ def apply_review_files(
                 resolved_base_schema.as_posix(),
             ],
         },
-        data_contract=schema_contract,
+        data_contract_schema=load_contract(schema_contract, manifest=manifest),
     )
     write_artifact(
         resolved_output,
         artifact,
-        data_contract=schema_contract,
+        data_contract_schema=load_contract(schema_contract, manifest=manifest),
     )
     return resolved_output, summary

@@ -82,7 +82,7 @@ def render_frequency_json(
     decisions: list[FieldDecision],
     output_path: str | Path,
     *,
-    data_contract: str = "private_health/field_frequency",
+    data_contract: str = "schema_refinement/field_frequency",
 ) -> None:
     data = {"fields": [decision.to_dict() for decision in decisions]}
     artifact = build_success_artifact(

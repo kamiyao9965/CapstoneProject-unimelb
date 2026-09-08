@@ -120,7 +120,7 @@ class TravelConsensusTests(unittest.TestCase):
             )
             self.assertEqual(queue["metadata"]["vertical"], "travel_insurance")
 
-            decisions = empty_decisions("reviewer")
+            decisions = empty_decisions("reviewer", queue=queue)
             upsert_decision(
                 decisions, "field:uncertain_marketing_cover", "reject"
             )

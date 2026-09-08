@@ -65,7 +65,7 @@ def write_patch_stability(
     path: str | Path,
     *,
     provenance: dict[str, object],
-    data_contract: str = "private_health/patch_stability",
+    data_contract: str = "schema_refinement/patch_stability",
 ) -> None:
     artifact = build_success_artifact(
         artifact_type="patch_stability",

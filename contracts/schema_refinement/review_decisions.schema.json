@@ -151,6 +151,18 @@
         },
         "reviewer": {
           "type": "string"
+        },
+        "queue_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vertical": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

@@ -33,10 +33,10 @@ def parse_cli_args() -> argparse.Namespace:
     return args
 
 
-def load_decisions_or_empty(path: Path) -> dict:
+def load_decisions_or_empty(path: Path, queue: dict) -> dict:
     if path.exists():
         return load_review_decisions(path)
-    return empty_decisions()
+    return empty_decisions(queue=queue)
 
 
 def save_decision(
@@ -74,7 +74,7 @@ def main() -> None:
         st.stop()
 
     queue = load_review_queue(queue_path)
-    decisions = load_decisions_or_empty(decisions_path)
+    decisions = load_decisions_or_empty(decisions_path, queue)
     status = derive_status(queue, decisions)
     updates = queue.get("updates", [])
 

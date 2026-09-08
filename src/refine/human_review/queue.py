@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from hashlib import sha256
+from copy import deepcopy
+
+from src.common.json_codec import dumps_json
+from src.schema.validation import normalize_schema
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
 from pathlib import Path
 from typing import Iterable
 
@@ -30,9 +36,13 @@ def build_review_queue(
     valid_product_types: tuple[str, ...] = ("hospital", "extras", "generalhealth", "combined"),
     promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
     protected_fields: frozenset[str] = frozenset(),
+    manifest=None,
 ) -> dict:
-    existing_fields = fields_by_name(base_schema.get("fields", []))
-    return {
+    manifest = manifest or load_vertical_manifest(default_manifest_path(vertical))
+    if base_schema.get("vertical") != manifest.vertical or manifest.vertical != vertical:
+        raise ValueError("Review queue vertical does not match base schema.")
+    existing_fields = fields_by_name(normalize_schema(base_schema, manifest).get("fields", []))
+    queue = {
         "metadata": {
             "generated_at": generated_at or datetime.now(timezone.utc).isoformat(),
             "consensus_source": "candidate_schema_patches",
@@ -42,6 +52,9 @@ def build_review_queue(
                 dict.fromkeys(str(path) for path in schema_build_samples)
             ),
             "vertical": vertical,
+            "schema_version": str(base_schema["version"]),
+            "base_schema_hash": schema_hash(base_schema, manifest),
+            "manifest_path": str(manifest.source_path),
             "schema_contract": schema_contract,
         },
         "updates": [
@@ -57,6 +70,48 @@ def build_review_queue(
             )
         ],
     }
+    queue["metadata"]["queue_id"] = queue_id(queue)
+    return queue
+
+
+def schema_hash(schema: dict, manifest=None) -> str:
+    return sha256(dumps_json(normalize_schema(schema, manifest), sort_keys=True).encode()).hexdigest()
+
+
+def queue_id(queue: dict) -> str:
+    data = deepcopy(queue)
+    data["metadata"].pop("queue_id", None)
+    return sha256(dumps_json(data, sort_keys=True).encode()).hexdigest()
+
+
+def review_identity(queue: dict) -> dict[str, str]:
+    metadata = queue.get("metadata", {})
+    names = ("queue_id", "vertical", "schema_version")
+    if any(not metadata.get(name) for name in names):
+        raise ValueError("Historical review queue lacks identity; finish it with its original version or regenerate explicitly.")
+    if metadata["queue_id"] != queue_id(queue):
+        raise ValueError("Review queue identity changed; the queue must remain immutable.")
+    return {name: metadata[name] for name in names}
+
+
+def review_manifest(queue: dict):
+    metadata = queue["metadata"]
+    manifest = load_vertical_manifest(metadata.get("manifest_path") or default_manifest_path(metadata["vertical"]))
+    if manifest.vertical != metadata["vertical"]:
+        raise ValueError("Review manifest vertical does not match the queue.")
+    return manifest
+
+
+def validate_review_identity(queue: dict, decisions: dict, base_schema: dict | None = None) -> None:
+    identity = review_identity(queue)
+    if any(decisions.get("metadata", {}).get(name) != value for name, value in identity.items()):
+        raise ValueError("Review decisions identity does not match this queue/vertical/schema.")
+    if base_schema is not None and (
+        base_schema.get("vertical") != identity["vertical"]
+        or base_schema.get("version") != identity["schema_version"]
+        or schema_hash(base_schema, review_manifest(queue)) != queue["metadata"].get("base_schema_hash")
+    ):
+        raise ValueError("Review base schema identity does not match the queue.")
 
 
 def _queue_item(
@@ -93,7 +148,7 @@ def write_review_queue(
     path: str | Path,
     *,
     provenance: dict[str, object] | None = None,
-    data_contract: str = "private_health/review_queue",
+    data_contract: str = "schema_refinement/review_queue",
 ) -> None:
     artifact = build_success_artifact(
         artifact_type="review_queue",
@@ -108,7 +163,7 @@ def write_review_queue(
 def load_review_queue(
     path: str | Path,
     *,
-    data_contract: str = "private_health/review_queue",
+    data_contract: str = "schema_refinement/review_queue",
 ) -> dict:
     payload = read_artifact(
         path,

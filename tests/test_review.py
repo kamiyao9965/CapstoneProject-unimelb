@@ -18,6 +18,7 @@ from src.refine.human_review import (
     remove_review_decision,
     upsert_decision,
     write_review_decisions,
+    write_review_queue,
 )
 from src.refine.human_review import decisions as decisions_module
 
@@ -196,7 +197,9 @@ class DeriveStatusTest(unittest.TestCase):
     def test_atomic_decision_updates_merge_with_latest_file_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "review_decisions.json"
-            write_review_decisions(empty_decisions(), path)
+            queue = make_queue([make_decision("first"), make_decision("second")])
+            write_review_queue(queue, path.parent / "review_queue.json")
+            write_review_decisions(empty_decisions(queue=queue), path)
             save_review_decision(path, "field:first", "accept")
 
             save_review_decision(path, "field:second", "reject", "not supported")
@@ -218,7 +221,7 @@ class DeriveStatusTest(unittest.TestCase):
         queue = make_queue([make_decision("annual_limit"), make_decision("excess")])
         self.assertNotIn("review_status", queue["updates"][0])
 
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(decisions, "field:annual_limit", "accept")
         status = derive_status(queue, decisions)
         self.assertEqual(status["field:annual_limit"], "accepted")
@@ -226,7 +229,7 @@ class DeriveStatusTest(unittest.TestCase):
 
     def test_upsert_replaces_and_clear_returns_to_pending(self) -> None:
         queue = make_queue()
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(decisions, "field:annual_limit", "accept")
         upsert_decision(decisions, "field:annual_limit", "reject", "changed my mind")
         self.assertEqual(len(decisions["decisions"]), 1)
@@ -244,6 +247,25 @@ class DeriveStatusTest(unittest.TestCase):
 
 
 class ApplyReviewTest(unittest.TestCase):
+    def test_same_field_decision_from_another_queue_is_rejected(self) -> None:
+        queue = make_queue()
+        other = build_review_queue([make_decision("annual_limit")], BASE_SCHEMA,
+                                   total_runs=10, base_schema_path="another_run/schema.json")
+        decisions = empty_decisions(queue=other)
+        upsert_decision(decisions, "field:annual_limit", "accept")
+        with self.assertRaisesRegex(ValueError, "identity"):
+            apply_review(queue, decisions, BASE_SCHEMA)
+
+    def test_base_content_change_with_same_version_is_rejected(self) -> None:
+        queue = make_queue()
+        changed = dict(BASE_SCHEMA, description="changed after review started")
+        with self.assertRaisesRegex(ValueError, "identity"):
+            apply_review(queue, empty_decisions(queue=queue), changed)
+
+    def test_legacy_decisions_cannot_be_implicitly_bound_to_new_queue(self) -> None:
+        with self.assertRaisesRegex(ValueError, "identity"):
+            apply_review(make_queue(), empty_decisions(), BASE_SCHEMA)
+
     def apply(self, queue, decisions):
         return apply_review(queue, decisions, BASE_SCHEMA)
 
@@ -256,7 +278,7 @@ class ApplyReviewTest(unittest.TestCase):
                 make_decision("waiting_period"),
             ]
         )
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(decisions, "field:annual_limit", "accept")
         upsert_decision(decisions, "field:promo_text", "reject", "marketing only")
         upsert_decision(
@@ -289,23 +311,23 @@ class ApplyReviewTest(unittest.TestCase):
 
     def test_base_schema_is_not_mutated(self) -> None:
         queue = make_queue()
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(decisions, "field:annual_limit", "accept")
         self.apply(queue, decisions)
         self.assertEqual(len(BASE_SCHEMA["fields"]), 2)
 
     def test_accept_rejects_group_names_in_applies_to(self) -> None:
         queue = make_queue()
+        decisions = empty_decisions(queue=queue)
         # Simulate a hand-edited queue that smuggled a group name in.
         queue["updates"][0]["proposed_update"]["applies_to"] = ["extras_cover", "extras"]
-        decisions = empty_decisions()
         upsert_decision(decisions, "field:annual_limit", "accept")
-        with self.assertRaisesRegex(ValueError, "unknown product types"):
+        with self.assertRaisesRegex(ValueError, "identity|unknown product types"):
             self.apply(queue, decisions)
 
     def test_edit_rejects_group_names_in_applies_to(self) -> None:
         queue = make_queue()
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(
             decisions,
             "field:annual_limit",
@@ -320,14 +342,14 @@ class ApplyReviewTest(unittest.TestCase):
                 "aliases": [],
             },
         )
-        with self.assertRaisesRegex(ValueError, "unknown product types"):
+        with self.assertRaisesRegex(ValueError, "identity|unknown product types"):
             self.apply(queue, decisions)
 
     def test_manual_patch_cannot_be_plainly_accepted(self) -> None:
         queue = make_queue(
             [make_decision("renamed_field", patch_types=["rename_field"])]
         )
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(decisions, "field:renamed_field", "accept")
 
         with self.assertRaisesRegex(ValueError, "must be edited"):
@@ -337,7 +359,7 @@ class ApplyReviewTest(unittest.TestCase):
         queue = make_queue(
             [make_decision("renamed_field", patch_types=["rename_field"])]
         )
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(
             decisions,
             "field:renamed_field",
@@ -357,14 +379,15 @@ class ApplyReviewTest(unittest.TestCase):
             self.apply(queue, decisions)
 
     def test_unknown_decision_id_fails_loudly(self) -> None:
-        decisions = empty_decisions()
+        queue = make_queue()
+        decisions = empty_decisions(queue=queue)
         upsert_decision(decisions, "field:not_in_queue", "accept")
         with self.assertRaises(ValueError):
-            self.apply(make_queue(), decisions)
+            self.apply(queue, decisions)
 
     def test_edit_without_payload_fails(self) -> None:
         queue = make_queue()
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         decisions["decisions"].append(
             {"id": "field:annual_limit", "action": "edit", "edited_update": None}
         )
@@ -373,7 +396,7 @@ class ApplyReviewTest(unittest.TestCase):
 
     def test_unsupported_action_fails(self) -> None:
         queue = make_queue()
-        decisions = empty_decisions()
+        decisions = empty_decisions(queue=queue)
         decisions["decisions"].append(
             {"id": "field:annual_limit", "action": "approve"}
         )
