@@ -65,14 +65,14 @@ class AggregationDetailTest(unittest.TestCase):
         self.assertEqual(decision.frequency, 2)
         self.assertEqual(decision.source_runs, ["run_001", "run_002"])
 
-    def test_aliases_collect_diverging_field_names(self) -> None:
+    def test_diverging_names_do_not_create_aliases(self) -> None:
         patches = [
             make_patch("annual_limit", "run_001", field_name="annual_limits"),
             make_patch("annual_limit", "run_002", field_name="yearly_limit"),
             make_patch("annual_limit", "run_003"),
         ]
         decision = aggregate_patches(patches, total_runs=3)[0]
-        self.assertEqual(decision.aliases, ["annual_limits", "yearly_limit"])
+        self.assertEqual(decision.aliases, [])
 
     def test_majority_group_and_type_win(self) -> None:
         patches = [

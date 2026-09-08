@@ -11,7 +11,7 @@
         "additionalProperties": false,
         "required": ["patch_type", "target_group", "field_name", "canonical_name", "type", "description", "applies_to", "required", "values", "evidence_documents", "confidence", "rationale"],
         "properties": {
-          "patch_type": {"enum": ["add_field", "rename_field", "merge_fields", "move_field_group", "update_description", "add_alias", "reject_field"]},
+          "patch_type": {"enum": ["add_field", "rename_field", "merge_fields", "move_field_group", "update_description",  "reject_field"]},
           "target_group": {"type": "string"},
           "field_name": {"type": "string"},
           "canonical_name": {"type": "string"},

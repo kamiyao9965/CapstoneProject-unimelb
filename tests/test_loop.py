@@ -18,6 +18,7 @@ from src.refine.pipeline import cli, rounds
 from src.refine.pipeline import steps
 from src.verticals.manifest import PROJECT_ROOT
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
+from src.schema.validation import normalize_schema
 
 
 PROVENANCE = {
@@ -119,7 +120,7 @@ class PipelineSelectionTest(unittest.TestCase):
             args.selection = ModelSelection("anthropic", "claude-test", "pdf")
             out_path = Path(tmp) / "schema.json"
             discovery = mock.Mock()
-            discovery.discover.return_value = VALID_DISCOVERED_SCHEMA
+            discovery.discover.return_value = normalize_schema(VALID_DISCOVERED_SCHEMA)
 
             with mock.patch.object(steps, "SchemaDiscovery", return_value=discovery) as factory:
                 steps.generate_schema(args, None, out_path, sample_paths=["sample.pdf"])

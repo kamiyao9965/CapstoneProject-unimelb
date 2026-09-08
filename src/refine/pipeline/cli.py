@@ -103,7 +103,7 @@ def configure_args(args: argparse.Namespace) -> VerticalManifest:
         else manifest.path("output_root") / "refine"
     )
     if args.consensus_runs is None:
-        args.consensus_runs = 5 if manifest.vertical == "travel_insurance" else 1
+        args.consensus_runs = manifest.consensus_runs
     return manifest
 
 

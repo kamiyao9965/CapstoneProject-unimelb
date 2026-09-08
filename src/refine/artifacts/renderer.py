@@ -21,6 +21,8 @@ from src.common.json_artifacts import (
     write_artifact,
 )
 from src.schema.validation import validate_schema_mapping
+from src.schema.loader import load_schema_data
+from src.common.json_contracts import load_contract
 
 
 def render_consensus_schema(
@@ -33,15 +35,9 @@ def render_consensus_schema(
     valid_product_types: tuple[str, ...] = ("hospital", "extras", "generalhealth", "combined"),
     promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
     protected_fields: frozenset[str] = frozenset(),
+    manifest=None,
 ) -> None:
-    base_schema = read_artifact(
-        base_schema_path,
-        expected_type="discovered_schema",
-        data_contract=schema_contract,
-    )["data"]
-    if not isinstance(base_schema, dict):
-        raise ValueError("Base schema JSON must be an object.")
-
+    base_schema = load_schema_data(base_schema_path, manifest)
     consensus_schema = deepcopy(base_schema)
     existing_fields = fields_by_name(consensus_schema.get("fields", []))
 
@@ -52,7 +48,7 @@ def render_consensus_schema(
             continue
         patch_type = decision.patch_types[0]
         existing_field = existing_fields.get(decision.canonical_name)
-        if patch_type in {"update_description", "add_alias"} and existing_field is None:
+        if patch_type == "update_description" and existing_field is None:
             continue
         if patch_type == "add_field" and (
             not (
@@ -75,10 +71,10 @@ def render_consensus_schema(
         contract_version="1.0.0",
         data=consensus_schema,
         provenance=_local_provenance([Path(base_schema_path).as_posix()]),
-        data_contract=schema_contract,
+        data_contract_schema=load_contract(schema_contract, manifest=manifest),
     )
     write_artifact(
-        output_path, artifact, data_contract=schema_contract
+        output_path, artifact, data_contract_schema=load_contract(schema_contract, manifest=manifest)
     )
 
 
@@ -137,7 +133,6 @@ def render_report(decisions: list[FieldDecision]) -> str:
                 f"- Type: {decision.field_type}",
                 f"- Frequency: {decision.frequency_label}",
                 f"- Source runs: {', '.join(decision.source_runs) or 'n/a'}",
-                f"- Aliases: {', '.join(decision.aliases) or 'none'}",
                 f"- Description: {decision.description or 'n/a'}",
                 "",
             ]

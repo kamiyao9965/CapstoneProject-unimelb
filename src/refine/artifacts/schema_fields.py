@@ -48,10 +48,8 @@ def field_payload_from_decision(
     patch_types = set(decision.patch_types)
     if patch_types == {"update_description"}:
         payload["description"] = decision.description
-    elif patch_types == {"add_alias"}:
-        payload["aliases"] = sorted(
-            set(payload.get("aliases") or []) | set(decision.aliases)
-        )
+    elif "add_alias" in patch_types:
+        raise ValueError("Historical add_alias operations are read-only and cannot be applied.")
     else:
         payload.update(
             {
@@ -68,9 +66,9 @@ def field_payload_from_decision(
                 # Existing contracts carry these keys even when the arrays are
                 # empty, so get(key, default) would discard consensus votes.
                 "values": payload.get("values") or decision.values,
-                "aliases": payload.get("aliases") or decision.aliases,
             }
         )
+    payload.pop("aliases", None)
     return payload
 
 
@@ -79,6 +77,7 @@ def decision_requires_manual_edit(decision: FieldDecision) -> bool:
     patch_types = set(decision.patch_types)
     return (
         len(patch_types) != 1
+        or "add_alias" in patch_types
         or bool(MANUAL_EDIT_PATCH_TYPES.intersection(patch_types))
     )
 

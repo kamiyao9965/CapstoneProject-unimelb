@@ -29,8 +29,7 @@
     "acquisition_config": "configs/travel_insurance/sources.json",
     "acquisition_output": "outputs/travel_insurance/acquisition",
     "canonical_schema": "configs/travel_insurance/canonical_schema_v1.json",
-    "storage_mapping": "configs/travel_insurance/storage_mapping.json",
-    "alias_config": "configs/travel_insurance/aliases.json"
+    "storage_mapping": "configs/travel_insurance/storage_mapping.json"
   },
   "path_environment": {},
   "contracts": {

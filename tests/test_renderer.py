@@ -114,7 +114,7 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         self.assertEqual(field["applies_to"], ["hospital", "extras"])
         self.assertTrue(field["required"])
 
-    def test_existing_empty_aliases_and_values_do_not_drop_consensus_votes(self) -> None:
+    def test_existing_values_preserved_without_adding_aliases(self) -> None:
         schema = self.render(
             [
                 make_decision(
@@ -128,14 +128,14 @@ class RenderConsensusSchemaTest(unittest.TestCase):
 
         field = next(f for f in schema["fields"] if f["name"] == "product_name")
 
-        self.assertEqual(field["aliases"], ["plan_name"])
+        self.assertNotIn("aliases", field)
         self.assertEqual(field["values"], ["retail"])
 
     def test_new_core_field_is_not_assumed_required(self) -> None:
         schema = self.render([make_decision("excess", "core")])
         field = next(f for f in schema["fields"] if f["name"] == "excess")
         self.assertFalse(field["required"])
-        self.assertEqual(field["aliases"], [])
+        self.assertNotIn("aliases", field)
 
     def test_new_field_maps_group_to_product_type(self) -> None:
         schema = self.render(
@@ -185,7 +185,7 @@ class RenderConsensusSchemaTest(unittest.TestCase):
         field = next(f for f in schema["fields"] if f["name"] == "product_name")
         self.assertEqual(field["description"], "Clarified product name")
 
-    def test_add_alias_merges_aliases_into_existing_field(self) -> None:
+    def test_historical_alias_operation_is_not_auto_applied(self) -> None:
         schema = self.render(
             [
                 make_decision(
@@ -198,7 +198,7 @@ class RenderConsensusSchemaTest(unittest.TestCase):
             ]
         )
         field = next(f for f in schema["fields"] if f["name"] == "product_name")
-        self.assertEqual(field["aliases"], ["plan_name"])
+        self.assertNotIn("aliases", field)
 
     def test_unknown_group_is_not_auto_promoted(self) -> None:
         schema = self.render(

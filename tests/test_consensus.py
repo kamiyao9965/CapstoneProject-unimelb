@@ -152,7 +152,7 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
             # canonical field, so it is seen in 2/2 runs -> core.
             self.assertEqual(decisions["excess"].frequency, 2)
             self.assertEqual(decisions["excess"].decision, "core")
-            self.assertEqual(decisions["excess"].target_group, "hospital_cover")
+            self.assertEqual(decisions["excess"].target_group, "hospital")
             # promo_text only appears in 1/2 runs -> conditional at 0.5 ratio.
             self.assertEqual(decisions["promo_text"].frequency, 1)
 

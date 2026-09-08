@@ -31,7 +31,10 @@ from src.refine.artifacts.renderer import (
     render_report,
 )
 from src.refine.candidates.aggregator import FieldDecision, aggregate_patches
-from src.refine.candidates.normalizer import load_alias_config, normalize_patches
+from src.refine.candidates.normalizer import normalize_patches
+from src.schema.loader import load_schema_data
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+from src.verticals.registry import get_schema_validator
 from src.refine.candidates.patch import load_patch_file, write_patch_file
 from src.refine.candidates.stability import (
     compute_patch_stability,
@@ -70,33 +73,41 @@ class SchemaConsensusRefinement:
         promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
         manual_only_queue: bool = False,
         protected_fields: frozenset[str] = frozenset(),
+        manifest=None,
     ) -> None:
+        self.manifest = manifest or getattr(discovery, "manifest", None) or load_vertical_manifest(default_manifest_path(schema_contract.split("/")[0]))
+        manifest = self.manifest
         self.discovery = discovery
         self.log = log
-        self.schema_contract = schema_contract
-        self.patch_contract = patch_contract
-        self.schema_validator = schema_validator
-        self.valid_product_types = valid_product_types
-        self.promoted_decisions = promoted_decisions
-        self.manual_only_queue = manual_only_queue
-        self.protected_fields = protected_fields
+        self.schema_contract = manifest.contract("discovered_schema")
+        self.patch_contract = manifest.contract("candidate_patch_set")
+        self.schema_validator = get_schema_validator(manifest)
+        self.valid_product_types = manifest.product_types
+        self.promoted_decisions = manifest.promoted_decisions
+        self.manual_only_queue = manifest.manual_only_queue
+        self.protected_fields = manifest.protected_fields
 
     def refine(
         self,
         base_schema_path: str | Path,
         input_root: str | Path | None = None,
-        categories: tuple[str, ...] = DEFAULT_CATEGORIES,
+        categories: tuple[str, ...] | None = None,
         per_category: int = 5,
-        runs: int = 10,
+        runs: int | None = None,
         seed: int | None = None,
         samples: list[str] | None = None,
         base_sample_paths: Iterable[str | Path] = (),
-        output_dir: str | Path = "outputs/private_health/consensus",
+        output_dir: str | Path | None = None,
         alias_config_path: str | Path | None = None,
     ) -> ConsensusOutputs:
+        if alias_config_path is not None:
+            raise ValueError("--alias-config is no longer supported; aliases are read-only history.")
+        runs = runs if runs is not None else self.manifest.consensus_runs
+        categories = categories or self.manifest.documents.categories
+        output_dir = output_dir or self.manifest.path("output_root") / "consensus"
         if runs <= 0:
             raise ValueError("runs must be greater than 0.")
-        input_root = input_root or default_private_health_pdf_root()
+        input_root = input_root or self.manifest.path("input_root")
 
         base_schema = Path(base_schema_path)
         if not base_schema.exists():
@@ -109,12 +120,7 @@ class SchemaConsensusRefinement:
         stability_path = resolved_output_dir / "patch_stability.json"
         queue_path = resolved_output_dir / "review_queue.json"
 
-        field_aliases, group_aliases = load_alias_config(alias_config_path)
-        current_schema = read_artifact(
-            base_schema,
-            expected_type="discovered_schema",
-            data_contract=self.schema_contract,
-        )["data"]
+        current_schema = load_schema_data(base_schema, self.manifest)
         all_patches = []
         schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
 
@@ -161,8 +167,6 @@ class SchemaConsensusRefinement:
                         data_contract=self.patch_contract,
                         allowed_product_types=set(self.valid_product_types),
                     ),
-                    field_aliases,
-                    group_aliases,
                 )
             )
 
@@ -178,6 +182,7 @@ class SchemaConsensusRefinement:
             consensus_schema_path,
             schema_contract=self.schema_contract,
             schema_validator=self.schema_validator,
+            manifest=self.manifest,
             valid_product_types=self.valid_product_types,
             promoted_decisions=self.promoted_decisions,
             protected_fields=self.protected_fields,
@@ -255,23 +260,31 @@ def build_parser() -> argparse.ArgumentParser:
         description="Standalone consensus refinement: N patch runs against a base "
         "schema, frequency voting, review queue (uses the selected provider API)"
     )
-    parser.add_argument("--base-schema", default="outputs/private_health/schema.json")
-    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    parser.add_argument("--manifest")
+    parser.add_argument("--base-schema")
+    parser.add_argument("--input-root")
     parser.add_argument("--per-category", type=int, default=5)
-    parser.add_argument("--runs", type=int, default=5)
+    parser.add_argument("--runs", type=int)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--provider")
     parser.add_argument("--model")
     parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
-    parser.add_argument("--out-dir", default="outputs/private_health/consensus")
-    parser.add_argument("--alias-config", help="Alias JSON (default: configs/private_health/aliases.json)")
+    parser.add_argument("--out-dir")
+    parser.add_argument("--alias-config", help="Removed: passing this option is an error")
     return parser
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    if args.alias_config is not None:
+        parser.error("--alias-config is no longer supported.")
+    manifest = load_vertical_manifest(args.manifest or default_manifest_path("private_health"))
+    manifest.require_capability("refinement")
+    args.base_schema = args.base_schema or manifest.path("output_root") / "schema.json"
+    args.input_root = args.input_root or manifest.path("input_root")
+    args.out_dir = args.out_dir or manifest.path("output_root") / "consensus"
     try:
         selection = resolve_selection(
             provider=args.provider,
@@ -283,10 +296,12 @@ def main() -> int:
     outputs = SchemaConsensusRefinement(
         discovery=SchemaDiscovery(
             selection=selection,
+            manifest=manifest,
             timeout_seconds=args.timeout,
             usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
             pdf_root=args.input_root,
         ),
+        manifest=manifest,
     ).refine(
         base_schema_path=args.base_schema,
         input_root=args.input_root,

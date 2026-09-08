@@ -122,13 +122,8 @@ def _build_decision(
 
     confidences = [patch.confidence for patch in patches if patch.confidence > 0]
     average_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-    aliases = sorted(
-        {
-            patch.field_name
-            for patch in patches
-            if patch.field_name and patch.field_name != canonical_name
-        }
-    )
+    aliases = []  # Historical artifact field remains empty; no alias collection.
+
 
     reject_runs = {patch.source_run for patch in reject_patches if patch.source_run}
     reject_votes = len(reject_runs) if reject_runs else len(reject_patches)

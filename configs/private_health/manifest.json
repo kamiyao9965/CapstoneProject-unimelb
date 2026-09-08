@@ -25,8 +25,7 @@
   },
   "paths": {
     "input_root": "konkrd-data/data/private_health/raw/PDFs",
-    "output_root": "outputs/private_health",
-    "alias_config": "configs/private_health/aliases.json"
+    "output_root": "outputs/private_health"
   },
   "path_environment": {
     "input_root": {

@@ -21,7 +21,6 @@ SUPPORTED_PATCH_TYPES = {
     "merge_fields",
     "move_field_group",
     "update_description",
-    "add_alias",
     "reject_field",
 }
 MANUAL_EDIT_PATCH_TYPES = frozenset(
@@ -122,8 +121,6 @@ class SchemaPatch:
                 raise ValueError("add_field enum patch must declare allowed values.")
         if self.patch_type == "update_description" and not self.description:
             raise ValueError("update_description patch must include a description.")
-        if self.patch_type == "add_alias" and self.field_name == self.canonical_name:
-            raise ValueError("add_alias patch must provide an alias distinct from canonical_name.")
 
     def to_dict(self) -> dict[str, object]:
         return {

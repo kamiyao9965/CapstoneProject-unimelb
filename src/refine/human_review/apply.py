@@ -49,7 +49,7 @@ def apply_review(
             f"(wrong file pairing?): {', '.join(unknown_ids)}"
         )
 
-    reviewed = deepcopy(base_schema)
+    reviewed = validate_schema_mapping(base_schema)
     fields = fields_by_name(reviewed.get("fields", []))
     allowed_product_types = allowed_product_types or set(
         reviewed.get("product_types") or []
@@ -64,6 +64,7 @@ def apply_review(
             allowed_product_types,
         )
         if payload is not None:
+            payload.pop("aliases", None)
             fields[str(payload["name"])] = payload
 
     reviewed["fields"] = list(fields.values())
@@ -88,6 +89,8 @@ def _payload_from_review_item(
     if action == "reject":
         summary["rejected"].append(item["id"])
         return None
+    if "add_alias" in item.get("patch_types", []):
+        raise ValueError("Historical add_alias operations are read-only and cannot be applied.")
     if action == "accept":
         if item.get("needs_manual_edit"):
             raise ValueError(

@@ -98,7 +98,6 @@ class TravelConsensusTests(unittest.TestCase):
                 runs=5,
                 samples=["pds/a.pdf"],
                 output_dir=root / "consensus",
-                alias_config_path="configs/travel_insurance/aliases.json",
             )
 
             schema = read_artifact(
