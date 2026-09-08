@@ -7,6 +7,15 @@ from src.models import ExtractionResult
 
 
 class EvaluationMetricTest(unittest.TestCase):
+    def test_dynamic_field_named_like_section_does_not_crash_metrics(self) -> None:
+        extracted = ExtractionResult(vertical="private_health", schema_version="test",
+                                     source_path="example.pdf",
+                                     data={"hospital": "included", "extras": []})
+        report = ExtractionEvaluator().evaluate(extracted, {
+            "hospital": {"product_name": "Example"}})
+        self.assertEqual(report.matched_fields, 0)
+        self.assertEqual(report.section_metrics["hospital"]["matched_categories"], 0)
+
     def test_flat_discovered_fields_match_labelled_sections_without_aliases(self) -> None:
         data = {"product_name": "Example", "hospital_tier": "Silver",
                 "product_type": "hospital", "_unfilled": [], "_notes": None}

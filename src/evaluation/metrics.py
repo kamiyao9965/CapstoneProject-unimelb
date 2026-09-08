@@ -436,13 +436,18 @@ class ExtractionEvaluator:
             "presence_recall": len(comparable) / len(gt_product) if gt_product else 0.0,
         }
 
+    @staticmethod
+    def _section(payload: dict[str, Any], name: str) -> dict[str, Any]:
+        value = payload.get(name)
+        return value if isinstance(value, dict) else {}
+
     def _hospital_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, float | int]:
         extracted_categories = self._keyed_items(
-            extracted.get("hospital", {}).get("clinical_categories", []),
+            self._section(extracted, "hospital").get("clinical_categories", []),
             "category",
         )
         gt_categories = self._keyed_items(
-            ground_truth.get("hospital", {}).get("clinical_categories", []),
+            self._section(ground_truth, "hospital").get("clinical_categories", []),
             "category",
         )
         extracted_keys = set(extracted_categories)
@@ -463,8 +468,8 @@ class ExtractionEvaluator:
         }
 
     def _extras_metrics(self, extracted: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, float | int]:
-        extracted_services = self._keyed_items(extracted.get("extras", {}).get("services", []), "service")
-        gt_services = self._keyed_items(ground_truth.get("extras", {}).get("services", []), "service")
+        extracted_services = self._keyed_items(self._section(extracted, "extras").get("services", []), "service")
+        gt_services = self._keyed_items(self._section(ground_truth, "extras").get("services", []), "service")
         extracted_keys = set(extracted_services)
         gt_keys = set(gt_services)
         common = extracted_keys & gt_keys
