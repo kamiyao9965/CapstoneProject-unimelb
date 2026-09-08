@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
-import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -19,10 +18,12 @@ from src.common.json_artifacts import (
     write_text_output,
 )
 from src.common.json_codec import dumps_json
+from src.common.json_contracts import load_contract
 from src.common.model_config import resolve_selection
 from src.config import load_config
 from src.models import ExtractionResult
 from src.schema.sampler import print_samples, select_samples
+from src.schema.loader import load_schema_data
 from src.verticals.manifest import (
     ManifestValidationError,
     VerticalManifest,
@@ -32,7 +33,7 @@ from src.verticals.manifest import (
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Konkrd private-health extraction pipeline")
+    parser = argparse.ArgumentParser(description="Konkrd insurance extraction pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     discover = subparsers.add_parser(
@@ -216,7 +217,6 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
 def command_discover(args: argparse.Namespace) -> int:
     from src.common.structured_output import StructuredOutputFailure
     from src.schema.discovery import SchemaDiscovery
-    from src.verticals.registry import get_prompt, get_schema_validator
 
     try:
         selection = resolve_selection(
@@ -250,12 +250,7 @@ def command_discover(args: argparse.Namespace) -> int:
             timeout_seconds=args.timeout,
             usage_log_path=args.usage_log,
             pdf_root=input_root,
-            vertical=manifest.vertical,
-            discovery_contract=manifest.contract("discovered_schema"),
-            discovery_prompt=get_prompt(manifest.prompt("discovery")),
-            schema_validator=get_schema_validator(
-                manifest.adapter("schema_validator")
-            ),
+            manifest=manifest,
         ).discover(sample_paths, output_path=output_path, run_id=run_id)
     except Exception as exc:
         details = (
@@ -314,12 +309,12 @@ def command_discover(args: argparse.Namespace) -> int:
             "source_documents": list(sample_paths),
             "source_artifacts": [],
         },
-        data_contract=manifest.contract("discovered_schema"),
+        data_contract_schema=load_contract(manifest.contract("discovered_schema"), manifest=manifest),
     )
     write_artifact(
         output_path,
         artifact,
-        data_contract=manifest.contract("discovered_schema"),
+        data_contract_schema=load_contract(manifest.contract("discovered_schema"), manifest=manifest),
     )
     print(f"Wrote schema draft to {output_path}")
     return 0
@@ -376,7 +371,7 @@ def command_batch(args: argparse.Namespace) -> int:
     input_root = (
         Path(args.input_root)
         if args.input_root
-        else config.data_dir / args.vertical / "raw" / "PDFs"
+        else manifest.path("input_root")
     )
     pdf_paths = sorted(input_root.rglob("*.pdf"))
     if not pdf_paths:
@@ -552,17 +547,11 @@ def _build_schema_extractor(
     pdf_root: Path,
 ):
     from src.schema_application.extractor import SchemaExtractor
-    from src.verticals.registry import get_prompt, get_schema_validator
 
     return SchemaExtractor(
         schema_data=schema_data,
         selection=selection,
-        schema_contract=manifest.contract("discovered_schema"),
-        schema_validator=get_schema_validator(
-            manifest.adapter("schema_validator")
-        ),
-        output_cardinality=manifest.documents.output_cardinality,
-        extraction_prompt=get_prompt(manifest.prompt("extraction")),
+        manifest=manifest,
         usage_log_path=manifest.path("output_root") / "extraction_usage.jsonl",
         pdf_root=pdf_root,
     )
@@ -697,21 +686,6 @@ def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
     return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
-
-
-def load_schema_data(schema_path: str | Path) -> dict[str, object]:
-    path = Path(schema_path)
-    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if (
-        isinstance(payload, dict)
-        and payload.get("artifact_type") == "discovered_schema"
-        and payload.get("status") == "success"
-        and isinstance(payload.get("data"), dict)
-    ):
-        return payload["data"]
-    if isinstance(payload, dict):
-        return payload
-    raise ValueError(f"Schema file must contain a JSON/YAML object: {path}")
 
 
 def next_available_path(path: Path) -> Path:

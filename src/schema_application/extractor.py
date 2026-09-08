@@ -33,8 +33,9 @@ from src.schema.canonical import (
     require_approved_canonical_schema,
     validate_canonical_extraction_identities,
 )
-from src.schema_application.prompts import EXTRACTION_PROMPT
-from src.schema.validation import validate_schema_mapping
+from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
+from src.verticals.registry import get_prompt, get_schema_validator
+from src.schema.validation import validate_schema_mapping, validate_extraction_record
 
 
 class SchemaExtractor:
@@ -49,18 +50,29 @@ class SchemaExtractor:
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
         timeout_seconds: float = 600.0,
-        usage_log_path: str | Path | None = "outputs/private_health/extraction_usage.jsonl",
+        usage_log_path: str | Path | None = None,
         log: Callable[[str], None] | None = print,
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
-        schema_contract: str = "private_health/discovered_schema",
-        schema_validator: Callable[[object], object] = validate_schema_mapping,
-        output_cardinality: str = "single",
-        extraction_prompt: str = EXTRACTION_PROMPT,
+        schema_contract: str | None = None,
+        schema_validator: Callable[[object], object] | None = None,
+        output_cardinality: str | None = None,
+        extraction_prompt: str | None = None,
+        manifest: VerticalManifest | None = None,
     ) -> None:
+        manifest = manifest or load_vertical_manifest(default_manifest_path(str(schema_data.get("vertical"))))
+        manifest.require_capability("extraction")
+        if schema_data.get("vertical") != manifest.vertical:
+            raise ValueError("Schema vertical does not match manifest.")
+        self.manifest = manifest
+        schema_contract = schema_contract or manifest.contract("discovered_schema")
+        schema_validator = schema_validator or get_schema_validator(manifest)
+        output_cardinality = output_cardinality or manifest.documents.output_cardinality
+        if output_cardinality != manifest.documents.output_cardinality:
+            raise ValueError("Extraction cardinality does not match manifest.")
         self.schema_data = dict(schema_data)
         self.extraction_business_validator: Callable[[object], object] | None = None
         if is_canonical_schema(schema_data):
@@ -87,20 +99,23 @@ class SchemaExtractor:
             )
             self.schema_prompt_label = "Approved Canonical Schema"
         else:
-            validate_contract(schema_data, schema_contract)
+            validate_contract(schema_data, schema_contract, manifest=manifest)
             schema_validator(schema_data)
+            self.schema_data = validate_schema_mapping(dict(schema_data), manifest=manifest)
+            self.extraction_business_validator = partial(validate_extraction_record, self.schema_data, manifest=manifest)
             self.extraction_contract = compile_extraction_contract(
                 schema_data,
                 data_contract=schema_contract,
                 business_validator=schema_validator,
                 output_cardinality=output_cardinality,
+                manifest=manifest,
             )
             self.structured_output_strict = not any(
                 field["type"] == "list[object]"
                 for field in self.schema_data["fields"]
             )
             self.schema_prompt_label = "Discovered schema"
-        self.extraction_prompt = extraction_prompt
+        self.extraction_prompt = extraction_prompt or get_prompt(manifest.prompt("extraction"))
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
             raise ValueError(
@@ -111,7 +126,7 @@ class SchemaExtractor:
         self.provider = provider or create_provider(self.selection, client=client)
         self.pdf_root = Path(pdf_root) if pdf_root else None
         self.preprocessor = preprocessor
-        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)
+        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None

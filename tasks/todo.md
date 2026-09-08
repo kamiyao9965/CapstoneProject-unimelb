@@ -78,7 +78,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 ### T06 — 统一公共字段模型和校验
 
-- [ ] 完成 T06。
+- [x] 完成 T06。
 - **目的：** 将两领域的字段、产品身份、taxonomies 和输出基数交给共享函数处理。
 - **验收：** 分类字段不重复，taxonomy 名称来自数据；enum/applies_to/身份/类型校验保留；只更新必需契约，不连带升级全部 envelope。
 - **验证：** `.venv/bin/python -m unittest tests.test_schema_validation tests.test_extraction_contract tests.test_json_contracts -v`；单/多产品、重复字段和非法身份引用负例。
@@ -86,7 +86,7 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 
 ### T07 — 收拢必要兼容，清理无调用旧模型
 
-- [ ] 完成 T07。
+- [x] 完成 T07。
 - **目的：** 在一个入口读取实际使用的旧 JSON，避免保留第二套领域模型和编译器。
 - **验收：** 两旧 JSON 经原验证后进入公共表示；原文件/批准状态不变；旧 YAML/entity-v2/静态模型有使用证据才留最小兼容，不建设通用迁移系统。
 - **验证：** `.venv/bin/python -m unittest tests.test_full_pipeline_adapter tests.test_travel_schema_migration tests.test_canonical_schema -v`；原始文件不变、未知结构拒绝及调用方扫描。
@@ -242,3 +242,5 @@ targeted unittest 命令均以 `.venv/bin/python -m unittest` 开头，离线运
 基线完成记录：2026-09-08 远端 main 已核实为 063c13e，包含原 Travel 43 提交及回归修复。374 tests（373 pass / 1 DB skip），独立审查另跑22项全部通过。旧 ingestor/router→PDFingestor；旧 LLMExtractor→SchemaExtractor；旧爬虫配置→Travel sources。旧占位领域/YAML无当前生产调用；6份旧 CSV 在默认外置数据根未找到，不能称为已验证搬迁，历史 Git 仍保留；真实 Health 标签批处理未验证。
 
 T03–T05：manifest 自动发现，分离产品类型/采样类型、声明共识策略；六份 prompt 原文外置，单一加载入口，缺失/空文件/路径越界提前拒绝。377 tests（376 pass / 1 DB skip）、compileall/diff-check通过；旧常量暂时只重导出，T18移除。
+
+T06–T09：公共字段/taxonomies契约按所选manifest编译；旧JSON集中只读转换。移除未被生产调用的静态SchemaLoader/Validator/VerticalSchema和7行pipeline包装；SchemaExtractor与Discovery从manifest解析prompt/基数/缓存，增加身份与适用性校验。独立审查发现的自定义manifest、模型旧格式响应和串域contract均已修复并补回归；381 tests（380 pass / 1 DB skip）及compileall、两入口help通过。主调用方继续收口中。

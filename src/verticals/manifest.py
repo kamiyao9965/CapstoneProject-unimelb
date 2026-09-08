@@ -8,7 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
 
-from src.common.json_contracts import ContractValidationError, validate_contract
+from src.common.json_contracts import ContractValidationError, load_contract, validate_contract
 from src.common.json_codec import loads_json
 
 
@@ -180,6 +180,14 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
     )
     for name in manifest.paths:
         manifest.path(name)
+    if manifest.contract("discovered_schema") != f"{manifest.vertical}/discovered_schema":
+        raise ManifestValidationError("Discovered schema contract vertical conflicts with manifest.")
+    try:
+        for contract in manifest.contracts.values():
+            if contract:
+                load_contract(contract, manifest=manifest)
+    except ValueError as exc:
+        raise ManifestValidationError(str(exc)) from exc
     for name in ("discovery", "patch", "extraction"):
         path = Path(manifest.prompt(name))
         if not path.read_text(encoding="utf-8").strip():

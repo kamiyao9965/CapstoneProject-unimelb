@@ -26,7 +26,7 @@ def normalize_schema(payload: object, manifest: VerticalManifest | None = None) 
     manifest = manifest or load_vertical_manifest(default_manifest_path(str(payload.get("vertical"))))
     if payload.get("vertical") != manifest.vertical:
         raise ValueError(f"Schema vertical must be {manifest.vertical!r}.")
-    validate_contract(payload, manifest.contract("discovered_schema"))
+    validate_contract(payload, manifest.contract("discovered_schema"), manifest=manifest)
     schema = deepcopy(payload)
     if "taxonomies" not in schema:
         schema["taxonomies"] = {name: schema.pop(name) for name in manifest.taxonomies}
@@ -178,3 +178,21 @@ def validate_field_payload(
     ):
         raise ValueError(f"Schema field {name!r} aliases must be a list of strings.")
     return payload
+
+
+def validate_extraction_record(schema: dict[str, object], payload: object, *, manifest: VerticalManifest) -> None:
+    """Check applicability and document-local product identities after JSON validation."""
+    records = payload["products"] if manifest.documents.output_cardinality == "multiple" else [payload]
+    identities = set()
+    for record in records:
+        product_type = record.get("product_type")
+        for field in schema["fields"]:
+            if product_type is not None and product_type not in field["applies_to"] and record.get(field["name"]) is not None:
+                raise ValueError(f"Field {field['name']!r} is not applicable to product_type {product_type!r}.")
+        if manifest.identity_fields:
+            identity = tuple(record.get(name) for name in manifest.identity_fields)
+            if any(not isinstance(value, str) or not value.strip() for value in identity):
+                raise ValueError("Product identity fields must have non-empty values.")
+            if identity in identities:
+                raise ValueError("Duplicate product identity within one document.")
+            identities.add(identity)

@@ -14,10 +14,11 @@ def compile_extraction_contract(
     data_contract: str = "private_health/discovered_schema",
     business_validator: Callable[[object], object] = validate_schema_mapping,
     output_cardinality: str = "single",
+    manifest=None,
 ) -> dict[str, object]:
-    validate_contract(schema, data_contract)
+    validate_contract(schema, data_contract, manifest=manifest)
     business_validator(schema)
-    product_contract = _compile_product_contract(normalize_schema(dict(schema)))
+    product_contract = _compile_product_contract(normalize_schema(dict(schema), manifest))
     if output_cardinality == "single":
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",

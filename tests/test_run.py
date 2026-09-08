@@ -10,6 +10,8 @@ from src.common.model_config import ModelSelection, resolve_selection
 from src import run as run_module
 from src.run import build_parser, configure_command
 from src.verticals.manifest import PROJECT_ROOT
+from src.schema.validation import normalize_schema
+from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 from tests.test_canonical_schema import approved_travel_schema
 from tests.test_travel_schema_migration import (
     VALID_TRAVEL_EXTRACTION,
@@ -55,14 +57,7 @@ class RunParserTest(unittest.TestCase):
     def test_main_passes_input_root_to_discovery_as_pdf_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             discovery = mock.Mock()
-            discovery.discover.return_value = {
-                "vertical": "private_health", "version": "0.1-draft",
-                "description": "Schema", "product_types": ["hospital"],
-                "fields": [{"name": "product_name", "type": "string",
-                            "description": "Name", "applies_to": ["hospital"],
-                            "required": True, "values": [], "aliases": []}],
-                "hospital_categories": [], "extras_services": [], "notes": [],
-            }
+            discovery.discover.return_value = normalize_schema(VALID_DISCOVERED_SCHEMA)
             output = Path(tmp) / "schema.json"
             argv = [
                 "run.py",
@@ -308,7 +303,7 @@ class RunParserTest(unittest.TestCase):
     def test_travel_discovery_injects_manifest_contract_prompt_and_validator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             discovery = mock.Mock()
-            discovery.discover.return_value = VALID_TRAVEL_SCHEMA
+            discovery.discover.return_value = normalize_schema(VALID_TRAVEL_SCHEMA)
             output = Path(tmp) / "schema.json"
             argv = [
                 "run.py",
@@ -329,15 +324,9 @@ class RunParserTest(unittest.TestCase):
                 exit_code = run_module.main()
 
         self.assertEqual(exit_code, 0)
-        self.assertEqual(factory.call_args.kwargs["vertical"], "travel_insurance")
-        self.assertEqual(
-            factory.call_args.kwargs["discovery_contract"],
-            "travel_insurance/discovered_schema",
-        )
-        self.assertIn(
-            "travel insurance",
-            factory.call_args.kwargs["discovery_prompt"].lower(),
-        )
+        manifest = factory.call_args.kwargs["manifest"]
+        self.assertEqual(manifest.vertical, "travel_insurance")
+        self.assertEqual(manifest.contract("discovered_schema"), "travel_insurance/discovered_schema")
 
     def test_travel_extract_injects_multiple_product_runtime(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -372,11 +361,9 @@ class RunParserTest(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(len(payload["data"]["products"]), 2)
-        self.assertEqual(
-            factory.call_args.kwargs["schema_contract"],
-            "travel_insurance/discovered_schema",
-        )
-        self.assertEqual(factory.call_args.kwargs["output_cardinality"], "multiple")
+        manifest = factory.call_args.kwargs["manifest"]
+        self.assertEqual(manifest.vertical, "travel_insurance")
+        self.assertEqual(manifest.documents.output_cardinality, "multiple")
 
     def test_discovery_reuses_failure_artifact_written_by_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

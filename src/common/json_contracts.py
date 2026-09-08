@@ -55,7 +55,7 @@ class ContractValidationError(ValueError):
         super().__init__(f"JSON contract {contract_name!r} validation failed: {detail}")
 
 
-def load_contract(name: str) -> dict[str, Any]:
+def load_contract(name: str, *, manifest=None) -> dict[str, Any]:
     """Load an allowlisted contract by logical name.
 
     An explicit catalog prevents caller-controlled path traversal and makes the
@@ -65,7 +65,9 @@ def load_contract(name: str) -> dict[str, Any]:
         from src.verticals.manifest import default_manifest_path, load_vertical_manifest
 
         vertical = name.removesuffix("/discovered_schema")
-        manifest = load_vertical_manifest(default_manifest_path(vertical))
+        manifest = manifest or load_vertical_manifest(default_manifest_path(vertical))
+        if manifest.vertical != vertical:
+            raise ValueError("Contract vertical does not match selected manifest.")
         contract = loads_json((CONTRACT_ROOT / "discovered_schema.schema.json").read_text(encoding="utf-8"))
         properties = contract["properties"]
         properties["vertical"] = {"const": manifest.vertical}
@@ -89,9 +91,9 @@ def load_contract(name: str) -> dict[str, Any]:
     return copy.deepcopy(contract)
 
 
-def validate_contract(payload: Any, name: str) -> Any:
+def validate_contract(payload: Any, name: str, *, manifest=None) -> Any:
     """Validate a payload and return the same object when it is valid."""
-    contract = load_contract(name)
+    contract = load_contract(name, manifest=manifest)
     # Historical persisted JSON keeps its original strict shape. New requests use
     # the shared contract above; legacy conversion is owned by schema.validation.
     if name.endswith("/discovered_schema") and isinstance(payload, dict) and "taxonomies" not in payload:

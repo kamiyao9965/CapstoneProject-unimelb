@@ -11,6 +11,17 @@ from src.schema.discovery import SchemaDiscovery
 
 
 class SchemaDiscoveryInputTest(unittest.TestCase):
+    def test_legacy_model_response_is_rejected_against_current_request(self) -> None:
+        import json
+        from tests.test_schema_validation import StaticProvider, VALID_SCHEMA_MAPPING
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = Path(tmp) / "sample.pdf"
+            pdf.touch()
+            discovery = SchemaDiscovery(provider=StaticProvider(json.dumps(VALID_SCHEMA_MAPPING)), log=None)
+            with mock.patch("src.schema.discovery.render_pdf_paths_for_prompt", return_value="fixture"):
+                with self.assertRaisesRegex(RuntimeError, "remained invalid"):
+                    discovery.discover([str(pdf)])
+
     def test_pdfingestor_failure_stops_before_provider(self) -> None:
         class RecordingProvider:
             def __init__(self) -> None:

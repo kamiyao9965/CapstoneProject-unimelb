@@ -7,7 +7,7 @@ from src.PDFingestor.parser import PDFIngestor
 from src.PDFingestor.models import PageRepresentation, ParsedPDF
 
 
-DEFAULT_CACHE_DIR = Path("outputs/private_health/pdfingestor_cache")
+DEFAULT_CACHE_DIR = Path("outputs/pdfingestor_cache")
 
 
 def build_ingestor(

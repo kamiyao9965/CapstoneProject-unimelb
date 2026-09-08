@@ -27,7 +27,8 @@ from src.common.structured_output import (
     StructuredOutputFailure,
     run_structured_output,
 )
-from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT, SCHEMA_PATCH_PROMPT
+from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
+from src.verticals.registry import get_prompt, get_schema_validator
 from src.schema.validation import validate_schema_mapping
 from src.refine.candidates.patch import parse_patch_payload
 
@@ -41,7 +42,7 @@ class SchemaDiscovery:
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
         timeout_seconds: float = 600.0,
-        usage_log_path: str | Path | None = "outputs/private_health/token_usage.jsonl",
+        usage_log_path: str | Path | None = None,
         log: Callable[[str], None] | None = print,
         request_params: dict[str, object] | None = None,
         extra_instructions: str | None = None,
@@ -51,13 +52,17 @@ class SchemaDiscovery:
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
         vertical: str = "private_health",
-        discovery_contract: str = "private_health/discovered_schema",
-        discovery_prompt: str = SCHEMA_DISCOVERY_PROMPT,
-        schema_validator: Callable[[object], object] = validate_schema_mapping,
-        patch_contract: str = "private_health/candidate_patch_set",
-        patch_prompt: str = SCHEMA_PATCH_PROMPT,
-        patch_validator: Callable[[object], object] = parse_patch_payload,
+        discovery_contract: str | None = None,
+        discovery_prompt: str | None = None,
+        schema_validator: Callable[[object], object] | None = None,
+        patch_contract: str | None = None,
+        patch_prompt: str | None = None,
+        patch_validator: Callable[[object], object] | None = None,
+        manifest: VerticalManifest | None = None,
     ) -> None:
+        manifest = manifest or load_vertical_manifest(default_manifest_path(vertical))
+        manifest.require_capability("discovery")
+        self.manifest = manifest
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
             raise ValueError(
@@ -70,7 +75,7 @@ class SchemaDiscovery:
         # representation and sends it inline as Markdown-compatible text.
         self.pdf_root = Path(pdf_root) if pdf_root else None
         self.preprocessor = preprocessor
-        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)
+        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -87,13 +92,13 @@ class SchemaDiscovery:
         # {"seed": 7}. Only what the caller sets is sent; support varies by model
         # (gpt-5 reasoning models may reject temperature), so this is opt-in.
         self.request_params = dict(request_params or {})
-        self.vertical = vertical
-        self.discovery_contract = discovery_contract
-        self.discovery_prompt = discovery_prompt
-        self.schema_validator = schema_validator
-        self.patch_contract = patch_contract
-        self.patch_prompt = patch_prompt
-        self.patch_validator = patch_validator
+        self.vertical = manifest.vertical
+        self.discovery_contract = discovery_contract or manifest.contract("discovered_schema")
+        self.discovery_prompt = discovery_prompt or get_prompt(manifest.prompt("discovery"))
+        self.schema_validator = schema_validator or get_schema_validator(manifest)
+        self.patch_contract = patch_contract or manifest.contract("candidate_patch_set")
+        self.patch_prompt = patch_prompt or get_prompt(manifest.prompt("patch"))
+        self.patch_validator = patch_validator or (lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types)))
 
     def discover(
         self,
@@ -195,14 +200,14 @@ class SchemaDiscovery:
                 request,
                 structured_output=StructuredOutputSpec(
                     name=output_name,
-                    schema=load_contract(contract_name),
+                    schema=load_contract(contract_name, manifest=self.manifest),
                 ),
             )
             try:
                 result = run_structured_output(
                     self.provider,
                     request,
-                    data_contract=contract_name,
+                    data_contract_schema=request.structured_output.schema,
                     business_validator=business_validator,
                 )
             except StructuredOutputFailure as exc:
@@ -243,7 +248,7 @@ class SchemaDiscovery:
                     validation_succeeded=not attempt.errors,
                 )
             assert result.data is not None
-            return result.data
+            return validate_schema_mapping(result.data, manifest=self.manifest) if usage_event == "schema_discovery" else result.data
 
         raise RuntimeError(f"No structured output contract configured for {usage_event}.")
 

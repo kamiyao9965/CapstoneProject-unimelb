@@ -16,6 +16,19 @@ from src.verticals.registry import get_acquisition_adapter
 
 
 class VerticalManifestTest(unittest.TestCase):
+    def test_custom_manifest_owns_schema_taxonomies(self) -> None:
+        from dataclasses import replace
+        from src.common.json_contracts import load_contract
+        from src.schema.validation import normalize_schema, validate_schema_mapping
+        from tests.test_schema_validation import VALID_SCHEMA_MAPPING
+        manifest = replace(load_vertical_manifest(PROJECT_ROOT / "configs/private_health/manifest.json"),
+                           taxonomies=("health_categories",))
+        payload = normalize_schema(VALID_SCHEMA_MAPPING)
+        payload["taxonomies"] = {"health_categories": []}
+        self.assertEqual(validate_schema_mapping(payload, manifest=manifest), payload)
+        contract = load_contract(manifest.contract("discovered_schema"), manifest=manifest)
+        self.assertEqual(contract["properties"]["taxonomies"]["required"], ["health_categories"])
+
     def test_registry_discovers_packages_and_rejects_duplicate_verticals(self) -> None:
         from src.verticals.manifest import discover_manifests
         with tempfile.TemporaryDirectory() as tmp:

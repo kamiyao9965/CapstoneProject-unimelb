@@ -7,8 +7,10 @@ from pathlib import Path
 
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.run import build_parser
-from src.schema.loader import SchemaLoader
-from src.schema.validator import SchemaValidator
+from src.schema.loader import load_schema_data
+from src.schema.contract import compile_extraction_contract
+from src.schema.validation import validate_extraction_record
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
 
@@ -36,18 +38,12 @@ class FullPipelineAdapterTest(unittest.TestCase):
                 data_contract="private_health/discovered_schema",
             )
 
-            schema = SchemaLoader().load(schema_path)
+            schema = load_schema_data(schema_path)
 
-        self.assertEqual(schema.vertical, "private_health")
-        self.assertEqual(schema.version, VALID_DISCOVERED_SCHEMA["version"])
-        self.assertEqual(schema.metadata["schema_style"], "discovered_json")
-        self.assertEqual(schema.hospital.canonical_categories, ["BackNeckSpine"])
-        self.assertEqual(schema.extras.canonical_services, ["GeneralDental"])
-        self.assertEqual([field.name for field in schema.hospital.fields], [
-            "product_type",
-            "product_name",
-        ])
-        self.assertEqual(SchemaValidator().validate(schema), [])
+        self.assertEqual(schema["vertical"], "private_health")
+        self.assertEqual(schema["version"], VALID_DISCOVERED_SCHEMA["version"])
+        self.assertEqual(schema["taxonomies"]["hospital_categories"][0]["canonical_name"], "BackNeckSpine")
+        self.assertEqual(schema["taxonomies"]["extras_services"][0]["canonical_name"], "GeneralDental")
 
     def test_discovered_schema_builds_flat_extraction_contract(self) -> None:
         schema_data = json.loads(json.dumps(VALID_DISCOVERED_SCHEMA))
@@ -83,23 +79,18 @@ class FullPipelineAdapterTest(unittest.TestCase):
                 artifact,
                 data_contract="private_health/discovered_schema",
             )
-            schema = SchemaLoader().load(schema_path)
+            schema = load_schema_data(schema_path)
 
-        contract = SchemaLoader().build_json_schema(schema)
+        contract = compile_extraction_contract(schema)
 
         self.assertIn("product_type", contract["properties"])
         self.assertIn("product_name", contract["properties"])
         self.assertIn("_unfilled", contract["properties"])
         self.assertNotIn("hospital", contract["properties"])
         self.assertNotIn("extras", contract["properties"])
-        extras_rule = next(
-            rule for rule in contract["allOf"]
-            if rule["if"]["properties"]["product_type"]["const"] == "extras"
-        )
-        self.assertEqual(
-            extras_rule["then"]["properties"]["hospital_tier"],
-            {"type": "null"},
-        )
+        with self.assertRaisesRegex(ValueError, "not applicable"):
+            validate_extraction_record(schema, {"product_type": "extras", "hospital_tier": "Gold"},
+                manifest=load_vertical_manifest(default_manifest_path("private_health")))
 
     def test_unified_cli_exposes_full_pipeline_commands(self) -> None:
         parser = build_parser()

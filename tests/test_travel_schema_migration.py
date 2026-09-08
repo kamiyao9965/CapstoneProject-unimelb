@@ -11,6 +11,7 @@ from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest
 from src.schema.contract import compile_extraction_contract
 from src.schema.discovery import SchemaDiscovery
+from src.schema.validation import normalize_schema
 from src.schema_application.extractor import SchemaExtractor
 from src.verticals.manifest import PROJECT_ROOT, load_vertical_manifest
 from src.verticals.registry import (
@@ -155,7 +156,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
             def generate(self, request: ProviderRequest) -> ModelResponse:
                 self.request = request
                 return ModelResponse(
-                    text=json.dumps(VALID_TRAVEL_SCHEMA),
+                    text=json.dumps(normalize_schema(VALID_TRAVEL_SCHEMA)),
                     provider=request.selection.provider,
                     model=request.selection.model,
                 )
@@ -181,7 +182,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
                     ),
                 ).discover([str(pdf_path)])
 
-        self.assertEqual(result, VALID_TRAVEL_SCHEMA)
+        self.assertEqual(result, normalize_schema(VALID_TRAVEL_SCHEMA))
         self.assertIsNotNone(provider.request)
         self.assertIn("travel insurance", provider.request.system_prompt.lower())
         self.assertEqual(

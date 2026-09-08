@@ -19,8 +19,9 @@ from src.common.model_provider import (
     create_provider,
 )
 from src.schema.discovery import SchemaDiscovery
+from src.schema.validation import normalize_schema
 
-VALID_SCHEMA_TEXT = json.dumps({
+VALID_SCHEMA_TEXT = json.dumps(normalize_schema({
     "vertical": "private_health",
     "version": "0.1-draft",
     "description": "Schema",
@@ -37,7 +38,7 @@ VALID_SCHEMA_TEXT = json.dumps({
     "hospital_categories": [],
     "extras_services": [],
     "notes": [],
-})
+}))
 
 OUTPUT_SPEC = StructuredOutputSpec(
     name="discovered_schema",
