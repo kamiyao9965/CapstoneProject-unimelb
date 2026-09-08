@@ -42,6 +42,31 @@ class StaticProvider:
 
 
 class SchemaValidationTest(unittest.TestCase):
+    def test_both_legacy_formats_enter_one_model_without_mutating_source(self) -> None:
+        from copy import deepcopy
+        from tests.test_travel_schema_migration import VALID_TRAVEL_SCHEMA
+        from src.schema.validation import normalize_schema
+        for source in (VALID_SCHEMA_MAPPING, VALID_TRAVEL_SCHEMA):
+            with self.subTest(vertical=source["vertical"]):
+                before = deepcopy(source)
+                schema = normalize_schema(source)
+                self.assertIn("taxonomies", schema)
+                self.assertNotIn("product_type_field", schema)
+                self.assertEqual(sum(f["name"] == "product_type" for f in schema["fields"]), 1)
+                self.assertEqual(source, before)
+
+    def test_shared_schema_rejects_wrong_vertical_and_unknown_taxonomy(self) -> None:
+        from src.schema.validation import normalize_schema
+        from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+        health = load_vertical_manifest(default_manifest_path("private_health"))
+        schema = normalize_schema(VALID_SCHEMA_MAPPING)
+        schema["taxonomies"]["coverage_categories"] = []
+        with self.assertRaisesRegex(ValueError, "taxonom"):
+            validate_schema_mapping(schema, manifest=health)
+        schema["vertical"] = "travel_insurance"
+        with self.assertRaisesRegex(ValueError, "vertical"):
+            validate_schema_mapping(schema, manifest=health)
+
     def test_accepts_the_documented_schema_contract(self) -> None:
         payload = validate_schema_mapping(json.loads(VALID_SCHEMA))
 

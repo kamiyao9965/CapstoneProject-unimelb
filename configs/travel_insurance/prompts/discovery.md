@@ -10,16 +10,14 @@ international_multi_trip, domestic, inbound, business, and cruise. Car rental
 vehicle excess is a travel-insurance benefit, not a separate car-insurance
 product type.
 
-The required product_type_field is the extraction classifier. Set its name to
-product_type, its type to enum, required to true, and make both values and
-applies_to match product_types exactly. Do not repeat product_type inside fields;
-fields contains the other reusable extraction fields.
+Include exactly one product_type field in fields. It is a required enum whose
+values and applies_to match product_types exactly.
 
 Prioritise insurer, product and plan names, geographic scope, trip frequency,
 age and eligibility rules, excess choices, cancellation, medical, luggage,
 rental vehicle excess, personal liability, COVID-related cover, exclusions,
 limits, sub-limits, waiting periods, and source evidence. Use
-coverage_categories for stable cross-insurer benefit groupings.
+taxonomies.coverage_categories for stable cross-insurer benefit groupings.
 
 The documents are PDFingestor reading-order text and Markdown tables. Treat
 tables as first-class evidence. Return only the JSON object governed by the

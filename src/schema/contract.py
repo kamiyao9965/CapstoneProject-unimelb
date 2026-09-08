@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 
 from src.common.json_contracts import validate_contract
-from src.schema.validation import validate_schema_mapping
+from src.schema.validation import normalize_schema, validate_schema_mapping
 
 
 def compile_extraction_contract(
@@ -17,7 +17,7 @@ def compile_extraction_contract(
 ) -> dict[str, object]:
     validate_contract(schema, data_contract)
     business_validator(schema)
-    product_contract = _compile_product_contract(schema)
+    product_contract = _compile_product_contract(normalize_schema(dict(schema)))
     if output_cardinality == "single":
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -49,9 +49,6 @@ def _compile_product_contract(
     properties: dict[str, object] = {}
     field_names: list[str] = []
     fields = list(schema["fields"])
-    product_type_field = schema.get("product_type_field")
-    if isinstance(product_type_field, Mapping):
-        fields.insert(0, product_type_field)
     for field in fields:
         name = str(field["name"])
         field_names.append(name)

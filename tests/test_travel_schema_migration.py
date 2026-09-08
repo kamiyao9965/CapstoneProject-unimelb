@@ -132,7 +132,7 @@ class TravelSchemaContractTest(unittest.TestCase):
         payload = json.loads(json.dumps(VALID_TRAVEL_SCHEMA))
         payload["fields"].append(payload["product_type_field"])
 
-        with self.assertRaisesRegex(ValueError, "reserved"):
+        with self.assertRaisesRegex(ValueError, "duplicate"):
             get_schema_validator("travel_insurance_schema_v1")(payload)
 
     def test_travel_manifest_enables_only_migrated_pipeline_stages(self) -> None:
@@ -188,11 +188,9 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
             provider.request.structured_output.schema["properties"]["vertical"],
             {"const": "travel_insurance"},
         )
-        self.assertEqual(
-            provider.request.structured_output.schema["properties"]
-            ["product_type_field"]["properties"]["name"],
-            {"const": "product_type"},
-        )
+        properties = provider.request.structured_output.schema["properties"]
+        self.assertNotIn("product_type_field", properties)
+        self.assertEqual(properties["taxonomies"]["required"], ["coverage_categories"])
 
 
 class TravelExtractionMigrationTest(unittest.TestCase):

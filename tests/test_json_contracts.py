@@ -62,7 +62,8 @@ class JsonContractTest(unittest.TestCase):
         )
 
         self.assertIs(validated, VALID_DISCOVERED_SCHEMA)
-        self.assertIs(validate_schema_mapping(validated), VALID_DISCOVERED_SCHEMA)
+        self.assertEqual(validate_schema_mapping(validated)["vertical"], "private_health")
+        self.assertIn("taxonomies", validate_schema_mapping(validated))
 
     def test_rejects_missing_required_property(self) -> None:
         invalid = dict(VALID_DISCOVERED_SCHEMA)

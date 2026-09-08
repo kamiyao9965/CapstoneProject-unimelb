@@ -3,56 +3,90 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
+
+from src.common.json_contracts import validate_contract
+from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
 from collections.abc import Collection, Mapping
 from typing import TypeAlias
 
 SUPPORTED_FIELD_TYPES = frozenset(
     {"string", "number", "boolean", "enum", "list[object]"}
 )
-SUPPORTED_PRODUCT_TYPES = frozenset(
-    {"hospital", "extras", "generalhealth", "combined"}
-)
+# Compatibility export for historical consumers; production parameters come from manifest.
+SUPPORTED_PRODUCT_TYPES = frozenset(load_vertical_manifest(default_manifest_path("private_health")).product_types)
 SNAKE_CASE_NAME = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
 JSONScalar: TypeAlias = str | int | float | bool
 
 
-def validate_schema_mapping(payload: object) -> dict[str, object]:
-    """Validate a parsed schema and return it with a precise mapping type."""
+def normalize_schema(payload: object, manifest: VerticalManifest | None = None) -> dict[str, object]:
+    """Validate and copy either actual legacy JSON shape into the common model."""
     if not isinstance(payload, dict):
         raise ValueError("Schema JSON must be an object.")
-    if payload.get("vertical") != "private_health":
-        raise ValueError("Schema vertical must be 'private_health'.")
+    manifest = manifest or load_vertical_manifest(default_manifest_path(str(payload.get("vertical"))))
+    if payload.get("vertical") != manifest.vertical:
+        raise ValueError(f"Schema vertical must be {manifest.vertical!r}.")
+    validate_contract(payload, manifest.contract("discovered_schema"))
+    schema = deepcopy(payload)
+    if "taxonomies" not in schema:
+        schema["taxonomies"] = {name: schema.pop(name) for name in manifest.taxonomies}
+        classifier = schema.pop("product_type_field", None)
+        if classifier is not None:
+            schema["fields"].insert(0, classifier)
+        # Legacy aliases remain in the source artifact, never in engine decisions.
+        for field in schema["fields"]:
+            field.pop("aliases", None)
+        for entries in schema["taxonomies"].values():
+            for entry in entries:
+                entry.pop("aliases", None)
+    return schema
+
+
+def validate_schema_mapping(payload: object, *, manifest: VerticalManifest | None = None) -> dict[str, object]:
+    """One set of field/classification invariants for configured verticals."""
+    if not isinstance(payload, dict):
+        raise ValueError("Schema JSON must be an object.")
+    manifest = manifest or load_vertical_manifest(default_manifest_path(str(payload.get("vertical"))))
+    if payload.get("vertical") != manifest.vertical:
+        raise ValueError(f"Schema vertical must be {manifest.vertical!r}.")
     version = payload.get("version")
     if not isinstance(version, str) or not version.strip():
         raise ValueError("Schema version must be a non-empty string.")
-
     product_types = payload.get("product_types")
-    if not isinstance(product_types, list) or not product_types:
-        raise ValueError("Schema product_types must be a non-empty list.")
-    if any(not isinstance(value, str) for value in product_types):
-        raise ValueError("Schema product_types must contain strings only.")
-    unknown_product_types = set(product_types) - SUPPORTED_PRODUCT_TYPES
-    if unknown_product_types:
-        raise ValueError(
-            "Schema contains unknown product types: "
-            + ", ".join(sorted(unknown_product_types))
-        )
+    if not isinstance(product_types, list) or not product_types or any(not isinstance(v, str) for v in product_types):
+        raise ValueError("Schema product_types must be a non-empty list of strings.")
+    unknown = set(product_types) - set(manifest.product_types)
+    if unknown:
+        raise ValueError("Schema contains unknown product types: " + ", ".join(sorted(unknown)))
     if len(product_types) != len(set(product_types)):
         raise ValueError("Schema product_types must not contain duplicates.")
-
     fields = payload.get("fields")
     if not isinstance(fields, list) or not fields:
         raise ValueError("Schema fields must be a non-empty list.")
-    field_names: set[str] = set()
-    allowed_product_types = set(product_types)
+    fields = [*([payload["product_type_field"]] if "product_type_field" in payload else []), *fields]
+    by_name = {}
     for index, field in enumerate(fields):
-        validated = validate_field_payload(field, allowed_product_types, index=index)
+        validated = validate_field_payload(field, product_types, index=index)
         name = str(validated["name"])
-        if name in field_names:
+        if name in by_name:
             raise ValueError(f"Schema contains duplicate field name: {name}")
-        field_names.add(name)
+        by_name[name] = field
     validate_product_type_field(fields, product_types)
-    return payload
+    for name in manifest.identity_fields:
+        if name not in by_name or by_name[name]["type"] != "string":
+            raise ValueError(f"Schema identity field {name!r} must reference a string field.")
+    taxonomies = payload.get("taxonomies", {name: payload.get(name) for name in manifest.taxonomies})
+    if not isinstance(taxonomies, dict) or set(taxonomies) != set(manifest.taxonomies):
+        raise ValueError("Schema taxonomy sets must match the manifest.")
+    for name, entries in taxonomies.items():
+        if not isinstance(entries, list):
+            raise ValueError(f"Schema taxonomy {name!r} must be a list.")
+        names = [item.get("canonical_name") for item in entries if isinstance(item, dict)]
+        if len(names) != len(entries) or any(not isinstance(v, str) or not v for v in names):
+            raise ValueError(f"Schema taxonomy {name!r} entries need canonical_name.")
+        if len(names) != len(set(names)):
+            raise ValueError(f"Duplicate taxonomy category in {name!r}.")
+    return normalize_schema(payload, manifest)
 
 
 def validate_product_type_field(
@@ -137,7 +171,7 @@ def validate_field_payload(
     ):
         raise ValueError(f"Schema enum field {name!r} values must be scalar.")
 
-    aliases = payload.get("aliases")
+    aliases = payload.get("aliases", [])
     if (
         not isinstance(aliases, list)
         or any(not isinstance(alias, str) or not alias.strip() for alias in aliases)

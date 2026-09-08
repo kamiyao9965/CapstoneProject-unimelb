@@ -61,6 +61,24 @@ def load_contract(name: str) -> dict[str, Any]:
     An explicit catalog prevents caller-controlled path traversal and makes the
     contract set reviewable in one place.
     """
+    if name.endswith("/discovered_schema"):
+        from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+
+        vertical = name.removesuffix("/discovered_schema")
+        manifest = load_vertical_manifest(default_manifest_path(vertical))
+        contract = loads_json((CONTRACT_ROOT / "discovered_schema.schema.json").read_text(encoding="utf-8"))
+        properties = contract["properties"]
+        properties["vertical"] = {"const": manifest.vertical}
+        product_enum = {"enum": list(manifest.product_types)}
+        properties["product_types"]["items"] = product_enum
+        contract["$defs"]["field"]["properties"]["applies_to"]["items"] = product_enum
+        properties["taxonomies"] = {
+            "type": "object", "additionalProperties": False,
+            "required": list(manifest.taxonomies),
+            "properties": {name: {"type": "array", "items": {"$ref": "#/$defs/canonical_item"}}
+                           for name in manifest.taxonomies},
+        }
+        return contract
     relative_path = _CONTRACT_PATHS.get(name)
     if relative_path is None:
         raise ValueError(f"Unknown JSON contract {name!r}.")
@@ -73,8 +91,15 @@ def load_contract(name: str) -> dict[str, Any]:
 
 def validate_contract(payload: Any, name: str) -> Any:
     """Validate a payload and return the same object when it is valid."""
+    contract = load_contract(name)
+    # Historical persisted JSON keeps its original strict shape. New requests use
+    # the shared contract above; legacy conversion is owned by schema.validation.
+    if name.endswith("/discovered_schema") and isinstance(payload, dict) and "taxonomies" not in payload:
+        legacy_path = _CONTRACT_PATHS.get(name)
+        if legacy_path:
+            contract = loads_json((CONTRACT_ROOT / legacy_path).read_text(encoding="utf-8"))
     validator = Draft202012Validator(
-        load_contract(name),
+        contract,
         format_checker=FormatChecker(),
     )
     errors = sorted(validator.iter_errors(payload), key=_error_sort_key)
