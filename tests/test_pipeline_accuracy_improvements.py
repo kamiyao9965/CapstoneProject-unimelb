@@ -7,6 +7,18 @@ from src.models import ExtractionResult
 
 
 class EvaluationMetricTest(unittest.TestCase):
+    def test_flat_discovered_fields_match_labelled_sections_without_aliases(self) -> None:
+        data = {"product_name": "Example", "hospital_tier": "Silver",
+                "product_type": "hospital", "_unfilled": [], "_notes": None}
+        extracted = ExtractionResult(vertical="private_health", schema_version="test",
+                                     source_path="hospital/example.pdf", data=data)
+        report = ExtractionEvaluator().evaluate(extracted, {
+            "hospital": {"product_name": "Example", "hospital_tier": "Silver"}})
+        self.assertEqual(report.matched_fields, 2)
+        self.assertEqual(report.hallucination_rate, 0)
+        self.assertEqual(report.section_metrics["product"]["accuracy"], 1)
+        self.assertEqual(extracted.data, data)
+
     def test_coverage_counts_ground_truth_presence_not_extra_hallucinations(self) -> None:
         extracted = ExtractionResult(
             vertical="private_health",

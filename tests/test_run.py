@@ -18,6 +18,20 @@ from tests.test_travel_schema_migration import (
 
 
 class RunParserTest(unittest.TestCase):
+    def test_batch_returns_failure_when_extraction_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "sample.pdf").write_bytes(b"offline fixture")
+            args = build_parser().parse_args([
+                "batch", "--schema", "schema.json", "--input-root", tmp])
+            configure_command(args)
+            extractor = mock.Mock()
+            extractor.extract_one.side_effect = ValueError("invalid output")
+            with mock.patch.object(run_module, "load_schema_data", return_value={
+                "vertical": "private_health", "version": "test"}), mock.patch.object(
+                    run_module, "_build_schema_extractor", return_value=extractor):
+                self.assertEqual(run_module.command_batch(args), 1)
+
     def test_no_flags_resolve_to_current_openai_pdf_defaults(self) -> None:
         args = build_parser().parse_args(["discover"])
         selection = resolve_selection(

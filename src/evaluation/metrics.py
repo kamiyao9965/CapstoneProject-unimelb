@@ -233,7 +233,8 @@ class ExtractionEvaluator:
         ground_truth: dict[str, Any],
         product_key: str | None = None,
     ) -> EvaluationReport:
-        extracted_flat = self._flatten(extracted.data)
+        data = self._labelled_sections(extracted.data, ground_truth)
+        extracted_flat = self._flatten(data)
         gt_flat = self._flatten(ground_truth)
 
         matched_fields = 0
@@ -254,8 +255,8 @@ class ExtractionEvaluator:
         value_accuracy = matched_fields / comparable_count if comparable_count else 0.0
         coverage = field_presence_recall
         hallucinations = [key for key in extracted_flat if key not in gt_flat]
-        normalization_accuracy = self._normalization_accuracy(extracted.data, ground_truth)
-        section_metrics = self._section_metrics(extracted.data, ground_truth)
+        normalization_accuracy = self._normalization_accuracy(data, ground_truth)
+        section_metrics = self._section_metrics(data, ground_truth)
         hallucinations_by_section = dict(Counter(key.split(".", 1)[0] for key in hallucinations))
 
         missing_fields = [key for key in gt_flat if key not in extracted_flat]
@@ -280,6 +281,27 @@ class ExtractionEvaluator:
             section_metrics=section_metrics,
             hallucinations_by_section=hallucinations_by_section,
         )
+
+    @staticmethod
+    def _labelled_sections(data: dict[str, Any], ground_truth: dict[str, Any]) -> dict[str, Any]:
+        """Align exact field names with existing Health label sections.
+
+        Discovered extraction is flat; historical labelled metrics are nested.
+        Only label structure determines destinations, never predicted product_type.
+        Unknown names remain visible as unmatched fields, without synonym mapping.
+        """
+        result = {key: value for key, value in data.items()
+                  if key not in {"product_type", "_unfilled", "_notes"}}
+        for section in ("hospital", "extras"):
+            labels = ground_truth.get(section)
+            if not isinstance(labels, dict) or section in result:
+                continue
+            matches = {key: data[key] for key in labels if key in data}
+            if matches:
+                result[section] = matches
+                for key in matches:
+                    result.pop(key, None)
+        return result
 
     def aggregate(
         self,

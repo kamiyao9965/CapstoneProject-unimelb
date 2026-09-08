@@ -540,7 +540,8 @@ def command_batch(args: argparse.Namespace) -> int:
     for warning in warning_samples:
         print(f"  - {warning} ({warning_counts[warning]})")
 
-    return 0
+    print(f"  Extraction errors: {extraction_errors}")
+    return 1 if extraction_errors else 0
 
 
 def _build_schema_extractor(
