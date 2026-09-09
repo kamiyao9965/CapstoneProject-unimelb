@@ -43,6 +43,7 @@ from src.refine.candidates.stability import (
 from src.refine.human_review import build_review_queue, write_review_queue
 from src.common.model_config import resolve_selection
 from src.common.json_artifacts import read_artifact
+from src.common.json_contracts import load_contract
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
 from src.schema.validation import validate_schema_mapping
@@ -191,7 +192,7 @@ class SchemaConsensusRefinement:
             review_base_schema = read_artifact(
                 consensus_schema_path,
                 expected_type="discovered_schema",
-                data_contract=self.schema_contract,
+                data_contract_schema=load_contract(self.schema_contract, manifest=self.manifest),
             )["data"]
             review_base_path = consensus_schema_path
         else:

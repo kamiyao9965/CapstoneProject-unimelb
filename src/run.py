@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.common.json_artifacts import (
     build_failure_artifact,
+    next_available_path,
     build_success_artifact,
     write_artifact,
     write_failure_artifact,
@@ -322,7 +323,7 @@ def command_discover(args: argparse.Namespace) -> int:
 
 def command_extract(args: argparse.Namespace) -> int:
     manifest = args.vertical_manifest
-    schema_data = load_schema_data(args.schema)
+    schema_data = load_schema_data(args.schema, args.vertical_manifest)
     if schema_data.get("vertical") != manifest.vertical:
         print(
             f"Schema vertical {schema_data.get('vertical')!r} does not match "
@@ -360,7 +361,7 @@ def command_batch(args: argparse.Namespace) -> int:
 
     config = load_config()
     manifest = args.vertical_manifest
-    schema_data = load_schema_data(args.schema)
+    schema_data = load_schema_data(args.schema, args.vertical_manifest)
     if schema_data.get("vertical") != manifest.vertical:
         print(
             f"Schema vertical {schema_data.get('vertical')!r} does not match "
@@ -601,7 +602,7 @@ def command_canonical_compile(args: argparse.Namespace) -> int:
 
     output_dir = Path(args.output_dir)
     try:
-        schema_data = load_schema_data(args.schema)
+        schema_data = load_schema_data(args.schema, args.vertical_manifest)
         if schema_data.get("vertical") != args.vertical_manifest.vertical:
             raise ValueError(
                 f"Canonical Schema vertical {schema_data.get('vertical')!r} does not "
@@ -686,18 +687,6 @@ def default_output_path(vertical: str, pdf_path: Path) -> Path:
     config = load_config()
     relative_parts = pdf_path.with_suffix(".json").parts[-4:]
     return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
-
-
-def next_available_path(path: Path) -> Path:
-    if not path.exists():
-        return path
-
-    for index in range(1, 10_000):
-        candidate = path.with_name(f"{path.stem}_{index}{path.suffix}")
-        if not candidate.exists():
-            return candidate
-
-    raise RuntimeError(f"Could not find an available output path for {path}")
 
 
 def main() -> int:

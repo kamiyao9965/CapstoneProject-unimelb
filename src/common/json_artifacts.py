@@ -220,3 +220,13 @@ def _write_text_atomic(destination: Path, text: str, *, overwrite: bool) -> None
                 ) from exc
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def next_available_path(path: Path, reserved: set[Path] | None = None) -> Path:
+    """Choose a new output name; atomic writers still enforce no-overwrite."""
+    candidate = path
+    index = 1
+    while candidate.exists() or candidate in (reserved or ()):
+        candidate = path.with_name(f"{path.stem}_{index}{path.suffix}")
+        index += 1
+    return candidate

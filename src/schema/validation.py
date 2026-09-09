@@ -193,6 +193,7 @@ def validate_extraction_record(schema: dict[str, object], payload: object, *, ma
             identity = tuple(record.get(name) for name in manifest.identity_fields)
             if any(not isinstance(value, str) or not value.strip() for value in identity):
                 raise ValueError("Product identity fields must have non-empty values.")
+            identity = tuple(value.strip().casefold() for value in identity)
             if identity in identities:
                 raise ValueError("Duplicate product identity within one document.")
             identities.add(identity)

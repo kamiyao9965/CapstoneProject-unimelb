@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.common.json_artifacts import read_artifact, write_artifact
+from src.common.json_artifacts import read_artifact, write_artifact, next_available_path
+from src.common.json_contracts import load_contract
+from src.schema.loader import load_schema_data
+from src.schema.validation import validate_schema_mapping
+from src.refine.human_review import apply_review, load_review_decisions
+from src.refine.human_review.queue import review_identity, review_manifest
 from src.refine.human_review import QUEUE_FILENAME, load_review_queue
 from src.refine.pipeline.steps import (
     evaluate_schema,
@@ -75,7 +80,7 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
         final_schema_path = publish_final_schema(
             schema_path,
             Path(args.out_dir),
-            data_contract=_schema_contract(args),
+            data_contract=_schema_contract(args), manifest=_manifest(args),
         )
         print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
         return ""
@@ -92,7 +97,7 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
     final_schema_path = publish_final_schema(
         schema_path,
         Path(args.out_dir),
-        data_contract=_schema_contract(args),
+        data_contract=_schema_contract(args), manifest=_manifest(args),
     )
     print(f"[final-schema] wrote {final_schema_path}")
     return feedback_out
@@ -103,18 +108,19 @@ def publish_final_schema(
     out_dir: Path,
     *,
     data_contract: str = "private_health/discovered_schema",
+    manifest=None,
 ) -> Path:
     """Publish the latest completed round schema to a stable path for extraction."""
     artifact = read_artifact(
         schema_path,
         expected_type="discovered_schema",
-        data_contract=data_contract,
+        data_contract_schema=load_contract(data_contract, manifest=manifest),
     )
-    final_schema_path = out_dir / "final_schema.json"
+    final_schema_path = next_available_path(out_dir / "final_schema.json")
     write_artifact(
         final_schema_path,
         artifact,
-        data_contract=data_contract,
+        data_contract_schema=load_contract(data_contract, manifest=manifest),
     )
     return final_schema_path
 
@@ -137,12 +143,12 @@ def _run_consensus_stage(
     artifact = read_artifact(
         outputs.consensus_schema_path,
         expected_type="discovered_schema",
-        data_contract=_schema_contract(args),
+        data_contract_schema=load_contract(_schema_contract(args), manifest=_manifest(args)),
     )
     write_artifact(
         schema_path,
         artifact,
-        data_contract=_schema_contract(args),
+        data_contract_schema=load_contract(_schema_contract(args), manifest=_manifest(args)),
     )
     suffix = " for human review" if args.review_ui else ""
     print(f"[consensus] wrote {schema_path}{suffix}")
@@ -175,21 +181,27 @@ def resume_review(args) -> int:
         )
         return 1
 
-    artifact = read_artifact(
-        reviewed_path,
-        expected_type="discovered_schema",
-        data_contract=_schema_contract(args),
-    )
-    schema_path = round_dir / "schema.json"
-    write_artifact(
-        schema_path, artifact, data_contract=_schema_contract(args)
-    )
+    queue = load_review_queue(round_dir / "consensus" / QUEUE_FILENAME)
+    identity = review_identity(queue)
+    manifest = _manifest(args)
+    if identity["vertical"] != manifest.vertical:
+        raise ValueError("Reviewed queue vertical conflicts with selected manifest.")
+    decisions = load_review_decisions(round_dir / "consensus" / "review_decisions.json")
+    expected, _ = apply_review(queue, decisions,
+        load_schema_data(queue["metadata"]["base_schema_path"], review_manifest(queue)))
+    artifact = read_artifact(reviewed_path, expected_type="discovered_schema",
+        data_contract_schema=load_contract(_schema_contract(args), manifest=manifest))
+    if artifact["provenance"]["run_id"] != identity["queue_id"] or artifact["data"] != expected:
+        raise ValueError("Reviewed schema does not match this queue and its current decisions.")
+    schema_path = next_available_path(round_dir / "schema.json")
+    write_artifact(schema_path, artifact,
+        data_contract_schema=load_contract(_schema_contract(args), manifest=manifest))
     print(f"[resume-review] wrote reviewed schema to {schema_path}")
     if not _manifest(args).supports("evaluation"):
         final_schema_path = publish_final_schema(
             schema_path,
             Path(args.out_dir),
-            data_contract=_schema_contract(args),
+            data_contract=_schema_contract(args), manifest=_manifest(args),
         )
         print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
         print(
@@ -211,7 +223,7 @@ def resume_review(args) -> int:
     final_schema_path = publish_final_schema(
         schema_path,
         Path(args.out_dir),
-        data_contract=_schema_contract(args),
+        data_contract=_schema_contract(args), manifest=_manifest(args),
     )
     print(f"[final-schema] wrote {final_schema_path}")
     print(

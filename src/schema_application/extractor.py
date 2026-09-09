@@ -11,6 +11,7 @@ from uuid import uuid4
 from src.PDFingestor.adapter import DEFAULT_CACHE_DIR, render_pdf_paths_for_prompt
 from src.common.json_artifacts import (
     build_failure_artifact,
+    next_available_path,
     build_success_artifact,
     write_artifact,
     write_failure_artifact,
@@ -231,7 +232,7 @@ class SchemaExtractor:
                 )
                 self._log(f"Extraction failed for {pdf_path.name}: {exc}")
                 raise
-            target = _available_target(out_dir / f"{pdf_path.stem}.json", reserved_targets)
+            target = next_available_path(out_dir / f"{pdf_path.stem}.json", reserved_targets)
             reserved_targets.add(target)
             artifact = build_success_artifact(
                 artifact_type="extraction_result",
@@ -278,12 +279,3 @@ class SchemaExtractor:
             log=self._log,
             error_label="extraction usage log",
         )
-
-
-def _available_target(path: Path, reserved: set[Path]) -> Path:
-    candidate = path
-    suffix = 2
-    while candidate.exists() or candidate in reserved:
-        candidate = path.with_name(f"{path.stem}_{suffix}{path.suffix}")
-        suffix += 1
-    return candidate

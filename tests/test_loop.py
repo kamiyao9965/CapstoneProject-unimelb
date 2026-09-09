@@ -30,7 +30,7 @@ PROVENANCE = {
 def write_schema(path: Path, data: dict | None = None) -> None:
     artifact = build_success_artifact(
         artifact_type="discovered_schema", contract_version="1.0.0",
-        data=data or VALID_DISCOVERED_SCHEMA, provenance=PROVENANCE,
+        data=normalize_schema(data or VALID_DISCOVERED_SCHEMA), provenance=PROVENANCE,
         data_contract="private_health/discovered_schema",
     )
     write_artifact(path, artifact, data_contract="private_health/discovered_schema")
@@ -44,6 +44,17 @@ def review_queue_metadata(samples: list[str] | None = None) -> dict[str, object]
         "base_schema_path": "schema.json",
         "schema_build_samples": samples or [],
     }
+
+
+def write_reviewed_fixture(consensus_dir: Path, schema=None, samples=()):
+    from src.refine.human_review import build_review_queue, write_review_queue, empty_decisions, write_review_decisions, apply_review_files
+    base = schema or VALID_DISCOVERED_SCHEMA
+    base_path = consensus_dir / "base.json"
+    write_schema(base_path, base)
+    queue = build_review_queue([], base, 1, base_path, schema_build_samples=samples)
+    write_review_queue(queue, consensus_dir / "review_queue.json")
+    write_review_decisions(empty_decisions(queue=queue), consensus_dir / "review_decisions.json")
+    apply_review_files(consensus_dir)
 
 
 def make_args(tmp: str, **overrides) -> SimpleNamespace:
@@ -275,6 +286,37 @@ class RunRoundModeTest(unittest.TestCase):
 
 
 class ResumeReviewTest(unittest.TestCase):
+    def test_resume_preserves_existing_round_and_final_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            round_dir = root / "round_1"
+            consensus = round_dir / "consensus"
+            consensus.mkdir(parents=True)
+            write_reviewed_fixture(consensus)
+            write_schema(round_dir / "schema.json")
+            write_schema(root / "final_schema.json")
+            before = (round_dir / "schema.json").read_bytes()
+            args = make_args(tmp, resume_review=str(round_dir))
+            with mock.patch.object(rounds, "evaluate_schema", return_value=(None, "feedback")):
+                self.assertEqual(rounds.resume_review(args), 0)
+            self.assertEqual((round_dir / "schema.json").read_bytes(), before)
+            self.assertTrue((round_dir / "schema_1.json").exists())
+            self.assertTrue((root / "final_schema_1.json").exists())
+
+    def test_resume_rejects_other_vertical_before_evaluation(self) -> None:
+        from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+        with tempfile.TemporaryDirectory() as tmp:
+            round_dir = Path(tmp) / "round_1"
+            consensus = round_dir / "consensus"
+            consensus.mkdir(parents=True)
+            write_reviewed_fixture(consensus)
+            args = make_args(tmp, resume_review=str(round_dir))
+            args.vertical_manifest = load_vertical_manifest(default_manifest_path("travel_insurance"))
+            with mock.patch.object(rounds, "evaluate_schema") as evaluate:
+                with self.assertRaisesRegex(ValueError, "vertical"):
+                    rounds.resume_review(args)
+                evaluate.assert_not_called()
+
     def test_missing_reviewed_schema_fails_without_evaluating(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             round_dir = Path(tmp) / "round_1"
@@ -290,11 +332,7 @@ class ResumeReviewTest(unittest.TestCase):
             round_dir = Path(tmp) / "round_1"
             consensus_dir = round_dir / "consensus"
             consensus_dir.mkdir(parents=True)
-            write_schema(consensus_dir / "reviewed_schema.json")
-            write_review_queue(
-                {"metadata": review_queue_metadata(), "updates": []},
-                consensus_dir / "review_queue.json",
-            )
+            write_reviewed_fixture(consensus_dir)
             args = make_args(tmp, resume_review=str(round_dir))
             evaluate = mock.Mock(return_value=(None, "feedback"))
 
@@ -303,7 +341,7 @@ class ResumeReviewTest(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             evaluate.assert_called_once()
-            self.assertEqual(evaluate.call_args.args[1], VALID_DISCOVERED_SCHEMA)
+            self.assertEqual(evaluate.call_args.args[1], normalize_schema(VALID_DISCOVERED_SCHEMA))
             self.assertEqual(evaluate.call_args.kwargs["exclude_paths"], tuple())
             self.assertTrue((round_dir / "schema.json").exists())
             self.assertTrue((Path(tmp) / "final_schema.json").exists())
@@ -319,13 +357,7 @@ class ResumeReviewTest(unittest.TestCase):
                 "applies_to": ["hospital"], "required": False, "values": [],
                 "aliases": [],
             }]
-            write_schema(consensus_dir / "reviewed_schema.json", schema)
-            write_review_queue(
-                {"metadata": review_queue_metadata([
-                    "pdfs/discovery.pdf", "pdfs/consensus.pdf"
-                ]), "updates": []},
-                consensus_dir / "review_queue.json",
-            )
+            write_reviewed_fixture(consensus_dir, schema, ["pdfs/discovery.pdf", "pdfs/consensus.pdf"])
             args = make_args(tmp, resume_review=str(round_dir))
             evaluate = mock.Mock(return_value=(None, "feedback"))
             with mock.patch.object(rounds, "evaluate_schema", evaluate):
