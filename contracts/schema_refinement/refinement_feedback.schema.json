@@ -2,27 +2,122 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["instructions", "analysis"],
+  "required": [
+    "instructions",
+    "analysis"
+  ],
   "properties": {
-    "instructions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "instructions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "analysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["documents", "error_docs", "source_category_counts", "product_type_correct", "product_type_unclassified", "product_type_accuracy", "product_type_mismatches", "fill_rate", "evaluated_documents", "weak_fields", "missing_required", "enum_violations", "model_unfilled"],
+      "required": [
+        "documents",
+        "error_docs",
+        "source_category_counts",
+        "product_type_correct",
+        "product_type_unclassified",
+        "product_type_accuracy",
+        "product_type_mismatches",
+        "fill_rate",
+        "evaluated_documents",
+        "weak_fields",
+        "missing_required",
+        "enum_violations",
+        "model_unfilled"
+      ],
       "properties": {
-        "documents": {"type": "integer", "minimum": 0},
-        "error_docs": {"type": "integer", "minimum": 0},
-        "source_category_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
-        "product_type_correct": {"type": "integer", "minimum": 0},
-        "product_type_unclassified": {"type": "integer", "minimum": 0},
-        "product_type_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
-        "product_type_mismatches": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
-        "fill_rate": {"type": "object", "additionalProperties": {"type": "number"}},
-        "evaluated_documents": {"type": "object", "additionalProperties": {"type": "integer"}},
-        "weak_fields": {"type": "array", "items": {"type": "string"}},
-        "missing_required": {"type": "object", "additionalProperties": {"type": "integer"}},
-        "enum_violations": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": ["string", "number", "integer", "boolean"]}}},
-        "model_unfilled": {"type": "object", "additionalProperties": {"type": "integer"}}
+        "documents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_docs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_category_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "product_type_correct": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "product_type_unclassified": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "product_type_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "product_type_mismatches": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "fill_rate": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "evaluated_documents": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "weak_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_required": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "enum_violations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": [
+                "string",
+                "number",
+                "integer",
+                "boolean"
+              ]
+            }
+          }
+        },
+        "model_unfilled": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        }
       }
     }
   }

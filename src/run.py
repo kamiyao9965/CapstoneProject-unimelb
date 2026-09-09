@@ -356,8 +356,7 @@ def command_extract(args: argparse.Namespace) -> int:
 
 
 def command_batch(args: argparse.Namespace) -> int:
-    from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
-    from src.evaluation.reporter import EvaluationReporter
+    from src.verticals.registry import get_evaluation_tools
 
     config = load_config()
     manifest = args.vertical_manifest
@@ -400,12 +399,8 @@ def command_batch(args: argparse.Namespace) -> int:
     gt_store = None
     evaluator = None
     reporter = None
-    if args.evaluate and args.vertical in {"private_health", "private_health_au"}:
-        gt_store = PrivateHealthGroundTruthStore(
-            config.data_dir / "private_health" / "labelled"
-        )
-        evaluator = ExtractionEvaluator()
-        reporter = EvaluationReporter()
+    if args.evaluate:
+        gt_store, evaluator, reporter = get_evaluation_tools(manifest, manifest.path("labelled_root"))
 
     for pdf_path in pdf_paths:
         try:
@@ -491,7 +486,7 @@ def command_batch(args: argparse.Namespace) -> int:
         )
         summary["ambiguous_matches"] = float(ambiguous_matches)
         model_summary["ambiguous_matches"] = float(ambiguous_matches)
-        report_root = config.outputs_dir / args.vertical / "evaluation"
+        report_root = manifest.path("output_root") / "evaluation"
         reporter.write_json(reports, summary, report_root / "report.json")
         reporter.write_markdown(reports, summary, report_root / "report.md")
         reporter.write_json(model_reports, model_summary, report_root / "report_model_only.json")

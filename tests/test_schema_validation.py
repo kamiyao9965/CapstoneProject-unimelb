@@ -42,6 +42,16 @@ class StaticProvider:
 
 
 class SchemaValidationTest(unittest.TestCase):
+    def test_product_identity_comparison_matches_canonical_case_and_whitespace_rules(self):
+        from tests.test_travel_schema_migration import VALID_TRAVEL_SCHEMA
+        from src.schema.validation import normalize_schema, validate_extraction_record
+        from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+        manifest = load_vertical_manifest(default_manifest_path("travel_insurance"))
+        with self.assertRaisesRegex(ValueError, "Duplicate product identity"):
+            validate_extraction_record(normalize_schema(VALID_TRAVEL_SCHEMA),
+                {"products": [{"product_name": "Comprehensive"}, {"product_name": " comprehensive "}]},
+                manifest=manifest)
+
     def test_both_legacy_formats_enter_one_model_without_mutating_source(self) -> None:
         from copy import deepcopy
         from tests.test_travel_schema_migration import VALID_TRAVEL_SCHEMA

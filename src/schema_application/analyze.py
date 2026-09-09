@@ -18,10 +18,11 @@ from src.common.json_contracts import validate_contract
 from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_inline_contract
 from src.schema.contract import compile_extraction_contract
+from src.schema.loader import load_schema_data
+from src.verticals.manifest import default_manifest_path, load_vertical_manifest
 from src.schema.sampler import category_from_path
 from src.schema.validation import (
     JSONScalar,
-    SUPPORTED_PRODUCT_TYPES,
     validate_schema_mapping,
 )
 
@@ -37,7 +38,8 @@ class FieldSpec:
     type: str = "string"
     required: bool = False
     values: list[JSONScalar] = field(default_factory=list)
-    applies_to: tuple[str, ...] = tuple(sorted(SUPPORTED_PRODUCT_TYPES))
+    applies_to: tuple[str, ...] = ()
+    universal: bool = False
 
 
 @dataclass(frozen=True)
@@ -46,18 +48,11 @@ class ExtractionRecord:
 
     data: dict[str, object]
     source_document: str
-    source_category: str
-
-    def __post_init__(self) -> None:
-        if self.source_category not in SUPPORTED_PRODUCT_TYPES:
-            raise ValueError(
-                f"Unsupported source category: {self.source_category!r}."
-            )
+    source_category: str | None
 
 
-def load_field_specs(schema_data: dict[str, object]) -> list[FieldSpec]:
-    validate_contract(schema_data, "private_health/discovered_schema")
-    data = validate_schema_mapping(schema_data)
+def load_field_specs(schema_data: dict[str, object], manifest=None) -> list[FieldSpec]:
+    data = validate_schema_mapping(schema_data, manifest=manifest)
     specs: list[FieldSpec] = []
     for item in data.get("fields") or []:
         if not isinstance(item, dict) or not item.get("name"):
@@ -65,6 +60,7 @@ def load_field_specs(schema_data: dict[str, object]) -> list[FieldSpec]:
         specs.append(
             FieldSpec(
                 name=str(item["name"]),
+                universal=set(item["applies_to"]) == set(data["product_types"]),
                 type=str(item.get("type", "string")),
                 required=bool(item.get("required", False)),
                 values=list(item.get("values") or []),
@@ -77,7 +73,9 @@ def load_field_specs(schema_data: dict[str, object]) -> list[FieldSpec]:
 def load_records(
     extraction_dir: Path,
     extraction_contract: dict[str, object],
+    manifest=None,
 ) -> tuple[list[ExtractionRecord], int]:
+    manifest = manifest or load_vertical_manifest(default_manifest_path("private_health"))
     records: list[ExtractionRecord] = []
     failures = 0
     for path in sorted(extraction_dir.glob("*.json")):
@@ -101,7 +99,7 @@ def load_records(
                     "Extraction result must identify exactly one source document."
                 )
             source_document = source_documents[0]
-            source_category = category_from_path(source_document)
+            source_category = category_from_path(source_document, manifest.documents.categories)
             if source_category is None:
                 raise ValueError(
                     "Extraction source document must identify exactly one supported "
@@ -110,13 +108,11 @@ def load_records(
         except ValueError:
             failures += 1
             continue
-        records.append(
-            ExtractionRecord(
-                data=artifact["data"],
-                source_document=source_document,
-                source_category=source_category,
-            )
-        )
+        payload = artifact["data"]
+        product_records = payload["products"] if manifest.documents.output_cardinality == "multiple" else [payload]
+        for record in product_records:
+            records.append(ExtractionRecord(data=record, source_document=source_document,
+                source_category=manifest.documents.category_product_types.get(source_category)))
     failures += sum(
         1
         for path in (extraction_dir / "errors" / "extraction").glob("*.json")
@@ -140,9 +136,9 @@ class Analysis:
     source_category_counts: dict[str, int]
     product_type_correct: int
     product_type_unclassified: int
-    product_type_accuracy: float
+    product_type_accuracy: float | None
     product_type_mismatches: dict[str, int]
-    fill_rate: dict[str, float]
+    fill_rate: dict[str, float | None]
     evaluated_documents: dict[str, int]
     weak_fields: list[str]
     missing_required: dict[str, int]      # field -> docs missing it
@@ -169,16 +165,20 @@ def analyze(
     enum_violations: dict[str, list[JSONScalar]] = {}
     model_unfilled: dict[str, int] = {}
 
+    trusted_records = sum(record.source_category is not None for record in records)
+    allowed_types = {value for spec in specs for value in spec.applies_to}
     for extraction in records:
         record = extraction.data
         source_category = extraction.source_category
-        source_category_counts[source_category] = (
-            source_category_counts.get(source_category, 0) + 1
+        source_category_counts[source_category or "unknown"] = (
+            source_category_counts.get(source_category or "unknown", 0) + 1
         )
-        predicted_product_type = _product_type(record)
+        predicted_product_type = _product_type(record, allowed_types)
         if predicted_product_type is None:
             product_type_unclassified += 1
-        if predicted_product_type == source_category:
+        if source_category is None:
+            pass  # Unlabelled records never contribute to classification accuracy.
+        elif predicted_product_type == source_category:
             product_type_correct += 1
         else:
             mismatch = (
@@ -190,7 +190,7 @@ def analyze(
             )
 
         for name, spec in spec_by_name.items():
-            if source_category not in spec.applies_to:
+            if spec.applies_to and source_category not in spec.applies_to and not (source_category is None and spec.universal):
                 continue
             evaluated_documents[name] += 1
             value = record.get(name)
@@ -215,7 +215,7 @@ def analyze(
         name: (
             filled_counts[name] / evaluated_documents[name]
             if evaluated_documents[name]
-            else 0.0
+            else None
         )
         for name in filled_counts
     }
@@ -238,7 +238,7 @@ def analyze(
         product_type_correct=product_type_correct,
         product_type_unclassified=product_type_unclassified,
         product_type_accuracy=(
-            product_type_correct / len(records) if records else 0.0
+            product_type_correct / trusted_records if trusted_records else None
         ),
         product_type_mismatches=dict(sorted(product_type_mismatches.items())),
         fill_rate=fill_rate,
@@ -256,17 +256,17 @@ def analyze(
     )
 
 
-def _product_type(record: dict) -> str | None:
+def _product_type(record: dict, allowed_types: set[str]) -> str | None:
     value = record.get("product_type")
     if not isinstance(value, str):
         return None
     normalized = value.strip().lower()
-    return normalized if normalized in SUPPORTED_PRODUCT_TYPES else None
+    return normalized if not allowed_types or normalized in allowed_types else None
 
 
 def print_report(analysis: Analysis) -> None:
     print(
-        f"Documents analyzed: {analysis.documents} "
+        f"Extraction records analyzed: {analysis.documents} "
         f"({analysis.error_docs} errored)"
     )
     coverage = ", ".join(
@@ -274,8 +274,9 @@ def print_report(analysis: Analysis) -> None:
         for category, count in analysis.source_category_counts.items()
     ) or "none"
     print(f"Source category coverage: {coverage}")
+    accuracy = f"{analysis.product_type_accuracy:.0%}" if analysis.product_type_accuracy is not None else "N/A (no trusted labels)"
     print(
-        f"Product type classification: {analysis.product_type_accuracy:.0%} "
+        f"Product type classification: {accuracy} "
         f"({analysis.product_type_correct}/{analysis.documents} correct, "
         f"{analysis.product_type_unclassified} unclassified)"
     )
@@ -286,7 +287,7 @@ def print_report(analysis: Analysis) -> None:
     print()
 
     print("Field fill rate (lowest first):")
-    for name, rate in sorted(analysis.fill_rate.items(), key=lambda kv: kv[1]):
+    for name, rate in sorted(analysis.fill_rate.items(), key=lambda kv: -1 if kv[1] is None else kv[1]):
         marker = " <- weak" if name in analysis.weak_fields else ""
         rendered_rate = (
             f"{rate:>6.0%}"
@@ -356,7 +357,7 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
         lines.append(
             "Model product_type matched the authoritative directory category in "
             f"{analysis.product_type_accuracy:.0%} of evaluated documents. Clarify the "
-            "product_type field description, aliases, or allowed-value guidance without "
+            "product_type field description or allowed-value guidance without "
             f"changing field applicability. Mismatches: {details}."
         )
     if not lines:
@@ -387,6 +388,7 @@ def build_feedback_data(analysis: Analysis) -> dict[str, object]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Analyze extraction failures against a schema")
+    parser.add_argument("--manifest")
     parser.add_argument("--schema", required=True, help="Schema JSON artifact the extraction used")
     parser.add_argument("--extractions", required=True, help="Directory of extraction *.json files")
     parser.add_argument("--feedback-out", help="Write refinement feedback JSON artifact")
@@ -395,17 +397,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    schema_artifact = read_artifact(
-        args.schema,
-        expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
-    )
-    specs = load_field_specs(schema_artifact["data"])
-    extraction_contract = compile_extraction_contract(schema_artifact["data"])
-    records, failed_artifacts = load_records(
-        Path(args.extractions),
-        extraction_contract,
-    )
+    manifest = load_vertical_manifest(args.manifest) if args.manifest else None
+    schema = load_schema_data(args.schema, manifest)
+    manifest = manifest or load_vertical_manifest(default_manifest_path(schema["vertical"]))
+    specs = load_field_specs(schema, manifest)
+    extraction_contract = compile_extraction_contract(schema,
+        data_contract=manifest.contract("discovered_schema"),
+        output_cardinality=manifest.documents.output_cardinality, manifest=manifest)
+    records, failed_artifacts = load_records(Path(args.extractions), extraction_contract, manifest)
     if not records and not failed_artifacts:
         print(f"No extraction JSON files found in {args.extractions}")
         return 1
@@ -426,12 +425,12 @@ def main() -> int:
                 "document_input": None, "source_documents": [],
                 "source_artifacts": [Path(args.schema).as_posix()],
             },
-            data_contract="private_health/refinement_feedback",
+            data_contract="schema_refinement/refinement_feedback",
         )
         write_artifact(
             args.feedback_out,
             artifact,
-            data_contract="private_health/refinement_feedback",
+            data_contract="schema_refinement/refinement_feedback",
         )
         print(f"\nWrote feedback to {args.feedback_out}")
     return 0

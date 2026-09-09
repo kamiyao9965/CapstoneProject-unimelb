@@ -64,7 +64,8 @@
         "categories",
         "document_types",
         "extraction_unit",
-        "output_cardinality"
+        "output_cardinality",
+        "category_product_types"
       ],
       "properties": {
         "categories": {
@@ -94,6 +95,13 @@
             "single",
             "multiple"
           ]
+        },
+        "category_product_types": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

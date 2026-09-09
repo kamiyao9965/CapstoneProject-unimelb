@@ -25,6 +25,7 @@ class DocumentModel:
     document_types: tuple[str, ...]
     extraction_unit: str
     output_cardinality: str
+    category_product_types: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -165,6 +166,7 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
             document_types=tuple(documents["document_types"]),
             extraction_unit=str(documents["extraction_unit"]),
             output_cardinality=str(documents["output_cardinality"]),
+            category_product_types=MappingProxyType(dict(documents["category_product_types"])),
         ),
         paths=MappingProxyType(dict(payload["paths"])),
         path_environment=MappingProxyType(
@@ -178,6 +180,8 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
         adapters=MappingProxyType(dict(payload["adapters"])),
         source_path=source_path,
     )
+    if set(manifest.documents.category_product_types) - set(manifest.documents.categories) or set(manifest.documents.category_product_types.values()) - set(manifest.product_types):
+        raise ManifestValidationError("Trusted category/product mapping must use declared categories and product types.")
     for name in manifest.paths:
         manifest.path(name)
     if manifest.contract("discovered_schema") != f"{manifest.vertical}/discovered_schema":

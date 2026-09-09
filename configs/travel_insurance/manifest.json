@@ -21,7 +21,8 @@
       "fsg"
     ],
     "extraction_unit": "product_release",
-    "output_cardinality": "multiple"
+    "output_cardinality": "multiple",
+    "category_product_types": {}
   },
   "paths": {
     "input_root": "data/travel_insurance/raw/PDFs",

@@ -273,5 +273,20 @@ class ProductApplicabilityTest(unittest.TestCase):
         self.assertIn("N/A  hospital_excess", output.getvalue())
 
 
+class UnlabelledTravelAnalysisTest(unittest.TestCase):
+    def test_unlabelled_product_fill_does_not_claim_classification_accuracy(self):
+        from tests.test_travel_schema_migration import VALID_TRAVEL_SCHEMA
+        specs = load_field_specs(VALID_TRAVEL_SCHEMA)
+        result = analyze([ExtractionRecord({"product_type": "domestic", "product_name": "Plan"},
+                                          "travel/pds/example.pdf", None)], specs)
+        self.assertIsNone(result.product_type_accuracy)
+        self.assertEqual(result.product_type_mismatches, {})
+        self.assertEqual(result.fill_rate["product_name"], 1)
+        self.assertEqual(result.evaluated_documents["product_name"], 1)
+        unknown = analyze([ExtractionRecord({"domestic_limit": 10}, "pds/example.pdf", None)],
+                          [FieldSpec("domestic_limit", applies_to=("domestic",))])
+        self.assertIsNone(unknown.fill_rate["domestic_limit"])
+        self.assertEqual(unknown.weak_fields, [])
+
 if __name__ == "__main__":
     unittest.main()

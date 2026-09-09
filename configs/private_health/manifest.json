@@ -21,16 +21,27 @@
       "phis"
     ],
     "extraction_unit": "document",
-    "output_cardinality": "single"
+    "output_cardinality": "single",
+    "category_product_types": {
+      "combined": "combined",
+      "extras": "extras",
+      "generalhealth": "generalhealth",
+      "hospital": "hospital"
+    }
   },
   "paths": {
     "input_root": "konkrd-data/data/private_health/raw/PDFs",
-    "output_root": "outputs/private_health"
+    "output_root": "outputs/private_health",
+    "labelled_root": "konkrd-data/data/private_health/labelled"
   },
   "path_environment": {
     "input_root": {
       "variable": "KONKRD_DATA_ROOT",
       "suffix": "data/private_health/raw/PDFs"
+    },
+    "labelled_root": {
+      "variable": "KONKRD_DATA_ROOT",
+      "suffix": "data/private_health/labelled"
     }
   },
   "contracts": {

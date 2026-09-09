@@ -46,3 +46,12 @@ def get_prompt(prompt_path: str) -> str:
     if not text:
         raise ManifestValidationError(f"Empty prompt {prompt_path!r}.")
     return text
+
+
+def get_evaluation_tools(manifest, labelled_root):
+    manifest.require_capability("evaluation")
+    if manifest.adapter("evaluator") != "private_health_labelled_v1":
+        raise ManifestValidationError("Unregistered labelled evaluator.")
+    from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
+    from src.evaluation.reporter import EvaluationReporter
+    return PrivateHealthGroundTruthStore(labelled_root), ExtractionEvaluator(), EvaluationReporter()

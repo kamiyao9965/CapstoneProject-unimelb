@@ -149,10 +149,12 @@ def evaluate_schema(
         pdf_root=Path(args.input_root),
     ).extract_many(eval_paths, extractions_dir)
 
-    specs = load_field_specs(schema_data)
+    specs = load_field_specs(schema_data, _manifest(args))
     records, failed_artifacts = load_records(
         extractions_dir,
-        compile_extraction_contract(schema_data),
+        compile_extraction_contract(schema_data, data_contract=_manifest(args).contract("discovered_schema"),
+            output_cardinality=_manifest(args).documents.output_cardinality, manifest=_manifest(args)),
+        _manifest(args),
     )
     analysis = analyze(records, specs, failed_artifacts=failed_artifacts)
     print_report(analysis)
