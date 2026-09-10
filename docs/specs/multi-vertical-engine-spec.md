@@ -1,7 +1,7 @@
 # Spec：Health / Travel 统一流程（精简版）
 
-状态：实施中；进度和验证记录见 [todo](../../tasks/todo.md)。
-日期：2026-09-08。用户：项目组，用于开发、实验、审核与演示。
+状态：完成，统一实现已合入远端 main；进度和验证记录见 [todo](../../tasks/todo.md)。
+日期：2026-09-08；实现验证更新：2026-09-10。用户：项目组，用于开发、实验、审核与演示。
 
 ## 1. 目标与范围
 
@@ -73,27 +73,27 @@ UI：选择 vertical → 查看可用操作 → 输入文档/schema → 执行 �
 
 沿用上版 20 项检查范围，但合并实现、减少框架。T01 从公开入口追踪调用链并补遗漏；每项记录最终唯一来源、删除项或具名保留理由。
 
-| ID | 当前需要检查的代码 | 收紧后的唯一归属 | 任务 |
+| ID | 审计范围 | 最终唯一归属/保留理由 | 任务 |
 | --- | --- | --- | --- |
-| B01 领域列表/默认值 | verticals、tool_ui 中重复列表 | registry + 现有默认选择入口 | T03、T16 |
-| B02 配置解析 | run、refine 各自回退 | 现有 VerticalManifest，一次解析 | T03、T11 |
-| B03 prompt | schema/prompts、schema_application/prompts、registry | 配置包正文 + 一个加载器 | T03–T05、T18 |
-| B04 契约加载 | common/json_contracts 的领域/公共别名 | 原 contract loader，按实际需要共享契约 | T06、T07 |
-| B05 schema 形状 | product_type_field 与三种 taxonomy 键 | schema 的公共内存模型 | T06–T09 |
+| B01 领域列表/默认值 | verticals、tool_ui 中重复列表 | manifest.discover_manifests / resolve_manifest / OPERATION_CAPABILITIES | T03、T16 |
+| B02 配置解析 | run、refine 各自回退 | VerticalManifest / resolve_manifest 单一解析入口 | T03、T11 |
+| B03 prompt | schema/prompts、schema_application/prompts、registry | configs/*/prompts/*.md + registry.get_prompt | T03–T05、T18 |
+| B04 契约加载 | common/json_contracts 的领域/公共别名 | common/json_contracts；共享 schema_refinement，旧契约名只为历史读取保留 | T06、T07 |
+| B05 schema 形状 | product_type_field 与三种 taxonomy 键 | schema.validation.normalize_schema：fields + taxonomies | T06–T09 |
 | B06 三种分类 | sampler、steps、manifest categories | manifest 分开声明，sampler 只选样 | T03、T08、T11 |
 | B07 校验/身份 | schema/validation、verticals/travel_insurance、canonical | 共享校验函数，分类/保护参数来自配置 | T06、T09、T15 |
 | B08 输出基数 | contract、SchemaExtractor | 同一个 single/multiple 编译器 | T09 |
-| B09 路径/覆盖规则 | run batch/output、config、data_paths | 既有路径边界，不在调用方拼默认值 | T03、T08、T09 |
+| B09 路径/覆盖规则 | run batch/output、config、data_paths | manifest.path + json_artifacts 原子 writer/next_available_path；run 默认输出区分来源 | T03、T08、T09 |
 | B10 PDF 缓存 | PDFingestor/adapter 默认落 Health | adapter 接收解析后的路径，解析器保留 | T09 |
-| B11 共识策略 | steps/cli/renderer 的领域分支 | 少量 manifest 参数 + 同一 aggregator/apply | T10–T12 |
+| B11 共识策略 | steps/cli/renderer 的领域分支 | manifest.refinement + 同一 aggregator / renderer / apply | T10–T12 |
 | B12 aliases | normalizer、consensus、add_alias | 删除运行依赖；旧数据只读 | T10–T12、T18 |
 | B13 审核/恢复 | queue/decisions/apply/rounds | 同一身份检查和 apply，不做通用历史迁移 | T11、T12、T17 |
 | B14 通用分析 | schema_application/analyze | 公共字段 + 可信样本分类 | T13 |
 | B15 Health 标签指标 | evaluation/metrics、run 分支 | 既有 evaluation 能力集中保留，入口不识别领域名 | T13 |
 | B16 稳定性/成本/日志 | stability、cost、公共 usage | 公共字段比较、统一路径、原日志实现 | T14 |
 | B17 Canonical/存储 | Travel builder、canonical_review_app、storage | 共享候选/编译入口，批准契约仍唯一权威 | T15、T17 |
-| B18 UI 状态/操作 | tool_app、forms、commands、两个审核页 | 领域优先的薄表单与 session 状态 | T16、T17 |
-| B19 旧模型/入口 | schema/loader、validator、models、pipeline wrapper | 有使用证据才保留最小兼容入口 | T01、T07、T18 |
+| B18 UI 状态/操作 | tool_app、forms、commands、两个审核页 | tool_app 领域/操作 scope；确认绑定命令；审核绑定 queue/源内容 | T16、T17 |
+| B19 旧模型/入口 | schema/loader、validator、models、pipeline wrapper | 仅保留历史 JSON 读取和 CLI ExtractionResult；旧 loader/静态模型/过渡 prompt、Travel wrapper 已删除 | T01、T07、T18 |
 | B20 采集/文档 | scraper/travel、registry、README、architecture | 原爬虫保留，统一能力入口和文档 | T16、T19、T20 |
 
 允许的领域专属代码仅为已证明需要的旧格式读取、Health 标签数据/指标和 Travel 网页采集；不得把发现/抽取分支搬到“adapter”目录后宣称统一。不改造底层组件不代表可以跳过其调用边界检查。
@@ -164,3 +164,12 @@ UI：`.venv/bin/python -m streamlit run src/tool_app.py`。无独立 build/lint 
 本轮最大风险是借统一之名增加框架、历史兼容变成第二套引擎、UI 只改标签却复用旧状态；分别通过抽象用途审查、最小兼容样例和交互测试验收。第三领域方向不阻塞本轮；真实冒烟样本/预算在执行前落实。
 
 [Todo](../../tasks/todo.md) 当前位于被 Git 忽略的 tasks 目录，实施 PR 只明确纳入本文件，不批量提交本地任务资料。
+
+
+## 8. 实现验收记录
+
+实现提交 `a00a904`，详细证据见 todo。388 项离线测试中 387 通过、1 项真实 DB 测试跳过；两领域完整离线链路、UI/AppTest、真实浏览器切换/审核/错误态和 7 个 CLI help 完成。批准 Canonical 配置内容未变，新 schema/抽取结果不覆盖成功文件。新 extraction/feedback provenance 只补 vertical/schema_version 两项可选身份字段；旧无身份反馈必须重新生成后恢复，不升级全部历史产物。
+
+约 5,000 行仍只是规模判断，不作硬性预算。保留现有模型/PDF/采集/标签/存储组件，删除第二套 schema 模型和领域引擎；不为第三领域增加代码或配置。真实 API、PDF 转换、Health 标签批处理及 DB live 未运行，限制在 todo 如实记录。
+
+最终合并记录：2026-09-10 已将 `063c13e` → `a00a9044cc7d1495be6a71111946ef6dd0cba131` 快进推送到远端 main，并通过 `git ls-remote origin refs/heads/main` 核实。本文档、README 与 architecture 的完成记录随最终文档提交同步。

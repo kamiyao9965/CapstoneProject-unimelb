@@ -1,8 +1,8 @@
 # Architecture
 
 This project is a Python CLI for discovering, evaluating, and refining a
-versioned JSON extraction contract for Australian private health insurance
-documents.
+versioned JSON extraction contract for Australian Health and Travel documents.
+The same engine consumes a validated manifest plus three prompt files per vertical.
 
 ## Runtime flows
 
@@ -13,7 +13,10 @@ Streamlit controls -> validated allowlisted argv -> existing CLI entry point
   -> redacted console result
 ```
 
-`src/tool_app.py` owns presentation and result states. `src/tool_ui/forms.py`
+`src/verticals/manifest.py` owns package discovery, default selection and operation
+capabilities. `src/tool_app.py` selects vertical first and owns presentation and
+result state; forms and results reset on context changes, and confirmation is
+bound to command/configuration content. `src/tool_ui/forms.py`
 owns operation-specific controls, while `src/tool_ui/commands.py` is the only
 UI-to-process boundary. It validates supported operations and values, launches
 an argument list without a shell, enforces timeouts, and redacts credential-like
@@ -29,7 +32,7 @@ authentication boundary.
 ```text
 PDF sample -> document preparation -> provider-native structured output
   -> JSON parse -> JSON Schema validation -> business validation
-  -> outputs/private_health/schema*.json
+  -> manifest output_root / schema*.json
 ```
 
 `src/run.py` owns the CLI and final envelope. `src/schema/discovery.py` owns the
@@ -52,15 +55,24 @@ enabled, the pre-consensus artifact remains `round_N/schema_draft.json`.
 Exhausted extraction validation writes an error artifact and stops the stage
 before analysis or later documents.
 
-Holdout applicability uses the authoritative dataset category encoded in each
-PDF path (`hospital`, `extras`, `generalhealth`, or `combined`), together with
-each schema field's `applies_to` contract. The model-extracted `product_type`
-never controls fill-rate denominators; it is compared with the source category
-and reported separately as classification accuracy and mismatch counts. A
-successful extraction artifact without exactly one recognizable source category
-is rejected from evaluation instead of falling back to the model prediction.
+The shared schema has `fields` (including the classifier) and a `taxonomies` map.
+`src/schema/validation.py` validates and normalizes actual historical JSON shapes;
+`src/schema/contract.py` compiles single or multiple product outputs. Product types,
+identity fields, cardinality and taxonomy names come from manifest. Existing
+approved Canonical contracts retain their own strict storage contract.
+
+Holdout applicability uses trusted sampling-category/product mappings declared in
+manifest and each field's `applies_to`. Model classification never controls the
+denominator. Unlabelled Travel records have N/A classification and product-specific
+fill rates; universal fields remain measurable. Unknown/ambiguous source categories
+are rejected from analysis. Historical CLI extraction records remain readable;
+new extraction/feedback provenance includes vertical and schema version.
 
 ### Human review
+
+Consensus policy (runs, promotion, protected fields, manual queue) is configured
+in manifest. Aliases files, synonym merging and new `add_alias` proposals are
+removed. Historical aliases remain audit data and cannot mutate a schema.
 
 ```text
 review_queue.json + review_decisions.json + base schema artifact
@@ -68,14 +80,17 @@ review_queue.json + review_decisions.json + base schema artifact
 ```
 
 Queue data is immutable. Status is derived from decisions. Pending and rejected
-items are never applied.
+items are never applied. Queue/decisions/base schema must agree on queue identity,
+vertical, schema version and content hash. Resume recomputes the reviewed result
+from that base and decisions, preventing another run from being resumed by path
+alone. Legacy unbound queues are read-only until explicitly regenerated.
 
 Travel uses one discovery plus five independent patch runs. Conflict-free 4/5
 or 5/5 proposals are applied to the consensus base automatically; the review
 queue contains only uncertain or unsafe work. Applying the queue starts from
 that consensus base so automatic decisions are retained.
 
-### Travel Canonical review
+### Canonical review
 
 ```text
 reviewed discovered schema -> deterministic Canonical candidate
@@ -83,6 +98,9 @@ reviewed discovered schema -> deterministic Canonical candidate
   -> approved Canonical Schema -> extraction/storage gates
 ```
 
+The candidate builder reuses field/storage mappings from the selected manifest's
+approved contract, proposes unknown fields as JSONB, and deep-copies the source.
+The UI is shared by all configured storage-capable verticals (currently Travel).
 Candidate preview does not authorize extraction compilation, table creation, or
 loading. Production paths continue to require an approved review record.
 
@@ -109,7 +127,7 @@ validation and enter the bounded repair cycle; they cannot reach storage.
 
 ## Artifact rules
 
-Generated runtime JSON uses this envelope:
+Discovery/refinement and holdout extraction JSON use this envelope:
 
 ```text
 artifact_type + contract_version + status + created_at + provenance
@@ -118,17 +136,26 @@ artifact_type + contract_version + status + created_at + provenance
 
 Contracts, tracked configuration, JSONL usage logs, documentation, and optional
 MinerU Markdown inputs are not runtime artifacts and are not enveloped.
-Failures are written below `errors/<stage>/`; they never occupy a success path.
+Single/batch CLI extraction keeps `ExtractionResult` JSON for existing consumers.
+Both output styles use the common atomic, no-clobber writer. Default paths respect
+manifest output roots and distinguish same-named sources; explicit paths reject
+collisions. Holdout failures are written below `errors/<stage>/`; they never occupy
+a success path. Batch CLI reports failures and returns a nonzero status.
 Raw model output and document contents are excluded from error artifacts.
 
 ## Package ownership
 
-- `src/schema/`: discovery, prompts, sampling, schema business validation.
+- `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical.
+- `src/verticals/`: validated manifest resolution and existing executable adapters.
+- `src/schema/`: discovery, sampling, schema loader/validation/compiler and Canonical candidate.
 - `src/refine/candidates/`: patch parsing, normalization, voting, stability.
 - `src/refine/artifacts/`: deterministic consensus data and CLI rendering.
 - `src/refine/human_review/`: queue, decisions, UI, reviewed schema.
 - `src/refine/pipeline/`: outer round and resume orchestration.
-- `src/extract/`: dynamic extraction contract, generation, analysis.
+- `src/schema_application/`: shared extraction and applicability analysis.
+- `src/evaluation/`: existing Health labelled matching and metrics.
+- `src/storage/`: approved Canonical compilation, PostgreSQL transactions and idempotency.
+- `src/scraper/`: existing Travel acquisition; no new crawler framework.
 - `src/stability/`: semantic schema drift excluding envelope/provenance.
 - `src/cost/`: JSONL token-cost estimation.
 

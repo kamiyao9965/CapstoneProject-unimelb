@@ -1,7 +1,8 @@
-# Australian Private Health Schema Discovery
+# Australian Insurance Schema Discovery
 
 A Python CLI for discovering, stabilising, reviewing, and evaluating reusable
-extraction schemas from Australian private health insurance PDFs.
+extraction schemas from Australian health and travel insurance PDFs.
+Health and Travel share the same discovery, consensus, review and extraction engine.
 
 The entire runtime pipeline is JSON-only. Model responses use the strongest
 approved structured-output mode for the selected provider, are validated
@@ -12,12 +13,12 @@ repair retries. Invalid data never proceeds to the next stage.
 
 | Capability | Result |
 | --- | --- |
-| Schema discovery | Generate a reusable private-health extraction contract from a balanced PDF sample |
+| Schema discovery | Generate a reusable insurance extraction contract from a balanced PDF sample |
 | Multi-provider execution | Switch between OpenAI, Anthropic, and DeepSeek through `.env` or CLI flags |
 | Native structured output | OpenAI JSON Schema, Anthropic JSON Schema, or DeepSeek JSON object mode |
 | PDFingestor preprocessing | Convert sampled PDFs into reading-order text blocks and Markdown tables before model requests |
 | Stability measurement | Repeat discovery on the same sample and measure semantic schema drift |
-| Candidate-patch consensus | Generate N patch sets, normalise aliases, vote on fields, and produce an auditable consensus |
+| Candidate-patch consensus | Generate N patch sets, validate field names, vote on fields, and produce an auditable consensus |
 | Human review | Accept, reject, or edit proposals in Streamlit before applying them |
 | Holdout schema application | Compile discovered fields into a runtime extraction JSON Schema, extract unseen PDFs, and find schema failures |
 | Failure analysis | Measure applicability, fill rate, required-field misses, enum violations, and model-reported unfilled fields |
@@ -30,8 +31,9 @@ repair retries. Invalid data never proceeds to the next stage.
 
 ## Safety guarantees
 
-- Generated runtime files use a versioned artifact envelope with provenance,
-  success/failure status, and separate `data` and `error` fields.
+- Discovery/refinement/holdout artifacts use a versioned envelope with provenance,
+  success/failure status, and separate `data` and `error` fields. Single/batch CLI
+  extraction keeps the existing `ExtractionResult` JSON format.
 - JSON is parsed strictly; Markdown fences, partial JSON, YAML, type coercion,
   guessed values, and silent field repair are not accepted.
 - The first model attempt may be followed by at most two repair attempts.
@@ -39,7 +41,8 @@ repair retries. Invalid data never proceeds to the next stage.
   run identity.
 - Exhausted extraction failure writes below `errors/extraction/` and stops the
   stage before analysis or later documents.
-- Existing success paths are not overwritten automatically.
+- Existing success paths are not overwritten automatically. Explicit output paths
+  reject collisions; automatically named extraction/final-schema paths gain a suffix.
 - `.env`, source PDFs, MinerU mirrors, outputs, and usage logs are ignored and
   must not be committed.
 
@@ -78,9 +81,12 @@ Start the local Streamlit console from the project root:
 .venv/bin/python -m streamlit run src/tool_app.py
 ```
 
-The console wraps the existing CLI workflows for discovery, extraction, batch
-extraction, Travel document acquisition, Travel five-run refinement, Canonical
-Schema compilation, and PostgreSQL storage. It displays the exact command
+Select the insurance vertical first. The console discovers `configs/*/manifest.json`
+and shows only operations enabled for that vertical: discovery, extraction,
+batch, refinement, and where supported, acquisition, Canonical compilation and
+PostgreSQL storage. Changing vertical or operation clears form/confirmation/result
+state. Confirmation belongs to the full command; changing parameters invalidates it.
+Results display the vertical and command captured at launch. It displays the exact command
 before execution and requires explicit confirmation for LLM, network, and
 database operations.
 
@@ -126,12 +132,14 @@ brochure/TMD/FSG relationships and items that need human review.
 
 Each supported business vertical has one validated manifest under `configs/`.
 The manifest is the declarative boundary for paths, document categories,
-contract identifiers, prompt identifiers, pipeline capabilities, and adapter
-IDs:
+contract identifiers, prompt file paths, capabilities, product types, taxonomies,
+identity fields and consensus policy. Three prompt files live alongside each manifest:
 
 ```text
 configs/private_health/manifest.json
+configs/private_health/prompts/{discovery,patch,extraction}.md
 configs/travel_insurance/manifest.json
+configs/travel_insurance/prompts/{discovery,patch,extraction}.md
 contracts/vertical_manifest.schema.json
 src/verticals/manifest.py
 src/verticals/registry.py
@@ -146,12 +154,18 @@ collapsing several named plans into one record. Travel ground-truth evaluation
 remains disabled until a labelled dataset exists; refinement therefore stops
 after human review instead of claiming a holdout accuracy result.
 
-The Travel discovered-schema contract exposes `product_type_field` separately
-from `fields`. This makes the required plan classifier structurally mandatory
-while `fields` remains the list of other discovered attributes. Extraction
-compiles both sections into each product record, so downstream results still
-contain an ordinary `product_type` value alongside fields such as product name
-and benefits.
+Both verticals now produce the same discovered-schema shape: `fields` includes
+`product_type`, and `taxonomies` contains the named classification collections.
+Allowed product types and taxonomy names come from the selected manifest.
+`src/schema/loader.py` validates historical Health/Travel JSON before normalizing a
+copy into this shape. Historical source files and approved Canonical contracts
+are never rewritten. New model responses must satisfy the current request contract;
+the legacy reader is not a fallback for invalid model output.
+
+Sampling categories, document types and product types are separate concepts.
+Travel `pds` is a sampling/document category, while `domestic` is a product type.
+Only `documents.category_product_types` supplies trusted classification labels;
+model predictions never determine analysis denominators.
 
 Manifest files cannot import arbitrary Python functions. Executable behavior
 must use an adapter ID registered in `src/verticals/registry.py`. This keeps a
@@ -167,7 +181,8 @@ Use an explicit manifest when selecting a vertical:
 ```
 
 Omitting `--manifest` preserves the existing defaults: private health for
-schema commands and travel insurance for `crawl`.
+schema commands and the sole configured capable vertical (currently Travel) for
+acquisition/Canonical/storage. `resolve_manifest` owns these defaults for CLI/UI.
 
 Run Travel schema discovery over PDS samples:
 
@@ -521,8 +536,10 @@ outputs/private_health/consensus/
 ```
 
 The human-readable report is rendered in the terminal from validated JSON; no
-Markdown report is persisted. Alias normalisation is configured in
-`configs/private_health/aliases.json`.
+Markdown report is persisted. There is no aliases configuration or synonym
+merging. Spelling normalization is deterministic; `annual_limit` and `yearly_limit`
+remain separate candidates. Historical alias data is audit-only and `add_alias`
+cannot be applied. The retired `--alias-config` option fails explicitly.
 
 Private Health preserves its existing safe core/conditional promotion policy.
 Reject votes, mixed actions, rename, merge, and move operations require human
@@ -552,7 +569,10 @@ Start the review UI:
 
 The UI reads immutable `review_queue.json` and saves accept/reject/edit choices
 to `review_decisions.json`. JSON edit errors are shown without replacing the
-previous valid decision.
+previous valid decision. Queue, decisions and base schema identities must match,
+including vertical, version and base content. Widget state is bound to the queue.
+Old unbound review runs must be regenerated or completed with their original code
+version; they are never silently adopted by the new engine.
 
 After applying a Travel review, resume the round and then review the deterministic
 Canonical database mapping:
@@ -568,7 +588,9 @@ Canonical database mapping:
 
 The mapping UI previews PostgreSQL DDL but does not execute it. Approval requires
 a reviewer, rationale, and explicit confirmation, and writes a new Canonical
-Schema file.
+Schema file. Existing approved field mappings are reused; unknown fields are
+proposed as JSONB and remain subject to human review. Changing the input content
+or output path clears approval state; approved source contracts stay unchanged.
 
 Apply saved decisions from the UI or CLI:
 
@@ -704,8 +726,13 @@ the downstream extraction and ground-truth evaluation pipeline:
   --feedback-out outputs/private_health/refine/round_1/manual_feedback.json
 ```
 
-Only validated success envelopes contribute product values. Failed or malformed
-artifacts increment the error count and never affect fill-rate denominators.
+Both success envelopes and the existing CLI `ExtractionResult` JSON are validated
+against the chosen schema. Directories are scanned recursively. Present vertical
+and schema-version provenance must match; failed/malformed artifacts are counted
+as errors and never affect denominators. Travel has no trusted product labels, so
+classification accuracy and product-specific fill rates are N/A; universal fields
+can still be analyzed. Regenerate historical feedback without vertical provenance
+before using `--resume-feedback`.
 
 ## 11. Estimate cost
 
