@@ -4,6 +4,10 @@ A Python CLI for discovering, stabilising, reviewing, and evaluating reusable
 extraction schemas from Australian health and travel insurance PDFs.
 Health and Travel share the same discovery, consensus, review and extraction engine.
 
+Start with the Chinese [practical user guide](docs/user-guide.md) for complete
+Health/Travel workflows, review and recovery steps, and troubleshooting.
+See [api.md](api.md) for Python interfaces, CLI options, and artifact contracts.
+
 The entire runtime pipeline is JSON-only. Model responses use the strongest
 approved structured-output mode for the selected provider, are validated
 locally against authoritative JSON Schema contracts, and receive at most two
@@ -14,7 +18,7 @@ repair retries. Invalid data never proceeds to the next stage.
 | Capability | Result |
 | --- | --- |
 | Schema discovery | Generate a reusable insurance extraction contract from a balanced PDF sample |
-| Multi-provider execution | Switch between OpenAI, Anthropic, and DeepSeek through `.env` or CLI flags |
+| Multi-provider execution | Switch between OpenAI, Anthropic, and DeepSeek through process environment variables or CLI flags |
 | Native structured output | OpenAI JSON Schema, Anthropic JSON Schema, or DeepSeek JSON object mode |
 | PDFingestor preprocessing | Convert sampled PDFs into reading-order text blocks and Markdown tables before model requests |
 | Stability measurement | Repeat discovery on the same sample and measure semantic schema drift |
@@ -39,10 +43,12 @@ repair retries. Invalid data never proceeds to the next stage.
 - The first model attempt may be followed by at most two repair attempts.
 - Each billable attempt is recorded in the JSONL usage log under one logical
   run identity.
-- Exhausted extraction failure writes below `errors/extraction/` and stops the
-  stage before analysis or later documents.
-- Existing success paths are not overwritten automatically. Explicit output paths
-  reject collisions; automatically named extraction/final-schema paths gain a suffix.
+- Exhausted holdout extraction failure writes below `errors/extraction/` and
+  stops before analysis or later documents. Main CLI batch extraction instead
+  reports per-document errors, continues, and returns a nonzero exit status.
+- Existing success paths are not overwritten automatically. Discovery and automatic
+  extraction/final-schema paths gain a suffix; explicit extraction/review output
+  paths reject collisions.
 - `.env`, source PDFs, MinerU mirrors, outputs, and usage logs are ignored and
   must not be committed.
 
@@ -359,7 +365,8 @@ KONKRD_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/konkrd
 # DEEPSEEK_BASE_URL=https://api.deepseek.com
 ```
 
-Selection precedence is CLI flag, then `.env`, then the OpenAI defaults.
+Selection precedence is CLI flag, then the process environment (including any
+manually exported `.env` values), then the OpenAI defaults.
 `OPENAI_API_KEY` is also accepted; `MY_OPENAI_API_KEY` has precedence when both
 exist. `OPENAI_MODEL` is only a legacy OpenAI fallback; prefer `LLM_MODEL`.
 
@@ -689,7 +696,7 @@ Typical round contents:
 
 ```text
 outputs/private_health/refine/
-  final_schema.json              # latest completed round schema for extraction/evaluation
+  final_schema*.json             # completed schemas; use the path printed by the run
 
 round_1/
   schema.json
