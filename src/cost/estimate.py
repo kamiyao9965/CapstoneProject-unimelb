@@ -8,10 +8,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.cost.pricing import ModelPrice, cost_usd, resolve_price
+from src.cost.pricing import cost_usd, resolve_price
 from src.common.json_codec import loads_json
 
-DEFAULT_LOG = "outputs/private_health/token_usage.jsonl"
+from src.verticals.manifest import resolve_manifest
 
 
 def load_runs(log_path: Path) -> list[dict]:
@@ -136,7 +136,8 @@ def parse_vertical(values: list[str] | None) -> dict[str, int]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Estimate schema/extraction cost from token usage logs")
-    parser.add_argument("--log", default=DEFAULT_LOG, help="Path to token_usage.jsonl")
+    parser.add_argument("--manifest")
+    parser.add_argument("--log", help="Path to token_usage.jsonl")
     parser.add_argument("--model", default="gpt-5", help="Model to price projections with")
     parser.add_argument("--input-rate", type=float, help="USD per 1M input tokens (override)")
     parser.add_argument("--output-rate", type=float, help="USD per 1M output tokens (override)")
@@ -152,7 +153,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    runs = load_runs(Path(args.log))
+    manifest = resolve_manifest(args.manifest)
+    runs = load_runs(Path(args.log) if args.log else manifest.path("output_root") / "token_usage.jsonl")
 
     if args.project:
         verticals = parse_vertical(args.vertical)

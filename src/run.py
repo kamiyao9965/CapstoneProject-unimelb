@@ -21,16 +21,10 @@ from src.common.json_artifacts import (
 from src.common.json_codec import dumps_json
 from src.common.json_contracts import load_contract
 from src.common.model_config import resolve_selection
-from src.config import load_config
 from src.models import ExtractionResult
 from src.schema.sampler import print_samples, select_samples
 from src.schema.loader import load_schema_data
-from src.verticals.manifest import (
-    ManifestValidationError,
-    VerticalManifest,
-    default_manifest_path,
-    load_vertical_manifest,
-)
+from src.verticals.manifest import ManifestValidationError, VerticalManifest, resolve_manifest
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     discover = subparsers.add_parser(
         "discover",
-        help="Generate a feat discovered JSON schema from sample PDFs",
+        help="Generate a draft JSON schema from sample PDFs",
     )
     discover.add_argument("--manifest")
     discover.add_argument("--samples", nargs="+")
@@ -153,37 +147,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def configure_command(args: argparse.Namespace) -> VerticalManifest:
     """Load one manifest and apply its defaults before a command runs."""
-    default_vertical = (
-        "travel_insurance"
-        if args.command in {
-            "crawl",
-            "canonical-compile",
-            "storage-init",
-            "storage-load",
-        }
-        else "private_health"
-    )
-    requested_vertical = getattr(args, "vertical", None) or default_vertical
-    manifest_path = args.manifest or default_manifest_path(requested_vertical)
-    manifest = load_vertical_manifest(manifest_path)
-    if getattr(args, "vertical", None) and args.vertical != manifest.vertical:
-        raise ManifestValidationError(
-            f"--vertical {args.vertical!r} conflicts with manifest vertical "
-            f"{manifest.vertical!r}."
-        )
+    manifest = resolve_manifest(args.manifest, vertical=getattr(args, "vertical", None), operation=args.command)
     args.vertical = manifest.vertical
     args.vertical_manifest = manifest
 
-    capability = {
-        "discover": "discovery",
-        "extract": "extraction",
-        "batch": "extraction",
-        "crawl": "acquisition",
-        "canonical-compile": "storage",
-        "storage-init": "storage",
-        "storage-load": "storage",
-    }[args.command]
-    manifest.require_capability(capability)
     if args.command == "batch" and args.evaluate:
         manifest.require_capability("evaluation")
 
@@ -323,6 +290,10 @@ def command_discover(args: argparse.Namespace) -> int:
 
 def command_extract(args: argparse.Namespace) -> int:
     manifest = args.vertical_manifest
+    output_path = Path(args.output) if args.output else default_output_path(manifest, Path(args.pdf))
+    if output_path.exists():
+        print(f"Output already exists; choose a new path: {output_path}")
+        return 1
     schema_data = load_schema_data(args.schema, args.vertical_manifest)
     if schema_data.get("vertical") != manifest.vertical:
         print(
@@ -349,7 +320,6 @@ def command_extract(args: argparse.Namespace) -> int:
         data=record,
     )
 
-    output_path = args.output or default_output_path(manifest.vertical, Path(args.pdf))
     result.write_json(output_path)
     print(f"Wrote extraction to {output_path}")
     return 0
@@ -358,7 +328,6 @@ def command_extract(args: argparse.Namespace) -> int:
 def command_batch(args: argparse.Namespace) -> int:
     from src.verticals.registry import get_evaluation_tools
 
-    config = load_config()
     manifest = args.vertical_manifest
     schema_data = load_schema_data(args.schema, args.vertical_manifest)
     if schema_data.get("vertical") != manifest.vertical:
@@ -417,7 +386,7 @@ def command_batch(args: argparse.Namespace) -> int:
             extraction_errors += 1
             print(f"Extraction failed for {pdf_path.name}: {exc}")
             continue
-        output_path = default_output_path(manifest.vertical, pdf_path)
+        output_path = default_output_path(manifest, pdf_path, input_root=input_root)
         result.write_json(output_path)
         provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
         if args.evaluate and result.provider == "heuristic":
@@ -678,10 +647,19 @@ def command_storage_load(args: argparse.Namespace) -> int:
     return 0
 
 
-def default_output_path(vertical: str, pdf_path: Path) -> Path:
-    config = load_config()
-    relative_parts = pdf_path.with_suffix(".json").parts[-4:]
-    return config.outputs_dir / vertical / "extractions" / Path(*relative_parts)
+def default_output_path(manifest: VerticalManifest, pdf_path: Path, *, input_root=None) -> Path:
+    from src.common.json_artifacts import next_available_path
+    import hashlib
+
+    source = pdf_path.resolve()
+    root = Path(input_root or manifest.path("input_root")).resolve()
+    if source.is_relative_to(root):
+        relative = source.relative_to(root).with_suffix(".json")
+    else:
+        # Explicit PDFs outside the configured tree must not collide by basename.
+        identity = hashlib.sha256(str(source).encode()).hexdigest()[:12]
+        relative = Path(f"{source.stem}_{identity}.json")
+    return next_available_path(manifest.path("output_root") / "extractions" / relative)
 
 
 def main() -> int:

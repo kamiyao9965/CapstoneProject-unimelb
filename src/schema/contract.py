@@ -11,13 +11,23 @@ from src.schema.validation import normalize_schema, validate_schema_mapping
 def compile_extraction_contract(
     schema: Mapping[str, object],
     *,
-    data_contract: str = "private_health/discovered_schema",
-    business_validator: Callable[[object], object] = validate_schema_mapping,
-    output_cardinality: str = "single",
+    data_contract: str | None = None,
+    business_validator: Callable[[object], object] | None = None,
+    output_cardinality: str | None = None,
     manifest=None,
 ) -> dict[str, object]:
+    from src.verticals.manifest import resolve_manifest
+
+    manifest = manifest or resolve_manifest(vertical=schema.get("vertical"))
+    data_contract = data_contract or manifest.contract("discovered_schema")
+    output_cardinality = output_cardinality or manifest.documents.output_cardinality
+    if output_cardinality != manifest.documents.output_cardinality:
+        raise ValueError("Output cardinality conflicts with the selected manifest.")
     validate_contract(schema, data_contract, manifest=manifest)
-    business_validator(schema)
+    if business_validator:
+        business_validator(schema)
+    else:
+        validate_schema_mapping(schema, manifest=manifest)
     product_contract = _compile_product_contract(normalize_schema(dict(schema), manifest))
     if output_cardinality == "single":
         return {

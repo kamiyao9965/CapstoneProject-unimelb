@@ -7,20 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from collections.abc import Callable
 
-from src.refine.artifacts.schema_fields import (
-    applies_to_from_group,
-    decision_is_auto_promotable,
-    decision_requires_manual_edit,
-    field_payload_from_decision,
-    fields_by_name,
-)
+from src.refine.artifacts.schema_fields import applies_to_from_group, decision_is_auto_promotable, field_payload_from_decision, fields_by_name
 from src.refine.candidates.aggregator import FieldDecision
-from src.common.json_artifacts import (
-    build_success_artifact,
-    read_artifact,
-    write_artifact,
-)
-from src.schema.validation import validate_schema_mapping
+from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.schema.loader import load_schema_data
 from src.common.json_contracts import load_contract
 
@@ -30,14 +19,22 @@ def render_consensus_schema(
     decisions: list[FieldDecision],
     output_path: str | Path,
     *,
-    schema_contract: str = "private_health/discovered_schema",
-    schema_validator: Callable[[object], object] = validate_schema_mapping,
-    valid_product_types: tuple[str, ...] = ("hospital", "extras", "generalhealth", "combined"),
-    promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
-    protected_fields: frozenset[str] = frozenset(),
+    schema_contract: str | None = None,
+    schema_validator: Callable[[object], object] | None = None,
+    valid_product_types: tuple[str, ...] | None = None,
+    promoted_decisions: frozenset[str] | None = None,
+    protected_fields: frozenset[str] | None = None,
     manifest=None,
 ) -> None:
     base_schema = load_schema_data(base_schema_path, manifest)
+    from src.verticals.manifest import resolve_manifest
+    from src.verticals.registry import get_schema_validator
+    manifest = manifest or resolve_manifest(vertical=base_schema["vertical"])
+    schema_contract = schema_contract or manifest.contract("discovered_schema")
+    schema_validator = schema_validator or get_schema_validator(manifest)
+    valid_product_types = valid_product_types if valid_product_types is not None else manifest.product_types
+    promoted_decisions = promoted_decisions if promoted_decisions is not None else manifest.promoted_decisions
+    protected_fields = protected_fields if protected_fields is not None else manifest.protected_fields
     consensus_schema = deepcopy(base_schema)
     existing_fields = fields_by_name(consensus_schema.get("fields", []))
 

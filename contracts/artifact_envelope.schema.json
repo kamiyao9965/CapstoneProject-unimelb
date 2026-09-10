@@ -76,6 +76,8 @@
       ],
       "properties": {
         "run_id": {"type": ["string", "null"]},
+        "vertical": {"type": "string", "minLength": 1},
+        "schema_version": {"type": "string", "minLength": 1},
         "provider": {"type": ["string", "null"]},
         "model": {"type": ["string", "null"]},
         "document_input": {"type": ["string", "null"]},

@@ -6,16 +6,11 @@ from pathlib import Path
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json, loads_json
 from src.common.json_contracts import validate_contract
+from src.schema.validation import normalize_schema
 
 # The dimensions we track for drift. Each maps to a set of identifier strings
 # pulled out of a schema so two schemas can be compared set-against-set.
-DIMENSIONS = (
-    "product_types",
-    "field_contracts",
-    "hospital_categories",
-    "extras_services",
-)
-
+DIMENSIONS = ("product_types", "field_contracts")
 
 @dataclass(frozen=True)
 class SchemaSignature:
@@ -25,11 +20,11 @@ class SchemaSignature:
     product_types: frozenset[str] = field(default_factory=frozenset)
     fields: frozenset[str] = field(default_factory=frozenset)
     field_contracts: frozenset[str] = field(default_factory=frozenset)
-    hospital_categories: frozenset[str] = field(default_factory=frozenset)
-    extras_services: frozenset[str] = field(default_factory=frozenset)
+    vertical: str = ""
+    taxonomies: dict[str, frozenset[str]] = field(default_factory=dict)
 
     def get(self, dimension: str) -> frozenset[str]:
-        return getattr(self, dimension)
+        return self.taxonomies.get(dimension, frozenset()) if dimension not in DIMENSIONS else getattr(self, dimension)
 
 
 def _canonical_names(items: object, key: str) -> frozenset[str]:
@@ -69,14 +64,13 @@ def _field_contracts(items: object) -> frozenset[str]:
     return frozenset(contracts)
 
 
-def signature_from_artifact(artifact: object, label: str) -> SchemaSignature:
+def signature_from_artifact(artifact: object, label: str, *, manifest=None) -> SchemaSignature:
     validate_contract(artifact, "artifact_envelope")
     if not isinstance(artifact, dict) or artifact.get("status") != "success":
         raise ValueError(f"{label}: schema artifact is not successful")
     if artifact.get("artifact_type") != "discovered_schema":
         raise ValueError(f"{label}: expected a discovered_schema artifact")
-    data = artifact["data"]
-    validate_contract(data, "private_health/discovered_schema")
+    data = normalize_schema(artifact["data"], manifest)
 
     product_types = data.get("product_types") or []
     pt = (
@@ -90,25 +84,24 @@ def signature_from_artifact(artifact: object, label: str) -> SchemaSignature:
         product_types=pt,
         fields=_canonical_names(data.get("fields"), "name"),
         field_contracts=_field_contracts(data.get("fields")),
-        hospital_categories=_canonical_names(data.get("hospital_categories"), "canonical_name"),
-        extras_services=_canonical_names(data.get("extras_services"), "canonical_name"),
+        vertical=data["vertical"],
+        taxonomies={name: _canonical_names(entries, "canonical_name") for name, entries in data["taxonomies"].items()},
     )
 
 
-def signature_from_text(text: str, label: str) -> SchemaSignature:
+def signature_from_text(text: str, label: str, *, manifest=None) -> SchemaSignature:
     """Parse a JSON artifact string and build its semantic signature."""
     try:
         artifact = loads_json(text)
     except ValueError as exc:
         raise ValueError(f"{label}: schema artifact is not valid strict JSON: {exc}") from exc
-    return signature_from_artifact(artifact, label)
+    return signature_from_artifact(artifact, label, manifest=manifest)
 
 
-def signature_from_file(path: str | Path) -> SchemaSignature:
+def signature_from_file(path: str | Path, *, manifest=None) -> SchemaSignature:
     path = Path(path)
     artifact = read_artifact(
         path,
         expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
     )
-    return signature_from_artifact(artifact, label=path.name)
+    return signature_from_artifact(artifact, label=path.name, manifest=manifest)

@@ -9,27 +9,19 @@ from pathlib import Path
 import streamlit as st
 from src.common.json_codec import loads_json
 
-from src.refine.human_review import (
-    DECISIONS_FILENAME,
-    QUEUE_FILENAME,
-    REVIEWED_SCHEMA_FILENAME,
-    apply_review_files,
-    decisions_by_id,
-    derive_status,
-    empty_decisions,
-    load_review_decisions,
-    load_review_queue,
-    remove_review_decision,
-    save_review_decision,
-)
+from src.refine.human_review import DECISIONS_FILENAME, QUEUE_FILENAME, apply_review_files, decisions_by_id, derive_status, empty_decisions, load_review_decisions, load_review_queue, remove_review_decision, save_review_decision
 
-DEFAULT_CONSENSUS_DIR = "outputs/private_health/consensus"
+from src.verticals.manifest import resolve_manifest
+from src.refine.human_review.queue import review_identity
 
 
 def parse_cli_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--consensus-dir", default=DEFAULT_CONSENSUS_DIR)
+    parser.add_argument("--manifest")
+    parser.add_argument("--consensus-dir")
     args, _ = parser.parse_known_args()
+    manifest = resolve_manifest(args.manifest)
+    args.consensus_dir = args.consensus_dir or str(manifest.path("output_root") / "consensus")
     return args
 
 
@@ -73,9 +65,18 @@ def main() -> None:
         )
         st.stop()
 
-    queue = load_review_queue(queue_path)
-    decisions = load_decisions_or_empty(decisions_path, queue)
-    status = derive_status(queue, decisions)
+    try:
+        queue = load_review_queue(queue_path)
+        decisions = load_decisions_or_empty(decisions_path, queue)
+        status = derive_status(queue, decisions)
+        identity = review_identity(queue)
+        if cli.manifest and identity["vertical"] != resolve_manifest(cli.manifest).vertical:
+            raise ValueError("Queue vertical conflicts with the selected manifest.")
+    except (OSError, ValueError) as exc:
+        st.error(str(exc))
+        st.stop()
+    scope = identity["queue_id"]
+    st.caption(f"Vertical: {identity['vertical']} · Schema: {identity['schema_version']} · Queue: {scope[:12]}")
     updates = queue.get("updates", [])
 
     pending = sum(1 for value in status.values() if value == "pending")
@@ -86,22 +87,22 @@ def main() -> None:
     )
 
     status_filter = st.sidebar.multiselect(
-        "Review status", ["pending", "accepted", "rejected", "edited"], default=[]
+        "Review status", ["pending", "accepted", "rejected", "edited"], default=[], key=f"status:{scope}"
     )
     decision_filter = st.sidebar.multiselect(
         "Suggested decision",
         sorted({u["suggested_decision"] for u in updates}),
-        default=[],
+        default=[], key=f"decision:{scope}",
     )
     patch_type_filter = st.sidebar.multiselect(
         "Patch type",
         sorted({p for u in updates for p in u.get("patch_types", [])}),
-        default=[],
+        default=[], key=f"patch:{scope}",
     )
     group_filter = st.sidebar.multiselect(
         "Target group",
         sorted({u.get("target_group", "") for u in updates} - {""}),
-        default=[],
+        default=[], key=f"group:{scope}",
     )
 
     def visible(item: dict) -> bool:
@@ -120,8 +121,12 @@ def main() -> None:
     visible_items = [item for item in updates if visible(item)]
 
     st.sidebar.divider()
-    if st.sidebar.button("Apply decisions -> reviewed_schema.json", type="primary"):
-        out_path, summary = apply_review_files(consensus_dir=consensus_dir)
+    if st.sidebar.button("Apply decisions -> reviewed_schema.json", type="primary", key=f"apply:{scope}"):
+        try:
+            out_path, summary = apply_review_files(consensus_dir=consensus_dir)
+        except (OSError, ValueError) as exc:
+            st.sidebar.error(str(exc))
+            st.stop()
         st.sidebar.success(
             f"Wrote {out_path}\n\n"
             f"applied {len(summary['applied'])} + edited {len(summary['edited'])}, "
@@ -142,7 +147,7 @@ def main() -> None:
         f"{item['frequency']}, {status[item['id']]}]": item
         for item in visible_items
     }
-    selected_label = st.radio("Queue", list(labels), label_visibility="collapsed")
+    selected_label = st.radio("Queue", list(labels), label_visibility="collapsed", key=f"queue:{scope}")
     item = labels[selected_label]
     item_id = item["id"]
 
@@ -153,11 +158,14 @@ def main() -> None:
         _render_review_item(item, status[item_id])
 
     with right:
-        _render_decision_panel(item, decisions, decisions_path)
+        try:
+            _render_decision_panel(item, decisions, decisions_path, scope)
+        except (OSError, ValueError) as exc:
+            st.error(str(exc))
 
 
 def _render_review_item(item: dict, status_label: str) -> None:
-    st.subheader(item["canonical_name"])
+    st.header(item["canonical_name"])
     st.write(
         f"**Suggested:** `{item['suggested_decision']}` | "
         f"**Support:** {item['frequency']} | "
@@ -167,9 +175,10 @@ def _render_review_item(item: dict, status_label: str) -> None:
     )
     st.write(
         f"**Patch types:** {', '.join(item.get('patch_types', [])) or 'n/a'} | "
-        f"**Group:** {item.get('target_group') or 'n/a'} | "
-        f"**Aliases:** {', '.join(item.get('aliases', [])) or 'none'}"
+        f"**Group:** {item.get('target_group') or 'n/a'}"
     )
+    if item.get("aliases"):
+        st.caption("Historical aliases (read-only): " + ", ".join(item["aliases"]))
     if item.get("needs_schema_edit"):
         st.error(
             "rename/merge/move changes cannot be represented as one field upsert. "
@@ -208,31 +217,32 @@ def _render_decision_panel(
     item: dict,
     decisions: dict,
     decisions_path: Path,
+    scope: str,
 ) -> None:
     item_id = item["id"]
-    st.subheader("Your decision")
+    st.header("Your decision")
     existing = decisions_by_id(decisions).get(item_id, {})
     notes = st.text_input(
         "Reviewer notes",
         value=existing.get("reviewer_notes", ""),
-        key=f"notes:{item_id}",
+        key=f"notes:{scope}:{item_id}",
     )
 
     accept_col, reject_col, clear_col = st.columns(3)
     if accept_col.button(
         "Accept",
-        key=f"accept:{item_id}",
+        key=f"accept:{scope}:{item_id}",
         type="primary",
         disabled=bool(item.get("needs_manual_edit")),
     ):
         save_decision(decisions_path, decisions, item_id, "accept", notes)
         st.rerun()
-    if reject_col.button("Reject", key=f"reject:{item_id}"):
+    if reject_col.button("Reject", key=f"reject:{scope}:{item_id}"):
         save_decision(decisions_path, decisions, item_id, "reject", notes)
         st.rerun()
     if clear_col.button(
         "Clear",
-        key=f"clear:{item_id}",
+        key=f"clear:{scope}:{item_id}",
         help="Remove the decision; item returns to pending",
     ):
         latest = remove_review_decision(decisions_path, item_id)
@@ -246,11 +256,11 @@ def _render_decision_panel(
         "Field payload (JSON)",
         value=json.dumps(default_edit, ensure_ascii=False, indent=2),
         height=220,
-        key=f"edit:{item_id}",
+        key=f"edit:{scope}:{item_id}",
     )
     if st.button(
         "Save edit & accept",
-        key=f"save_edit:{item_id}",
+        key=f"save_edit:{scope}:{item_id}",
         disabled=bool(item.get("needs_schema_edit")),
     ):
         try:

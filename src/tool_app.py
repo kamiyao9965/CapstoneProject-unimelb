@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import shlex
+import hashlib
 
 import streamlit as st
 
 from src.tool_ui.commands import CommandResult, build_command, run_command
 from src.tool_ui.forms import OPERATION_LABELS, render_operation_form
+from src.verticals.manifest import discover_manifests, OPERATION_CAPABILITIES
 
 
 st.set_page_config(page_title="Insurance schema operations", page_icon="🧰", layout="wide")
@@ -17,13 +19,34 @@ st.caption(
     "process environment, and commands never run until you confirm them."
 )
 
-operation_label = st.selectbox("Operation", list(OPERATION_LABELS))
+try:
+    manifests = discover_manifests()
+    if not manifests:
+        raise ValueError("No vertical manifests found in configs/.")
+except ValueError as exc:
+    st.error(str(exc))
+    st.stop()
+vertical = st.selectbox(
+    "Insurance vertical", list(manifests), key="vertical",
+    format_func=lambda code: manifests[code].display_name,
+)
+manifest = manifests[vertical]
+st.caption(f"Current vertical: {vertical} · Manifest: {manifest.source_path}")
+operations = [label for label, code in OPERATION_LABELS.items()
+              if manifest.supports(OPERATION_CAPABILITIES[code])]
+if st.session_state.get("operation") not in operations:
+    st.session_state.pop("operation", None)
+operation_label = st.selectbox("Operation", operations, key="operation")
 operation = OPERATION_LABELS[operation_label]
-if st.session_state.get("active_operation") != operation:
-    st.session_state["active_operation"] = operation
+scope = (vertical, operation)
+if st.session_state.get("active_scope") != scope:
+    st.session_state["active_scope"] = scope
     st.session_state.pop("tool_result", None)
+    for key in list(st.session_state):
+        if key.startswith(("_form:", "_confirm:")):
+            del st.session_state[key]
 
-form_state = render_operation_form(operation_label)
+form_state = render_operation_form(operation_label, manifest)
 validation_error: str | None = None
 command: list[str] | None = None
 try:
@@ -31,7 +54,7 @@ try:
 except ValueError as exc:
     validation_error = str(exc)
 
-st.subheader("Command preview")
+st.header("Command preview")
 if command:
     st.code(shlex.join(command), language="bash")
 else:
@@ -39,19 +62,29 @@ else:
 if validation_error:
     st.info(validation_error)
 
-ready = command is not None and form_state.confirmed
-if form_state.confirmation_message and not form_state.confirmed:
+confirmed = True
+if form_state.confirmation_message:
+    # Confirmation belongs to the exact command and configuration, not the widget label.
+    fingerprint = hashlib.sha256(
+        (repr(command) + manifest.source_path.read_text()).encode()
+    ).hexdigest()
+    confirmed = st.checkbox(form_state.confirmation_message, key=f"_confirm:{fingerprint}")
+ready = command is not None and confirmed
+if form_state.confirmation_message and not confirmed:
     st.caption("Confirm the operation above to enable Run.")
 
 if st.button("Run operation", key="run-command", type="primary", disabled=not ready):
     assert command is not None
     with st.spinner("Running the project CLI…"):
-        st.session_state["tool_result"] = run_command(command)
+        st.session_state["tool_result"] = (scope, run_command(command))
 
-result = st.session_state.get("tool_result")
-if isinstance(result, CommandResult):
+saved_result = st.session_state.get("tool_result")
+if saved_result and saved_result[0] == scope and isinstance(saved_result[1], CommandResult):
+    result = saved_result[1]
     st.divider()
-    st.subheader("Latest result")
+    st.header("Latest result")
+    st.caption(f"Run vertical: {vertical} · Operation: {operation_label}")
+    st.code(shlex.join(result.command), language="bash")
     if result.timed_out:
         st.warning("The operation timed out. Partial output is shown below.")
     elif result.succeeded:

@@ -19,18 +19,14 @@ from src.schema_application.analyze import (
 )
 from src.schema_application.extractor import SchemaExtractor
 from src.schema.contract import compile_extraction_contract
-from src.refine.candidates.patch import parse_patch_payload
 from src.refine.consensus import SchemaConsensusRefinement
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import select_samples
-from src.verticals.manifest import default_manifest_path, load_vertical_manifest
-from src.verticals.registry import get_prompt, get_schema_validator
+from src.verticals.manifest import resolve_manifest
 
 
 def _manifest(args):
-    return getattr(args, "vertical_manifest", None) or load_vertical_manifest(
-        default_manifest_path("private_health")
-    )
+    return getattr(args, "vertical_manifest", None) or resolve_manifest()
 
 
 def select_discovery_samples(args) -> tuple[str, ...]:
@@ -67,7 +63,6 @@ def generate_schema(
     resolved_sample_paths = [str(path) for path in sample_paths]
     selection = _selection(args)
     manifest = _manifest(args)
-    schema_validator = get_schema_validator(manifest)
     run_id = uuid4().hex
     schema_data = SchemaDiscovery(
         selection=selection,
@@ -165,6 +160,7 @@ def evaluate_schema(
         contract_version="1.0.0",
         data=feedback_data,
         provenance={
+            "vertical": _manifest(args).vertical, "schema_version": str(schema_data["version"]),
             "run_id": None, "provider": None, "model": None,
             "document_input": None, "source_documents": list(eval_paths),
             "source_artifacts": [],

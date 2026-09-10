@@ -55,8 +55,6 @@
     "extraction": "prompts/extraction.md"
   },
   "adapters": {
-    "schema_validator": "private_health_schema_v1",
-    "normalizer": "private_health_extraction_v1",
     "evaluator": "private_health_labelled_v1",
     "acquisition": null
   },

@@ -26,12 +26,6 @@ def get_acquisition_adapter(adapter_id: str) -> AcquisitionAdapter:
 def get_schema_validator(manifest) -> SchemaValidator:
     from functools import partial
     from src.schema.validation import validate_schema_mapping
-    from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
-
-    if not isinstance(manifest, VerticalManifest):
-        # Temporary call-site compatibility, removed after consumers migrate.
-        vertical = str(manifest).removesuffix("_schema_v1")
-        manifest = load_vertical_manifest(default_manifest_path(vertical))
     return partial(validate_schema_mapping, manifest=manifest)
 
 

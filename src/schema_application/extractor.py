@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable, Mapping
 from uuid import uuid4
 
-from src.PDFingestor.adapter import DEFAULT_CACHE_DIR, render_pdf_paths_for_prompt
+from src.PDFingestor.adapter import render_pdf_paths_for_prompt
 from src.common.json_artifacts import (
     build_failure_artifact,
     next_available_path,
@@ -247,6 +247,8 @@ class SchemaExtractor:
 
     def _provenance(self, pdf_path: Path, run_id: str) -> dict[str, object]:
         return {
+            "vertical": self.schema_data["vertical"],
+            "schema_version": str(self.schema_data["version"]),
             "run_id": run_id, "provider": self.selection.provider,
             "model": self.selection.model,
             "document_input": self.selection.document_input,

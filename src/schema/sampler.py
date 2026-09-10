@@ -8,14 +8,15 @@ from pathlib import Path
 from typing import Iterable
 
 
-DEFAULT_CATEGORIES = ("combined", "extras", "generalhealth", "hospital")
+from src.verticals.manifest import resolve_manifest
 
 
 def category_from_path(
     path: str | Path,
-    categories: tuple[str, ...] = DEFAULT_CATEGORIES,
+    categories: tuple[str, ...] | None = None,
 ) -> str | None:
     """Return the single authoritative dataset category encoded in a path."""
+    categories = categories if categories is not None else resolve_manifest().documents.categories
     parts = {part.lower() for part in Path(path).parts}
     matches = [category for category in categories if category.lower() in parts]
     return matches[0] if len(matches) == 1 else None
@@ -23,11 +24,12 @@ def category_from_path(
 
 def select_samples(
     input_root: Path,
-    categories: tuple[str, ...] = DEFAULT_CATEGORIES,
+    categories: tuple[str, ...] | None = None,
     per_category: int = 5,
     seed: int | None = None,
     exclude_paths: Iterable[str | Path] = (),
 ) -> list[str]:
+    categories = categories if categories is not None else resolve_manifest().documents.categories
     if per_category <= 0:
         raise ValueError("--per-category must be greater than 0.")
     if not input_root.exists():

@@ -30,15 +30,21 @@ def build_review_queue(
     base_schema_path: str | Path,
     generated_at: str | None = None,
     schema_build_samples: Iterable[str | Path] = (),
-    manual_only: bool = False,
-    vertical: str = "private_health",
-    schema_contract: str = "private_health/discovered_schema",
-    valid_product_types: tuple[str, ...] = ("hospital", "extras", "generalhealth", "combined"),
-    promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
-    protected_fields: frozenset[str] = frozenset(),
+    manual_only: bool | None = None,
+    vertical: str | None = None,
+    schema_contract: str | None = None,
+    valid_product_types: tuple[str, ...] | None = None,
+    promoted_decisions: frozenset[str] | None = None,
+    protected_fields: frozenset[str] | None = None,
     manifest=None,
 ) -> dict:
+    vertical = vertical or base_schema.get("vertical")
     manifest = manifest or load_vertical_manifest(default_manifest_path(vertical))
+    schema_contract = schema_contract or manifest.contract("discovered_schema")
+    valid_product_types = valid_product_types if valid_product_types is not None else manifest.product_types
+    promoted_decisions = promoted_decisions if promoted_decisions is not None else manifest.promoted_decisions
+    protected_fields = protected_fields if protected_fields is not None else manifest.protected_fields
+    manual_only = manual_only if manual_only is not None else manifest.manual_only_queue
     if base_schema.get("vertical") != manifest.vertical or manifest.vertical != vertical:
         raise ValueError("Review queue vertical does not match base schema.")
     existing_fields = fields_by_name(normalize_schema(base_schema, manifest).get("fields", []))

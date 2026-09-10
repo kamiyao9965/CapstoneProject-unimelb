@@ -202,6 +202,7 @@ def decisions_by_id(decisions_payload: dict) -> dict[str, dict]:
 
 def derive_status(queue: dict, decisions_payload: dict) -> dict[str, str]:
     """id -> pending | accepted | rejected | edited."""
+    validate_review_identity(queue, decisions_payload)
     by_id = decisions_by_id(decisions_payload)
     labels = {"accept": "accepted", "reject": "rejected", "edit": "edited"}
     return {

@@ -11,8 +11,7 @@ from src.common.json_artifacts import (
     read_artifact,
     write_artifact,
 )
-from src.common.json_contracts import validate_contract
-from src.schema.validation import JSONScalar, SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES
+from src.schema.validation import JSONScalar, SUPPORTED_FIELD_TYPES
 
 
 SUPPORTED_PATCH_TYPES = {
@@ -110,7 +109,8 @@ class SchemaPatch:
                 raise ValueError(f"Unsupported field type: {self.field_type}")
             if not self.description:
                 raise ValueError("add_field patch must include a description.")
-            supported = allowed_product_types or SUPPORTED_PRODUCT_TYPES
+            from src.verticals.manifest import resolve_manifest
+            supported = allowed_product_types if allowed_product_types is not None else set(resolve_manifest().product_types)
             if not self.applies_to or set(self.applies_to) - supported:
                 raise ValueError(
                     "add_field patch applies_to must contain supported product types."

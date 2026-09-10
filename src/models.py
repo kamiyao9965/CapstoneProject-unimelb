@@ -35,10 +35,9 @@ class ExtractionResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
     def write_json(self, output_path: str | Path) -> Path:
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
-        return path
+        from src.common.json_artifacts import write_text_output
+
+        return write_text_output(output_path, self.model_dump_json(indent=2))
 
 
 class EvaluationReport(BaseModel):

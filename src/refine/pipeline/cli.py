@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 from pathlib import Path
 
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
 from src.refine.pipeline.rounds import next_round_index, resume_review, run_round
-from src.verticals.manifest import (
-    ManifestValidationError,
-    VerticalManifest,
-    default_manifest_path,
-    load_vertical_manifest,
-)
+from src.verticals.manifest import resolve_manifest, ManifestValidationError, VerticalManifest
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -53,15 +49,15 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help=(
-            "Patch-voting runs per round before evaluation. Defaults to 1 for "
-            "private health and 5 for Travel; N>1 multiplies API cost by ~N."
+            "Proposal runs from the selected manifest. One run skips consensus "
+            "unless --review-ui requests a queue; more runs increase model usage."
         ),
     )
     parser.add_argument(
         "--review-ui",
         action="store_true",
         help=(
-            "With --consensus-runs N>1: stop the round after writing the "
+            "Run proposal generation and stop the round after writing the "
             "review queue so a human can accept/reject/edit proposals. "
             "Holdout extraction and failure discovery then run via --resume-review."
         ),
@@ -89,9 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def configure_args(args: argparse.Namespace) -> VerticalManifest:
-    manifest = load_vertical_manifest(
-        args.manifest or default_manifest_path("private_health")
-    )
+    manifest = resolve_manifest(args.manifest)
     manifest.require_capability("refinement")
     args.vertical_manifest = manifest
     args.input_root = (
@@ -125,8 +119,8 @@ def main() -> int:
 
     if args.review_ui and args.autonomous:
         parser.error("--review-ui needs a human in the loop; drop --autonomous.")
-    if args.review_ui and args.consensus_runs <= 1:
-        parser.error("--review-ui requires --consensus-runs N greater than 1.")
+    if args.consensus_runs < 1:
+        parser.error("--consensus-runs must be greater than zero.")
 
     if args.resume_review:
         return resume_review(args)
@@ -161,6 +155,8 @@ def _load_feedback(args, start_index: int) -> str | None:
         expected_type="refinement_feedback",
         data_contract=args.vertical_manifest.contract("refinement_feedback"),
     )
+    if artifact["provenance"].get("vertical") != args.vertical_manifest.vertical:
+        raise ValueError("Feedback vertical is missing or conflicts with the selected manifest; regenerate feedback with the current analysis CLI.")
     feedback = dumps_json(artifact["data"], ensure_ascii=False)
     print(f"Seeding round {start_index} with feedback from {args.resume_feedback}")
     return feedback
@@ -171,6 +167,6 @@ def _print_human_loop_stop(args, round_index: int) -> None:
         "\n--- Human-in-the-loop stop ---\n"
         "Review the schema and feedback under "
         f"{args.out_dir}/round_{round_index}/. Review refinement_feedback.json, then re-run with:\n"
-        f"  python src/refine/loop.py --resume-feedback {args.out_dir}/round_{round_index}/refinement_feedback.json\n"
+        f"  python src/refine/loop.py --manifest {shlex.quote(str(args.vertical_manifest.source_path))} --resume-feedback {shlex.quote(str(Path(args.out_dir) / f'round_{round_index}' / 'refinement_feedback.json'))}\n"
         "or pass --autonomous to let the loop iterate on its own."
     )

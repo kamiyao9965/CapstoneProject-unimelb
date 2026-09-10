@@ -13,6 +13,12 @@ from src.common.json_codec import loads_json
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_VERTICAL = "private_health"
+OPERATION_CAPABILITIES = {
+    "discover": "discovery", "extract": "extraction", "batch": "extraction",
+    "crawl": "acquisition", "refine": "refinement", "canonical_compile": "storage",
+    "storage_init": "storage", "storage_load": "storage",
+}
 
 
 class ManifestValidationError(ValueError):
@@ -132,6 +138,31 @@ def default_manifest_path(vertical: str) -> Path:
     if vertical not in manifests:
         raise ManifestValidationError(f"Unknown vertical {vertical!r}; configured verticals: {', '.join(manifests)}.")
     return manifests[vertical].source_path
+
+
+def resolve_manifest(path=None, *, vertical=None, operation=None) -> VerticalManifest:
+    """Resolve CLI defaults and enforce the same operation capability as the UI."""
+    capability = OPERATION_CAPABILITIES[operation.replace("-", "_")] if operation else None
+    if path:
+        manifest = load_vertical_manifest(path)
+        if vertical and vertical != manifest.vertical:
+            raise ManifestValidationError(f"Vertical {vertical!r} conflicts with manifest vertical {manifest.vertical!r}.")
+    else:
+        manifests = discover_manifests()
+        if vertical is None:
+            eligible = [m for m in manifests.values() if not capability or m.supports(capability)]
+            manifest = next((m for m in eligible if m.vertical == DEFAULT_VERTICAL), None)
+            if manifest is None:
+                if len(eligible) != 1:
+                    raise ManifestValidationError("Select a manifest supporting this operation.")
+                manifest = eligible[0]
+        else:
+            if vertical not in manifests:
+                raise ManifestValidationError(f"Unknown vertical: {vertical!r}.")
+            manifest = manifests[vertical]
+    if capability:
+        manifest.require_capability(capability)
+    return manifest
 
 
 def load_vertical_manifest(path: str | Path) -> VerticalManifest:

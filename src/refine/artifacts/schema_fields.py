@@ -5,7 +5,7 @@ from __future__ import annotations
 from src.refine.candidates.aggregator import FieldDecision
 from src.refine.candidates.patch import MANUAL_EDIT_PATCH_TYPES
 
-VALID_PRODUCT_TYPES = ("hospital", "extras", "generalhealth", "combined")
+from src.verticals.manifest import resolve_manifest
 
 
 def fields_by_name(fields: object) -> dict[str, dict[str, object]]:
@@ -27,13 +27,14 @@ def fields_by_name(fields: object) -> dict[str, dict[str, object]]:
 
 def applies_to_from_group(
     target_group: str,
-    valid_product_types: tuple[str, ...] = VALID_PRODUCT_TYPES,
+    valid_product_types: tuple[str, ...] | None = None,
 ) -> list[str]:
     """Convert consensus group names to schema product types.
 
     Group names like `extras_cover` are useful during consensus, but schema
     `applies_to` should only contain product types such as `extras`.
     """
+    valid_product_types = valid_product_types if valid_product_types is not None else resolve_manifest().product_types
     candidate = target_group.removesuffix("_cover")
     return [candidate] if candidate in valid_product_types else []
 
@@ -41,7 +42,7 @@ def applies_to_from_group(
 def field_payload_from_decision(
     decision: FieldDecision,
     existing_field: dict[str, object] | None = None,
-    valid_product_types: tuple[str, ...] = VALID_PRODUCT_TYPES,
+    valid_product_types: tuple[str, ...] | None = None,
 ) -> dict[str, object]:
     """Build the schema field payload implied by one consensus decision."""
     payload = dict(existing_field or {})
@@ -89,10 +90,13 @@ def decision_requires_schema_edit(decision: FieldDecision) -> bool:
 
 def decision_is_auto_promotable(
     decision: FieldDecision,
-    promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
-    protected_fields: frozenset[str] = frozenset(),
+    promoted_decisions: frozenset[str] | None = None,
+    protected_fields: frozenset[str] | None = None,
 ) -> bool:
     """Return whether configured support and safety rules allow auto-promotion."""
+    defaults = resolve_manifest() if promoted_decisions is None or protected_fields is None else None
+    promoted_decisions = promoted_decisions if promoted_decisions is not None else defaults.promoted_decisions
+    protected_fields = protected_fields if protected_fields is not None else defaults.protected_fields
     return (
         decision.decision in promoted_decisions
         and decision.reject_votes == 0

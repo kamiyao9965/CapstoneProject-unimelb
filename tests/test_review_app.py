@@ -16,6 +16,7 @@ from src.refine.candidates.aggregator import FieldDecision
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.refine.human_review import (
     build_review_queue,
+    load_review_queue,
     load_review_decisions,
     write_review_queue,
 )
@@ -88,7 +89,8 @@ class ReviewAppTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = build_fixture(tmp)
             at = self.render(fixture)
-            at.button(key="accept:field:annual_limit").click()
+            scope = load_review_queue(fixture / "review_queue.json")["metadata"]["queue_id"]
+            at.button(key=f"accept:{scope}:field:annual_limit").click()
             at.run()
             self.assertFalse(at.exception)
             payload = load_review_decisions(fixture / "review_decisions.json")
@@ -101,16 +103,17 @@ class ReviewAppTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = build_fixture(tmp)
             at = self.render(fixture)
+            scope = load_review_queue(fixture / "review_queue.json")["metadata"]["queue_id"]
             edited = {
                 "name": "annual_limit", "type": "number",
                 "description": "Reviewed annual limit",
                 "applies_to": ["extras"], "required": False, "values": [],
                 "aliases": [],
             }
-            at.text_area(key="edit:field:annual_limit").set_value(
+            at.text_area(key=f"edit:{scope}:field:annual_limit").set_value(
                 json.dumps(edited)
             )
-            at.button(key="save_edit:field:annual_limit").click()
+            at.button(key=f"save_edit:{scope}:field:annual_limit").click()
             at.run()
 
             self.assertFalse(at.exception)
@@ -120,6 +123,23 @@ class ReviewAppTest(unittest.TestCase):
                 payload["decisions"][0]["edited_update"]["description"],
                 "Reviewed annual limit",
             )
+
+    def test_switching_queues_does_not_reuse_notes_and_wrong_decisions_stop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = build_fixture(str(Path(tmp) / "first"))
+            second = build_fixture(str(Path(tmp) / "second"))
+            at = self.render(first)
+            notes = next(field for field in at.text_input if field.label == "Reviewer notes")
+            notes.set_value("belongs to first queue").run()
+            next(button for button in at.button if button.label == "Accept").click().run()
+            at.sidebar.text_input[0].set_value(str(second)).run()
+            self.assertFalse(at.exception)
+            self.assertEqual(next(field for field in at.text_input if field.label == "Reviewer notes").value, "")
+            (second / "review_decisions.json").write_bytes((first / "review_decisions.json").read_bytes())
+            at.run()
+            self.assertFalse(at.exception)
+            self.assertTrue(at.error)
+            self.assertFalse(any(button.label == "Accept" for button in at.button))
 
 
 if __name__ == "__main__":

@@ -24,7 +24,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.common.data_paths import default_private_health_pdf_root
 from src.refine.artifacts.renderer import (
     render_consensus_schema,
     render_frequency_json,
@@ -33,7 +32,7 @@ from src.refine.artifacts.renderer import (
 from src.refine.candidates.aggregator import FieldDecision, aggregate_patches
 from src.refine.candidates.normalizer import normalize_patches
 from src.schema.loader import load_schema_data
-from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+from src.verticals.manifest import resolve_manifest
 from src.verticals.registry import get_schema_validator
 from src.refine.candidates.patch import load_patch_file, write_patch_file
 from src.refine.candidates.stability import (
@@ -45,8 +44,7 @@ from src.common.model_config import resolve_selection
 from src.common.json_artifacts import read_artifact
 from src.common.json_contracts import load_contract
 from src.schema.discovery import SchemaDiscovery
-from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
-from src.schema.validation import validate_schema_mapping
+from src.schema.sampler import print_samples, select_samples
 
 
 @dataclass(frozen=True)
@@ -67,16 +65,9 @@ class SchemaConsensusRefinement:
         discovery: SchemaDiscovery,
         log: Callable[[str], None] | None = print,
         *,
-        schema_contract: str = "private_health/discovered_schema",
-        patch_contract: str = "schema_refinement/candidate_patch_set",
-        schema_validator: Callable[[object], object] = validate_schema_mapping,
-        valid_product_types: tuple[str, ...] = DEFAULT_CATEGORIES,
-        promoted_decisions: frozenset[str] = frozenset({"core", "conditional"}),
-        manual_only_queue: bool = False,
-        protected_fields: frozenset[str] = frozenset(),
         manifest=None,
     ) -> None:
-        self.manifest = manifest or getattr(discovery, "manifest", None) or load_vertical_manifest(default_manifest_path(schema_contract.split("/")[0]))
+        self.manifest = manifest or getattr(discovery, "manifest", None) or resolve_manifest()
         manifest = self.manifest
         self.discovery = discovery
         self.log = log
@@ -282,7 +273,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.alias_config is not None:
         parser.error("--alias-config is no longer supported.")
-    manifest = load_vertical_manifest(args.manifest or default_manifest_path("private_health"))
+    manifest = resolve_manifest(args.manifest)
     manifest.require_capability("refinement")
     args.base_schema = args.base_schema or manifest.path("output_root") / "schema.json"
     args.input_root = args.input_root or manifest.path("input_root")

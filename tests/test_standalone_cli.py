@@ -72,8 +72,8 @@ class StandaloneSelectionParserTest(unittest.TestCase):
                 "description": "Schema", "product_types": ["hospital"],
                 "fields": [{"name": "product_name", "type": "string",
                             "description": "Name", "applies_to": ["hospital"],
-                            "required": True, "values": [], "aliases": []}],
-                "hospital_categories": [], "extras_services": [], "notes": [],
+                            "required": True, "values": []}],
+                "taxonomies": {"hospital_categories": [], "extras_services": []}, "notes": [],
             }
 
             with mock.patch.object(

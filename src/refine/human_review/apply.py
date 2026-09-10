@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
 
 from src.refine.artifacts.schema_fields import fields_by_name
-from src.common.json_artifacts import (
-    build_success_artifact,
-    read_artifact,
-    write_artifact,
-)
+from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.refine.human_review.constants import (
     DECISIONS_FILENAME,
     QUEUE_FILENAME,
@@ -21,8 +16,6 @@ from src.refine.human_review.constants import (
 from src.refine.human_review.decisions import decisions_by_id, load_review_decisions
 from src.refine.human_review.queue import load_review_queue, validate_review_identity, review_manifest
 from src.schema.loader import load_schema_data
-from src.verticals.manifest import default_manifest_path, load_vertical_manifest
-from src.verticals.registry import get_schema_validator
 from src.common.json_contracts import load_contract
 from src.schema.validation import validate_field_payload, validate_schema_mapping
 
@@ -32,7 +25,6 @@ def apply_review(
     decisions_payload: dict,
     base_schema: dict,
     *,
-    schema_validator: Callable[[object], object] = validate_schema_mapping,
     allowed_product_types: set[str] | None = None,
 ) -> tuple[dict, dict]:
     """Apply accept/edit decisions onto the base schema.
@@ -43,6 +35,7 @@ def apply_review(
     if not isinstance(base_schema, dict):
         raise ValueError("Base schema must be a JSON object.")
 
+    manifest = review_manifest(queue)
     validate_review_identity(queue, decisions_payload, base_schema)
     queue_items = queue.get("updates", [])
     queue_ids = {item["id"] for item in queue_items}
@@ -144,14 +137,12 @@ def apply_review_files(
     schema_contract = manifest.contract("discovered_schema")
     if metadata.get("schema_contract") != schema_contract:
         raise ValueError("Review queue schema contract does not match its vertical.")
-    schema_validator = get_schema_validator(manifest)
     allowed_product_types = set(manifest.product_types)
     resolved_base_schema = Path(base_schema_path or queue["metadata"]["base_schema_path"])
     reviewed, summary = apply_review(
         queue,
         decisions_payload,
         load_schema_data(resolved_base_schema, manifest),
-        schema_validator=schema_validator,
         allowed_product_types=allowed_product_types,
     )
 

@@ -8,10 +8,7 @@ from src.common.json_artifacts import build_success_artifact, read_artifact, wri
 from src.common.model_config import ModelSelection
 from src.refine.consensus import SchemaConsensusRefinement
 from src.refine.human_review import apply_review, empty_decisions, upsert_decision
-from src.verticals.travel_insurance import (
-    SUPPORTED_TRAVEL_PRODUCT_TYPES,
-    validate_travel_schema_mapping,
-)
+from src.verticals.manifest import resolve_manifest
 
 
 PRODUCT_TYPES = ["international_single_trip", "domestic"]
@@ -87,12 +84,7 @@ class TravelConsensusTests(unittest.TestCase):
             outputs = SchemaConsensusRefinement(
                 FakeTravelPatchDiscovery(),
                 log=None,
-                schema_contract="travel_insurance/discovered_schema",
-                patch_contract="schema_refinement/candidate_patch_set",
-                schema_validator=validate_travel_schema_mapping,
-                valid_product_types=tuple(sorted(SUPPORTED_TRAVEL_PRODUCT_TYPES)),
-                promoted_decisions=frozenset({"core"}),
-                manual_only_queue=True,
+                manifest=resolve_manifest(vertical="travel_insurance"),
             ).refine(
                 base_schema_path=base_path,
                 runs=5,
@@ -128,8 +120,6 @@ class TravelConsensusTests(unittest.TestCase):
                 queue,
                 decisions,
                 schema,
-                schema_validator=validate_travel_schema_mapping,
-                allowed_product_types=set(SUPPORTED_TRAVEL_PRODUCT_TYPES),
             )
             self.assertIn(
                 "geographic_coverage_details",

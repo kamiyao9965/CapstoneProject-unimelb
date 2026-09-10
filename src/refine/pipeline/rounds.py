@@ -3,27 +3,26 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shlex
 
 from src.common.json_artifacts import read_artifact, write_artifact, next_available_path
 from src.common.json_contracts import load_contract
 from src.schema.loader import load_schema_data
-from src.schema.validation import validate_schema_mapping
 from src.refine.human_review import apply_review, load_review_decisions
 from src.refine.human_review.queue import review_identity, review_manifest
 from src.refine.human_review import QUEUE_FILENAME, load_review_queue
 from src.refine.pipeline.steps import (
+    _manifest,
     evaluate_schema,
     generate_schema,
     run_consensus_stage,
     select_discovery_samples,
 )
-from src.verticals.manifest import default_manifest_path, load_vertical_manifest
+from src.verticals.manifest import resolve_manifest
 
 
 def _schema_contract(args) -> str:
-    manifest = getattr(args, "vertical_manifest", None) or load_vertical_manifest(
-        default_manifest_path("private_health")
-    )
+    manifest = getattr(args, "vertical_manifest", None) or resolve_manifest()
     return manifest.contract("discovered_schema")
 
 
@@ -49,7 +48,7 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
     round_dir = Path(args.out_dir) / f"round_{round_index}"
     round_dir.mkdir(parents=True, exist_ok=True)
     schema_path = round_dir / "schema.json"
-    with_consensus = args.consensus_runs > 1
+    with_consensus = args.consensus_runs > 1 or args.review_ui
     draft_path = round_dir / "schema_draft.json" if with_consensus else schema_path
 
     print(f"\n========== ROUND {round_index} ==========")
@@ -107,10 +106,12 @@ def publish_final_schema(
     schema_path: Path,
     out_dir: Path,
     *,
-    data_contract: str = "private_health/discovered_schema",
+    data_contract: str | None = None,
     manifest=None,
 ) -> Path:
     """Publish the latest completed round schema to a stable path for extraction."""
+    manifest = manifest or resolve_manifest()
+    data_contract = data_contract or manifest.contract("discovered_schema")
     artifact = read_artifact(
         schema_path,
         expected_type="discovered_schema",
@@ -206,7 +207,7 @@ def resume_review(args) -> int:
         print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
         print(
             "Review the deterministic Canonical mapping next:\n"
-            f"  streamlit run src/canonical_review_app.py -- --schema {reviewed_path}"
+            f"  streamlit run src/canonical_review_app.py -- --manifest {shlex.quote(str(manifest.source_path))} --schema {shlex.quote(str(reviewed_path))}"
         )
         return 0
     schema_build_samples = _schema_build_samples_from_review_queue(
@@ -230,15 +231,9 @@ def resume_review(args) -> int:
         "\nReviewed-schema extraction feedback is available at:\n"
         f"  {round_dir / 'refinement_feedback.json'}\n"
         "To feed it into the next round:\n"
-        f"  python src/refine/loop.py --resume-feedback {round_dir / 'refinement_feedback.json'}"
+        f"  python src/refine/loop.py --manifest {shlex.quote(str(manifest.source_path))} --resume-feedback {shlex.quote(str(round_dir / 'refinement_feedback.json'))}"
     )
     return 0
-
-
-def _manifest(args):
-    return getattr(args, "vertical_manifest", None) or load_vertical_manifest(
-        default_manifest_path("private_health")
-    )
 
 
 def _schema_build_samples_from_review_queue(queue_path: Path) -> tuple[str, ...]:

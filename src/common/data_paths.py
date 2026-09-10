@@ -23,7 +23,3 @@ def default_konkrd_data_root() -> Path:
             return candidate
 
     return PROJECT_ROOT / "konkrd-data"
-
-
-def default_private_health_pdf_root() -> Path:
-    return default_konkrd_data_root() / "data" / "private_health" / "raw" / "PDFs"

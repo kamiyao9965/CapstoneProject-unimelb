@@ -353,3 +353,37 @@ def _validate_review_timestamp(value: str) -> None:
         raise ValueError(
             "Canonical Schema review reviewed_at must include a timezone offset."
         )
+
+
+def build_canonical_candidate(payload: object, manifest) -> dict[str, object]:
+    """Map reviewed fields using existing approved storage choices; unknowns need review."""
+    from copy import deepcopy
+    from src.schema.validation import validate_schema_mapping
+    from src.common.json_codec import loads_json
+
+    manifest.require_capability("storage")
+    schema = validate_schema_mapping(payload, manifest=manifest)
+    template = require_approved_canonical_schema(loads_json(manifest.path("canonical_schema").read_text(encoding="utf-8")))
+    if template["vertical"] != manifest.vertical or template["output"]["cardinality"] != manifest.documents.output_cardinality:
+        raise ValueError("Approved mapping does not match selected manifest.")
+    mapped = {field["name"]: field for field in template["fields"]}
+    identities = set(template["identity"].values())
+    fields = []
+    for field in schema["fields"]:
+        name = field["name"]
+        previous = mapped.get(name)
+        compatible = previous and (previous["type"] == field["type"] or {previous["type"], field["type"]} <= {"string", "enum"})
+        if name in identities and not compatible:
+            raise ValueError(f"Identity field {name!r} conflicts with approved mapping.")
+        fields.append({
+            "name": name, "type": field["type"], "description": field["description"],
+            "required": True if name in identities else field["required"],
+            "nullable": name not in identities,
+            "values": list(field["values"]) if field["type"] == "enum" else [],
+            "aliases": [],
+            "storage": deepcopy(previous["storage"]) if compatible else {"strategy": "jsonb"},
+        })
+    candidate = deepcopy(template)
+    candidate.update(version=f"{schema['version']}-canonical-candidate", status="candidate", review=None,
+                     description=f"Canonical candidate derived from {schema['version']}: {schema['description']}", fields=fields)
+    return validate_canonical_schema(candidate)

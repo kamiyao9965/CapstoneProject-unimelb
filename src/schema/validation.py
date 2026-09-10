@@ -1,4 +1,4 @@
-"""Validation boundary for model-generated private-health schema contracts."""
+"""Shared validation for discovered schemas and extraction records."""
 
 from __future__ import annotations
 
@@ -13,8 +13,6 @@ from typing import TypeAlias
 SUPPORTED_FIELD_TYPES = frozenset(
     {"string", "number", "boolean", "enum", "list[object]"}
 )
-# Compatibility export for historical consumers; production parameters come from manifest.
-SUPPORTED_PRODUCT_TYPES = frozenset(load_vertical_manifest(default_manifest_path("private_health")).product_types)
 SNAKE_CASE_NAME = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
 JSONScalar: TypeAlias = str | int | float | bool
 

@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+from src.verticals.manifest import resolve_manifest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SUPPORTED_OPERATIONS = frozenset(
     {
@@ -24,10 +26,6 @@ SUPPORTED_OPERATIONS = frozenset(
         "storage_load",
     }
 )
-VERTICAL_MANIFESTS = {
-    "private_health": "configs/private_health/manifest.json",
-    "travel_insurance": "configs/travel_insurance/manifest.json",
-}
 PROVIDER_VALUES = frozenset({"openai", "anthropic", "deepseek"})
 ENVIRONMENT_NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,127}$")
 INSURER_CODE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
@@ -83,8 +81,10 @@ def build_command(
         command = [python, str(entry_point), command_name]
 
     options = dict(request.options)
-    vertical = _vertical(options, operation)
-    _add(command, "--manifest", VERTICAL_MANIFESTS[vertical])
+    manifest = resolve_manifest(options.get("manifest"), vertical=options.get("vertical"), operation=operation)
+    if options.get("evaluate"):
+        manifest.require_capability("evaluation")
+    _add(command, "--manifest", manifest.source_path)
 
     if operation == "discover":
         _add_many(command, "--samples", options.get("samples"))
@@ -201,18 +201,6 @@ def redact_console_output(value: str) -> str:
     redacted = _KEY_ASSIGNMENT.sub(r"\1=[REDACTED]", value)
     redacted = _BEARER.sub(r"\1[REDACTED]", redacted)
     return _DATABASE_URL.sub(r"\1[REDACTED]@", redacted)
-
-
-def _vertical(options: dict[str, object], operation: str) -> str:
-    default = (
-        "travel_insurance"
-        if operation in {"crawl", "canonical_compile", "storage_init", "storage_load"}
-        else "private_health"
-    )
-    vertical = str(options.pop("vertical", None) or default)
-    if vertical not in VERTICAL_MANIFESTS:
-        raise ValueError(f"Unsupported vertical: {vertical!r}.")
-    return vertical
 
 
 def _add(command: list[str], flag: str, value: object) -> None:

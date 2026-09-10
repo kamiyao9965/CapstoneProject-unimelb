@@ -11,7 +11,7 @@ from src.common.json_artifacts import (
     read_artifact,
     write_artifact,
 )
-from src.common.data_paths import default_private_health_pdf_root
+from src.verticals.manifest import resolve_manifest
 from src.common.model_config import ModelSelection, resolve_selection
 from src.refine.human_review import write_review_queue
 from src.refine.pipeline import cli, rounds
@@ -59,7 +59,7 @@ def write_reviewed_fixture(consensus_dir: Path, schema=None, samples=()):
 
 def make_args(tmp: str, **overrides) -> SimpleNamespace:
     values = {
-        "input_root": str(default_private_health_pdf_root()),
+        "input_root": str(resolve_manifest().path("input_root")),
         "per_category": 5,
         "seed": 42,
         "eval_per_category": 2,
@@ -283,6 +283,13 @@ class RunRoundModeTest(unittest.TestCase):
             evaluate.assert_not_called()
             self.assertTrue((round_dir / "schema.json").exists())
             self.assertFalse((Path(tmp) / "final_schema.json").exists())
+
+    def test_one_proposal_run_can_pause_for_human_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result, round_dir, evaluate, _ = self.run_round(tmp, consensus_runs=1, review_ui=True)
+            self.assertIsNone(result)
+            evaluate.assert_not_called()
+            self.assertTrue((round_dir / "schema_draft.json").exists())
 
 
 class ResumeReviewTest(unittest.TestCase):

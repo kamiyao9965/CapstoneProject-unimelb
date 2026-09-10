@@ -42,7 +42,7 @@ class ToolCommandBuilderTests(unittest.TestCase):
                 str(PROJECT_ROOT / "src/run.py"),
                 "discover",
                 "--manifest",
-                "configs/travel_insurance/manifest.json",
+                str(PROJECT_ROOT / "configs/travel_insurance/manifest.json"),
                 "--input-root",
                 "data/travel insurance/PDFs",
                 "--per-category",
@@ -81,6 +81,13 @@ class ToolCommandBuilderTests(unittest.TestCase):
     def test_required_fields_fail_before_process_execution(self) -> None:
         with self.assertRaisesRegex(ValueError, "PDF path"):
             build_command(CommandRequest("extract", {"schema": "schema.json"}))
+
+    def test_disabled_capabilities_fail_before_execution(self):
+        for operation in ("crawl", "storage_init", "canonical_compile"):
+            with self.subTest(operation=operation), self.assertRaisesRegex(ValueError, "does not support"):
+                build_command(CommandRequest(operation, {"vertical": "private_health"}))
+        with self.assertRaisesRegex(ValueError, "evaluation"):
+            build_command(CommandRequest("batch", {"vertical": "travel_insurance", "evaluate": True}))
 
     def test_unknown_operation_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "Unsupported operation"):

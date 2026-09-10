@@ -45,8 +45,6 @@
     "extraction": "prompts/extraction.md"
   },
   "adapters": {
-    "schema_validator": "travel_insurance_schema_v1",
-    "normalizer": null,
     "evaluator": null,
     "acquisition": "travel_public_documents_v1"
   },

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
-from src.PDFingestor.adapter import DEFAULT_CACHE_DIR, render_pdf_paths_for_prompt
+from src.PDFingestor.adapter import render_pdf_paths_for_prompt
 from src.common.json_artifacts import (
     build_failure_artifact,
     write_failure_artifact,
@@ -27,7 +27,7 @@ from src.common.structured_output import (
     StructuredOutputFailure,
     run_structured_output,
 )
-from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
+from src.verticals.manifest import resolve_manifest, VerticalManifest
 from src.verticals.registry import get_prompt, get_schema_validator
 from src.schema.validation import validate_schema_mapping
 from src.refine.candidates.patch import parse_patch_payload
@@ -51,7 +51,7 @@ class SchemaDiscovery:
         pdf_root: str | Path | None = None,
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
-        vertical: str = "private_health",
+        vertical: str | None = None,
         discovery_contract: str | None = None,
         discovery_prompt: str | None = None,
         schema_validator: Callable[[object], object] | None = None,
@@ -60,7 +60,7 @@ class SchemaDiscovery:
         patch_validator: Callable[[object], object] | None = None,
         manifest: VerticalManifest | None = None,
     ) -> None:
-        manifest = manifest or load_vertical_manifest(default_manifest_path(vertical))
+        manifest = manifest or resolve_manifest(vertical=vertical)
         manifest.require_capability("discovery")
         self.manifest = manifest
         self.selection = selection or ModelSelection("openai", model, "markdown")
@@ -130,6 +130,8 @@ class SchemaDiscovery:
         Consensus refinement calls this once per run and votes on the patches
         across runs, instead of regenerating the full schema each time.
         """
+        self.manifest.require_capability("refinement")
+        self.schema_validator(current_schema)
         return self._generate_from_pdfs(
             sample_pdfs=sample_pdfs,
             system_prompt=self.patch_prompt,

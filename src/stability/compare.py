@@ -31,6 +31,8 @@ def occurrence_counts(sets: list[frozenset[str]]) -> Counter[str]:
 
 
 def compare(signatures: list[SchemaSignature], show_items: bool) -> float:
+    if len({s.vertical for s in signatures}) > 1:
+        raise ValueError("Cannot compare schemas from different verticals.")
     n = len(signatures)
     print(f"Comparing {n} schemas: {', '.join(s.label for s in signatures)}\n")
 
@@ -41,7 +43,8 @@ def compare(signatures: list[SchemaSignature], show_items: bool) -> float:
     per_dim_stability: list[tuple[float, int]] = []
     drift_report: dict[str, list[tuple[str, int]]] = {}
 
-    for dim in DIMENSIONS:
+    dimensions = [*DIMENSIONS, *sorted({name for s in signatures for name in s.taxonomies})]
+    for dim in dimensions:
         sets = [s.get(dim) for s in signatures]
         stability, core, union = jaccard(sets)
         drift = union - core
@@ -97,6 +100,7 @@ def collect_paths(schemas: list[str] | None, directory: str | None) -> list[Path
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Measure schema drift across discovery runs")
+    parser.add_argument("--manifest")
     parser.add_argument("--schemas", nargs="+", help="Two or more schema JSON artifacts")
     parser.add_argument("--dir", help="Directory of *.json schemas to compare")
     parser.add_argument("--show-items", action="store_true", help="List drifting items")
@@ -115,7 +119,9 @@ def main() -> int:
         print("Missing files:\n" + "\n".join(f"- {m}" for m in missing))
         return 1
 
-    signatures = [signature_from_file(p) for p in paths]
+    from src.verticals.manifest import load_vertical_manifest
+    manifest = load_vertical_manifest(args.manifest) if args.manifest else None
+    signatures = [signature_from_file(p, manifest=manifest) for p in paths]
     compare(signatures, args.show_items)
     return 0
 
