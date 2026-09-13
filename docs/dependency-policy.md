@@ -26,6 +26,14 @@ normalisation, and evaluation modules.
     non-PostgreSQL URLs; SQLite is not a supported storage backend.
   - Approval: user approved database dependencies on 2026-08-18.
 
+## Retired dependencies
+
+- `mineru[all]` was removed on 2026-09-13 with the unused
+  `common/document_preprocessor.py` entry point. Discovery and extraction already
+  use the existing `PDFingestor` package and `pdfplumber`; no replacement dependency
+  was added. Previously generated Markdown files remain user data and are not
+  deleted by this change.
+
 ## Rules
 
 - Keep provider SDKs out of storage modules and database clients out of model

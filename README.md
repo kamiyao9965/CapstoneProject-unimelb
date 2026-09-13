@@ -49,13 +49,13 @@ repair retries. Invalid data never proceeds to the next stage.
 - Existing success paths are not overwritten automatically. Discovery and automatic
   extraction/final-schema paths gain a suffix; explicit extraction/review output
   paths reject collisions.
-- `.env`, source PDFs, MinerU mirrors, outputs, and usage logs are ignored and
+- `.env`, source PDFs, parser caches, outputs, and usage logs are ignored and
   must not be committed.
 
 ## Requirements
 
 - macOS or Linux
-- Python 3.10–3.13 (MinerU constrains the supported range)
+- Python 3.10–3.13 (the offline suite is tested here with Python 3.13)
 - At least one provider API key
 - Existing source PDFs in the bundled `konkrd-data` dataset
 

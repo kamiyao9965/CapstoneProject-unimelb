@@ -134,8 +134,8 @@ artifact_type + contract_version + status + created_at + provenance
   + data (success only) + error (failure only)
 ```
 
-Contracts, tracked configuration, JSONL usage logs, documentation, and optional
-MinerU Markdown inputs are not runtime artifacts and are not enveloped.
+Contracts, tracked configuration, JSONL usage logs, documentation, and local PDF
+parser caches are not runtime artifacts and are not enveloped.
 Single/batch CLI extraction keeps `ExtractionResult` JSON for existing consumers.
 Both output styles use the common atomic, no-clobber writer. Default paths respect
 manifest output roots and distinguish same-named sources; explicit paths reject
@@ -177,8 +177,8 @@ Legacy extraction run IDs retain the hash of the original file bytes.
 
 ## Known gaps
 
-- Offline tests use injected provider fakes. No live provider generation or
-  real MinerU conversion is claimed by the test suite.
+- Offline workflow tests use injected provider fakes. They do not establish live
+  provider accuracy or parsing quality on real insurance documents.
 - `list[object]` extraction fields have intentionally open item shapes because
   the discovered schema does not define nested properties; local validation
   still enforces the top-level extraction contract. OpenAI requests use strict
