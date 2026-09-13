@@ -13,9 +13,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 from src.common.json_codec import dumps_json, loads_json
-from src.common.json_contracts import validate_contract
-from src.models import ExtractionResult
 from src.schema.canonical import require_approved_canonical_schema
+from src.schema_application.records import parse_extraction_artifact
 from src.storage.canonical import (
     CanonicalLoadPlan,
     compile_canonical_load_plan,
@@ -109,26 +108,23 @@ def prepare_storage_load(
             label="Extraction artifact",
             maximum_bytes=_MAX_ARTIFACT_BYTES,
         )
-        artifact = loads_json(artifact_bytes.decode("utf-8"))
+        extraction = parse_extraction_artifact(
+            artifact_bytes, vertical=manifest.vertical,
+            schema_version=str(approved_schema["version"]), require_identity=True,
+        )
     except (OSError, UnicodeError, ValueError) as exc:
         raise ValueError(f"Could not read extraction artifact {artifact_file}: {exc}") from exc
-    if not isinstance(artifact, dict):
-        raise ValueError("Extraction artifact must contain a JSON object.")
-
-    extraction_data, source_value, provider, model, run_id = _artifact_values(
-        artifact,
-        artifact_bytes=artifact_bytes,
-        expected_vertical=manifest.vertical,
-        expected_schema_version=str(approved_schema["version"]),
-    )
+    provider = _non_empty(extraction.provider, "provider", maximum=64)
+    model = _non_empty(extraction.model, "model", maximum=128)
+    run_id = _non_empty(extraction.run_id, "run ID", maximum=128)
     source_path, relative_source, pdf_sha256 = _validate_source_document(
-        source_value,
+        extraction.source_document,
         manifest=manifest,
         insurer_code=normalized_insurer,
     )
     document_type = relative_source.parts[1]
     schema_version_id = _content_id(approved_schema)
-    plan = compile_canonical_load_plan(approved_schema, extraction_data)
+    plan = compile_canonical_load_plan(approved_schema, extraction.data)
 
     title_match = _HASHED_FILENAME.fullmatch(source_path.stem)
     document_title = (title_match.group(1) if title_match else source_path.stem).replace(
@@ -147,7 +143,7 @@ def prepare_storage_load(
         run_id=run_id,
         provider=provider,
         model=model,
-        raw_artifact=artifact,
+        raw_artifact=extraction.artifact,
         payload_sha256=_sha256_bytes(artifact_bytes),
         plan=plan,
     )
@@ -202,53 +198,6 @@ def load_extraction_artifact(
             return write_prepared_load(connection, prepared, compiled.table)
     finally:
         engine.dispose()
-
-
-def _artifact_values(
-    artifact: dict[str, Any],
-    *,
-    artifact_bytes: bytes,
-    expected_vertical: str,
-    expected_schema_version: str,
-) -> tuple[dict[str, Any], str, str, str, str]:
-    if "artifact_type" in artifact:
-        validate_contract(artifact, "artifact_envelope")
-        if artifact["artifact_type"] != "extraction_result":
-            raise ValueError("Storage load requires an extraction_result artifact.")
-        if artifact["status"] != "success":
-            raise ValueError("Storage load requires a successful extraction artifact.")
-        provenance = artifact["provenance"]
-        assert isinstance(provenance, dict)
-        source_documents = provenance["source_documents"]
-        if not isinstance(source_documents, list) or len(source_documents) != 1:
-            raise ValueError("Extraction artifact must reference exactly one source document.")
-        data = artifact["data"]
-        assert isinstance(data, dict)
-        return (
-            data,
-            _non_empty(source_documents[0], "source document"),
-            _non_empty(provenance["provider"], "provider", maximum=64),
-            _non_empty(provenance["model"], "model", maximum=128),
-            _non_empty(provenance["run_id"], "run ID", maximum=128),
-        )
-
-    try:
-        legacy = ExtractionResult.model_validate(artifact)
-    except Exception as exc:
-        raise ValueError("Legacy extraction artifact is invalid.") from exc
-    if legacy.vertical != expected_vertical:
-        raise ValueError("Extraction artifact vertical does not match the manifest vertical.")
-    if legacy.schema_version != expected_schema_version:
-        raise ValueError(
-            "Extraction artifact schema version does not match the Canonical Schema."
-        )
-    return (
-        legacy.data,
-        legacy.source_path,
-        _non_empty(legacy.provider, "provider", maximum=64),
-        _non_empty(legacy.model, "model", maximum=128),
-        f"sha256:{_sha256_bytes(artifact_bytes)}",
-    )
 
 
 def _validate_source_document(

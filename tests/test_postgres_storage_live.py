@@ -77,6 +77,8 @@ class LivePostgreSQLStorageTest(unittest.TestCase):
             contract_version="1.0.0",
             data=legacy_artifact["data"],
             provenance={
+                "vertical": legacy_artifact["vertical"],
+                "schema_version": legacy_artifact["schema_version"],
                 "run_id": first.run_id,
                 "provider": legacy_artifact["provider"],
                 "model": legacy_artifact["model"],

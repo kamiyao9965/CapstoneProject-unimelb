@@ -143,6 +143,13 @@ collisions. Holdout failures are written below `errors/<stage>/`; they never occ
 a success path. Batch CLI reports failures and returns a nonzero status.
 Raw model output and document contents are excluded from error artifacts.
 
+`src/schema_application/records.py` parses both extraction formats into one
+`ParsedExtraction` record before analysis or storage. It owns wrapper, source-count,
+vertical and schema-version checks. Analysis can read historical envelopes without
+identity; storage requires explicit matching vertical and schema version. Missing
+storage identity must be regenerated rather than inferred from the selected schema.
+Legacy extraction run IDs retain the hash of the original file bytes.
+
 ## Package ownership
 
 - `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical.

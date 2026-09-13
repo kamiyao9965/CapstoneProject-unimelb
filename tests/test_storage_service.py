@@ -111,6 +111,61 @@ class StoragePreparationTests(unittest.TestCase):
                 insurer_code="cover_more",
             )
 
+    def envelope(self) -> dict:
+        from src.common.json_artifacts import build_success_artifact
+        from src.schema.canonical import compile_canonical_extraction_contract
+
+        return build_success_artifact(
+            artifact_type="extraction_result",
+            contract_version="1.0.0",
+            data=valid_extraction_payload(),
+            provenance={
+                "vertical": "travel_insurance", "schema_version": "1.0.0",
+                "run_id": "fixture-run", "provider": "openai", "model": "gpt-5",
+                "document_input": "markdown", "source_documents": [str(self.pdf_path)],
+                "source_artifacts": [],
+            },
+            data_contract_schema=compile_canonical_extraction_contract(approved_travel_schema()),
+        )
+
+    def test_envelope_and_legacy_prepare_the_same_business_records(self) -> None:
+        from src.storage.service import prepare_storage_load
+
+        def prepare():
+            return prepare_storage_load(
+                manifest=self.manifest, schema_path=self.schema_path,
+                artifact_path=self.artifact_path, insurer_code="cover_more",
+            )
+
+        legacy = prepare()
+        self.artifact_path.write_text(json.dumps(self.envelope()), encoding="utf-8")
+        envelope = prepare()
+        self.assertEqual(legacy.plan, envelope.plan)
+        self.assertEqual(legacy.document_id, envelope.document_id)
+        self.assertEqual(legacy.schema_version_id, envelope.schema_version_id)
+        self.assertEqual(envelope.run_id, "fixture-run")
+        self.assertTrue(legacy.run_id.startswith("sha256:"))
+
+    def test_envelope_requires_matching_vertical_and_schema_version(self) -> None:
+        from src.storage.service import prepare_storage_load
+
+        for field, value in (
+            ("vertical", "private_health"), ("schema_version", "different-version"),
+            ("vertical", None), ("schema_version", None),
+        ):
+            with self.subTest(field=field, value=value):
+                artifact = self.envelope()
+                if value is None:
+                    artifact["provenance"].pop(field)
+                else:
+                    artifact["provenance"][field] = value
+                self.artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "vertical|schema version"):
+                    prepare_storage_load(
+                        manifest=self.manifest, schema_path=self.schema_path,
+                        artifact_path=self.artifact_path, insurer_code="cover_more",
+                    )
+
     def test_rejects_unsafe_insurer_code_before_database_write(self) -> None:
         from src.storage.service import prepare_storage_load
 
