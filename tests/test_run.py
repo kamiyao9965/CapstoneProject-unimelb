@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 import json
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -20,6 +21,43 @@ from tests.test_travel_schema_migration import (
 
 
 class RunParserTest(unittest.TestCase):
+    def test_batch_evaluation_writes_one_report_pair(self) -> None:
+        from src.evaluation.metrics import ExtractionEvaluator
+        from src.evaluation.reporter import EvaluationReporter
+        from tests.test_extractor import VALID_RECORD
+
+        with tempfile.TemporaryDirectory(dir=PROJECT_ROOT) as tmp:
+            root = Path(tmp)
+            input_root = root / "input"
+            input_root.mkdir()
+            (input_root / "sample.pdf").write_bytes(b"offline fixture")
+            args = build_parser().parse_args([
+                "batch", "--schema", "schema.json", "--evaluate",
+                "--input-root", str(input_root),
+            ])
+            manifest = configure_command(args)
+            args.vertical_manifest = replace(manifest, paths={
+                **manifest.paths, "output_root": str(root / "outputs"),
+            })
+            extractor = mock.Mock()
+            extractor.extract_one.return_value = VALID_RECORD
+            labels = mock.Mock()
+            labels.load_ground_truth.return_value = (None, {
+                "hospital": {"product_name": "Example"},
+            })
+            with mock.patch.object(run_module, "load_schema_data", return_value={
+                "vertical": "private_health", "version": "test",
+            }), mock.patch.object(run_module, "_build_schema_extractor", return_value=extractor), \
+                 mock.patch("src.verticals.registry.get_evaluation_tools", return_value=(
+                     labels, ExtractionEvaluator(), EvaluationReporter(),
+                 )):
+                self.assertEqual(run_module.command_batch(args), 0)
+            reports = root / "outputs" / "evaluation"
+            self.assertEqual({path.name for path in reports.iterdir()}, {"report.json", "report.md"})
+            report = json.loads((reports / "report.json").read_text())
+            self.assertEqual(report["summary"]["field_precision"], 1.0)
+            self.assertNotIn("fallback_documents", report["summary"])
+
     def test_batch_returns_failure_when_extraction_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

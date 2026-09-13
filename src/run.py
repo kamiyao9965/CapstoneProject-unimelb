@@ -357,12 +357,9 @@ def command_batch(args: argparse.Namespace) -> int:
 
     reports = []
     provider_counts: dict[str, int] = {}
-    warning_counts: dict[str, int] = {}
-    warning_samples: list[str] = []
     unmatched_documents = 0
     low_confidence_matches = 0
     ambiguous_matches = 0
-    fallback_documents = 0
     extraction_errors = 0
     gt_match_diagnostics: list[dict[str, object]] = []
     gt_store = None
@@ -389,12 +386,6 @@ def command_batch(args: argparse.Namespace) -> int:
         output_path = default_output_path(manifest, pdf_path, input_root=input_root)
         result.write_json(output_path)
         provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
-        if args.evaluate and result.provider == "heuristic":
-            fallback_documents += 1
-        for warning in result.warnings:
-            warning_counts[warning] = warning_counts.get(warning, 0) + 1
-            if len(warning_samples) < 5 and warning not in warning_samples:
-                warning_samples.append(warning)
         print(f"Extracted {pdf_path.name} -> {output_path}")
 
         if gt_store and evaluator:
@@ -438,28 +429,12 @@ def command_batch(args: argparse.Namespace) -> int:
             total_documents=len(pdf_paths),
             unmatched_documents=unmatched_documents,
             low_confidence_matches=low_confidence_matches,
-            fallback_documents=fallback_documents,
-            extraction_errors=extraction_errors,
-        )
-        model_reports = [
-            report for report in reports
-            if report.extraction_provider and report.extraction_provider != "heuristic"
-        ]
-        model_summary = evaluator.aggregate(
-            model_reports,
-            total_documents=len(pdf_paths),
-            unmatched_documents=max(len(pdf_paths) - extraction_errors - len(model_reports), 0),
-            low_confidence_matches=low_confidence_matches,
-            fallback_documents=fallback_documents,
             extraction_errors=extraction_errors,
         )
         summary["ambiguous_matches"] = float(ambiguous_matches)
-        model_summary["ambiguous_matches"] = float(ambiguous_matches)
         report_root = manifest.path("output_root") / "evaluation"
         reporter.write_json(reports, summary, report_root / "report.json")
         reporter.write_markdown(reports, summary, report_root / "report.md")
-        reporter.write_json(model_reports, model_summary, report_root / "report_model_only.json")
-        reporter.write_markdown(model_reports, model_summary, report_root / "report_model_only.md")
         if gt_match_diagnostics:
             import json
 
@@ -470,12 +445,6 @@ def command_batch(args: argparse.Namespace) -> int:
                 encoding="utf-8",
             )
         print(f"Wrote evaluation reports to {report_root}")
-        if fallback_documents:
-            print(
-                "Evaluation warning: heuristic fallback results were written to report.json; "
-                "use report_model_only.json for pure model-quality metrics or --no-fallback "
-                "to fail instead of falling back."
-            )
         if gt_match_diagnostics:
             print(
                 "Evaluation warning: wrote ground-truth match diagnostics for unmatched "
@@ -496,10 +465,6 @@ def command_batch(args: argparse.Namespace) -> int:
             else "none"
         )
     )
-    print(f"  Warnings: {sum(warning_counts.values())}")
-    for warning in warning_samples:
-        print(f"  - {warning} ({warning_counts[warning]})")
-
     print(f"  Extraction errors: {extraction_errors}")
     return 1 if extraction_errors else 0
 

@@ -221,6 +221,8 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
 
 先确认打印的 final schema 实际文件名。`--evaluate` 使用 Health 的本地 labelled 数据，默认根目录为 `konkrd-data/data/private_health/labelled`；没有标签时先去掉该参数。batch 会对输入目录中的 PDF 调用模型，并把结果写到 manifest 的输出根目录；它没有 `--out-dir` 参数。需隔离批次时配置独立输出根目录或归档已完成的实验数据。
 
+评估报告统一为 `outputs/private_health/evaluation/report.json` 和 `report.md`。新运行不再输出重复的 `report_model_only.*`；旧文件保留作历史记录，后续脚本请读取 `report.json`。
+
 ## 5. Travel：采集 → 发现与审核 → 提取 → 可选入库
 
 ### A. 采集公开文档

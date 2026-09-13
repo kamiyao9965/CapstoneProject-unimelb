@@ -408,6 +408,8 @@ next_available_path(path: Path, reserved: set[Path] | None = None) -> Path
 
 成功通常返回 0，失败非 0，argparse 参数错误通常为 2；没有统一稳定的 JSON 错误协议，部分入口会抛异常。程序集成需要结构化错误时优先 Python 接口。主 CLI batch 汇总逐文件错误；`SchemaExtractor.extract_many` 的失败即停语义不同。
 
+`batch --evaluate` 只生成 `evaluation/report.json` 和 `evaluation/report.md`，以及有匹配问题时的 diagnostics。新运行不再生成重复的 `report_model_only.*`，summary 不再包含 `fallback_documents`。已有历史报告不会删除；读取新报告的脚本应使用 `report.json`。
+
 ## 12. 异常与验证范围
 
 | 异常 / 情形 | 调用方处理 |

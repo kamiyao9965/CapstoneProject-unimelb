@@ -310,7 +310,6 @@ class ExtractionEvaluator:
         total_documents: int | None = None,
         unmatched_documents: int = 0,
         low_confidence_matches: int = 0,
-        fallback_documents: int = 0,
         extraction_errors: int = 0,
     ) -> dict[str, float]:
         total = total_documents if total_documents is not None else len(reports)
@@ -328,7 +327,6 @@ class ExtractionEvaluator:
                 "unmatched_documents": float(unmatched_documents),
                 "match_rate": 0.0,
                 "low_confidence_matches": float(low_confidence_matches),
-                "fallback_documents": float(fallback_documents),
                 "extraction_errors": float(extraction_errors),
                 "product_accuracy": 0.0,
                 "hospital_category_recall": 0.0,
@@ -352,7 +350,6 @@ class ExtractionEvaluator:
             "unmatched_documents": float(unmatched_documents),
             "match_rate": len(reports) / total if total else 0.0,
             "low_confidence_matches": float(low_confidence_matches),
-            "fallback_documents": float(fallback_documents),
             "extraction_errors": float(extraction_errors),
             **section_summary,
         }

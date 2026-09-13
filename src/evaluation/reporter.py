@@ -45,7 +45,6 @@ class EvaluationReporter:
             f"- Unmatched documents: {summary.get('unmatched_documents', 0):.0f}",
             f"- Low-confidence GT matches: {summary.get('low_confidence_matches', 0):.0f}",
             f"- Ambiguous GT matches: {summary.get('ambiguous_matches', 0):.0f}",
-            f"- Fallback extractions in eval set: {summary.get('fallback_documents', 0):.0f}",
             f"- Extraction errors: {summary.get('extraction_errors', 0):.0f}",
             "",
             "## Per-document",
