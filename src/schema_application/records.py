@@ -6,6 +6,8 @@ import hashlib
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import ValidationError
+
 from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_contract
 from src.models import ExtractionResult
@@ -46,7 +48,10 @@ def parse_extraction_artifact(
         source_documents = identity["source_documents"]
         data = artifact["data"]
     else:
-        result = ExtractionResult.model_validate(artifact)
+        try:
+            result = ExtractionResult.model_validate(artifact)
+        except ValidationError as exc:
+            raise ValueError("Legacy extraction artifact is invalid.") from exc
         identity = result.model_dump()
         identity["run_id"] = f"sha256:{hashlib.sha256(raw).hexdigest()}"
         source_documents = [result.source_path]

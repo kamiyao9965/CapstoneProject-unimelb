@@ -166,6 +166,19 @@ class StoragePreparationTests(unittest.TestCase):
                         artifact_path=self.artifact_path, insurer_code="cover_more",
                     )
 
+    def test_malformed_legacy_artifact_error_does_not_expose_document_content(self) -> None:
+        from src.storage.service import prepare_storage_load
+
+        artifact = json.loads(self.artifact_path.read_text())
+        artifact["data"] = ["private-document-content"]
+        self.artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+        with self.assertRaises(ValueError) as raised:
+            prepare_storage_load(
+                manifest=self.manifest, schema_path=self.schema_path,
+                artifact_path=self.artifact_path, insurer_code="cover_more",
+            )
+        self.assertNotIn("private-document-content", str(raised.exception))
+
     def test_rejects_unsafe_insurer_code_before_database_write(self) -> None:
         from src.storage.service import prepare_storage_load
 
