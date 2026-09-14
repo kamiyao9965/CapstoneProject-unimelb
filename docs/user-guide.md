@@ -1,6 +1,6 @@
 # Health / Travel 实用手册
 
-面向项目组的开发、实验和演示。依据 `main` 的 `62aaa7a` 版本核对，更新于 2026-09-10。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
+面向项目组的开发、实验和演示。依据 `main` 的 `2e4465f` 及其后本分支的引擎精简核对，更新于 2026-09-14。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
 
 ## 1. 先选对入口
 
@@ -79,6 +79,13 @@ set +a
 未指定时，主流程选择 `openai / gpt-5 / markdown`。其他 provider 需要指定模型。仓库允许的模型模式见 [model_capabilities.json](../configs/model_capabilities.json)；该表表示本地校验规则，不保证你的账户具有模型访问权限。
 
 主流程统一先用 PDFingestor 将 PDF 转成有页码、文本块和表格结构的文本，再发送模型请求。保留 `markdown` 模式；底层 provider 支持原生 PDF 并不代表主流程可以切换为 `pdf`。扫描件能否解析需要单独检查，默认没有自动视觉 OCR 流程。
+
+### 从旧版升级
+
+- CLI / UI 的领域选择方式不变。修改 prompt、契约和领域规则时更新 `configs/<vertical>/`，Python 构造器不再接受重复覆盖参数。
+- Python 的 discovery / extractor 与 CLI 共用模型配置：未传 selection 就读取进程环境，传入 selection 时使用该对象。旧 `model=` / `client=` / `vertical=` 调用的替换方法见 [API 迁移说明](../api.md#5-discovery-与-extraction)。
+- 已移除没有主流程调用的 `src.config.AppConfig`、旧 `common.document_preprocessor` 和 MinerU 安装依赖。使用上表 `LLM_*` 配置及 PDFingestor；历史 Markdown、schema 和提取文件不需要删除。
+- Health batch evaluation 只生成一套报告。若脚本读取 `report_model_only.json`，改为 `report.json`；`--no-fallback` 仍可接受，但不改变运行行为。
 
 ### 数据摆放
 
@@ -279,6 +286,8 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
 
 使用 **同一份 approved schema** 重新执行 `extract`，再将成功 extraction 文件交给 storage。不能仅把 discovered 结果的版本号改成 approved 版本。
 
+入库对 CLI 的 `ExtractionResult` 和 holdout 的 envelope 执行相同身份校验：vertical 必须匹配 manifest，schema_version 必须匹配 approved schema。缺少这两个字段的历史 envelope 仍可用于兼容分析，但须重新提取后才能入库；不能从当前选择的 schema 自动补全身份。
+
 下面两条会真正修改 `KONKRD_DATABASE_URL` 指向的 PostgreSQL，执行前确认目标环境：
 
 ```bash
@@ -400,4 +409,4 @@ configs/<vertical>/
 
 团队演示前，另外选少量实际 PDF，记录 manifest、schema 版本、模型、种子、样本和输出路径，并人工对照提取值。离线测试不验证真实 API、PDF 解析质量或数据库连接。
 
-本文的命令参数和 Python 示例按当前 main 核对；编写文档时未执行付费模型调用、公开网站采集或 PostgreSQL 写入。
+本文的命令参数和 Python 示例按上述代码版本核对；本次更新未执行付费模型调用、公开网站采集或 PostgreSQL 写入。

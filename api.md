@@ -1,6 +1,6 @@
 # API 与文件契约参考
 
-依据 `main` 的 `62aaa7a` 核对，更新于 2026-09-10。本文描述 Python、CLI 和文件接口；项目没有 HTTP / REST API。操作步骤见 [实用手册](docs/user-guide.md)，模块职责见 [架构](docs/architecture.md)。
+依据 `main` 的 `2e4465f` 及其后本分支的引擎精简核对，更新于 2026-09-14。本文描述 Python、CLI 和文件接口；项目没有 HTTP / REST API。操作步骤见 [实用手册](docs/user-guide.md)，模块职责见 [架构](docs/architecture.md)。
 
 Python 示例从仓库根目录运行，使用 `.venv/bin/python`。下列接口是推荐集成入口，不代表已承诺长期版本兼容；升级时应保留 manifest、schema、审核产物和调用代码的版本。内部 adapter、UI session state 和数据库表细节不应成为业务调用方的接口。
 
@@ -18,6 +18,7 @@ Python 示例从仓库根目录运行，使用 `.venv/bin/python`。下列接口
 | proposal 共识 | [`src.refine.consensus`](src/refine/consensus.py) | 模型 API、多个审核产物 |
 | 人工决策与 Apply | [`src.refine.human_review`](src/refine/human_review/__init__.py) | 本地读写 |
 | 质量分析 | [`src.schema_application.analyze`](src/schema_application/analyze.py) | 本地 / 内存 |
+| 读取提取产物 / 核对身份 | [`src.schema_application.records`](src/schema_application/records.py) | 内存；不读源 PDF、不连接 DB |
 | Canonical 审批 | [`src.schema.canonical`](src/schema/canonical.py) | 内存 |
 | PostgreSQL | [`src.storage.service`](src/storage/service.py) | 本地预检，建表 / 加载时连接 DB |
 | 严格 JSON / 持久化 | [`src.common.json_codec`](src/common/json_codec.py)、[`src.common.json_artifacts`](src/common/json_artifacts.py) | 内存 / 本地读写 |
@@ -174,22 +175,34 @@ build_ingestor(cache_dir=None, *, camelot_enabled=True) -> PDFIngestor
 
 ## 5. Discovery 与 Extraction
 
-以下列推荐关键字参数；兼容及测试注入参数的完整签名以链接源码为准。
+构造器只接收 manifest、模型选择、provider 注入和运行参数。prompt、contract、validator、输出 cardinality 来自 manifest，不能在构造器中另外覆盖。
 
 ### `SchemaDiscovery`
 
-构造：`SchemaDiscovery(manifest=..., selection=..., provider=None, usage_log_path=None, pdf_root=None, pdfingestor_cache_dir=None, timeout_seconds=600.0, log=print)`。
+```text
+SchemaDiscovery(*, selection=None, provider=None, cleanup_uploaded_files=True,
+    timeout_seconds=600.0, usage_log_path=None, log=print, request_params=None,
+    extra_instructions=None, background=True, poll_interval=5.0, pdf_root=None,
+    pdfingestor_cache_dir=None, manifest=None)
+```
 
 | 方法 | 返回 | 文件与失败语义 |
 | --- | --- | --- |
 | `discover(sample_pdfs, output_path=None, *, run_id=None)` | 校验并统一后的 schema `dict` | 本方法不保存成功 schema；`output_path` 用于诊断上下文，CLI 负责成功 envelope |
 | `discover_patches(sample_pdfs, current_schema, output_path=None, *, run_id=None)` | 校验后的 patch set `dict` | 验证基础 schema 与 refinement capability，失败不能作为正常 patch 返回 |
 
-显式用 `resolve_selection()` 构建 selection，避免构造器兼容默认值与进程环境产生歧义。`provider` 可注入实现 `ModelProvider` 协议的测试对象。推荐从 manifest 获取 prompt / contract，不在调用方重复领域规则。
+未传 manifest 时使用 `resolve_manifest()` 的默认领域；集成代码建议显式传入。两个引擎未传 selection 时都调用 `resolve_selection()`，与 CLI 使用相同的 `LLM_*` 环境规则。传入 selection 时以该对象为准。`provider` 可注入实现 `ModelProvider` 协议的测试对象；需注入 SDK client 时先调用 `create_provider(selection, client=...)`。
 
 ### `SchemaExtractor`
 
-构造：`SchemaExtractor(schema_data, manifest=..., selection=..., provider=None, usage_log_path=None, pdf_root=None, pdfingestor_cache_dir=None, timeout_seconds=600.0, log=print)`。
+```text
+SchemaExtractor(schema_data, *, selection=None, provider=None,
+    cleanup_uploaded_files=True, timeout_seconds=600.0, usage_log_path=None,
+    log=print, background=True, poll_interval=5.0, pdf_root=None,
+    pdfingestor_cache_dir=None, manifest=None)
+```
+
+未传 manifest 时根据 schema 的 vertical 解析；显式 manifest 必须与 schema 一致。所有配置参数仅支持关键字传递，`schema_data` 可作为位置参数。
 
 | 方法 | 返回 | 文件与失败语义 |
 | --- | --- | --- |
@@ -217,6 +230,8 @@ extractor = SchemaExtractor(
 )
 data = extractor.extract_one(manifest.path("input_root") / "allianz/pds/example.pdf")
 ```
+
+旧调用迁移：`model=` 改成 `selection=resolve_selection(model=...)`；`vertical=` 改成 `manifest=resolve_manifest(vertical=...)`；`client=` 改为上述 provider 注入。删除 `preprocessor=`、`discovery_contract=`、`discovery_prompt=`、`schema_contract=`、`schema_validator=`、`patch_contract=`、`patch_prompt=`、`patch_validator=`、`output_cardinality=`、`extraction_prompt=` 等旧覆盖参数。修改领域行为应更新配置包，PDF 解析统一走 PDFingestor。`src.config.AppConfig` 和旧 `src.common.document_preprocessor` 已移除。
 
 ## 6. Provider 与有界结构修复
 
@@ -332,6 +347,8 @@ load_extraction_artifact(*, database_url, manifest, schema_path,
 
 `prepare_storage_load` 读取 approved schema、提取 artifact 和来源 PDF，检查边界并编译 load plan，不连接数据库。原 PDF 必须存在且满足 manifest 输入路径、公司和文档类型目录约束。
 
+两种提取格式都必须携带与 manifest / approved schema 相符的 `vertical` 和 `schema_version`，并提供 provider / model / 运行身份。缺少身份的历史 envelope 可用于兼容分析，但不可直接入库；需用该 approved schema 重新提取，不能凭当前选择补写身份。
+
 `initialize_storage` 使用 PostgreSQL 事务创建缺失的核心与 vertical 表，不迁移已有表。`load_extraction_artifact` 先预检，再在一个事务中写入；重复身份需通过一致性校验，冲突不静默覆盖。成功返回 `run_id / document_id / schema_version_id / products_loaded / release_ids`。服务管理并释放 engine，不返回连接。SQLite 不支持。
 
 ## 10. JSON 文件边界
@@ -382,6 +399,18 @@ next_available_path(path: Path, reserved: set[Path] | None = None) -> Path
 写入原子化，默认拒绝覆盖。`next_available_path` 只选文件名、不预留路径。失败用 `build_failure_artifact(...)` 配合 `write_failure_artifact(output_root, stage, run_id, artifact)` 保存到 `errors/<stage>/`，不写成成功 schema。
 
 **主 CLI `extract / batch` 使用 `src.models.ExtractionResult`。** 顶层为 `vertical, schema_version, source_path, extracted_at, provider, model, data, evidences, normalized_names, warnings`。用 `ExtractionResult.model_validate(payload)` 读取、`.write_json(path)` 保存，不能传给 `read_artifact`。wrapper 校验不代替 data 的实际 extraction contract 校验；兼容字段不表示当前执行了 aliases 合并。
+
+### 统一读取提取产物
+
+```text
+parse_extraction_artifact(raw: bytes, *, vertical: str,
+    schema_version: str | None = None, require_identity: bool = False
+) -> ParsedExtraction
+```
+
+位于 `src.schema_application.records`，是 analysis 和 storage 共用的入口。接受上述两种格式，检查 JSON、wrapper、成功 extraction 类型和恰好一个非空来源路径。若文件声明的 vertical 或传入的 schema version 冲突则拒绝；`require_identity=True` 还拒绝缺失 / 空身份。兼容分析使用默认值，storage 同时传 approved schema version 并启用严格身份检查。
+
+返回冻结数据类，包含 `artifact`（原始对象）、`data`、`source_document`、`vertical`、`schema_version`、`provider`、`model`、`run_id`。旧 `ExtractionResult` 的 run ID 继续取原文件 bytes 的 SHA-256，保留存储幂等语义；envelope 使用 provenance 的 run ID。该函数不读取源 PDF，也不校验 data 的领域契约；分析和存储服务继续负责这些检查。新调用方不应再复制格式判断或从所选 schema 推断文件身份。
 
 ## 11. CLI 参数速查
 

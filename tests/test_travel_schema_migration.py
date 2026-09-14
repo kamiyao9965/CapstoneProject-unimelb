@@ -175,10 +175,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
                     provider=provider,
                     usage_log_path=None,
                     log=None,
-                    vertical="travel_insurance",
-                    discovery_contract="travel_insurance/discovered_schema",
-                    discovery_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("discovery")),
-                    schema_validator=get_schema_validator(load_vertical_manifest(default_manifest_path("travel_insurance"))),
+                    manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
                 ).discover([str(pdf_path)])
 
         self.assertEqual(result, normalize_schema(VALID_TRAVEL_SCHEMA))
@@ -249,10 +246,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                     provider=provider,
                     usage_log_path=None,
                     log=None,
-                    schema_contract="travel_insurance/discovered_schema",
-                    schema_validator=get_schema_validator(load_vertical_manifest(default_manifest_path("travel_insurance"))),
-                    output_cardinality="multiple",
-                    extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
+                    manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
                 ).extract_one(pdf_path)
 
         self.assertEqual(len(result["products"]), 2)
@@ -286,10 +280,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                     provider=provider,
                     usage_log_path=None,
                     log=None,
-                    schema_contract="travel_insurance/discovered_schema",
-                    schema_validator=get_schema_validator(load_vertical_manifest(default_manifest_path("travel_insurance"))),
-                    output_cardinality="multiple",
-                    extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
+                    manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
                 ).extract_one(pdf_path)
 
         self.assertEqual(result, valid_extraction_payload())
@@ -336,10 +327,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                     provider=provider,
                     usage_log_path=None,
                     log=None,
-                    schema_contract="travel_insurance/discovered_schema",
-                    schema_validator=get_schema_validator(load_vertical_manifest(default_manifest_path("travel_insurance"))),
-                    output_cardinality="multiple",
-                    extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
+                    manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
                 ).extract_one(pdf_path)
 
         self.assertEqual(result, repaired)
@@ -358,10 +346,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 provider=mock.Mock(),
                 usage_log_path=None,
                 log=None,
-                schema_contract="travel_insurance/discovered_schema",
-                schema_validator=get_schema_validator(load_vertical_manifest(default_manifest_path("travel_insurance"))),
-                output_cardinality="multiple",
-                extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
+                manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
             )
 
     def test_optional_canonical_scalar_disables_provider_strict_mode(self) -> None:
@@ -377,10 +362,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
             provider=mock.Mock(),
             usage_log_path=None,
             log=None,
-            schema_contract="travel_insurance/discovered_schema",
-            schema_validator=get_schema_validator(load_vertical_manifest(default_manifest_path("travel_insurance"))),
-            output_cardinality="multiple",
-            extraction_prompt=get_prompt(load_vertical_manifest(PROJECT_ROOT / "configs/travel_insurance/manifest.json").prompt("extraction")),
+            manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
         )
 
         self.assertFalse(extractor.structured_output_strict)

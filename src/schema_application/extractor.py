@@ -16,8 +16,7 @@ from src.common.json_artifacts import (
     write_artifact,
     write_failure_artifact,
 )
-from src.common.json_contracts import validate_contract
-from src.common.model_config import ModelSelection
+from src.common.model_config import ModelSelection, resolve_selection
 from src.common.model_provider import (
     ModelProvider,
     ModelResponse,
@@ -34,8 +33,8 @@ from src.schema.canonical import (
     require_approved_canonical_schema,
     validate_canonical_extraction_identities,
 )
-from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
-from src.verticals.registry import get_prompt, get_schema_validator
+from src.verticals.manifest import VerticalManifest, resolve_manifest
+from src.verticals.registry import get_prompt
 from src.schema.validation import validate_schema_mapping, validate_extraction_record
 
 
@@ -45,8 +44,7 @@ class SchemaExtractor:
     def __init__(
         self,
         schema_data: Mapping[str, object],
-        model: str = "gpt-5",
-        client: object | None = None,
+        *,
         selection: ModelSelection | None = None,
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
@@ -56,24 +54,15 @@ class SchemaExtractor:
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
-        preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
-        schema_contract: str | None = None,
-        schema_validator: Callable[[object], object] | None = None,
-        output_cardinality: str | None = None,
-        extraction_prompt: str | None = None,
         manifest: VerticalManifest | None = None,
     ) -> None:
-        manifest = manifest or load_vertical_manifest(default_manifest_path(str(schema_data.get("vertical"))))
+        manifest = manifest or resolve_manifest(vertical=schema_data.get("vertical"))
         manifest.require_capability("extraction")
         if schema_data.get("vertical") != manifest.vertical:
             raise ValueError("Schema vertical does not match manifest.")
         self.manifest = manifest
-        schema_contract = schema_contract or manifest.contract("discovered_schema")
-        schema_validator = schema_validator or get_schema_validator(manifest)
-        output_cardinality = output_cardinality or manifest.documents.output_cardinality
-        if output_cardinality != manifest.documents.output_cardinality:
-            raise ValueError("Extraction cardinality does not match manifest.")
+        output_cardinality = manifest.documents.output_cardinality
         self.schema_data = dict(schema_data)
         self.extraction_business_validator: Callable[[object], object] | None = None
         if is_canonical_schema(schema_data):
@@ -100,15 +89,10 @@ class SchemaExtractor:
             )
             self.schema_prompt_label = "Approved Canonical Schema"
         else:
-            validate_contract(schema_data, schema_contract, manifest=manifest)
-            schema_validator(schema_data)
             self.schema_data = validate_schema_mapping(dict(schema_data), manifest=manifest)
             self.extraction_business_validator = partial(validate_extraction_record, self.schema_data, manifest=manifest)
             self.extraction_contract = compile_extraction_contract(
-                schema_data,
-                data_contract=schema_contract,
-                business_validator=schema_validator,
-                output_cardinality=output_cardinality,
+                self.schema_data,
                 manifest=manifest,
             )
             self.structured_output_strict = not any(
@@ -116,17 +100,16 @@ class SchemaExtractor:
                 for field in self.schema_data["fields"]
             )
             self.schema_prompt_label = "Discovered schema"
-        self.extraction_prompt = extraction_prompt or get_prompt(manifest.prompt("extraction"))
-        self.selection = selection or ModelSelection("openai", model, "markdown")
+        self.extraction_prompt = get_prompt(manifest.prompt("extraction"))
+        self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
             raise ValueError(
                 "SchemaExtractor uses PDFingestor's inline text representation; "
                 "set LLM_DOCUMENT_INPUT=markdown."
             )
         self.model = self.selection.model
-        self.provider = provider or create_provider(self.selection, client=client)
+        self.provider = provider or create_provider(self.selection)
         self.pdf_root = Path(pdf_root) if pdf_root else None
-        self.preprocessor = preprocessor
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds

@@ -8,6 +8,13 @@ Start with the Chinese [practical user guide](docs/user-guide.md) for complete
 Health/Travel workflows, review and recovery steps, and troubleshooting.
 See [api.md](api.md) for Python interfaces, CLI options, and artifact contracts.
 
+The engine has one source for each kind of configuration: vertical rules come
+from the manifest and its prompt files, model settings come from
+`src.common.model_config.resolve_selection()`, and document preparation uses
+PDFingestor. Discovery and extractor constructors accept operational settings
+and provider injection; they no longer accept separate prompt, contract,
+validator or cardinality overrides.
+
 The entire runtime pipeline is JSON-only. Model responses use the strongest
 approved structured-output mode for the selected provider, are validated
 locally against authoritative JSON Schema contracts, and receive at most two
@@ -38,6 +45,10 @@ repair retries. Invalid data never proceeds to the next stage.
 - Discovery/refinement/holdout artifacts use a versioned envelope with provenance,
   success/failure status, and separate `data` and `error` fields. Single/batch CLI
   extraction keeps the existing `ExtractionResult` JSON format.
+- Analysis and storage read both extraction formats through one parser. Storage
+  requires explicit vertical and schema-version identity matching the selected
+  manifest and approved schema. Historical envelopes without identity must be
+  regenerated before storage.
 - JSON is parsed strictly; Markdown fences, partial JSON, YAML, type coercion,
   guessed values, and silent field repair are not accepted.
 - The first model attempt may be followed by at most two repair attempts.
@@ -78,6 +89,13 @@ Verify the offline suite before using credentials:
 .venv/bin/python -m compileall src tests
 .venv/bin/python -m unittest discover -s tests
 ```
+
+Upgrading existing integrations: the unused `src.config.AppConfig` and
+`src.common.document_preprocessor` modules have been removed, and MinerU is no
+longer an installation dependency. Use `LLM_*` / `resolve_selection()` for model
+configuration. See the [constructor migration notes](api.md#5-discovery-与-extraction)
+for Python call changes. Existing prompt files, approved schemas and extraction
+files retain their formats.
 
 ## Local operator UI
 
@@ -473,8 +491,7 @@ artifact below `outputs/private_health/errors/schema_discovery/`.
 
 Schema discovery and extraction always parse each selected source PDF locally
 with PDFingestor. The resulting reading-order text blocks and Markdown tables
-are sent inline to the selected model provider; the application pipeline does
-not upload the raw PDF or create a MinerU Markdown mirror.
+are sent inline to the selected model provider.
 
 For that reason, keep `LLM_DOCUMENT_INPUT=markdown`. Selecting `pdf` is reserved
 for low-level provider calls that attach raw documents and is rejected by the
@@ -723,6 +740,12 @@ the downstream extraction and ground-truth evaluation pipeline:
   --schema outputs/private_health/refine/final_schema.json \
   --evaluate
 ```
+
+Batch evaluation aggregates once and writes `evaluation/report.json` and
+`evaluation/report.md` under the selected manifest output root. There is no
+heuristic fallback or additional model-only report. Existing
+`report_model_only.*` files are historical; consumers should read `report.json`.
+The deprecated `--no-fallback` flag is accepted as a no-op.
 
 ## 10. Analyze extraction artifacts directly
 

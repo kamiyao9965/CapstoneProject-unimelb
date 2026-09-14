@@ -14,7 +14,7 @@ from src.common.json_artifacts import (
     write_failure_artifact,
 )
 from src.common.json_contracts import load_contract
-from src.common.model_config import ModelSelection
+from src.common.model_config import ModelSelection, resolve_selection
 from src.common.model_provider import (
     ModelProvider,
     ModelResponse,
@@ -36,8 +36,7 @@ from src.refine.candidates.patch import parse_patch_payload
 class SchemaDiscovery:
     def __init__(
         self,
-        model: str = "gpt-5",
-        client: object | None = None,
+        *,
         selection: ModelSelection | None = None,
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
@@ -49,32 +48,23 @@ class SchemaDiscovery:
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
-        preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
-        vertical: str | None = None,
-        discovery_contract: str | None = None,
-        discovery_prompt: str | None = None,
-        schema_validator: Callable[[object], object] | None = None,
-        patch_contract: str | None = None,
-        patch_prompt: str | None = None,
-        patch_validator: Callable[[object], object] | None = None,
         manifest: VerticalManifest | None = None,
     ) -> None:
-        manifest = manifest or resolve_manifest(vertical=vertical)
+        manifest = manifest or resolve_manifest()
         manifest.require_capability("discovery")
         self.manifest = manifest
-        self.selection = selection or ModelSelection("openai", model, "markdown")
+        self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
             raise ValueError(
                 "SchemaDiscovery uses PDFingestor's inline text representation; "
                 "set LLM_DOCUMENT_INPUT=markdown or pass --document-input markdown."
             )
         self.model = self.selection.model
-        self.provider = provider or create_provider(self.selection, client=client)
+        self.provider = provider or create_provider(self.selection)
         # Discovery always consumes PDFingestor's Silver-layer text/table
         # representation and sends it inline as Markdown-compatible text.
         self.pdf_root = Path(pdf_root) if pdf_root else None
-        self.preprocessor = preprocessor
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
@@ -93,12 +83,12 @@ class SchemaDiscovery:
         # (gpt-5 reasoning models may reject temperature), so this is opt-in.
         self.request_params = dict(request_params or {})
         self.vertical = manifest.vertical
-        self.discovery_contract = discovery_contract or manifest.contract("discovered_schema")
-        self.discovery_prompt = discovery_prompt or get_prompt(manifest.prompt("discovery"))
-        self.schema_validator = schema_validator or get_schema_validator(manifest)
-        self.patch_contract = patch_contract or manifest.contract("candidate_patch_set")
-        self.patch_prompt = patch_prompt or get_prompt(manifest.prompt("patch"))
-        self.patch_validator = patch_validator or (lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types)))
+        self.discovery_contract = manifest.contract("discovered_schema")
+        self.discovery_prompt = get_prompt(manifest.prompt("discovery"))
+        self.schema_validator = get_schema_validator(manifest)
+        self.patch_contract = manifest.contract("candidate_patch_set")
+        self.patch_prompt = get_prompt(manifest.prompt("patch"))
+        self.patch_validator = lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types))
 
     def discover(
         self,

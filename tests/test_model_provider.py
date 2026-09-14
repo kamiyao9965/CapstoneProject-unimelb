@@ -19,6 +19,7 @@ from src.common.model_provider import (
     create_provider,
 )
 from src.schema.discovery import SchemaDiscovery
+from src.schema_application.extractor import SchemaExtractor
 from src.schema.validation import normalize_schema
 
 VALID_SCHEMA_TEXT = json.dumps(normalize_schema({
@@ -86,6 +87,18 @@ class RecordingProvider:
 
 
 class ProviderContractTest(unittest.TestCase):
+    def test_engines_use_environment_selection_unless_explicitly_overridden(self) -> None:
+        factories = (SchemaDiscovery, lambda **kwargs: SchemaExtractor(json.loads(VALID_SCHEMA_TEXT), **kwargs))
+        environment = {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-test", "LLM_DOCUMENT_INPUT": "markdown"}
+        explicit = ModelSelection("openai", "gpt-5", "markdown")
+        with mock.patch.dict(os.environ, environment, clear=True):
+            for factory in factories:
+                with self.subTest(factory=factory):
+                    engine = factory(provider=RecordingProvider(), log=None)
+                    self.assertEqual(engine.selection, ModelSelection("anthropic", "claude-test", "markdown"))
+                    overridden = factory(selection=explicit, provider=RecordingProvider(), log=None)
+                    self.assertEqual(overridden.selection, explicit)
+
     def test_authoritative_model_contracts_project_for_native_schema_providers(self) -> None:
         for contract_name in (
             "private_health/discovered_schema",

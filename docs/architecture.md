@@ -152,6 +152,14 @@ Legacy extraction run IDs retain the hash of the original file bytes.
 
 ## Package ownership
 
+Engine constructors consume a manifest, model selection, an optional provider,
+and operational settings. Prompts, contracts, validators and output cardinality
+are derived from the manifest, with no constructor overrides. Both engines use
+`resolve_selection()` when no selection is supplied. PDFingestor is the sole
+pipeline preprocessor; the unused AppConfig and MinerU entry points are retired.
+Batch evaluation aggregates once and produces one `report.json` / `report.md`
+pair; there is no heuristic extraction or separate model-only report path.
+
 - `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical.
 - `src/verticals/`: validated manifest resolution and existing executable adapters.
 - `src/schema/`: discovery, sampling, schema loader/validation/compiler and Canonical candidate.
