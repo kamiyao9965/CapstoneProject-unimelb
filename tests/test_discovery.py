@@ -51,6 +51,46 @@ class SchemaDiscoveryInputTest(unittest.TestCase):
 
             self.assertEqual(provider.requests, [])
 
+    def test_document_parser_reaches_renderer_and_failure_provenance(self) -> None:
+        import json
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf = Path(tmp) / "sample.pdf"
+            pdf.touch()
+            discovery = SchemaDiscovery(
+                selection=ModelSelection("openai", "gpt-5", "markdown"),
+                provider=object(),
+                usage_log_path=None,
+                log=None,
+                document_parser="mineru",
+            )
+
+            with mock.patch(
+                "src.schema.discovery.render_pdf_paths_for_prompt",
+                side_effect=RuntimeError("MinerU failed"),
+            ) as render:
+                with self.assertRaisesRegex(RuntimeError, "MinerU failed"):
+                    discovery.discover([str(pdf)], output_path=Path(tmp) / "schema.json")
+
+            self.assertEqual(render.call_args.kwargs["document_parser"], "mineru")
+            self.assertEqual(
+                render.call_args.kwargs["markdown_dir"],
+                discovery.manifest.path("output_root") / "parsed_markdown",
+            )
+            failures = list((Path(tmp) / "errors").rglob("*.json"))
+            self.assertEqual(len(failures), 1)
+            failure = json.loads(failures[0].read_text(encoding="utf-8"))
+            self.assertEqual(failure["provenance"]["document_parser"], "mineru")
+
+    def test_unknown_document_parser_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unsupported document parser"):
+            SchemaDiscovery(
+                selection=ModelSelection("openai", "gpt-5", "markdown"),
+                provider=object(),
+                log=None,
+                document_parser="ocr",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,6 +29,7 @@ class ExtractionResult(BaseModel):
     )
     provider: str = "heuristic"
     model: str | None = None
+    document_parser: str | None = None
     data: dict[str, Any] = Field(default_factory=dict)
     evidences: dict[str, list[Evidence]] = Field(default_factory=dict)
     normalized_names: list[NormalizationResult] = Field(default_factory=list)

@@ -25,6 +25,23 @@ class ToolAppTests(unittest.TestCase):
         self.assertNotIn("Compile Canonical Schema", at.selectbox(key="operation").options)
         self.assertTrue(at.button(key="run-command").disabled)
         self.assertIn("src/run.py discover", at.code[0].value)
+        self.assertIn("--document-parser pdfingestor", at.code[0].value)
+
+    def test_travel_batch_defaults_to_pds_folders(self):
+        at = self.app()
+        at.selectbox(key="vertical").set_value("travel_insurance").run()
+        at.selectbox(key="operation").set_value("Batch extraction").run()
+        at.text_input(key="_form:schema").set_value("configs/travel_insurance/canonical_schema_v1.json").run()
+        at.text_input(key="_form:output_dir").set_value("outputs/travel_insurance/extractions/run20").run()
+        self.assertFalse(at.exception)
+        self.assertIn("--categories pds", at.code[0].value)
+        self.assertIn("--output-dir outputs/travel_insurance/extractions/run20", at.code[0].value)
+
+    def test_mineru_route_appears_in_command_preview(self):
+        at = self.app()
+        at.selectbox(key="_form:document_parser").set_value("MinerU (local models, slower)").run()
+        self.assertFalse(at.exception)
+        self.assertIn("--document-parser mineru", at.code[0].value)
 
     def test_every_capability_enabled_operation_renders(self):
         for code, manifest in discover_manifests().items():

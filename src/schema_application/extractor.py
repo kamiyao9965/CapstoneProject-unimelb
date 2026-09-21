@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Callable, Mapping
 from uuid import uuid4
 
-from src.PDFingestor.adapter import render_pdf_paths_for_prompt
+from src.PDFingestor.adapter import (
+    DEFAULT_DOCUMENT_PARSER,
+    render_pdf_paths_for_prompt,
+    require_document_parser,
+)
 from src.common.json_artifacts import (
     build_failure_artifact,
     next_available_path,
@@ -16,8 +20,7 @@ from src.common.json_artifacts import (
     write_artifact,
     write_failure_artifact,
 )
-from src.common.json_contracts import validate_contract
-from src.common.model_config import ModelSelection
+from src.common.model_config import ModelSelection, resolve_selection
 from src.common.model_provider import (
     ModelProvider,
     ModelResponse,
@@ -34,8 +37,8 @@ from src.schema.canonical import (
     require_approved_canonical_schema,
     validate_canonical_extraction_identities,
 )
-from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
-from src.verticals.registry import get_prompt, get_schema_validator
+from src.verticals.manifest import VerticalManifest, resolve_manifest
+from src.verticals.registry import get_prompt
 from src.schema.validation import validate_schema_mapping, validate_extraction_record
 
 
@@ -45,8 +48,7 @@ class SchemaExtractor:
     def __init__(
         self,
         schema_data: Mapping[str, object],
-        model: str = "gpt-5",
-        client: object | None = None,
+        *,
         selection: ModelSelection | None = None,
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
@@ -56,24 +58,17 @@ class SchemaExtractor:
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
-        preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
-        schema_contract: str | None = None,
-        schema_validator: Callable[[object], object] | None = None,
-        output_cardinality: str | None = None,
-        extraction_prompt: str | None = None,
+        document_parser: str = DEFAULT_DOCUMENT_PARSER,
+        parsed_markdown_dir: str | Path | None = None,
         manifest: VerticalManifest | None = None,
     ) -> None:
-        manifest = manifest or load_vertical_manifest(default_manifest_path(str(schema_data.get("vertical"))))
+        manifest = manifest or resolve_manifest(vertical=schema_data.get("vertical"))
         manifest.require_capability("extraction")
         if schema_data.get("vertical") != manifest.vertical:
             raise ValueError("Schema vertical does not match manifest.")
         self.manifest = manifest
-        schema_contract = schema_contract or manifest.contract("discovered_schema")
-        schema_validator = schema_validator or get_schema_validator(manifest)
-        output_cardinality = output_cardinality or manifest.documents.output_cardinality
-        if output_cardinality != manifest.documents.output_cardinality:
-            raise ValueError("Extraction cardinality does not match manifest.")
+        output_cardinality = manifest.documents.output_cardinality
         self.schema_data = dict(schema_data)
         self.extraction_business_validator: Callable[[object], object] | None = None
         if is_canonical_schema(schema_data):
@@ -100,15 +95,10 @@ class SchemaExtractor:
             )
             self.schema_prompt_label = "Approved Canonical Schema"
         else:
-            validate_contract(schema_data, schema_contract, manifest=manifest)
-            schema_validator(schema_data)
             self.schema_data = validate_schema_mapping(dict(schema_data), manifest=manifest)
             self.extraction_business_validator = partial(validate_extraction_record, self.schema_data, manifest=manifest)
             self.extraction_contract = compile_extraction_contract(
-                schema_data,
-                data_contract=schema_contract,
-                business_validator=schema_validator,
-                output_cardinality=output_cardinality,
+                self.schema_data,
                 manifest=manifest,
             )
             self.structured_output_strict = not any(
@@ -116,18 +106,19 @@ class SchemaExtractor:
                 for field in self.schema_data["fields"]
             )
             self.schema_prompt_label = "Discovered schema"
-        self.extraction_prompt = extraction_prompt or get_prompt(manifest.prompt("extraction"))
-        self.selection = selection or ModelSelection("openai", model, "markdown")
+        self.extraction_prompt = get_prompt(manifest.prompt("extraction"))
+        self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
             raise ValueError(
                 "SchemaExtractor uses PDFingestor's inline text representation; "
                 "set LLM_DOCUMENT_INPUT=markdown."
             )
         self.model = self.selection.model
-        self.provider = provider or create_provider(self.selection, client=client)
+        self.provider = provider or create_provider(self.selection)
+        self.document_parser = require_document_parser(document_parser)
         self.pdf_root = Path(pdf_root) if pdf_root else None
-        self.preprocessor = preprocessor
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
+        self.parsed_markdown_dir = Path(parsed_markdown_dir or manifest.path("output_root") / "parsed_markdown")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -147,10 +138,14 @@ class SchemaExtractor:
         started = time.perf_counter()
         logical_run_id = run_id or uuid4().hex
         self._log(f"Extracting {pdf_path.name} with {self.selection.provider}/{self.model}...")
+        if self.document_parser == "mineru":
+            self._log("Parsing the PDF locally with MinerU; an uncached document can take several minutes.")
         document_text = render_pdf_paths_for_prompt(
             (pdf_path,),
             cache_dir=self.pdfingestor_cache_dir,
             pdf_root=self.pdf_root,
+            document_parser=self.document_parser,
+            markdown_dir=self.parsed_markdown_dir,
         )
         request = ProviderRequest(
             selection=self.selection,
@@ -182,6 +177,7 @@ class SchemaExtractor:
                 request,
                 data_contract_schema=self.extraction_contract,
                 business_validator=self.extraction_business_validator,
+                drop_structural_noise=True,
             )
         except StructuredOutputFailure as exc:
             duration = round(time.perf_counter() - started, 3)
@@ -252,6 +248,7 @@ class SchemaExtractor:
             "run_id": run_id, "provider": self.selection.provider,
             "model": self.selection.model,
             "document_input": self.selection.document_input,
+            "document_parser": self.document_parser,
             "source_documents": [pdf_path.as_posix()], "source_artifacts": [],
         }
 
@@ -270,6 +267,7 @@ class SchemaExtractor:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "event": "extraction", "provider": response.provider,
                 "model": response.model, "document_input": self.selection.document_input,
+                "document_parser": self.document_parser,
                 "api_key_env": response.api_key_env, "source_pdf": pdf_path.as_posix(),
                 "duration_seconds": duration, "run_id": run_id,
                 "attempt_number": attempt_number,

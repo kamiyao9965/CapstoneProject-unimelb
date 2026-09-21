@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from collections import Counter
 from pathlib import Path
 
 import streamlit as st
@@ -16,6 +17,11 @@ from src.schema.canonical import approve_canonical_schema, build_canonical_candi
 from src.schema.loader import load_schema_data
 from src.verticals.manifest import discover_manifests
 from src.storage.canonical import preview_vertical_storage_metadata
+
+UNMAPPED_STORAGE_LABELS = {
+    "JSONB attributes (default)": "jsonb",
+    "SQL columns (list fields stay JSONB)": "extension_column",
+}
 
 
 def parse_cli_args() -> argparse.Namespace:
@@ -48,9 +54,15 @@ def main() -> None:
     root = manifest.path("output_root")
     schema_path = Path(st.sidebar.text_input("Reviewed schema", value=args.schema or str(root / "refine/round_1/consensus/reviewed_schema.json"), key=f"schema:{vertical}"))
     output_path = Path(st.sidebar.text_input("Approved output", value=args.output or str(root / "canonical_schema_approved.json"), key=f"output:{vertical}"))
+    storage_label = st.sidebar.radio(
+        "Storage for fields without an approved mapping",
+        list(UNMAPPED_STORAGE_LABELS),
+        key=f"unmapped_storage:{vertical}",
+        help="Fields with an approved mapping keep it. SQL columns are named after the field; list fields must stay in JSONB.",
+    )
     try:
         discovered = load_schema_data(schema_path, manifest)
-        candidate = build_canonical_candidate(discovered, manifest)
+        candidate = build_canonical_candidate(discovered, manifest, unmapped_storage=UNMAPPED_STORAGE_LABELS[storage_label])
     except (OSError, ValueError) as exc:
         st.error(str(exc))
         st.stop()
@@ -58,6 +70,8 @@ def main() -> None:
     st.caption(f"Vertical: {vertical} · Source schema: {discovered['version']} · Approval: candidate")
     fields = candidate["fields"]
     st.header("Deterministic field mapping")
+    strategies = Counter(field["storage"]["strategy"] for field in fields)
+    st.caption("Storage: " + " · ".join(f"{name} {count}" for name, count in sorted(strategies.items())))
     st.dataframe(
         [
             {

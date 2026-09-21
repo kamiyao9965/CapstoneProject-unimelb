@@ -2,15 +2,21 @@
 
 from src.PDFingestor.cache import PDFCache
 from src.PDFingestor.adapter import (
+    DEFAULT_DOCUMENT_PARSER,
+    DOCUMENT_PARSERS,
     build_ingestor,
     ingest_pdfs,
     render_documents_for_prompt,
     render_pdf_paths_for_prompt,
 )
+from src.PDFingestor.mineru import MinerUIngestor
 from src.PDFingestor.models import ParsedPDF
 from src.PDFingestor.parser import PDFIngestor, parse_pdf
 
 __all__ = [
+    "DEFAULT_DOCUMENT_PARSER",
+    "DOCUMENT_PARSERS",
+    "MinerUIngestor",
     "PDFCache",
     "PDFIngestor",
     "ParsedPDF",

@@ -10,11 +10,10 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.common.json_artifacts import build_success_artifact, write_artifact
-from src.common.json_contracts import validate_contract
-from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_inline_contract
 from src.schema.contract import compile_extraction_contract
 from src.schema.loader import load_schema_data
+from src.schema_application.records import parse_extraction_artifact
 from src.verticals.manifest import resolve_manifest, default_manifest_path, load_vertical_manifest
 from src.schema.sampler import category_from_path
 from src.schema.validation import (
@@ -79,30 +78,11 @@ def load_records(
         if "errors" in path.relative_to(extraction_dir).parts:
             continue
         try:
-            artifact = loads_json(path.read_text(encoding="utf-8"))
-            if not isinstance(artifact, dict):
-                raise ValueError("Extraction must be a JSON object.")
-            if "artifact_type" in artifact:
-                validate_contract(artifact, "artifact_envelope")
-                if artifact["status"] != "success" or artifact["artifact_type"] != "extraction_result":
-                    raise ValueError("Not a successful extraction result artifact.")
-                identity = artifact["provenance"]
-                source_documents = identity["source_documents"]
-                if len(source_documents) != 1:
-                    raise ValueError("Extraction result must identify exactly one source document.")
-                source_document = source_documents[0]
-                payload = artifact["data"]
-            else:
-                # Existing CLI ExtractionResult remains readable without rewriting it.
-                from src.models import ExtractionResult
-                result = ExtractionResult.model_validate(artifact)
-                identity = result.model_dump()
-                source_document = result.source_path
-                payload = result.data
-            if identity.get("vertical", manifest.vertical) != manifest.vertical:
-                raise ValueError("Extraction vertical does not match selected manifest.")
-            if schema_version and identity.get("schema_version", schema_version) != schema_version:
-                raise ValueError("Extraction schema version does not match analysis schema.")
+            extraction = parse_extraction_artifact(
+                path.read_bytes(), vertical=manifest.vertical, schema_version=schema_version,
+            )
+            source_document = extraction.source_document
+            payload = extraction.data
             validate_inline_contract(payload, extraction_contract, "runtime_extraction_result")
             source_category = category_from_path(source_document, manifest.documents.categories)
             if source_category is None:

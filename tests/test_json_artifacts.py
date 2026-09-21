@@ -69,6 +69,24 @@ class JsonArtifactTest(unittest.TestCase):
             with self.assertRaisesRegex(FileExistsError, "Refusing to overwrite"):
                 write_artifact(path, artifact, data_contract="private_health/discovered_schema")
 
+    def test_provenance_accepts_only_known_document_parsers(self) -> None:
+        for document_parser in ("pdfingestor", "mineru", None):
+            build_success_artifact(
+                artifact_type="discovered_schema",
+                contract_version="1.0.0",
+                data=VALID_DISCOVERED_SCHEMA,
+                provenance={**PROVENANCE, "document_parser": document_parser},
+                data_contract="private_health/discovered_schema",
+            )
+        with self.assertRaises(Exception):
+            build_success_artifact(
+                artifact_type="discovered_schema",
+                contract_version="1.0.0",
+                data=VALID_DISCOVERED_SCHEMA,
+                provenance={**PROVENANCE, "document_parser": "ocr"},
+                data_contract="private_health/discovered_schema",
+            )
+
     def test_invalid_data_is_rejected_before_persistence(self) -> None:
         invalid = dict(VALID_DISCOVERED_SCHEMA)
         invalid["fields"] = []

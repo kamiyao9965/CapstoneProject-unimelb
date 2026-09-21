@@ -725,8 +725,8 @@ def _parse_provider(payload: Any) -> ProviderConfig:
     if not domains:
         raise ValueError(f"Provider {insurer_code} requires allowed_domains.")
     pages_raw = payload["start_pages"]
-    if not isinstance(pages_raw, list) or not pages_raw:
-        raise ValueError(f"Provider {insurer_code} requires start_pages.")
+    if not isinstance(pages_raw, list):
+        raise ValueError(f"Provider {insurer_code} start_pages must be an array.")
     pages: list[StartPageConfig] = []
     for page in pages_raw:
         if not isinstance(page, dict):
@@ -776,6 +776,10 @@ def _parse_provider(payload: Any) -> ProviderConfig:
                 ),
                 version_status=version_status,
             )
+        )
+    if not pages and not seed_documents:
+        raise ValueError(
+            f"Provider {insurer_code} requires start_pages or seed_documents."
         )
     axes_raw = payload["default_axes"]
     if not isinstance(axes_raw, dict) or set(axes_raw) != set(_AXIS_VALUES):

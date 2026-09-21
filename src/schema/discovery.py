@@ -8,13 +8,17 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
-from src.PDFingestor.adapter import render_pdf_paths_for_prompt
+from src.PDFingestor.adapter import (
+    DEFAULT_DOCUMENT_PARSER,
+    render_pdf_paths_for_prompt,
+    require_document_parser,
+)
 from src.common.json_artifacts import (
     build_failure_artifact,
     write_failure_artifact,
 )
 from src.common.json_contracts import load_contract
-from src.common.model_config import ModelSelection
+from src.common.model_config import ModelSelection, resolve_selection
 from src.common.model_provider import (
     ModelProvider,
     ModelResponse,
@@ -36,8 +40,7 @@ from src.refine.candidates.patch import parse_patch_payload
 class SchemaDiscovery:
     def __init__(
         self,
-        model: str = "gpt-5",
-        client: object | None = None,
+        *,
         selection: ModelSelection | None = None,
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
@@ -49,33 +52,28 @@ class SchemaDiscovery:
         background: bool = True,
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
-        preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
-        vertical: str | None = None,
-        discovery_contract: str | None = None,
-        discovery_prompt: str | None = None,
-        schema_validator: Callable[[object], object] | None = None,
-        patch_contract: str | None = None,
-        patch_prompt: str | None = None,
-        patch_validator: Callable[[object], object] | None = None,
+        document_parser: str = DEFAULT_DOCUMENT_PARSER,
+        parsed_markdown_dir: str | Path | None = None,
         manifest: VerticalManifest | None = None,
     ) -> None:
-        manifest = manifest or resolve_manifest(vertical=vertical)
+        manifest = manifest or resolve_manifest()
         manifest.require_capability("discovery")
         self.manifest = manifest
-        self.selection = selection or ModelSelection("openai", model, "markdown")
+        self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
             raise ValueError(
                 "SchemaDiscovery uses PDFingestor's inline text representation; "
                 "set LLM_DOCUMENT_INPUT=markdown or pass --document-input markdown."
             )
         self.model = self.selection.model
-        self.provider = provider or create_provider(self.selection, client=client)
-        # Discovery always consumes PDFingestor's Silver-layer text/table
-        # representation and sends it inline as Markdown-compatible text.
+        self.provider = provider or create_provider(self.selection)
+        # Discovery consumes the shared Silver-layer text/table representation
+        # (parsed by PDFingestor or MinerU) and sends it inline as text.
+        self.document_parser = require_document_parser(document_parser)
         self.pdf_root = Path(pdf_root) if pdf_root else None
-        self.preprocessor = preprocessor
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
+        self.parsed_markdown_dir = Path(parsed_markdown_dir or manifest.path("output_root") / "parsed_markdown")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -93,12 +91,12 @@ class SchemaDiscovery:
         # (gpt-5 reasoning models may reject temperature), so this is opt-in.
         self.request_params = dict(request_params or {})
         self.vertical = manifest.vertical
-        self.discovery_contract = discovery_contract or manifest.contract("discovered_schema")
-        self.discovery_prompt = discovery_prompt or get_prompt(manifest.prompt("discovery"))
-        self.schema_validator = schema_validator or get_schema_validator(manifest)
-        self.patch_contract = patch_contract or manifest.contract("candidate_patch_set")
-        self.patch_prompt = patch_prompt or get_prompt(manifest.prompt("patch"))
-        self.patch_validator = patch_validator or (lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types)))
+        self.discovery_contract = manifest.contract("discovered_schema")
+        self.discovery_prompt = get_prompt(manifest.prompt("discovery"))
+        self.schema_validator = get_schema_validator(manifest)
+        self.patch_contract = manifest.contract("candidate_patch_set")
+        self.patch_prompt = get_prompt(manifest.prompt("patch"))
+        self.patch_validator = lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types))
 
     def discover(
         self,
@@ -161,11 +159,15 @@ class SchemaDiscovery:
             system_prompt += "\n\nRefinement feedback from the previous round:\n"
             system_prompt += self.extra_instructions
         logical_run_id = run_id or uuid4().hex
+        if self.document_parser == "mineru":
+            self._log("Parsing PDFs locally with MinerU; uncached documents can take several minutes each.")
         try:
             document_text = render_pdf_paths_for_prompt(
                 pdf_paths,
                 cache_dir=self.pdfingestor_cache_dir,
                 pdf_root=self.pdf_root,
+                document_parser=self.document_parser,
+                markdown_dir=self.parsed_markdown_dir,
             )
         except Exception as exc:
             self._write_failure(
@@ -274,6 +276,7 @@ class SchemaDiscovery:
                 "provider": self.selection.provider,
                 "model": self.selection.model,
                 "document_input": self.selection.document_input,
+                "document_parser": self.document_parser,
                 "source_documents": [path.as_posix() for path in pdf_paths],
                 "source_artifacts": [],
             },
@@ -353,6 +356,7 @@ class SchemaDiscovery:
                 "provider": response.provider,
                 "model": response.model,
                 "document_input": self.selection.document_input,
+                "document_parser": self.document_parser,
                 "api_key_env": response.api_key_env,
                 "artifact_output_path": output_path.as_posix() if output_path else None,
                 "run_id": run_id,

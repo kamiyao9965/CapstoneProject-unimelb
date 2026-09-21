@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -13,9 +15,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 from src.common.json_codec import dumps_json, loads_json
-from src.common.json_contracts import validate_contract
-from src.models import ExtractionResult
 from src.schema.canonical import require_approved_canonical_schema
+from src.schema_application.records import parse_extraction_artifact
 from src.storage.canonical import (
     CanonicalLoadPlan,
     compile_canonical_load_plan,
@@ -54,6 +55,16 @@ class PreparedStorageLoad:
     raw_artifact: dict[str, Any]
     payload_sha256: str
     plan: CanonicalLoadPlan
+
+
+@dataclass(frozen=True)
+class DirectoryLoadResult:
+    """Outcome of one artifact in a folder load; exactly one of summary/error is set."""
+
+    artifact_path: Path
+    insurer_code: str | None
+    summary: StorageLoadSummary | None
+    error: str | None
 
 
 def resolve_database_url(environment_name: str = "KONKRD_DATABASE_URL") -> str:
@@ -109,26 +120,23 @@ def prepare_storage_load(
             label="Extraction artifact",
             maximum_bytes=_MAX_ARTIFACT_BYTES,
         )
-        artifact = loads_json(artifact_bytes.decode("utf-8"))
+        extraction = parse_extraction_artifact(
+            artifact_bytes, vertical=manifest.vertical,
+            schema_version=str(approved_schema["version"]), require_identity=True,
+        )
     except (OSError, UnicodeError, ValueError) as exc:
         raise ValueError(f"Could not read extraction artifact {artifact_file}: {exc}") from exc
-    if not isinstance(artifact, dict):
-        raise ValueError("Extraction artifact must contain a JSON object.")
-
-    extraction_data, source_value, provider, model, run_id = _artifact_values(
-        artifact,
-        artifact_bytes=artifact_bytes,
-        expected_vertical=manifest.vertical,
-        expected_schema_version=str(approved_schema["version"]),
-    )
+    provider = _non_empty(extraction.provider, "provider", maximum=64)
+    model = _non_empty(extraction.model, "model", maximum=128)
+    run_id = _non_empty(extraction.run_id, "run ID", maximum=128)
     source_path, relative_source, pdf_sha256 = _validate_source_document(
-        source_value,
+        extraction.source_document,
         manifest=manifest,
         insurer_code=normalized_insurer,
     )
     document_type = relative_source.parts[1]
     schema_version_id = _content_id(approved_schema)
-    plan = compile_canonical_load_plan(approved_schema, extraction_data)
+    plan = compile_canonical_load_plan(approved_schema, extraction.data)
 
     title_match = _HASHED_FILENAME.fullmatch(source_path.stem)
     document_title = (title_match.group(1) if title_match else source_path.stem).replace(
@@ -147,7 +155,7 @@ def prepare_storage_load(
         run_id=run_id,
         provider=provider,
         model=model,
-        raw_artifact=artifact,
+        raw_artifact=extraction.artifact,
         payload_sha256=_sha256_bytes(artifact_bytes),
         plan=plan,
     )
@@ -204,59 +212,99 @@ def load_extraction_artifact(
         engine.dispose()
 
 
-def _artifact_values(
-    artifact: dict[str, Any],
+def load_extraction_directory(
     *,
-    artifact_bytes: bytes,
-    expected_vertical: str,
-    expected_schema_version: str,
-) -> tuple[dict[str, Any], str, str, str, str]:
-    if "artifact_type" in artifact:
-        validate_contract(artifact, "artifact_envelope")
-        if artifact["artifact_type"] != "extraction_result":
-            raise ValueError("Storage load requires an extraction_result artifact.")
-        if artifact["status"] != "success":
-            raise ValueError("Storage load requires a successful extraction artifact.")
-        provenance = artifact["provenance"]
-        assert isinstance(provenance, dict)
-        source_documents = provenance["source_documents"]
-        if not isinstance(source_documents, list) or len(source_documents) != 1:
-            raise ValueError("Extraction artifact must reference exactly one source document.")
-        data = artifact["data"]
-        assert isinstance(data, dict)
-        return (
-            data,
-            _non_empty(source_documents[0], "source document"),
-            _non_empty(provenance["provider"], "provider", maximum=64),
-            _non_empty(provenance["model"], "model", maximum=128),
-            _non_empty(provenance["run_id"], "run ID", maximum=128),
-        )
-
-    try:
-        legacy = ExtractionResult.model_validate(artifact)
-    except Exception as exc:
-        raise ValueError("Legacy extraction artifact is invalid.") from exc
-    if legacy.vertical != expected_vertical:
-        raise ValueError("Extraction artifact vertical does not match the manifest vertical.")
-    if legacy.schema_version != expected_schema_version:
-        raise ValueError(
-            "Extraction artifact schema version does not match the Canonical Schema."
-        )
-    return (
-        legacy.data,
-        legacy.source_path,
-        _non_empty(legacy.provider, "provider", maximum=64),
-        _non_empty(legacy.model, "model", maximum=128),
-        f"sha256:{_sha256_bytes(artifact_bytes)}",
-    )
-
-
-def _validate_source_document(
-    source_value: str,
-    *,
+    database_url: str,
     manifest: VerticalManifest,
-    insurer_code: str,
-) -> tuple[Path, Path, str]:
+    schema_path: str | Path,
+    artifact_dir: str | Path,
+    load_one: Callable[..., StorageLoadSummary] | None = None,
+) -> list[DirectoryLoadResult]:
+    """Load every extraction artifact below a folder, one transaction per artifact.
+
+    Each insurer code comes from the artifact's source PDF path below the manifest
+    input root. Artifacts that name the same source PDF are all rejected, so one
+    PDF cannot load conflicting product rows. ``errors/`` folders are skipped.
+    """
+    load = load_one or load_extraction_artifact
+    directory = Path(artifact_dir)
+    if not directory.is_dir():
+        raise ValueError(f"Extraction results folder does not exist: {directory}")
+    artifact_paths = sorted(
+        path
+        for path in directory.rglob("*.json")
+        if "errors" not in path.relative_to(directory).parts
+    )
+    if not artifact_paths:
+        raise ValueError(f"No extraction artifacts found under {directory}.")
+
+    sources: dict[Path, Path] = {}
+    errors: dict[Path, str] = {}
+    for artifact_path in artifact_paths:
+        try:
+            sources[artifact_path] = _artifact_source_document(artifact_path, manifest)
+        except ValueError as exc:
+            errors[artifact_path] = str(exc)
+    source_counts = Counter(sources.values())
+
+    results: list[DirectoryLoadResult] = []
+    for artifact_path in artifact_paths:
+        if artifact_path in errors:
+            results.append(DirectoryLoadResult(artifact_path, None, None, errors[artifact_path]))
+            continue
+        relative_source = sources[artifact_path]
+        insurer_code = relative_source.parts[0]
+        if source_counts[relative_source] > 1:
+            results.append(
+                DirectoryLoadResult(
+                    artifact_path,
+                    insurer_code,
+                    None,
+                    f"{source_counts[relative_source]} results in this folder use "
+                    f"{relative_source.as_posix()}; keep one and retry.",
+                )
+            )
+            continue
+        try:
+            summary = load(
+                database_url=database_url,
+                manifest=manifest,
+                schema_path=schema_path,
+                artifact_path=artifact_path,
+                insurer_code=insurer_code,
+            )
+        except Exception as exc:
+            results.append(
+                DirectoryLoadResult(artifact_path, insurer_code, None, str(exc) or type(exc).__name__)
+            )
+            continue
+        results.append(DirectoryLoadResult(artifact_path, insurer_code, summary, None))
+    return results
+
+
+def _artifact_source_document(artifact_path: Path, manifest: VerticalManifest) -> Path:
+    """Return an artifact's source PDF path relative to the manifest input root."""
+    artifact_bytes = _read_limited_bytes(
+        artifact_path,
+        label="Extraction artifact",
+        maximum_bytes=_MAX_ARTIFACT_BYTES,
+    )
+    try:
+        extraction = parse_extraction_artifact(artifact_bytes, vertical=manifest.vertical)
+    except (UnicodeError, ValueError) as exc:
+        raise ValueError(f"Could not read extraction artifact: {exc}") from exc
+    _, relative_source = _source_below_input_root(extraction.source_document, manifest)
+    if len(relative_source.parts) < 3:
+        raise ValueError(
+            "Source document must use the <insurer>/<document_type>/<file>.pdf layout."
+        )
+    return relative_source
+
+
+def _source_below_input_root(
+    source_value: str,
+    manifest: VerticalManifest,
+) -> tuple[Path, Path]:
     source = Path(source_value).expanduser()
     resolved_source = (
         source.resolve()
@@ -270,6 +318,16 @@ def _validate_source_document(
         raise ValueError(
             "Extraction source document must stay inside the manifest input root."
         ) from exc
+    return resolved_source, relative_source
+
+
+def _validate_source_document(
+    source_value: str,
+    *,
+    manifest: VerticalManifest,
+    insurer_code: str,
+) -> tuple[Path, Path, str]:
+    resolved_source, relative_source = _source_below_input_root(source_value, manifest)
     if len(relative_source.parts) < 3:
         raise ValueError(
             "Source document must use the <insurer>/<document_type>/<file>.pdf layout."

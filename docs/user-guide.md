@@ -1,6 +1,6 @@
 # Health / Travel 实用手册
 
-面向项目组的开发、实验和演示。依据 `main` 的 `62aaa7a` 版本核对，更新于 2026-09-10。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
+面向项目组的开发、实验和演示。依据 `main` 的 `2e4465f` 及其后本分支的引擎精简核对，更新于 2026-09-15（新增 MinerU 解析路线和 InsureandGo / Tick / 1Cover 采集来源）。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
 
 ## 1. 先选对入口
 
@@ -14,7 +14,7 @@
 | 比较已有 schema 的稳定性 | `src/stability/compare.py` | 否 |
 | 收集 Travel 公开文档 | `src/run.py crawl` | 访问保险公司网站 |
 | 审批 Travel 入库契约 | `src/canonical_review_app.py` | 否 |
-| 生成 SQL 预览 / 真正建表、入库 | `canonical-compile` / `storage-init`、`storage-load` | 仅后两者连接 PostgreSQL |
+| 生成 SQL 预览 / 真正建表、入库 | `canonical-compile` / `storage-init`、`storage-load`、`storage-load-batch` | 仅建表和入库连接 PostgreSQL |
 
 当前是一套 Python 引擎、三个本地 Streamlit 页面和文件产物，没有 REST API 服务。
 
@@ -78,7 +78,32 @@ set +a
 
 未指定时，主流程选择 `openai / gpt-5 / markdown`。其他 provider 需要指定模型。仓库允许的模型模式见 [model_capabilities.json](../configs/model_capabilities.json)；该表表示本地校验规则，不保证你的账户具有模型访问权限。
 
-主流程统一先用 PDFingestor 将 PDF 转成有页码、文本块和表格结构的文本，再发送模型请求。保留 `markdown` 模式；底层 provider 支持原生 PDF 并不代表主流程可以切换为 `pdf`。扫描件能否解析需要单独检查，默认没有自动视觉 OCR 流程。
+主流程会先把 PDF 转成有页码、文本块和表格结构的文本，再发送模型请求。保留 `markdown` 模式；底层 provider 支持原生 PDF 并不代表主流程可以切换为 `pdf`。
+
+### 选择 PDF 解析路线
+
+PDF 解析有两条路线，最后都转成同一种“页码 + 文本块 + Markdown 表格”结构，所以 prompt、校验和入库都不受影响：
+
+| 路线 | 参数 / UI 选项 | 适合场景 |
+| --- | --- | --- |
+| PDFingestor（默认） | `--document-parser pdfingestor` / “PDFingestor (current route)” | 日常运行，速度快，行为和以前一样 |
+| MinerU | `--document-parser mineru` / “MinerU (local models, slower)” | 版面复杂、表格多或需要 OCR 的 PDF，以及对比两条路线的效果 |
+
+- `discover`、`extract`、`batch` 和 `refine/loop.py` 都支持这个参数；统一 UI 的发现、提取、批量、打磨表单里有同名下拉框。独立的 `refine/consensus.py`、`stability/measure.py` 暂时只走 PDFingestor。
+- MinerU 在本机的单独子进程里运行 `pipeline` 后端，需要本地已有 MinerU 模型（`mineru-models-download`，或 `~/mineru.json` 里配置的模型目录）。它不启动网络服务，也不上传 PDF。
+- MinerU 第一次解析长 PDF 可能要几分钟（本机实测一份 40 页 PDS 约 4 分钟，PDFingestor 约 3 秒）；结果和 PDFingestor 一样缓存在 `<输出根目录>/pdfingestor_cache/`，按 PDF 内容和解析器区分，不会串用，缓存命中后几乎不耗时。
+- 已知限制：MinerU 能识别合并单元格，但会把同一单元格里换行的英文单词直接拼在一起（例如 `transportationexpenses`），这是 MinerU 表格识别本身的行为。对比两条路线的提取质量时要留意。
+- 用 `--resume-review` / `--resume-feedback` 继续同一个实验时，请带上相同的 `--document-parser`，否则后续阶段会换回默认路线。
+- 产物 provenance、`ExtractionResult` 文件和 token 日志里都有 `document_parser` 字段，对比两条路线时以它为准。
+- 每次解析都会把发给模型的文本另存为 Markdown，两条路线各一个文件夹，里面按 PDF 在输入目录下的位置排列：`<输出根目录>/parsed_markdown/pdfingestor/...` 和 `<输出根目录>/parsed_markdown/mineru/...`。同一份 PDF 用两条路线各跑一次后，对比这两个文件（或整个文件夹）即可；不在输入目录下的 PDF 会存成 `<文件名>_<hash>.md`。文本没变化时不会重写，这些文件可以放心删除。
+- MinerU 解析不出任何文本或表格时直接报错，不会调用模型。PDFingestor 路线目前还没有这项检查，扫描件需要先人工确认能否解析。
+
+### 从旧版升级
+
+- CLI / UI 的领域选择方式不变。修改 prompt、契约和领域规则时更新 `configs/<vertical>/`，Python 构造器不再接受重复覆盖参数。
+- Python 的 discovery / extractor 与 CLI 共用模型配置：未传 selection 就读取进程环境，传入 selection 时使用该对象。旧 `model=` / `client=` / `vertical=` 调用的替换方法见 [API 迁移说明](../api.md#5-discovery-与-extraction)。
+- 已移除没有主流程调用的 `src.config.AppConfig` 和旧 `common.document_preprocessor`。模型配置使用上表 `LLM_*`。MinerU 已作为可选解析路线重新加入依赖，它不再生成 `raw/Markdown` 镜像文件；历史 Markdown、schema 和提取文件不需要删除。
+- Health batch evaluation 只生成一套报告。若脚本读取 `report_model_only.json`，改为 `report.json`；`--no-fallback` 仍可接受，但不改变运行行为。
 
 ### 数据摆放
 
@@ -134,7 +159,7 @@ Travel，可直接使用仓库已批准的 Canonical 契约：
 ```
 
 1. 在页面先选择 Health 或 Travel。
-2. 选择操作，填写 PDF、schema、模型和输出参数。
+2. 选择操作，填写 PDF、schema、模型和输出参数；需要时在“PDF parsing route”里选择 MinerU。
 3. 核对命令预览和当前 vertical；对需要确认的操作勾选确认，再执行。
 4. 查看本次命令、退出状态和打印的产物位置。
 
@@ -221,6 +246,8 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
 
 先确认打印的 final schema 实际文件名。`--evaluate` 使用 Health 的本地 labelled 数据，默认根目录为 `konkrd-data/data/private_health/labelled`；没有标签时先去掉该参数。batch 会对输入目录中的 PDF 调用模型，并把结果写到 manifest 的输出根目录；它没有 `--out-dir` 参数。需隔离批次时配置独立输出根目录或归档已完成的实验数据。
 
+评估报告统一为 `outputs/private_health/evaluation/report.json` 和 `report.md`。新运行不再输出重复的 `report_model_only.*`；旧文件保留作历史记录，后续脚本请读取 `report.json`。
+
 ## 5. Travel：采集 → 发现与审核 → 提取 → 可选入库
 
 ### A. 采集公开文档
@@ -232,6 +259,16 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
 ```
 
 先检查生成的 acquisition metadata，再去掉 `--discovery-only` 下载 PDF。这个选项只是不下载 PDF，仍会访问网站并写 metadata。采集来源由 [sources.json](../configs/travel_insurance/sources.json) 管理；`--insurer CODE` 可重复，用配置中的 code 筛选公司。
+
+当前配置的公司 code：`allianz`、`cover_more`、`scti`、`insureandgo`、`tick`、`onecover`（1Cover）。InsureandGo、Tick 和 Allianz 在 `seed_documents` 里写死了当前 PDS 的地址（这几家的网页结构会让自动发现混进旧版或把 PDS 误判成 TMD），公司发布新版本后需要手动更新链接。只配置 `seed_documents`、不配置 `start_pages` 的公司不会抓取网页，只下载指定文件。
+
+```bash
+.venv/bin/python src/run.py crawl \
+  --manifest configs/travel_insurance/manifest.json \
+  --insurer allianz --insurer insureandgo --insurer tick --insurer onecover
+```
+
+自动抽样每家公司最多取 1 份，`--per-category` 不能大于 `pds` 目录下的公司数。
 
 采集支持 PDS、SPDS、brochure、TMD、FSG；当前 discovery 自动采样仅使用 `pds` 目录。
 
@@ -260,7 +297,16 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
   --output outputs/travel_insurance/experiments/review-demo/canonical_approved.json
 ```
 
-页面从 discovered schema 构建 candidate，展示字段和 storage 映射；检查后填写 reviewer、rationale 并确认批准。输入内容或输出路径变化会使原确认失效。这里不调用模型、不建表、不入库，也不会覆盖仓库已批准版本。
+页面从 discovered schema 构建 candidate，展示字段和 storage 映射；检查后填写 reviewer、rationale 并确认批准。输入内容、输出路径或存储选项变化会使原确认失效。这里不调用模型、不建表、不入库，也不会覆盖仓库已批准版本。
+
+映射表里的 `target` 列是字段写入数据库的位置：`core_column` 写进共用核心表（产品名、产品类型）；`extension_column` 写进 `travel_product_details` 表的同名列；`jsonb` 显示为 `attributes`，即写进这个 JSONB 列，以字段名作 key。
+
+名字能对上已批准版本的字段沿用原来的存储方式，其余字段由左侧栏 “Storage for fields without an approved mapping” 决定：
+
+- **JSONB attributes（默认）**：都放进 `attributes`，以后增删字段不用改表。
+- **SQL columns**：建成 `travel_product_details` 里的同名列，数字、是/否、枚举有对应的 SQL 类型，查询更方便。列表字段（`list[object]`）、已批准为 JSONB 的字段和保留列名 `release_id`、`attributes` 仍放 JSONB。
+
+映射表上方会显示各存储方式的字段数。列建得多，以后增删字段就要新建数据库或手动改表，因为 `storage-init` 不修改已有的表。
 
 离线生成提取契约和 SQL 预览：
 
@@ -276,6 +322,8 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
 ### D. 按批准版本提取并入库
 
 使用 **同一份 approved schema** 重新执行 `extract`，再将成功 extraction 文件交给 storage。不能仅把 discovered 结果的版本号改成 approved 版本。
+
+入库对 CLI 的 `ExtractionResult` 和 holdout 的 envelope 执行相同身份校验：vertical 必须匹配 manifest，schema_version 必须匹配 approved schema。缺少这两个字段的历史 envelope 仍可用于兼容分析，但须重新提取后才能入库；不能从当前选择的 schema 自动补全身份。
 
 下面两条会真正修改 `KONKRD_DATABASE_URL` 指向的 PostgreSQL，执行前确认目标环境：
 
@@ -293,6 +341,27 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
 
 `--artifact` 必须换成实际提取产物。源 PDF 仍需存在，且位于 manifest 输入根目录的 `insurer/document_type/` 下，insurer code 与参数一致。SQLite 不支持。建表仅创建缺少的表，不执行已有表的版本迁移；加载在一个事务中完成，相同身份且内容一致的数据可重复加载，身份冲突会失败。
 
+### E. 批量提取并批量入库
+
+一次处理很多份 PDS 时，用下面两条命令代替逐份操作。也可以在统一 UI 里完成：“Batch extraction”页面默认只勾选 `pds` 目录，填好“Extraction output folder”；入库用“Load extraction folder into PostgreSQL”，填同一个文件夹。
+
+```bash
+.venv/bin/python src/run.py batch \
+  --manifest configs/travel_insurance/manifest.json \
+  --schema configs/travel_insurance/canonical_schema_v1.json \
+  --categories pds \
+  --output-dir outputs/travel_insurance/extractions/run20
+
+.venv/bin/python src/run.py storage-load-batch \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact-dir outputs/travel_insurance/extractions/run20
+```
+
+- `--categories pds` 只处理 `<公司>/pds/` 下的 PDF，跳过 TMD、FSG 等附属文件。
+- `--output-dir` 按 `<公司>/pds/<文件名>.json` 保存结果。文件夹里已有结果的 PDF 会跳过，中途失败后重跑同一条命令只补缺的，不会重复付费。每次准备入库的新批次用一个新文件夹。
+- 批量入库时每份结果单独一个事务，公司 code 从结果记录的源 PDF 路径自动识别，`errors/` 目录会跳过。同一份 PDF 在文件夹里有多份结果时，这几份都不入库，需要只留一份再重跑。最后打印每份结果和“loaded / failed / total”汇总，只要有一份失败命令就返回非零。
+- 这两个操作在 UI 里同样同步执行，单次最多运行 2 小时；份数很多时，先用少量 PDF 估算耗时。
+
 ## 6. 读懂输出、质量和成本
 
 ### 产物去哪找
@@ -308,7 +377,8 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
 | `<实验目录>/final_schema*.json` | 本次发布的 schema，按日志选择具体版本 |
 | `outputs/<vertical>/extractions/` | 主 CLI 单份 / 批量提取结果 |
 | `errors/<stage>/` | 对应输出根目录下的失败诊断 |
-| `pdfingestor_cache/` | 相应阶段使用的本地解析缓存，可重新生成 |
+| `pdfingestor_cache/` | 相应阶段使用的本地解析缓存（PDFingestor 和 MinerU 两条路线都在这里，按解析器区分），可重新生成 |
+| `parsed_markdown/<解析器>/` | 发给模型的每份 PDF 文本，按输入目录结构排列，用于对比两条解析路线，可删除 |
 
 Discovery、consensus、review、holdout 使用 envelope：`status`、`provenance`、`data`、`error`。主 CLI 的 extract / batch 保留 `ExtractionResult` 格式，顶层有 `vertical`、`schema_version`、`source_path`、`data`，没有 envelope 的 `status`。两种格式都不能只看文件存在就当作有效数据。Python 接入应使用 [api.md](../api.md) 中的对应加载器。
 
@@ -376,8 +446,12 @@ configs/<vertical>/
 | 设置 `.env` 后仍提示缺少 key | 主流程不自动读 `.env`；确认环境已注入启动 CLI / UI 的进程，勿打印 key |
 | 模型 / document input 被拒绝 | 核对本地 capability 配置；主流程使用 `markdown`，非 OpenAI 显式指定模型 |
 | `Not enough unique PDFs` | 检查类别目录、每类不同公司数、内容去重和 holdout 排除；降低采样量或补数据 |
-| PDF 没有可用文本 / 表格错位 | 先用 PDFingestor 离线检查结果；扫描件及复杂表格需处理后再做模型实验 |
+| PDF 没有可用文本 / 表格错位 | 先用 PDFingestor 离线检查结果；扫描件及复杂表格可以换 `--document-parser mineru` 对比，确认后再做模型实验 |
+| MinerU 报 `not installed` / 模型加载失败 | 在项目 venv 里 `pip install -r requirements.txt`；确认本地有 MinerU pipeline 模型（`mineru-models-download` 或 `~/mineru.json`） |
+| MinerU 报 `no text or table content` | MinerU 没解析出任何内容，模型没有被调用；先人工打开 PDF 检查 |
+| MinerU 很慢 | 第一次解析长 PDF 属于正常情况，之后会复用缓存；批量前先用一两份 PDF 试跑 |
 | JSON 校验反复失败 | 查看 `errors/<stage>/` 的字段路径和原因，检查 prompt 与 manifest / schema 是否一致；失败数据不能继续分析 |
+| 提取日志出现 `Removed structural noise before validation` | 模型输出了不含数据的多余键（如 `__typename`）或 `_unfilled` 重复项，已在校验前自动清理，提取值没有改动；其他格式错误仍会失败 |
 | `Refusing to overwrite` / `FileExistsError` | 使用新输出文件或新实验目录；不要删除审核链中的文件来强行复用路径 |
 | Apply 成功后仍有 Pending | 正常；未决定的建议不会应用。是否结束审核由项目组决定 |
 | `--resume-review` 拒绝 | 确认传的是 `round_N`，存在默认 `reviewed_schema.json`，queue / decisions / base 与该产物一致 |
@@ -398,4 +472,4 @@ configs/<vertical>/
 
 团队演示前，另外选少量实际 PDF，记录 manifest、schema 版本、模型、种子、样本和输出路径，并人工对照提取值。离线测试不验证真实 API、PDF 解析质量或数据库连接。
 
-本文的命令参数和 Python 示例按当前 main 核对；编写文档时未执行付费模型调用、公开网站采集或 PostgreSQL 写入。
+本文的命令参数和 Python 示例按上述代码版本核对；本次更新未执行付费模型调用、PDF 批量下载或 PostgreSQL 写入。新增采集来源只做了不下载正文的链接预检，MinerU 路线只在一份本地 PDS 上做过解析冒烟测试。

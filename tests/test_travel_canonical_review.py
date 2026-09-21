@@ -114,6 +114,70 @@ class TravelCanonicalReviewTests(unittest.TestCase):
         self.assertEqual(next(f for f in candidate["fields"] if f["name"] == "new_benefit")["storage"], {"strategy":"jsonb"})
         self.assertEqual(candidate["status"], "candidate")
 
+    def test_unmapped_scalar_fields_can_use_extension_columns(self):
+        schema = reviewed_travel_schema()
+        product_types = schema["product_types"]
+        for name, field_type in (("new_benefit", "number"), ("residency_eligibility", "string"),
+                                 ("new_rules", "list[object]"), ("attributes", "string")):
+            schema["fields"].append({"name": name, "type": field_type, "description": f"{name} field",
+                                     "applies_to": product_types, "required": False, "values": [], "aliases": []})
+
+        candidate = build_canonical_candidate(
+            schema, resolve_manifest(vertical="travel_insurance"), unmapped_storage="extension_column"
+        )
+
+        storage = {field["name"]: field["storage"] for field in candidate["fields"]}
+        self.assertEqual(storage["new_benefit"], {"strategy": "extension_column", "column": "new_benefit"})
+        self.assertEqual(storage["geographic_scope"], {"strategy": "extension_column", "column": "geographic_scope"})
+        self.assertEqual(storage["product_name"], {"strategy": "core_column", "target": "products.canonical_name"})
+        # Approved JSONB choices, list fields and reserved column names stay in JSONB.
+        self.assertEqual(storage["residency_eligibility"], {"strategy": "jsonb"})
+        self.assertEqual(storage["new_rules"], {"strategy": "jsonb"})
+        self.assertEqual(storage["attributes"], {"strategy": "jsonb"})
+        columns = preview_vertical_storage_metadata(candidate).table.c
+        self.assertIn("new_benefit", columns)
+        self.assertNotIn("new_rules", columns)
+
+    def test_rejects_unknown_unmapped_storage(self):
+        with self.assertRaisesRegex(ValueError, "Unsupported storage for unmapped fields"):
+            build_canonical_candidate(
+                reviewed_travel_schema(), resolve_manifest(vertical="travel_insurance"), unmapped_storage="columns"
+            )
+
+    def test_mapping_ui_can_store_unmapped_fields_in_sql_columns(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from streamlit.testing.v1 import AppTest
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            schema = reviewed_travel_schema()
+            schema["fields"].append({"name": "new_benefit", "type": "number", "description": "New benefit",
+                                     "applies_to": schema["product_types"], "required": False, "values": [], "aliases": []})
+            source = root / "schema.json"
+            source.write_text(json.dumps(schema))
+            at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "src/canonical_review_app.py"), default_timeout=20).run()
+            at.sidebar.text_input[0].set_value(str(source)).run()
+            at.sidebar.text_input[1].set_value(str(root / "approved.json")).run()
+            self.assertNotIn("new_benefit", at.code[0].value)
+            next(f for f in at.text_input if f.label == "Reviewer").set_value("fixture reviewer").run()
+            at.text_area[0].set_value("Reviewed fixture fields and mappings").run()
+            at.checkbox[0].check().run()
+
+            at.sidebar.radio[0].set_value("SQL columns (list fields stay JSONB)").run()
+
+            self.assertFalse(at.exception)
+            self.assertIn("new_benefit NUMERIC", at.code[0].value)
+            self.assertFalse(at.checkbox[0].value)
+            next(f for f in at.text_input if f.label == "Reviewer").set_value("fixture reviewer").run()
+            at.text_area[0].set_value("Reviewed SQL column mapping").run()
+            at.checkbox[0].check().run()
+            at.button[0].click().run()
+            approved = json.loads((root / "approved.json").read_text())
+            self.assertEqual(approved["status"], "approved")
+            self.assertEqual(next(f for f in approved["fields"] if f["name"] == "new_benefit")["storage"],
+                             {"strategy": "extension_column", "column": "new_benefit"})
+
     def test_mapping_ui_resets_approval_when_source_or_output_changes(self):
         import json
         import tempfile

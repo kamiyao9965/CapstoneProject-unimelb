@@ -81,6 +81,10 @@
         "provider": {"type": ["string", "null"]},
         "model": {"type": ["string", "null"]},
         "document_input": {"type": ["string", "null"]},
+        "document_parser": {
+          "type": ["string", "null"],
+          "enum": ["pdfingestor", "mineru", null]
+        },
         "source_documents": {
           "type": "array",
           "items": {"type": "string"}

@@ -22,7 +22,8 @@ from src.common.json_codec import dumps_json
 from src.common.json_contracts import load_contract
 from src.common.model_config import resolve_selection
 from src.models import ExtractionResult
-from src.schema.sampler import print_samples, select_samples
+from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
+from src.schema.sampler import category_from_path, print_samples, select_samples
 from src.schema.loader import load_schema_data
 from src.verticals.manifest import ManifestValidationError, VerticalManifest, resolve_manifest
 
@@ -44,6 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--provider")
     discover.add_argument("--model")
     discover.add_argument("--document-input")
+    discover.add_argument(
+        "--document-parser",
+        choices=DOCUMENT_PARSERS,
+        default=DEFAULT_DOCUMENT_PARSER,
+        help="PDF parsing route: pdfingestor (default) or mineru (local MinerU pipeline)",
+    )
     discover.add_argument("--timeout", type=float, default=600.0)
     discover.add_argument("--keep-uploaded-files", action="store_true")
     discover.add_argument("--output")
@@ -57,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument("--provider", default=None)
     extract.add_argument("--model", default=None)
     extract.add_argument(
+        "--document-parser",
+        choices=DOCUMENT_PARSERS,
+        default=DEFAULT_DOCUMENT_PARSER,
+        help="PDF parsing route: pdfingestor (default) or mineru (local MinerU pipeline)",
+    )
+    extract.add_argument(
         "--no-fallback",
         action="store_true",
         help="Deprecated compatibility flag; schema_application extraction has no heuristic fallback.",
@@ -67,9 +80,27 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("--vertical")
     batch.add_argument("--schema", required=True)
     batch.add_argument("--input-root")
+    batch.add_argument(
+        "--categories",
+        nargs="+",
+        help="Only extract PDFs inside these manifest category folders, for example pds",
+    )
+    batch.add_argument(
+        "--output-dir",
+        help=(
+            "Write <dir>/<path below input root>.json and skip PDFs whose result "
+            "already exists there, so an interrupted run can be resumed"
+        ),
+    )
     batch.add_argument("--evaluate", action="store_true")
     batch.add_argument("--provider", default=None)
     batch.add_argument("--model", default=None)
+    batch.add_argument(
+        "--document-parser",
+        choices=DOCUMENT_PARSERS,
+        default=DEFAULT_DOCUMENT_PARSER,
+        help="PDF parsing route: pdfingestor (default) or mineru (local MinerU pipeline)",
+    )
     batch.add_argument(
         "--no-fallback",
         action="store_true",
@@ -142,6 +173,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Environment variable containing the PostgreSQL URL",
     )
 
+    storage_load_batch = subparsers.add_parser(
+        "storage-load-batch",
+        help="Load every validated extraction artifact in a folder into PostgreSQL",
+    )
+    storage_load_batch.add_argument("--manifest")
+    storage_load_batch.add_argument("--schema")
+    storage_load_batch.add_argument("--artifact-dir", required=True)
+    storage_load_batch.add_argument(
+        "--database-url-env",
+        default="KONKRD_DATABASE_URL",
+        help="Environment variable containing the PostgreSQL URL",
+    )
+
     return parser
 
 
@@ -175,10 +219,12 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
     elif args.command == "canonical-compile":
         args.schema = Path(args.schema)
         args.output_dir = Path(args.output_dir)
-    elif args.command in {"storage-init", "storage-load"}:
+    elif args.command in {"storage-init", "storage-load", "storage-load-batch"}:
         args.schema = Path(args.schema) if args.schema else manifest.path("canonical_schema")
         if args.command == "storage-load":
             args.artifact = Path(args.artifact)
+        if args.command == "storage-load-batch":
+            args.artifact_dir = Path(args.artifact_dir)
     return manifest
 
 
@@ -218,6 +264,7 @@ def command_discover(args: argparse.Namespace) -> int:
             timeout_seconds=args.timeout,
             usage_log_path=args.usage_log,
             pdf_root=input_root,
+            document_parser=args.document_parser,
             manifest=manifest,
         ).discover(sample_paths, output_path=output_path, run_id=run_id)
     except Exception as exc:
@@ -234,6 +281,7 @@ def command_discover(args: argparse.Namespace) -> int:
                 "provider": selection.provider,
                 "model": selection.model,
                 "document_input": selection.document_input,
+                "document_parser": args.document_parser,
                 "source_documents": list(sample_paths),
                 "source_artifacts": [],
             },
@@ -274,6 +322,7 @@ def command_discover(args: argparse.Namespace) -> int:
             "provider": selection.provider,
             "model": selection.model,
             "document_input": selection.document_input,
+            "document_parser": args.document_parser,
             "source_documents": list(sample_paths),
             "source_artifacts": [],
         },
@@ -308,6 +357,7 @@ def command_extract(args: argparse.Namespace) -> int:
         schema_data,
         selection,
         pdf_root=manifest.path("input_root"),
+        document_parser=args.document_parser,
     )
 
     record = extractor.extract_one(args.pdf)
@@ -317,6 +367,7 @@ def command_extract(args: argparse.Namespace) -> int:
         source_path=str(args.pdf),
         provider=selection.provider,
         model=selection.model,
+        document_parser=args.document_parser,
         data=record,
     )
 
@@ -329,6 +380,14 @@ def command_batch(args: argparse.Namespace) -> int:
     from src.verticals.registry import get_evaluation_tools
 
     manifest = args.vertical_manifest
+    categories = tuple(category.lower() for category in args.categories or ())
+    unknown_categories = sorted(set(categories) - set(manifest.documents.categories))
+    if unknown_categories:
+        print(
+            f"Unknown categories {unknown_categories}; choose from: "
+            f"{', '.join(manifest.documents.categories)}."
+        )
+        return 2
     schema_data = load_schema_data(args.schema, args.vertical_manifest)
     if schema_data.get("vertical") != manifest.vertical:
         print(
@@ -343,9 +402,32 @@ def command_batch(args: argparse.Namespace) -> int:
         else manifest.path("input_root")
     )
     pdf_paths = sorted(input_root.rglob("*.pdf"))
+    if categories:
+        pdf_paths = [
+            path
+            for path in pdf_paths
+            if category_from_path(path.relative_to(input_root), categories)
+        ]
     if not pdf_paths:
-        print(f"No PDFs found under {input_root}")
+        in_categories = f" in categories {', '.join(categories)}" if categories else ""
+        print(f"No PDFs found under {input_root}{in_categories}")
         return 1
+
+    output_dir = Path(args.output_dir) if args.output_dir else None
+    skipped_existing = 0
+    if output_dir is not None:
+        pending_paths = []
+        for pdf_path in pdf_paths:
+            target = output_dir / _extraction_relative_path(pdf_path, input_root)
+            if target.exists():
+                print(f"Skipping {pdf_path.name}: result already exists at {target}")
+            else:
+                pending_paths.append(pdf_path)
+        skipped_existing = len(pdf_paths) - len(pending_paths)
+        pdf_paths = pending_paths
+        if not pdf_paths:
+            print(f"Nothing to extract: all {skipped_existing} results already exist in {output_dir}.")
+            return 0
 
     selection = resolve_selection(provider=args.provider, model=args.model)
     extractor = _build_schema_extractor(
@@ -353,16 +435,14 @@ def command_batch(args: argparse.Namespace) -> int:
         schema_data,
         selection,
         pdf_root=input_root,
+        document_parser=args.document_parser,
     )
 
     reports = []
     provider_counts: dict[str, int] = {}
-    warning_counts: dict[str, int] = {}
-    warning_samples: list[str] = []
     unmatched_documents = 0
     low_confidence_matches = 0
     ambiguous_matches = 0
-    fallback_documents = 0
     extraction_errors = 0
     gt_match_diagnostics: list[dict[str, object]] = []
     gt_store = None
@@ -380,21 +460,20 @@ def command_batch(args: argparse.Namespace) -> int:
                 source_path=str(pdf_path),
                 provider=selection.provider,
                 model=selection.model,
+                document_parser=args.document_parser,
                 data=record,
             )
         except Exception as exc:
             extraction_errors += 1
             print(f"Extraction failed for {pdf_path.name}: {exc}")
             continue
-        output_path = default_output_path(manifest, pdf_path, input_root=input_root)
+        output_path = (
+            output_dir / _extraction_relative_path(pdf_path, input_root)
+            if output_dir is not None
+            else default_output_path(manifest, pdf_path, input_root=input_root)
+        )
         result.write_json(output_path)
         provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
-        if args.evaluate and result.provider == "heuristic":
-            fallback_documents += 1
-        for warning in result.warnings:
-            warning_counts[warning] = warning_counts.get(warning, 0) + 1
-            if len(warning_samples) < 5 and warning not in warning_samples:
-                warning_samples.append(warning)
         print(f"Extracted {pdf_path.name} -> {output_path}")
 
         if gt_store and evaluator:
@@ -438,28 +517,12 @@ def command_batch(args: argparse.Namespace) -> int:
             total_documents=len(pdf_paths),
             unmatched_documents=unmatched_documents,
             low_confidence_matches=low_confidence_matches,
-            fallback_documents=fallback_documents,
-            extraction_errors=extraction_errors,
-        )
-        model_reports = [
-            report for report in reports
-            if report.extraction_provider and report.extraction_provider != "heuristic"
-        ]
-        model_summary = evaluator.aggregate(
-            model_reports,
-            total_documents=len(pdf_paths),
-            unmatched_documents=max(len(pdf_paths) - extraction_errors - len(model_reports), 0),
-            low_confidence_matches=low_confidence_matches,
-            fallback_documents=fallback_documents,
             extraction_errors=extraction_errors,
         )
         summary["ambiguous_matches"] = float(ambiguous_matches)
-        model_summary["ambiguous_matches"] = float(ambiguous_matches)
         report_root = manifest.path("output_root") / "evaluation"
         reporter.write_json(reports, summary, report_root / "report.json")
         reporter.write_markdown(reports, summary, report_root / "report.md")
-        reporter.write_json(model_reports, model_summary, report_root / "report_model_only.json")
-        reporter.write_markdown(model_reports, model_summary, report_root / "report_model_only.md")
         if gt_match_diagnostics:
             import json
 
@@ -470,12 +533,6 @@ def command_batch(args: argparse.Namespace) -> int:
                 encoding="utf-8",
             )
         print(f"Wrote evaluation reports to {report_root}")
-        if fallback_documents:
-            print(
-                "Evaluation warning: heuristic fallback results were written to report.json; "
-                "use report_model_only.json for pure model-quality metrics or --no-fallback "
-                "to fail instead of falling back."
-            )
         if gt_match_diagnostics:
             print(
                 "Evaluation warning: wrote ground-truth match diagnostics for unmatched "
@@ -496,10 +553,8 @@ def command_batch(args: argparse.Namespace) -> int:
             else "none"
         )
     )
-    print(f"  Warnings: {sum(warning_counts.values())}")
-    for warning in warning_samples:
-        print(f"  - {warning} ({warning_counts[warning]})")
-
+    if output_dir is not None:
+        print(f"  Skipped existing results: {skipped_existing}")
     print(f"  Extraction errors: {extraction_errors}")
     return 1 if extraction_errors else 0
 
@@ -510,6 +565,7 @@ def _build_schema_extractor(
     selection,
     *,
     pdf_root: Path,
+    document_parser: str,
 ):
     from src.schema_application.extractor import SchemaExtractor
 
@@ -519,6 +575,7 @@ def _build_schema_extractor(
         manifest=manifest,
         usage_log_path=manifest.path("output_root") / "extraction_usage.jsonl",
         pdf_root=pdf_root,
+        document_parser=document_parser,
     )
 
 
@@ -647,19 +704,54 @@ def command_storage_load(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_storage_load_batch(args: argparse.Namespace) -> int:
+    """Load every extraction artifact in a folder, one transaction per artifact."""
+    from src.storage.service import load_extraction_directory, resolve_database_url
+
+    try:
+        database_url = resolve_database_url(args.database_url_env)
+        results = load_extraction_directory(
+            database_url=database_url,
+            manifest=args.vertical_manifest,
+            schema_path=args.schema,
+            artifact_dir=args.artifact_dir,
+        )
+    except Exception as exc:
+        print(f"PostgreSQL batch load failed: {exc}")
+        return 1
+    for result in results:
+        if result.summary is not None:
+            print(
+                f"Loaded {result.artifact_path} (insurer={result.insurer_code}, "
+                f"products={result.summary.products_loaded})"
+            )
+        else:
+            print(f"Failed {result.artifact_path}: {result.error}")
+    failed = sum(result.summary is None for result in results)
+    print(
+        "PostgreSQL batch load summary: "
+        f"loaded={len(results) - failed}, failed={failed}, total={len(results)}"
+    )
+    return 1 if failed else 0
+
+
 def default_output_path(manifest: VerticalManifest, pdf_path: Path, *, input_root=None) -> Path:
     from src.common.json_artifacts import next_available_path
+
+    relative = _extraction_relative_path(pdf_path, input_root or manifest.path("input_root"))
+    return next_available_path(manifest.path("output_root") / "extractions" / relative)
+
+
+def _extraction_relative_path(pdf_path: Path, input_root: str | Path) -> Path:
     import hashlib
 
     source = pdf_path.resolve()
-    root = Path(input_root or manifest.path("input_root")).resolve()
+    root = Path(input_root).resolve()
     if source.is_relative_to(root):
-        relative = source.relative_to(root).with_suffix(".json")
-    else:
-        # Explicit PDFs outside the configured tree must not collide by basename.
-        identity = hashlib.sha256(str(source).encode()).hexdigest()[:12]
-        relative = Path(f"{source.stem}_{identity}.json")
-    return next_available_path(manifest.path("output_root") / "extractions" / relative)
+        return source.relative_to(root).with_suffix(".json")
+    # Explicit PDFs outside the configured tree must not collide by basename.
+    identity = hashlib.sha256(str(source).encode()).hexdigest()[:12]
+    return Path(f"{source.stem}_{identity}.json")
 
 
 def main() -> int:
@@ -683,6 +775,8 @@ def main() -> int:
         return command_storage_init(args)
     if args.command == "storage-load":
         return command_storage_load(args)
+    if args.command == "storage-load-batch":
+        return command_storage_load_batch(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

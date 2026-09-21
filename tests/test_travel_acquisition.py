@@ -79,6 +79,7 @@ def write_config(
     *,
     duplicate_provider: bool = False,
     seed_document: bool = False,
+    start_page: bool = True,
 ) -> None:
     provider = {
         "insurer_code": "example",
@@ -86,13 +87,17 @@ def write_config(
         "issuer": "Example Services Pty Ltd",
         "underwriter": "Example Insurance Limited",
         "allowed_domains": ["example.com"],
-        "start_pages": [
-            {
-                "url": "https://example.com/documents",
-                "required_context_hints": [],
-                "follow_link_hints": [],
-            }
-        ],
+        "start_pages": (
+            [
+                {
+                    "url": "https://example.com/documents",
+                    "required_context_hints": [],
+                    "follow_link_hints": [],
+                }
+            ]
+            if start_page
+            else []
+        ),
         "seed_documents": (
             [
                 {
@@ -222,6 +227,35 @@ class TravelAcquisitionTest(unittest.TestCase):
             self.assertEqual(outcome.data["summary"]["documents_downloaded"], 1)
             self.assertEqual(outcome.data["documents"][0]["document_type"], "pds")
             self.assertTrue(outcome.pdf_paths[0].is_file())
+
+    def test_seed_only_provider_downloads_without_fetching_pages(self) -> None:
+        class NoPageFetchClient(FakeHttpClient):
+            def fetch_bytes(self, *args, **kwargs):
+                raise AssertionError("seed-only providers must not fetch source pages")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config_path = root / "sources.json"
+            write_config(config_path, seed_document=True, start_page=False)
+
+            outcome = run_travel_acquisition(
+                config_path=config_path,
+                data_root=root / "data",
+                output_root=root / "outputs",
+                http_client=NoPageFetchClient(),
+                run_id="20260811T010203Z-a1b2c3d4",
+            )
+
+            self.assertEqual(outcome.data["summary"]["documents_downloaded"], 1)
+            self.assertEqual(outcome.pdf_paths[0].parent.name, "pds")
+
+    def test_config_rejects_provider_without_pages_or_seed_documents(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "sources.json"
+            write_config(path, start_page=False)
+
+            with self.assertRaisesRegex(ValueError, "requires start_pages or seed_documents"):
+                load_acquisition_config(path)
 
 
 if __name__ == "__main__":

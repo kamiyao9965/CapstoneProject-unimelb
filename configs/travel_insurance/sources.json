@@ -20,7 +20,8 @@
         "allianz.com.au",
         "travel.allianz.com.au",
         "allianzpartners.com.au",
-        "allianz-partners.com"
+        "allianz-partners.com",
+        "agaassistance.com.au"
       ],
       "start_pages": [
         {
@@ -36,16 +37,9 @@
       ],
       "seed_documents": [
         {
-          "url": "https://travel.allianz.com.au/pds",
-          "source_page": "https://www.allianz.com.au/my-allianz/policy-information/policy-documents.html",
+          "url": "https://cft-onex-api.agaassistance.com.au/api/document/pds/allianz-travel",
+          "source_page": "https://travel.allianz.com.au/pds",
           "title": "Allianz Travel Insurance Product Disclosure Statement",
-          "section_heading": "Travel Insurance",
-          "version_status": "current"
-        },
-        {
-          "url": "https://www.allianz-partners.com/content/dam/onemarketing/awp/azpartnerscom/australia/travel-documents/tmd/TMDAP_TRV032-AGA-Travel-Insurance-TMD-03.26.pdf",
-          "source_page": "https://www.allianz.com.au/my-allianz/policy-information/tmds.html",
-          "title": "Allianz Global Assistance Travel Insurance Cover Target Market Determination",
           "section_heading": "Travel Insurance",
           "version_status": "current"
         }
@@ -100,6 +94,98 @@
         },
         {
           "url": "https://scti.com.au/target-market-determinations",
+          "required_context_hints": [],
+          "follow_link_hints": []
+        }
+      ],
+      "seed_documents": [],
+      "default_axes": {
+        "geographic_scopes": ["unknown"],
+        "trip_frequencies": ["unknown"],
+        "plan_tiers": ["unknown"]
+      }
+    },
+    {
+      "insurer_code": "insureandgo",
+      "brand_code": "insureandgo",
+      "issuer": "Europ Assistance Australia Pty Ltd",
+      "underwriter": "Europ Assistance Australia Pty Ltd",
+      "allowed_domains": ["insureandgo.com.au"],
+      "start_pages": [],
+      "seed_documents": [
+        {
+          "url": "https://insureandgo.com.au/sites/default/files/2026-07/2026_07_IGO_ST_PDS.pdf",
+          "source_page": "https://www.insureandgo.com.au/policy-wordings/",
+          "title": "InsureandGo Single-Trip Travel Insurance Product Disclosure Statement",
+          "section_heading": "Current Product Disclosure Statements",
+          "version_status": "current"
+        },
+        {
+          "url": "https://insureandgo.com.au/sites/default/files/2026-07/2026_07_IGO_CRS_PDS.pdf",
+          "source_page": "https://www.insureandgo.com.au/policy-wordings/",
+          "title": "InsureandGo Cruise Travel Insurance Product Disclosure Statement",
+          "section_heading": "Current Product Disclosure Statements",
+          "version_status": "current"
+        },
+        {
+          "url": "https://insureandgo.com.au/sites/default/files/2026-03/IGO_AMT_PDS_20260401.pdf",
+          "source_page": "https://www.insureandgo.com.au/policy-wordings/",
+          "title": "InsureandGo Annual Multi-Trip Travel Insurance Product Disclosure Statement",
+          "section_heading": "Current Product Disclosure Statements",
+          "version_status": "current"
+        }
+      ],
+      "default_axes": {
+        "geographic_scopes": ["unknown"],
+        "trip_frequencies": ["unknown"],
+        "plan_tiers": ["unknown"]
+      }
+    },
+    {
+      "insurer_code": "tick",
+      "brand_code": "tick",
+      "issuer": "Europ Assistance Australia Pty Ltd",
+      "underwriter": "Europ Assistance Australia Pty Ltd",
+      "allowed_domains": ["tickinsurance.com.au"],
+      "start_pages": [],
+      "seed_documents": [
+        {
+          "url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_ST_PDS_20260401.pdf",
+          "source_page": "https://www.tickinsurance.com.au/policy-wordings/",
+          "title": "Tick Single-Trip Travel Insurance Product Disclosure Statement",
+          "section_heading": "Current PDS valid from 1 April 2026",
+          "version_status": "current"
+        },
+        {
+          "url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_DOM_PDS_20260401.pdf",
+          "source_page": "https://www.tickinsurance.com.au/policy-wordings/",
+          "title": "Tick Domestic Travel Insurance Product Disclosure Statement",
+          "section_heading": "Current PDS valid from 1 April 2026",
+          "version_status": "current"
+        },
+        {
+          "url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_CR_PDS_20260401.pdf",
+          "source_page": "https://www.tickinsurance.com.au/policy-wordings/",
+          "title": "Tick Cruise Travel Insurance Product Disclosure Statement",
+          "section_heading": "Current PDS valid from 1 April 2026",
+          "version_status": "current"
+        }
+      ],
+      "default_axes": {
+        "geographic_scopes": ["unknown"],
+        "trip_frequencies": ["unknown"],
+        "plan_tiers": ["unknown"]
+      }
+    },
+    {
+      "insurer_code": "onecover",
+      "brand_code": "onecover",
+      "issuer": null,
+      "underwriter": "HDI Global Specialty SE",
+      "allowed_domains": ["1cover.com.au"],
+      "start_pages": [
+        {
+          "url": "https://www.1cover.com.au/policy/pds",
           "required_context_hints": [],
           "follow_link_hints": []
         }

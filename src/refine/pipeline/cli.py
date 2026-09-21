@@ -9,6 +9,7 @@ from pathlib import Path
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
+from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
 from src.refine.pipeline.rounds import next_round_index, resume_review, run_round
 from src.verticals.manifest import resolve_manifest, ManifestValidationError, VerticalManifest
 
@@ -41,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider")
     parser.add_argument("--model")
     parser.add_argument("--document-input")
+    parser.add_argument(
+        "--document-parser",
+        choices=DOCUMENT_PARSERS,
+        default=DEFAULT_DOCUMENT_PARSER,
+        help="PDF parsing route: pdfingestor (default) or mineru (local MinerU pipeline)",
+    )
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--out-dir")
     parser.add_argument("--rounds", type=int, default=1, help="Max rounds")
