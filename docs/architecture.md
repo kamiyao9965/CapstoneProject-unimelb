@@ -38,6 +38,26 @@ PDF sample -> document preparation -> provider-native structured output
 `src/run.py` owns the CLI and final envelope. `src/schema/discovery.py` owns the
 request and bounded repair cycle. `src/schema/sampler.py` is the only sampler.
 
+### Document preparation
+
+```text
+source PDF -> document_parser = pdfingestor | mineru
+  -> ParsedPDF (pages, text blocks, Markdown tables) -> shared prompt renderer
+```
+
+`src/PDFingestor/adapter.py` is the only PDF-to-prompt entry and owns the parser
+choice. `pdfingestor` (default) uses the pdfplumber parser. `mineru` uses
+`src/PDFingestor/mineru.py`, which calls MinerU's `do_parse()` with the `pipeline`
+backend in a separate Python process (no HTTP service), converts
+`*_content_list.json` into the same `ParsedPDF` model, and
+fails before any provider call when the document has no usable content. Both
+parsers share the cache directory with parser-specific cache keys. Discovery,
+patch generation and holdout/CLI extraction record the route as
+`document_parser` in provenance, `ExtractionResult` and usage logs, and save each
+PDF's prompt text below `<output_root>/parsed_markdown/<document_parser>/`,
+mirroring the input tree, for side-by-side comparison. These Markdown files are
+derived views, not runtime artifacts.
+
 ### Refinement loop
 
 ```text
@@ -155,13 +175,15 @@ Legacy extraction run IDs retain the hash of the original file bytes.
 Engine constructors consume a manifest, model selection, an optional provider,
 and operational settings. Prompts, contracts, validators and output cardinality
 are derived from the manifest, with no constructor overrides. Both engines use
-`resolve_selection()` when no selection is supplied. PDFingestor is the sole
-pipeline preprocessor; the unused AppConfig and MinerU entry points are retired.
+`resolve_selection()` when no selection is supplied. PDF preparation has one
+entry with two parser routes (PDFingestor by default, MinerU opt-in); the unused
+AppConfig and the old Markdown-mirror MinerU preprocessor remain retired.
 Batch evaluation aggregates once and produces one `report.json` / `report.md`
 pair; there is no heuristic extraction or separate model-only report path.
 
 - `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical.
 - `src/verticals/`: validated manifest resolution and existing executable adapters.
+- `src/PDFingestor/`: PDF-to-prompt entry, pdfplumber parser, MinerU route and parse cache.
 - `src/schema/`: discovery, sampling, schema loader/validation/compiler and Canonical candidate.
 - `src/refine/candidates/`: patch parsing, normalization, voting, stability.
 - `src/refine/artifacts/`: deterministic consensus data and CLI rendering.

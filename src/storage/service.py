@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -53,6 +55,16 @@ class PreparedStorageLoad:
     raw_artifact: dict[str, Any]
     payload_sha256: str
     plan: CanonicalLoadPlan
+
+
+@dataclass(frozen=True)
+class DirectoryLoadResult:
+    """Outcome of one artifact in a folder load; exactly one of summary/error is set."""
+
+    artifact_path: Path
+    insurer_code: str | None
+    summary: StorageLoadSummary | None
+    error: str | None
 
 
 def resolve_database_url(environment_name: str = "KONKRD_DATABASE_URL") -> str:
@@ -200,12 +212,99 @@ def load_extraction_artifact(
         engine.dispose()
 
 
-def _validate_source_document(
-    source_value: str,
+def load_extraction_directory(
     *,
+    database_url: str,
     manifest: VerticalManifest,
-    insurer_code: str,
-) -> tuple[Path, Path, str]:
+    schema_path: str | Path,
+    artifact_dir: str | Path,
+    load_one: Callable[..., StorageLoadSummary] | None = None,
+) -> list[DirectoryLoadResult]:
+    """Load every extraction artifact below a folder, one transaction per artifact.
+
+    Each insurer code comes from the artifact's source PDF path below the manifest
+    input root. Artifacts that name the same source PDF are all rejected, so one
+    PDF cannot load conflicting product rows. ``errors/`` folders are skipped.
+    """
+    load = load_one or load_extraction_artifact
+    directory = Path(artifact_dir)
+    if not directory.is_dir():
+        raise ValueError(f"Extraction results folder does not exist: {directory}")
+    artifact_paths = sorted(
+        path
+        for path in directory.rglob("*.json")
+        if "errors" not in path.relative_to(directory).parts
+    )
+    if not artifact_paths:
+        raise ValueError(f"No extraction artifacts found under {directory}.")
+
+    sources: dict[Path, Path] = {}
+    errors: dict[Path, str] = {}
+    for artifact_path in artifact_paths:
+        try:
+            sources[artifact_path] = _artifact_source_document(artifact_path, manifest)
+        except ValueError as exc:
+            errors[artifact_path] = str(exc)
+    source_counts = Counter(sources.values())
+
+    results: list[DirectoryLoadResult] = []
+    for artifact_path in artifact_paths:
+        if artifact_path in errors:
+            results.append(DirectoryLoadResult(artifact_path, None, None, errors[artifact_path]))
+            continue
+        relative_source = sources[artifact_path]
+        insurer_code = relative_source.parts[0]
+        if source_counts[relative_source] > 1:
+            results.append(
+                DirectoryLoadResult(
+                    artifact_path,
+                    insurer_code,
+                    None,
+                    f"{source_counts[relative_source]} results in this folder use "
+                    f"{relative_source.as_posix()}; keep one and retry.",
+                )
+            )
+            continue
+        try:
+            summary = load(
+                database_url=database_url,
+                manifest=manifest,
+                schema_path=schema_path,
+                artifact_path=artifact_path,
+                insurer_code=insurer_code,
+            )
+        except Exception as exc:
+            results.append(
+                DirectoryLoadResult(artifact_path, insurer_code, None, str(exc) or type(exc).__name__)
+            )
+            continue
+        results.append(DirectoryLoadResult(artifact_path, insurer_code, summary, None))
+    return results
+
+
+def _artifact_source_document(artifact_path: Path, manifest: VerticalManifest) -> Path:
+    """Return an artifact's source PDF path relative to the manifest input root."""
+    artifact_bytes = _read_limited_bytes(
+        artifact_path,
+        label="Extraction artifact",
+        maximum_bytes=_MAX_ARTIFACT_BYTES,
+    )
+    try:
+        extraction = parse_extraction_artifact(artifact_bytes, vertical=manifest.vertical)
+    except (UnicodeError, ValueError) as exc:
+        raise ValueError(f"Could not read extraction artifact: {exc}") from exc
+    _, relative_source = _source_below_input_root(extraction.source_document, manifest)
+    if len(relative_source.parts) < 3:
+        raise ValueError(
+            "Source document must use the <insurer>/<document_type>/<file>.pdf layout."
+        )
+    return relative_source
+
+
+def _source_below_input_root(
+    source_value: str,
+    manifest: VerticalManifest,
+) -> tuple[Path, Path]:
     source = Path(source_value).expanduser()
     resolved_source = (
         source.resolve()
@@ -219,6 +318,16 @@ def _validate_source_document(
         raise ValueError(
             "Extraction source document must stay inside the manifest input root."
         ) from exc
+    return resolved_source, relative_source
+
+
+def _validate_source_document(
+    source_value: str,
+    *,
+    manifest: VerticalManifest,
+    insurer_code: str,
+) -> tuple[Path, Path, str]:
+    resolved_source, relative_source = _source_below_input_root(source_value, manifest)
     if len(relative_source.parts) < 3:
         raise ValueError(
             "Source document must use the <insurer>/<document_type>/<file>.pdf layout."

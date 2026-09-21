@@ -123,8 +123,30 @@ class ParserBackwardCompatTest(unittest.TestCase):
 
         self.assertEqual(selection, ModelSelection("openai", "gpt-5", "markdown"))
 
+    def test_document_parser_flag_defaults_to_pdfingestor(self) -> None:
+        self.assertEqual(cli.build_parser().parse_args([]).document_parser, "pdfingestor")
+        self.assertEqual(
+            cli.build_parser().parse_args(["--document-parser", "mineru"]).document_parser,
+            "mineru",
+        )
+
 
 class PipelineSelectionTest(unittest.TestCase):
+    def test_generate_schema_passes_and_records_document_parser(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = make_args(tmp, document_parser="mineru")
+            args.selection = ModelSelection("openai", "gpt-5", "markdown")
+            out_path = Path(tmp) / "schema.json"
+            discovery = mock.Mock()
+            discovery.discover.return_value = normalize_schema(VALID_DISCOVERED_SCHEMA)
+
+            with mock.patch.object(steps, "SchemaDiscovery", return_value=discovery) as factory:
+                steps.generate_schema(args, None, out_path, sample_paths=["sample.pdf"])
+            artifact = read_artifact(out_path, data_contract="private_health/discovered_schema")
+
+        self.assertEqual(factory.call_args.kwargs["document_parser"], "mineru")
+        self.assertEqual(artifact["provenance"]["document_parser"], "mineru")
+
     def test_generate_schema_passes_args_selection_to_discovery(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             args = make_args(tmp)
@@ -153,6 +175,7 @@ class PipelineSelectionTest(unittest.TestCase):
                 steps.run_consensus_stage(args, draft_path, Path(tmp) / "round_1")
 
         self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
+        self.assertEqual(factory.call_args.kwargs["document_parser"], "pdfingestor")
         refinement.assert_called_once()
 
     def test_evaluate_schema_passes_pdf_root_to_extractor(self) -> None:
@@ -187,6 +210,7 @@ class PipelineSelectionTest(unittest.TestCase):
                 steps.evaluate_schema(args, VALID_DISCOVERED_SCHEMA, round_dir)
 
         self.assertEqual(factory.call_args.kwargs["pdf_root"], Path(args.input_root))
+        self.assertEqual(factory.call_args.kwargs["document_parser"], "pdfingestor")
 
 
 class RunRoundModeTest(unittest.TestCase):

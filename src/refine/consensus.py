@@ -42,6 +42,7 @@ from src.refine.candidates.stability import (
 from src.refine.human_review import build_review_queue, write_review_queue
 from src.common.model_config import resolve_selection
 from src.common.json_artifacts import read_artifact
+from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER
 from src.common.json_contracts import load_contract
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import print_samples, select_samples
@@ -147,6 +148,9 @@ class SchemaConsensusRefinement:
                     "provider": self.discovery.selection.provider,
                     "model": self.discovery.selection.model,
                     "document_input": self.discovery.selection.document_input,
+                    "document_parser": getattr(
+                        self.discovery, "document_parser", DEFAULT_DOCUMENT_PARSER
+                    ),
                     "source_documents": list(sample_paths),
                     "source_artifacts": [base_schema.as_posix()],
                 },

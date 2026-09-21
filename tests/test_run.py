@@ -72,6 +72,79 @@ class RunParserTest(unittest.TestCase):
                     run_module, "_build_schema_extractor", return_value=extractor):
                 self.assertEqual(run_module.command_batch(args), 1)
 
+    def test_batch_filters_categories_and_resumes_into_output_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_root = root / "PDFs"
+            for relative in ("tick/pds/single.pdf", "tick/tmd/single-tmd.pdf", "scti/pds/domestic.pdf"):
+                pdf = input_root / relative
+                pdf.parent.mkdir(parents=True, exist_ok=True)
+                pdf.write_bytes(b"offline fixture")
+            output_dir = root / "run20"
+            existing = output_dir / "scti" / "pds" / "domestic.json"
+            existing.parent.mkdir(parents=True)
+            existing.write_text("{}", encoding="utf-8")
+            args = build_parser().parse_args([
+                "batch", "--manifest", "configs/travel_insurance/manifest.json",
+                "--schema", "schema.json", "--input-root", str(input_root),
+                "--categories", "pds", "--output-dir", str(output_dir),
+            ])
+            configure_command(args)
+            extractor = mock.Mock()
+            extractor.extract_one.return_value = VALID_TRAVEL_EXTRACTION
+            with mock.patch.object(run_module, "load_schema_data", return_value={
+                "vertical": "travel_insurance", "version": "1.0.0"}), mock.patch.object(
+                    run_module, "_build_schema_extractor", return_value=extractor), \
+                 mock.patch("builtins.print"):
+                exit_code = run_module.command_batch(args)
+
+            self.assertEqual(exit_code, 0)
+            single_pdf = input_root / "tick" / "pds" / "single.pdf"
+            extractor.extract_one.assert_called_once_with(single_pdf)
+            written = json.loads((output_dir / "tick" / "pds" / "single.json").read_text(encoding="utf-8"))
+            self.assertEqual(written["source_path"], str(single_pdf))
+            self.assertEqual(existing.read_text(encoding="utf-8"), "{}")
+            self.assertFalse((output_dir / "tick" / "tmd").exists())
+
+    def test_batch_rejects_unknown_category_before_loading_schema(self) -> None:
+        args = build_parser().parse_args([
+            "batch", "--manifest", "configs/travel_insurance/manifest.json",
+            "--schema", "schema.json", "--categories", "tmd",
+        ])
+        configure_command(args)
+        with mock.patch.object(run_module, "load_schema_data") as load_schema, \
+             mock.patch("builtins.print"):
+            self.assertEqual(run_module.command_batch(args), 2)
+        load_schema.assert_not_called()
+
+    def test_storage_load_batch_reports_each_result_and_fails_when_any_fails(self) -> None:
+        from src.storage.service import DirectoryLoadResult
+
+        results = [
+            DirectoryLoadResult(Path("run20/tick/pds/a.json"), "tick", mock.Mock(products_loaded=3), None),
+            DirectoryLoadResult(Path("run20/scti/pds/b.json"), "scti", None, "schema version mismatch"),
+        ]
+        argv = [
+            "run.py", "storage-load-batch",
+            "--manifest", "configs/travel_insurance/manifest.json",
+            "--artifact-dir", "run20",
+        ]
+        with mock.patch(
+            "src.storage.service.resolve_database_url",
+            return_value="postgresql+psycopg://user:secret@localhost/db",
+        ), mock.patch(
+            "src.storage.service.load_extraction_directory", return_value=results
+        ) as load, mock.patch("builtins.print") as print_message, mock.patch("sys.argv", argv):
+            exit_code = run_module.main()
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(load.call_args.kwargs["artifact_dir"], Path("run20"))
+        printed = " ".join(str(call) for call in print_message.call_args_list)
+        self.assertIn("products=3", printed)
+        self.assertIn("schema version mismatch", printed)
+        self.assertIn("loaded=1, failed=1, total=2", printed)
+        self.assertNotIn("secret", printed)
+
     def test_no_flags_resolve_to_current_openai_pdf_defaults(self) -> None:
         args = build_parser().parse_args(["discover"])
         selection = resolve_selection(
@@ -91,6 +164,45 @@ class RunParserTest(unittest.TestCase):
         self.assertEqual(args.provider, "anthropic")
         self.assertEqual(args.model, "claude-test")
         self.assertEqual(args.document_input, "markdown")
+
+    def test_document_parser_flag_defaults_to_pdfingestor_and_accepts_mineru(self) -> None:
+        commands = (
+            ["discover"],
+            ["extract", "--pdf", "sample.pdf", "--schema", "schema.json"],
+            ["batch", "--schema", "schema.json"],
+        )
+        for command in commands:
+            with self.subTest(command=command[0]):
+                self.assertEqual(build_parser().parse_args(command).document_parser, "pdfingestor")
+                self.assertEqual(
+                    build_parser().parse_args([*command, "--document-parser", "mineru"]).document_parser,
+                    "mineru",
+                )
+        with mock.patch("sys.stderr"), self.assertRaises(SystemExit):
+            build_parser().parse_args(["discover", "--document-parser", "ocr"])
+
+    def test_discovery_passes_and_records_mineru_route(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            discovery = mock.Mock()
+            discovery.discover.return_value = normalize_schema(VALID_DISCOVERED_SCHEMA)
+            output = Path(tmp) / "schema.json"
+            argv = [
+                "run.py",
+                "discover",
+                "--samples", "sample.pdf",
+                "--document-parser", "mineru",
+                "--output", str(output),
+                "--usage-log", str(Path(tmp) / "usage.jsonl"),
+            ]
+
+            with mock.patch("src.schema.discovery.SchemaDiscovery", return_value=discovery) as factory, \
+                 mock.patch("sys.argv", argv):
+                exit_code = run_module.main()
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(factory.call_args.kwargs["document_parser"], "mineru")
+            artifact = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(artifact["provenance"]["document_parser"], "mineru")
 
     def test_main_passes_input_root_to_discovery_as_pdf_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -387,6 +499,8 @@ class RunParserTest(unittest.TestCase):
                 str(schema_path),
                 "--output",
                 str(output_path),
+                "--document-parser",
+                "mineru",
             ]
 
             with mock.patch(
@@ -398,6 +512,8 @@ class RunParserTest(unittest.TestCase):
             payload = json.loads(output_path.read_text(encoding="utf-8"))
 
         self.assertEqual(exit_code, 0)
+        self.assertEqual(factory.call_args.kwargs["document_parser"], "mineru")
+        self.assertEqual(payload["document_parser"], "mineru")
         self.assertEqual(len(payload["data"]["products"]), 2)
         manifest = factory.call_args.kwargs["manifest"]
         self.assertEqual(manifest.vertical, "travel_insurance")

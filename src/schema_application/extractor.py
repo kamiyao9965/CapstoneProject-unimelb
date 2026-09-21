@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Callable, Mapping
 from uuid import uuid4
 
-from src.PDFingestor.adapter import render_pdf_paths_for_prompt
+from src.PDFingestor.adapter import (
+    DEFAULT_DOCUMENT_PARSER,
+    render_pdf_paths_for_prompt,
+    require_document_parser,
+)
 from src.common.json_artifacts import (
     build_failure_artifact,
     next_available_path,
@@ -55,6 +59,8 @@ class SchemaExtractor:
         poll_interval: float = 5.0,
         pdf_root: str | Path | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
+        document_parser: str = DEFAULT_DOCUMENT_PARSER,
+        parsed_markdown_dir: str | Path | None = None,
         manifest: VerticalManifest | None = None,
     ) -> None:
         manifest = manifest or resolve_manifest(vertical=schema_data.get("vertical"))
@@ -109,8 +115,10 @@ class SchemaExtractor:
             )
         self.model = self.selection.model
         self.provider = provider or create_provider(self.selection)
+        self.document_parser = require_document_parser(document_parser)
         self.pdf_root = Path(pdf_root) if pdf_root else None
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
+        self.parsed_markdown_dir = Path(parsed_markdown_dir or manifest.path("output_root") / "parsed_markdown")
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None
@@ -130,10 +138,14 @@ class SchemaExtractor:
         started = time.perf_counter()
         logical_run_id = run_id or uuid4().hex
         self._log(f"Extracting {pdf_path.name} with {self.selection.provider}/{self.model}...")
+        if self.document_parser == "mineru":
+            self._log("Parsing the PDF locally with MinerU; an uncached document can take several minutes.")
         document_text = render_pdf_paths_for_prompt(
             (pdf_path,),
             cache_dir=self.pdfingestor_cache_dir,
             pdf_root=self.pdf_root,
+            document_parser=self.document_parser,
+            markdown_dir=self.parsed_markdown_dir,
         )
         request = ProviderRequest(
             selection=self.selection,
@@ -165,6 +177,7 @@ class SchemaExtractor:
                 request,
                 data_contract_schema=self.extraction_contract,
                 business_validator=self.extraction_business_validator,
+                drop_structural_noise=True,
             )
         except StructuredOutputFailure as exc:
             duration = round(time.perf_counter() - started, 3)
@@ -235,6 +248,7 @@ class SchemaExtractor:
             "run_id": run_id, "provider": self.selection.provider,
             "model": self.selection.model,
             "document_input": self.selection.document_input,
+            "document_parser": self.document_parser,
             "source_documents": [pdf_path.as_posix()], "source_artifacts": [],
         }
 
@@ -253,6 +267,7 @@ class SchemaExtractor:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "event": "extraction", "provider": response.provider,
                 "model": response.model, "document_input": self.selection.document_input,
+                "document_parser": self.document_parser,
                 "api_key_env": response.api_key_env, "source_pdf": pdf_path.as_posix(),
                 "duration_seconds": duration, "run_id": run_id,
                 "attempt_number": attempt_number,

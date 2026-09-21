@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+from src.PDFingestor.adapter import DOCUMENT_PARSERS
 from src.verticals.manifest import resolve_manifest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -24,6 +25,7 @@ SUPPORTED_OPERATIONS = frozenset(
         "canonical_compile",
         "storage_init",
         "storage_load",
+        "storage_load_batch",
     }
 )
 PROVIDER_VALUES = frozenset({"openai", "anthropic", "deepseek"})
@@ -95,6 +97,7 @@ def build_command(
         _add_provider(command, options.get("provider"))
         _add(command, "--model", options.get("model"))
         _add(command, "--document-input", options.get("document_input"))
+        _add_document_parser(command, options.get("document_parser"))
         _add_positive_number(command, "--timeout", options.get("timeout"))
         _add_flag(command, "--keep-uploaded-files", options.get("keep_uploaded_files"))
         _add(command, "--output", options.get("output"))
@@ -105,12 +108,20 @@ def build_command(
         _add(command, "--output", options.get("output"))
         _add_provider(command, options.get("provider"))
         _add(command, "--model", options.get("model"))
+        _add_document_parser(command, options.get("document_parser"))
     elif operation == "batch":
         _add_required(command, "--schema", options.get("schema"), "schema path")
         _add(command, "--input-root", options.get("input_root"))
+        categories = [category.lower() for category in _string_list(options.get("categories"))]
+        unknown_categories = sorted(set(categories) - set(manifest.documents.categories))
+        if unknown_categories:
+            raise ValueError(f"Unknown categories for this vertical: {unknown_categories}.")
+        _add_many(command, "--categories", categories)
+        _add(command, "--output-dir", options.get("output_dir"))
         _add_flag(command, "--evaluate", options.get("evaluate"))
         _add_provider(command, options.get("provider"))
         _add(command, "--model", options.get("model"))
+        _add_document_parser(command, options.get("document_parser"))
     elif operation == "crawl":
         _add(command, "--config", options.get("config"))
         _add(command, "--data-root", options.get("data_root"))
@@ -130,6 +141,7 @@ def build_command(
         _add_provider(command, options.get("provider"))
         _add(command, "--model", options.get("model"))
         _add(command, "--document-input", options.get("document_input"))
+        _add_document_parser(command, options.get("document_parser"))
         _add_positive_number(command, "--timeout", options.get("timeout"))
         _add(command, "--out-dir", options.get("out_dir"))
         _add_positive_int(command, "--rounds", options.get("rounds"))
@@ -153,6 +165,12 @@ def build_command(
         if not INSURER_CODE.fullmatch(insurer_code):
             raise ValueError(f"Invalid insurer code: {insurer_code!r}.")
         _add(command, "--insurer-code", insurer_code)
+        _add_database_environment(command, options.get("database_url_env"))
+    elif operation == "storage_load_batch":
+        _add(command, "--schema", options.get("schema"))
+        _add_required(
+            command, "--artifact-dir", options.get("artifact_dir"), "extraction results folder"
+        )
         _add_database_environment(command, options.get("database_url_env"))
     return command
 
@@ -251,6 +269,15 @@ def _add_provider(command: list[str], value: object) -> None:
     if provider not in PROVIDER_VALUES:
         raise ValueError(f"Unsupported provider: {provider!r}.")
     _add(command, "--provider", provider)
+
+
+def _add_document_parser(command: list[str], value: object) -> None:
+    if value is None or not str(value).strip():
+        return
+    document_parser = str(value).strip()
+    if document_parser not in DOCUMENT_PARSERS:
+        raise ValueError(f"Unsupported document parser: {document_parser!r}.")
+    _add(command, "--document-parser", document_parser)
 
 
 def _add_int(command: list[str], flag: str, value: object) -> None:

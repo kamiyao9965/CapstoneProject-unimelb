@@ -11,7 +11,8 @@ See [api.md](api.md) for Python interfaces, CLI options, and artifact contracts.
 The engine has one source for each kind of configuration: vertical rules come
 from the manifest and its prompt files, model settings come from
 `src.common.model_config.resolve_selection()`, and document preparation uses
-PDFingestor. Discovery and extractor constructors accept operational settings
+PDFingestor by default or MinerU when `--document-parser mineru` is selected.
+Discovery and extractor constructors accept operational settings
 and provider injection; they no longer accept separate prompt, contract,
 validator or cardinality overrides.
 
@@ -27,7 +28,7 @@ repair retries. Invalid data never proceeds to the next stage.
 | Schema discovery | Generate a reusable insurance extraction contract from a balanced PDF sample |
 | Multi-provider execution | Switch between OpenAI, Anthropic, and DeepSeek through process environment variables or CLI flags |
 | Native structured output | OpenAI JSON Schema, Anthropic JSON Schema, or DeepSeek JSON object mode |
-| PDFingestor preprocessing | Convert sampled PDFs into reading-order text blocks and Markdown tables before model requests |
+| PDF parsing routes | Convert sampled PDFs into reading-order text blocks and Markdown tables with PDFingestor (default) or local MinerU before model requests |
 | Stability measurement | Repeat discovery on the same sample and measure semantic schema drift |
 | Candidate-patch consensus | Generate N patch sets, validate field names, vote on fields, and produce an auditable consensus |
 | Human review | Accept, reject, or edit proposals in Streamlit before applying them |
@@ -50,7 +51,11 @@ repair retries. Invalid data never proceeds to the next stage.
   manifest and approved schema. Historical envelopes without identity must be
   regenerated before storage.
 - JSON is parsed strictly; Markdown fences, partial JSON, YAML, type coercion,
-  guessed values, and silent field repair are not accepted.
+  guessed values, and silent field repair are not accepted. The one exception is
+  logged formatting noise in extraction output: undeclared double-underscore keys
+  such as `__typename` are removed (a misspelled declared key such as
+  `__document_notes__` is restored), and duplicate names leave unique string
+  lists such as `_unfilled`. No extracted value is changed.
 - The first model attempt may be followed by at most two repair attempts.
 - Each billable attempt is recorded in the JSONL usage log under one logical
   run identity.
@@ -91,8 +96,9 @@ Verify the offline suite before using credentials:
 ```
 
 Upgrading existing integrations: the unused `src.config.AppConfig` and
-`src.common.document_preprocessor` modules have been removed, and MinerU is no
-longer an installation dependency. Use `LLM_*` / `resolve_selection()` for model
+`src.common.document_preprocessor` modules have been removed. MinerU is installed
+again for the opt-in `--document-parser mineru` route; it no longer writes a
+`raw/Markdown` mirror. Use `LLM_*` / `resolve_selection()` for model
 configuration. See the [constructor migration notes](api.md#5-discovery-与-extraction)
 for Python call changes. Existing prompt files, approved schemas and extraction
 files retain their formats.
@@ -112,7 +118,10 @@ PostgreSQL storage. Changing vertical or operation clears form/confirmation/resu
 state. Confirmation belongs to the full command; changing parameters invalidates it.
 Results display the vertical and command captured at launch. It displays the exact command
 before execution and requires explicit confirmation for LLM, network, and
-database operations.
+database operations. Discovery, extraction, batch and refinement forms include a
+"PDF parsing route" selector for PDFingestor or MinerU. Batch extraction defaults
+to the manifest category folders (Travel: `pds` only) and accepts an output folder;
+"Load extraction folder into PostgreSQL" loads every result in such a folder.
 
 The UI is not a second pipeline: `src/run.py` and `src/refine/loop.py` remain
 authoritative. Commands are assembled from an allowlist and launched as an
@@ -123,8 +132,11 @@ local machine; it has no authentication or remote-deployment configuration.
 ## Travel insurance document acquisition
 
 The `crawl` command is an acquisition step, not an LLM step. It needs no
-OpenAI/Anthropic API key. The checked-in source configuration initially covers
-Allianz, Cover-More, and Southern Cross Travel Insurance:
+OpenAI/Anthropic API key. The checked-in source configuration covers Allianz,
+Cover-More, Southern Cross Travel Insurance (`scti`), InsureandGo, Tick and 1Cover
+(`onecover`). InsureandGo, Tick and Allianz use explicit `seed_documents` for their
+current PDS files, so update those URLs when the insurer publishes a new version;
+a provider may omit `start_pages` when it has seed documents:
 
 ```bash
 .venv/bin/python src/run.py crawl \
@@ -317,6 +329,28 @@ is idempotent; a reused run or schema version with different content fails and
 rolls back the whole load. Flexible data uses PostgreSQL `JSONB`; no separate
 JSON database or SQLite fallback is used.
 
+To load many PDS documents, extract only the `pds` folders into a dedicated
+output folder, then load that folder. `batch --output-dir` mirrors
+`<insurer>/<category>/` and skips PDFs that already have a result there, so an
+interrupted run can be resumed without paying again:
+
+```bash
+.venv/bin/python src/run.py batch \
+  --manifest configs/travel_insurance/manifest.json \
+  --schema configs/travel_insurance/canonical_schema_v1.json \
+  --categories pds \
+  --output-dir outputs/travel_insurance/extractions/run20
+
+.venv/bin/python src/run.py storage-load-batch \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact-dir outputs/travel_insurance/extractions/run20
+```
+
+`storage-load-batch` loads each result in its own transaction, takes the insurer
+code from the result's source PDF path, skips `errors/` folders, refuses results
+that share a source PDF, prints one line per file plus a summary, and exits
+non-zero when any file fails.
+
 Run the opt-in integration check only against a disposable PostgreSQL database:
 
 ```bash
@@ -479,7 +513,8 @@ Important options:
 | `--seed` | random | Reproducible sample selection |
 | `--provider` | environment/default | Provider override |
 | `--model` | environment/default | Model override |
-| `--document-input` | `markdown` | Must be `markdown`; PDFingestor renders source PDFs to inline text |
+| `--document-input` | `markdown` | Must be `markdown`; the selected parser renders source PDFs to inline text |
+| `--document-parser` | `pdfingestor` | `pdfingestor` or `mineru`; see section 5 |
 | `--timeout` | `600` | Request/poll timeout seconds |
 | `--output` | `outputs/private_health/schema.json` | Preferred success path |
 | `--usage-log` | `outputs/private_health/token_usage.jsonl` | Per-attempt usage log |
@@ -487,17 +522,62 @@ Important options:
 On exhausted validation, the command exits non-zero and writes a redacted
 artifact below `outputs/private_health/errors/schema_discovery/`.
 
-## 5. PDFingestor document preparation
+## 5. PDF document preparation
 
-Schema discovery and extraction always parse each selected source PDF locally
-with PDFingestor. The resulting reading-order text blocks and Markdown tables
-are sent inline to the selected model provider.
+Schema discovery and extraction parse each selected source PDF locally before
+calling the model. Two parsing routes produce the same page, text block and
+Markdown table representation, which is sent inline to the selected provider:
 
-For that reason, keep `LLM_DOCUMENT_INPUT=markdown`. Selecting `pdf` is reserved
-for low-level provider calls that attach raw documents and is rejected by the
-PDFingestor discovery and extraction classes. A parsing failure is fail-closed:
-the provider is not called and the stage writes a failure artifact when an
-output path is available.
+| `--document-parser` | Engine | Notes |
+| --- | --- | --- |
+| `pdfingestor` (default) | pdfplumber-based PDFingestor | Fast; unchanged behaviour |
+| `mineru` | MinerU `pipeline` backend running locally | Layout/OCR models; slower, useful for comparing parsing quality |
+
+The flag is accepted by `run.py discover`, `run.py extract`, `run.py batch` and
+`refine/loop.py`. Keep the same value when resuming a loop round. Standalone
+`refine/consensus.py` and `stability/measure.py` still use PDFingestor.
+
+```bash
+.venv/bin/python src/run.py extract \
+  --manifest configs/travel_insurance/manifest.json \
+  --schema configs/travel_insurance/canonical_schema_v1.json \
+  --pdf data/travel_insurance/raw/PDFs/tick/pds/example.pdf \
+  --document-parser mineru
+```
+
+MinerU runs in a separate Python process that calls MinerU's `do_parse()` with
+the `pipeline` backend, `auto` method and `ch` OCR language (which also covers
+English). It needs its pipeline models on this machine (for example through
+`mineru-models-download` or an existing `~/mineru.json` models directory). It
+starts no HTTP service and does not upload documents; the `mineru` CLI is not
+used because its temporary local service can fail during CPU-heavy
+post-processing.
+Its first run on a PDF can take minutes; results are cached next to PDFingestor
+results under `<output_root>/pdfingestor_cache/`, keyed by PDF content and parser
+configuration. MinerU HTML tables are expanded into Markdown rows, repeating
+merged-cell text. Known MinerU limitation: text that wraps inside a table cell is
+joined without a space (for example `transportationexpenses`), because MinerU
+concatenates the cell's OCR fragments. Artifacts, `ExtractionResult` files and
+usage logs record `document_parser` so both routes can be compared.
+
+Every discovery, patch and extraction stage also saves the exact text sent to the
+model for each PDF as Markdown, one folder per parser, mirroring the PDF's path
+below the input root (PDFs outside the root get `<stem>_<hash>.md`):
+
+```text
+<output_root>/parsed_markdown/pdfingestor/<insurer>/<category>/<pdf name>.md
+<output_root>/parsed_markdown/mineru/<insurer>/<category>/<pdf name>.md
+```
+
+Run the same PDF through both routes, then compare the two files or the two
+folders with any diff tool. A file is rewritten only when its text changes; the
+files are derived from the parse cache and can be deleted safely.
+
+Keep `LLM_DOCUMENT_INPUT=markdown`. Selecting `pdf` is reserved for low-level
+provider calls that attach raw documents and is rejected by the discovery and
+extraction classes. A parsing failure is fail-closed: the provider is not called
+and the stage writes a failure artifact when an output path is available. The
+MinerU route also fails when a PDF yields no text or table content.
 
 ## 6. Measure schema stability
 
@@ -613,8 +693,14 @@ Canonical database mapping:
 The mapping UI previews PostgreSQL DDL but does not execute it. Approval requires
 a reviewer, rationale, and explicit confirmation, and writes a new Canonical
 Schema file. Existing approved field mappings are reused; unknown fields are
-proposed as JSONB and remain subject to human review. Changing the input content
-or output path clears approval state; approved source contracts stay unchanged.
+proposed as JSONB and remain subject to human review. The sidebar option
+"Storage for fields without an approved mapping" can instead propose SQL extension
+columns named after each field; list fields, reserved column names and columns
+already used by approved mappings stay in JSONB. More columns make SQL queries
+easier, but `storage-init` never alters an existing table, so later field changes
+need a new database or a manual migration. Changing the input content, output
+path or storage option clears approval state; approved source contracts stay
+unchanged.
 
 Apply saved decisions from the UI or CLI:
 
@@ -848,7 +934,18 @@ redacted error artifact and usage log; invalid data is not saved as a schema.
 ### DeepSeek rejects PDF mode
 
 Set `LLM_DOCUMENT_INPUT=markdown`. All application providers receive the
-PDFingestor representation as inline text.
+parsed PDF representation as inline text.
+
+### MinerU route fails
+
+- `MinerU is not installed`: run `pip install -r requirements.txt` in the project
+  virtual environment.
+- Model loading errors: make sure the MinerU pipeline models exist locally
+  (`mineru-models-download`, or check `models-dir` in `~/mineru.json`).
+- `no text or table content`: MinerU found nothing usable in the PDF, so the
+  model was not called. Check the PDF manually before retrying.
+- Very slow runs: expected for the first parse of long PDFs; later runs reuse the
+  cache.
 
 ### Model is not approved for structured output
 

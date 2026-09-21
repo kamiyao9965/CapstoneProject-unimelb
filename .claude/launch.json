@@ -1,0 +1,36 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "review-app-schema-gpt55",
+      "runtimeExecutable": "/Users/yangyajing/proj/CapstoneProject-unimelb/.venv/bin/python",
+      "runtimeArgs": [
+        "-m", "streamlit", "run", "src/review_app.py",
+        "--server.address", "127.0.0.1",
+        "--server.port", "8502",
+        "--server.headless", "true",
+        "--",
+        "--manifest", "configs/travel_insurance/manifest.json",
+        "--consensus-dir", "outputs/travel_insurance/experiments/schema-gpt55/round_1/consensus"
+      ],
+      "port": 8502,
+      "url": "http://127.0.0.1:8502"
+    },
+    {
+      "name": "canonical-review-check",
+      "runtimeExecutable": "/Users/yangyajing/proj/CapstoneProject-unimelb/.venv/bin/python",
+      "runtimeArgs": [
+        "-m", "streamlit", "run", "src/canonical_review_app.py",
+        "--server.address", "127.0.0.1",
+        "--server.port", "8504",
+        "--server.headless", "true",
+        "--",
+        "--manifest", "configs/travel_insurance/manifest.json",
+        "--schema", "outputs/travel_insurance/experiments/schema-gpt55/final_schema.json",
+        "--output", "outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+      ],
+      "port": 8504,
+      "url": "http://127.0.0.1:8504"
+    }
+  ]
+}

@@ -163,15 +163,32 @@ document_identity(path) -> str
 
 ```text
 render_pdf_paths_for_prompt(pdf_paths, *, cache_dir=None, pdf_root=None,
-                            camelot_enabled=True) -> str
+                            camelot_enabled=True,
+                            document_parser="pdfingestor",
+                            markdown_dir=None) -> str
+save_document_markdown(document, markdown_dir, *, document_parser,
+                       pdf_root=None) -> Path
+document_markdown_path(markdown_dir, document_parser, source_path,
+                       pdf_root=None) -> Path
 ingest_pdfs(pdf_paths, *, cache_dir=None, pdf_root=None,
-            camelot_enabled=True) -> tuple[ParsedPDF, ...]
+            camelot_enabled=True,
+            document_parser="pdfingestor") -> tuple[ParsedPDF, ...]
 build_ingestor(cache_dir=None, *, camelot_enabled=True) -> PDFIngestor
+DOCUMENT_PARSERS = ("pdfingestor", "mineru")
 ```
 
 位于 `src.PDFingestor.adapter`。`pdf_root` 解析尚未定位的相对路径；本地解析不调用 LLM，缓存身份包含 PDF 内容及解析配置。输出保留页、文本块和表格信息；Camelot 是可选回退。视觉提取需要显式注入 parser 的 `vision_page_extractor`，主流程不自动启用。
 
-检查原始结构可用 `PDFIngestor.ingest(pdf_path, *, use_cache=True) -> ParsedPDF`，类型见 [`models.py`](src/PDFingestor/models.py)。文件缺失或解析失败可能产生文件 / 解析库异常，不保证统一异常类。
+`document_parser` 选择 PDF 解析路线，不支持的值抛 `ValueError`：
+
+- `pdfingestor`（默认）：pdfplumber 解析，行为与之前一致。
+- `mineru`：[`MinerUIngestor`](src/PDFingestor/mineru.py) 在单独的 Python 子进程里调用 MinerU 的 `do_parse()`（`pipeline` 后端、`auto` 方法、`ch` OCR 语言，也覆盖英文），把 `*_content_list.json` 转成同一种 `ParsedPDF`（带页码的文本块 + Markdown 表格，合并单元格按行列展开）。不启动 HTTP 服务、不上传文档；需要本机已有 MinerU pipeline 模型。没有使用 `mineru` 命令行，是因为它自带的临时本地服务在 CPU 密集的后处理阶段会轮询失败。解析不出任何文本或表格时抛 `RuntimeError`，不会调用模型。构造参数：`MinerUIngestor(cache_dir=None, *, runner=subprocess.run, python_executable=None, timeout_seconds=3600.0)`，默认用当前解释器。
+
+两条路线共用同一个缓存目录，缓存键包含解析器配置，互不复用结果。
+
+传入 `markdown_dir` 时，每份 PDF 发给模型的文本会另存为 `<markdown_dir>/<document_parser>/<PDF 相对 pdf_root 的路径>.md`；不在 `pdf_root` 下的 PDF 存成 `<文件名>_<路径 hash 前 12 位>.md`。内容与该 PDF 在 prompt 中的片段完全一致，文本不变时不重写。未传时不写文件。
+
+检查原始结构可用 `PDFIngestor.ingest(pdf_path, *, use_cache=True) -> ParsedPDF` 或 `MinerUIngestor(cache_dir).ingest(pdf_path)`，类型见 [`models.py`](src/PDFingestor/models.py)。文件缺失或解析失败可能产生文件 / 解析库异常，不保证统一异常类。
 
 ## 5. Discovery 与 Extraction
 
@@ -183,7 +200,8 @@ build_ingestor(cache_dir=None, *, camelot_enabled=True) -> PDFIngestor
 SchemaDiscovery(*, selection=None, provider=None, cleanup_uploaded_files=True,
     timeout_seconds=600.0, usage_log_path=None, log=print, request_params=None,
     extra_instructions=None, background=True, poll_interval=5.0, pdf_root=None,
-    pdfingestor_cache_dir=None, manifest=None)
+    pdfingestor_cache_dir=None, document_parser="pdfingestor",
+    parsed_markdown_dir=None, manifest=None)
 ```
 
 | 方法 | 返回 | 文件与失败语义 |
@@ -199,10 +217,13 @@ SchemaDiscovery(*, selection=None, provider=None, cleanup_uploaded_files=True,
 SchemaExtractor(schema_data, *, selection=None, provider=None,
     cleanup_uploaded_files=True, timeout_seconds=600.0, usage_log_path=None,
     log=print, background=True, poll_interval=5.0, pdf_root=None,
-    pdfingestor_cache_dir=None, manifest=None)
+    pdfingestor_cache_dir=None, document_parser="pdfingestor",
+    parsed_markdown_dir=None, manifest=None)
 ```
 
 未传 manifest 时根据 schema 的 vertical 解析；显式 manifest 必须与 schema 一致。所有配置参数仅支持关键字传递，`schema_data` 可作为位置参数。
+
+两个引擎的 `document_parser` 与上节相同，会传给 PDF 渲染入口，并写进失败 / 成功 envelope 的 `provenance.document_parser` 和 token 日志的 `document_parser` 字段，便于对比两条路线。`parsed_markdown_dir` 默认是 manifest 输出根目录下的 `parsed_markdown/`，作为 `markdown_dir` 传给渲染入口，所以两个引擎每次解析都会保存对比用的 Markdown。
 
 | 方法 | 返回 | 文件与失败语义 |
 | --- | --- | --- |
@@ -231,7 +252,7 @@ extractor = SchemaExtractor(
 data = extractor.extract_one(manifest.path("input_root") / "allianz/pds/example.pdf")
 ```
 
-旧调用迁移：`model=` 改成 `selection=resolve_selection(model=...)`；`vertical=` 改成 `manifest=resolve_manifest(vertical=...)`；`client=` 改为上述 provider 注入。删除 `preprocessor=`、`discovery_contract=`、`discovery_prompt=`、`schema_contract=`、`schema_validator=`、`patch_contract=`、`patch_prompt=`、`patch_validator=`、`output_cardinality=`、`extraction_prompt=` 等旧覆盖参数。修改领域行为应更新配置包，PDF 解析统一走 PDFingestor。`src.config.AppConfig` 和旧 `src.common.document_preprocessor` 已移除。
+旧调用迁移：`model=` 改成 `selection=resolve_selection(model=...)`；`vertical=` 改成 `manifest=resolve_manifest(vertical=...)`；`client=` 改为上述 provider 注入。删除 `preprocessor=`、`discovery_contract=`、`discovery_prompt=`、`schema_contract=`、`schema_validator=`、`patch_contract=`、`patch_prompt=`、`patch_validator=`、`output_cardinality=`、`extraction_prompt=` 等旧覆盖参数。修改领域行为应更新配置包，PDF 解析路线用 `document_parser` 选择。`src.config.AppConfig` 和旧 `src.common.document_preprocessor` 已移除；MinerU 现在通过 `document_parser="mineru"` 接入，不再生成 `raw/Markdown` 镜像文件。
 
 ## 6. Provider 与有界结构修复
 
@@ -251,10 +272,12 @@ data = extractor.extract_one(manifest.path("input_root") / "allianz/pds/example.
 ```text
 run_structured_output(provider, request, *, data_contract=None,
     data_contract_schema=None, business_validator=None,
-    max_repair_attempts=2) -> StructuredOutputResult
+    max_repair_attempts=2, drop_structural_noise=False) -> StructuredOutputResult
 ```
 
 要求 `request.structured_output`，且两个 data contract 参数恰好一个。流程：严格 JSON → JSON Schema → 可选业务校验；默认最多初次请求加两次修复。返回 `data` 和逐次 `attempts`；attempt 包含序号、响应、校验错误。拒绝响应等错误可提前终止，网络异常不保证走结构修复。
+
+`drop_structural_noise=True` 时，JSON Schema 校验前先清理不含数据的格式噪音：封闭对象里合同未声明的双下划线键（如 `__typename`、`__proto__`）会删除；拼错的已声明键（如 `__document_notes__`）在正确键缺失时改回 `_document_notes`；`uniqueItems` 字符串数组（如 `_unfilled`）去掉重复项。每次清理通过 `request.log` 输出，其他违规仍按原规则失败。`SchemaExtractor` 的提取请求默认开启。
 
 修复耗尽抛 `StructuredOutputFailure`，其 `.result` 包含尝试与错误，不能把无效响应作为有效 data。transport / SDK 重试与结构修复不同，不能由“三次”推导固定费用上限。
 
@@ -319,14 +342,14 @@ build_feedback(analysis) -> str
 
 | `src.schema.canonical` 接口 | 返回 / 约束 |
 | --- | --- |
-| `build_canonical_candidate(payload, manifest)` | 从 discovered schema 构建 candidate 副本；要求 storage capability，以 manifest 内现有 Canonical 为模板 |
+| `build_canonical_candidate(payload, manifest, *, unmapped_storage="jsonb")` | 从 discovered schema 构建 candidate 副本；要求 storage capability，以 manifest 内现有 Canonical 为模板。没有兼容旧映射的字段按 `unmapped_storage` 处理：`jsonb`（默认），或 `extension_column`（以字段名作列名；列表字段、保留列名和已被占用的列名仍用 JSONB）；其他值抛 `ValueError` |
 | `validate_canonical_schema(payload)` | 校验并返回副本，允许合法 candidate / approved 状态 |
 | `approve_canonical_schema(payload, *, reviewer, rationale, reviewed_at=None)` | 返回含审批与内容绑定信息的 approved 副本；不写文件、不调用模型、不入库 |
 | `require_approved_canonical_schema(payload)` | 校验批准状态和内容绑定，返回副本 |
 | `compile_canonical_extraction_contract(payload)` | 从 approved 契约生成提取 JSON Schema |
 | `validate_canonical_extraction_identities(schema_payload, extraction_payload)` | 校验产品容器与非空、唯一的产品名身份，返回原 extraction 对象；完整字段结构另用编译出的 JSON Schema 校验 |
 
-身份字段的 storage 类型不兼容时拒绝自动构建 candidate；新增普通字段可映射到 JSONB。审批不是修改 `status` 字符串，内容变化后必须重新审批。现有 Canonical 契约保留的空 aliases 字段不代表恢复 aliases 功能。
+身份字段的 storage 类型不兼容时拒绝自动构建 candidate；新增普通字段默认映射到 JSONB，也可通过 `unmapped_storage="extension_column"` 映射为扩展列。审批不是修改 `status` 字符串，内容变化后必须重新审批。现有 Canonical 契约保留的空 aliases 字段不代表恢复 aliases 功能。
 
 ### 采集
 
@@ -343,6 +366,8 @@ prepare_storage_load(*, manifest, schema_path, artifact_path,
 initialize_storage(*, database_url, manifest, schema_path) -> None
 load_extraction_artifact(*, database_url, manifest, schema_path,
                         artifact_path, insurer_code) -> StorageLoadSummary
+load_extraction_directory(*, database_url, manifest, schema_path,
+                          artifact_dir, load_one=None) -> list[DirectoryLoadResult]
 ```
 
 `prepare_storage_load` 读取 approved schema、提取 artifact 和来源 PDF，检查边界并编译 load plan，不连接数据库。原 PDF 必须存在且满足 manifest 输入路径、公司和文档类型目录约束。
@@ -350,6 +375,8 @@ load_extraction_artifact(*, database_url, manifest, schema_path,
 两种提取格式都必须携带与 manifest / approved schema 相符的 `vertical` 和 `schema_version`，并提供 provider / model / 运行身份。缺少身份的历史 envelope 可用于兼容分析，但不可直接入库；需用该 approved schema 重新提取，不能凭当前选择补写身份。
 
 `initialize_storage` 使用 PostgreSQL 事务创建缺失的核心与 vertical 表，不迁移已有表。`load_extraction_artifact` 先预检，再在一个事务中写入；重复身份需通过一致性校验，冲突不静默覆盖。成功返回 `run_id / document_id / schema_version_id / products_loaded / release_ids`。服务管理并释放 engine，不返回连接。SQLite 不支持。
+
+`load_extraction_directory` 递归读取文件夹里的 `*.json`（跳过 `errors/`），从每份结果的源 PDF 路径取公司 code，再逐份调用 `load_extraction_artifact`，每份单独一个事务。同一份源 PDF 对应多份结果时这几份都不加载。返回按路径排序的 `DirectoryLoadResult(artifact_path, insurer_code, summary, error)` 列表，成功时 `summary` 有值、失败时 `error` 有值；单份失败不影响其他文件。文件夹不存在或没有结果时抛 `ValueError`。`load_one` 仅用于测试注入。
 
 ## 10. JSON 文件边界
 
@@ -373,13 +400,13 @@ Envelope 形状示意：
   provenance: {
     run_id, provider, model, document_input,
     source_documents: [...], source_artifacts: [...],
-    vertical?, schema_version?
+    vertical?, schema_version?, document_parser?
   },
   data, error
 }
 ```
 
-成功时 data 为校验后对象、error=null；失败时 data=null，error 含 code / message / details。时间为 UTC RFC 3339。`contract_version` 是产物数据契约版本，不是领域 schema 的 `data.version`。当前提取 / feedback 记录领域及 schema 身份，历史产物可能缺少这些附加 provenance 字段。
+成功时 data 为校验后对象、error=null；失败时 data=null，error 含 code / message / details。时间为 UTC RFC 3339。`contract_version` 是产物数据契约版本，不是领域 schema 的 `data.version`。当前提取 / feedback 记录领域及 schema 身份，历史产物可能缺少这些附加 provenance 字段。`document_parser` 只能是 `pdfingestor`、`mineru` 或 null，由解析 PDF 的阶段（discovery、patch、holdout 提取）写入；旧产物没有这个字段时按当时唯一的 PDFingestor 路线理解。
 
 ### 文件读写
 
@@ -398,7 +425,7 @@ next_available_path(path: Path, reserved: set[Path] | None = None) -> Path
 
 写入原子化，默认拒绝覆盖。`next_available_path` 只选文件名、不预留路径。失败用 `build_failure_artifact(...)` 配合 `write_failure_artifact(output_root, stage, run_id, artifact)` 保存到 `errors/<stage>/`，不写成成功 schema。
 
-**主 CLI `extract / batch` 使用 `src.models.ExtractionResult`。** 顶层为 `vertical, schema_version, source_path, extracted_at, provider, model, data, evidences, normalized_names, warnings`。用 `ExtractionResult.model_validate(payload)` 读取、`.write_json(path)` 保存，不能传给 `read_artifact`。wrapper 校验不代替 data 的实际 extraction contract 校验；兼容字段不表示当前执行了 aliases 合并。
+**主 CLI `extract / batch` 使用 `src.models.ExtractionResult`。** 顶层为 `vertical, schema_version, source_path, extracted_at, provider, model, document_parser, data, evidences, normalized_names, warnings`；旧文件没有 `document_parser` 时读出为 null。用 `ExtractionResult.model_validate(payload)` 读取、`.write_json(path)` 保存，不能传给 `read_artifact`。wrapper 校验不代替 data 的实际 extraction contract 校验；兼容字段不表示当前执行了 aliases 合并。
 
 ### 统一读取提取产物
 
@@ -418,14 +445,15 @@ parse_extraction_artifact(raw: bytes, *, vertical: str,
 
 | 入口 | 必填 | 常用可选参数 |
 | --- | --- | --- |
-| `src/run.py discover` | 无，但需可读样本 | `--manifest --samples --input-root --categories --per-category --seed --provider --model --document-input --timeout --output --usage-log` |
-| `src/run.py extract` | `--pdf --schema` | `--manifest --output --provider --model` |
-| `src/run.py batch` | `--schema` | `--manifest --vertical --input-root --evaluate --provider --model` |
+| `src/run.py discover` | 无，但需可读样本 | `--manifest --samples --input-root --categories --per-category --seed --provider --model --document-input --document-parser --timeout --output --usage-log` |
+| `src/run.py extract` | `--pdf --schema` | `--manifest --output --provider --model --document-parser` |
+| `src/run.py batch` | `--schema` | `--manifest --vertical --input-root --categories --output-dir --evaluate --provider --model --document-parser` |
 | `src/run.py crawl` | 无，默认来自 manifest | `--manifest --vertical --config --data-root --output-root --insurer --include-archived --discovery-only` |
 | `src/run.py canonical-compile` | `--schema --output-dir` | `--manifest` |
 | `src/run.py storage-init` | 无，schema 默认来自 manifest | `--manifest --schema --database-url-env` |
 | `src/run.py storage-load` | `--artifact --insurer-code` | `--manifest --schema --database-url-env` |
-| `src/refine/loop.py` | 无 | `--manifest --input-root --out-dir --per-category --seed --eval-per-category --eval-seed --consensus-runs --review-ui --resume-review --resume-feedback --autonomous --rounds --provider --model --document-input --timeout` |
+| `src/run.py storage-load-batch` | `--artifact-dir` | `--manifest --schema --database-url-env` |
+| `src/refine/loop.py` | 无 | `--manifest --input-root --out-dir --per-category --seed --eval-per-category --eval-seed --consensus-runs --review-ui --resume-review --resume-feedback --autonomous --rounds --provider --model --document-input --document-parser --timeout` |
 | `src/refine/consensus.py` | 无，基础 schema 默认来自 manifest 输出根目录 | `--manifest --base-schema --input-root --per-category --runs --seed --out-dir --provider --model --document-input --timeout` |
 | `src/refine/review.py apply` | `--consensus-dir` | `--base-schema --out` |
 | `src/schema_application/analyze.py` | `--schema --extractions` | `--manifest --feedback-out` |
@@ -433,7 +461,7 @@ parse_extraction_artifact(raw: bytes, *, vertical: str,
 | `src/stability/measure.py` | 无 | `--manifest --runs --input-root --per-category --seed --out-dir --provider --model --document-input --timeout --temperature --show-items` |
 | `src/cost/estimate.py` | 无，默认读 manifest 输出日志 | `--manifest --log --model --input-rate --output-rate --project --vertical NAME=COUNT --extraction-input-tokens --extraction-output-tokens` |
 
-`cost --vertical NAME=COUNT` 是投影工作量标签，不是 manifest 选择器。`extract / batch` 没有 `--document-input`，使用统一模型环境。`--no-fallback` 是废弃兼容参数，没有启发式提取；`discover --keep-uploaded-files` 是旧文件生命周期选项，主流程使用本地 PDFingestor 文本。
+`cost --vertical NAME=COUNT` 是投影工作量标签，不是 manifest 选择器。`extract / batch` 没有 `--document-input`，使用统一模型环境。`--document-parser` 可选 `pdfingestor`（默认）或 `mineru`；独立的 `refine/consensus.py` 和 `stability/measure.py` 暂时只走 PDFingestor。`--no-fallback` 是废弃兼容参数，没有启发式提取；`discover --keep-uploaded-files` 是旧文件生命周期选项，主流程使用本地 PDFingestor 文本。
 
 成功通常返回 0，失败非 0，argparse 参数错误通常为 2；没有统一稳定的 JSON 错误协议，部分入口会抛异常。程序集成需要结构化错误时优先 Python 接口。主 CLI batch 汇总逐文件错误；`SchemaExtractor.extract_many` 的失败即停语义不同。
 

@@ -9,6 +9,7 @@ from uuid import uuid4
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.common.json_contracts import load_contract
 from src.common.model_config import ModelSelection, resolve_selection
+from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER
 from src.schema_application.analyze import (
     analyze,
     build_feedback,
@@ -51,6 +52,10 @@ def _selection(args) -> ModelSelection:
     )
 
 
+def _document_parser(args) -> str:
+    return getattr(args, "document_parser", DEFAULT_DOCUMENT_PARSER)
+
+
 def generate_schema(
     args,
     feedback: str | None,
@@ -70,6 +75,7 @@ def generate_schema(
         usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
         extra_instructions=feedback,
         pdf_root=Path(args.input_root),
+        document_parser=_document_parser(args),
         manifest=manifest,
     ).discover(resolved_sample_paths, output_path=out_path, run_id=run_id)
     artifact = build_success_artifact(
@@ -79,6 +85,7 @@ def generate_schema(
         provenance={
             "run_id": run_id, "provider": selection.provider,
             "model": selection.model, "document_input": selection.document_input,
+            "document_parser": _document_parser(args),
             "source_documents": resolved_sample_paths, "source_artifacts": [],
         },
         data_contract_schema=load_contract(manifest.contract("discovered_schema"), manifest=manifest),
@@ -106,6 +113,7 @@ def run_consensus_stage(
             timeout_seconds=args.timeout,
             usage_log_path=Path(args.out_dir) / "token_usage.jsonl",
             pdf_root=Path(args.input_root),
+            document_parser=_document_parser(args),
         ),
         manifest=manifest,
     ).refine(
@@ -142,6 +150,7 @@ def evaluate_schema(
         timeout_seconds=args.timeout,
         usage_log_path=str(round_dir / "extraction_usage.jsonl"),
         pdf_root=Path(args.input_root),
+        document_parser=_document_parser(args),
     ).extract_many(eval_paths, extractions_dir)
 
     specs = load_field_specs(schema_data, _manifest(args))

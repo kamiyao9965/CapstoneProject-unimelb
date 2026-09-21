@@ -110,6 +110,44 @@ class ExtractManyOutputTest(unittest.TestCase):
             artifact = json.loads(output_path.read_text(encoding="utf-8"))
 
             self.assertEqual(usage["run_id"], artifact["provenance"]["run_id"])
+            self.assertEqual(usage["document_parser"], "pdfingestor")
+            self.assertEqual(artifact["provenance"]["document_parser"], "pdfingestor")
+
+    def test_mineru_route_reaches_renderer_and_is_recorded(self) -> None:
+        class RecordingProvider:
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                return ModelResponse(
+                    text=json.dumps(VALID_RECORD),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_path = root / "example.pdf"
+            pdf_path.touch()
+            usage_path = root / "usage.jsonl"
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: example\nstructured content",
+            ) as render:
+                output_path = SchemaExtractor(
+                    schema_data=VALID_DISCOVERED_SCHEMA,
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
+                    provider=RecordingProvider(),
+                    usage_log_path=usage_path,
+                    log=None,
+                    document_parser="mineru",
+                    parsed_markdown_dir=root / "parsed_markdown",
+                ).extract_many([pdf_path], root / "extractions")[0]
+
+            usage = json.loads(usage_path.read_text(encoding="utf-8"))
+            artifact = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(render.call_args.kwargs["document_parser"], "mineru")
+        self.assertEqual(render.call_args.kwargs["markdown_dir"], root / "parsed_markdown")
+        self.assertEqual(usage["document_parser"], "mineru")
+        self.assertEqual(artifact["provenance"]["document_parser"], "mineru")
 
     def test_extract_one_passes_logical_pdf_to_injected_provider(self) -> None:
         class RecordingProvider:
@@ -148,6 +186,34 @@ class ExtractManyOutputTest(unittest.TestCase):
         self.assertIn("Discovered schema data", provider.request.user_text)
         self.assertEqual(provider.request.structured_output.name, "extraction_result")
         self.assertTrue(provider.request.structured_output.strict)
+
+    def test_extract_one_drops_structural_noise_from_model_output(self) -> None:
+        class NoisyProvider:
+            def generate(self, request: ProviderRequest) -> ModelResponse:
+                return ModelResponse(
+                    text=json.dumps({**VALID_RECORD, "__typename": "ExtractionResult"}),
+                    provider=request.selection.provider,
+                    model=request.selection.model,
+                )
+
+        messages: list[str] = []
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "example.pdf"
+            pdf_path.touch()
+            with mock.patch(
+                "src.schema_application.extractor.render_pdf_paths_for_prompt",
+                return_value="# PDF: example\nstructured content",
+            ):
+                record = SchemaExtractor(
+                    schema_data=VALID_DISCOVERED_SCHEMA,
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
+                    provider=NoisyProvider(),
+                    usage_log_path=None,
+                    log=messages.append,
+                ).extract_one(pdf_path)
+
+        self.assertEqual(record, VALID_RECORD)
+        self.assertTrue(any("removed '__typename'" in message for message in messages))
 
     def test_open_list_object_field_uses_non_strict_provider_schema(self) -> None:
         class RecordingProvider:

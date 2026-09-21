@@ -17,7 +17,7 @@ DEFAULT_VERTICAL = "private_health"
 OPERATION_CAPABILITIES = {
     "discover": "discovery", "extract": "extraction", "batch": "extraction",
     "crawl": "acquisition", "refine": "refinement", "canonical_compile": "storage",
-    "storage_init": "storage", "storage_load": "storage",
+    "storage_init": "storage", "storage_load": "storage", "storage_load_batch": "storage",
 }
 
 

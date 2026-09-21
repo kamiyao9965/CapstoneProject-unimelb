@@ -355,12 +355,30 @@ def _validate_review_timestamp(value: str) -> None:
         )
 
 
-def build_canonical_candidate(payload: object, manifest) -> dict[str, object]:
-    """Map reviewed fields using existing approved storage choices; unknowns need review."""
+UNMAPPED_STORAGE_STRATEGIES = ("jsonb", "extension_column")
+
+
+def build_canonical_candidate(
+    payload: object,
+    manifest,
+    *,
+    unmapped_storage: str = "jsonb",
+) -> dict[str, object]:
+    """Map reviewed fields using existing approved storage choices; unknowns need review.
+
+    Fields without a compatible approved mapping use ``unmapped_storage``: JSONB by
+    default, or an extension column named after the field. List fields, reserved
+    extension columns and columns already taken by approved mappings stay in JSONB.
+    """
     from copy import deepcopy
     from src.schema.validation import validate_schema_mapping
     from src.common.json_codec import loads_json
 
+    if unmapped_storage not in UNMAPPED_STORAGE_STRATEGIES:
+        raise ValueError(
+            f"Unsupported storage for unmapped fields {unmapped_storage!r}; "
+            f"choose one of: {', '.join(UNMAPPED_STORAGE_STRATEGIES)}."
+        )
     manifest.require_capability("storage")
     schema = validate_schema_mapping(payload, manifest=manifest)
     template = require_approved_canonical_schema(loads_json(manifest.path("canonical_schema").read_text(encoding="utf-8")))
@@ -368,20 +386,34 @@ def build_canonical_candidate(payload: object, manifest) -> dict[str, object]:
         raise ValueError("Approved mapping does not match selected manifest.")
     mapped = {field["name"]: field for field in template["fields"]}
     identities = set(template["identity"].values())
-    fields = []
+    reused: dict[str, dict[str, object]] = {}
     for field in schema["fields"]:
         name = field["name"]
         previous = mapped.get(name)
         compatible = previous and (previous["type"] == field["type"] or {previous["type"], field["type"]} <= {"string", "enum"})
         if name in identities and not compatible:
             raise ValueError(f"Identity field {name!r} conflicts with approved mapping.")
+        if compatible:
+            reused[name] = deepcopy(previous["storage"])
+    # Approved mappings claim their columns first so a new field cannot take them.
+    taken_columns = {"release_id", str(template["extension"]["attributes_column"])}
+    taken_columns.update(str(storage["column"]) for storage in reused.values() if storage["strategy"] == "extension_column")
+    fields = []
+    for field in schema["fields"]:
+        name = field["name"]
+        storage = reused.get(name)
+        if storage is None:
+            storage = {"strategy": "jsonb"}
+            if unmapped_storage == "extension_column" and field["type"] != "list[object]" and name not in taken_columns:
+                storage = {"strategy": "extension_column", "column": name}
+                taken_columns.add(name)
         fields.append({
             "name": name, "type": field["type"], "description": field["description"],
             "required": True if name in identities else field["required"],
             "nullable": name not in identities,
             "values": list(field["values"]) if field["type"] == "enum" else [],
             "aliases": [],
-            "storage": deepcopy(previous["storage"]) if compatible else {"strategy": "jsonb"},
+            "storage": storage,
         })
     candidate = deepcopy(template)
     candidate.update(version=f"{schema['version']}-canonical-candidate", status="candidate", review=None,

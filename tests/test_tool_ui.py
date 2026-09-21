@@ -78,12 +78,83 @@ class ToolCommandBuilderTests(unittest.TestCase):
         self.assertIn("--review-ui", command)
         self.assertEqual(command[-2:], ["--consensus-runs", "5"])
 
+    def test_document_parser_is_allowlisted_for_pdf_operations(self) -> None:
+        requests = {
+            "discover": {"vertical": "travel_insurance"},
+            "extract": {"vertical": "travel_insurance", "pdf": "a.pdf", "schema": "schema.json"},
+            "batch": {"vertical": "travel_insurance", "schema": "schema.json"},
+            "refine": {"vertical": "travel_insurance"},
+        }
+        for operation, options in requests.items():
+            with self.subTest(operation=operation):
+                command = build_command(
+                    CommandRequest(operation, {**options, "document_parser": "mineru"}),
+                    python_executable="python",
+                    project_root=PROJECT_ROOT,
+                )
+                flag_index = command.index("--document-parser")
+                self.assertEqual(command[flag_index + 1], "mineru")
+                with self.assertRaisesRegex(ValueError, "Unsupported document parser"):
+                    build_command(
+                        CommandRequest(operation, {**options, "document_parser": "mineru; rm -rf /"}),
+                        python_executable="python",
+                        project_root=PROJECT_ROOT,
+                    )
+
+    def test_batch_category_filter_output_folder_and_folder_load_commands(self) -> None:
+        batch = build_command(
+            CommandRequest(
+                "batch",
+                {
+                    "vertical": "travel_insurance",
+                    "schema": "schema.json",
+                    "categories": ["pds"],
+                    "output_dir": "outputs/travel_insurance/extractions/run20",
+                },
+            ),
+            python_executable="python",
+            project_root=PROJECT_ROOT,
+        )
+        self.assertEqual(batch[batch.index("--categories") + 1], "pds")
+        self.assertEqual(
+            batch[batch.index("--output-dir") + 1], "outputs/travel_insurance/extractions/run20"
+        )
+        with self.assertRaisesRegex(ValueError, "Unknown categories"):
+            build_command(
+                CommandRequest(
+                    "batch",
+                    {"vertical": "travel_insurance", "schema": "schema.json", "categories": ["tmd"]},
+                ),
+                python_executable="python",
+                project_root=PROJECT_ROOT,
+            )
+
+        load = build_command(
+            CommandRequest(
+                "storage_load_batch",
+                {"vertical": "travel_insurance", "artifact_dir": "outputs/travel_insurance/extractions/run20"},
+            ),
+            python_executable="python",
+            project_root=PROJECT_ROOT,
+        )
+        self.assertEqual(load[2], "storage-load-batch")
+        self.assertEqual(
+            load[load.index("--artifact-dir") + 1], "outputs/travel_insurance/extractions/run20"
+        )
+        self.assertEqual(load[load.index("--database-url-env") + 1], "KONKRD_DATABASE_URL")
+        with self.assertRaisesRegex(ValueError, "extraction results folder is required"):
+            build_command(
+                CommandRequest("storage_load_batch", {"vertical": "travel_insurance"}),
+                python_executable="python",
+                project_root=PROJECT_ROOT,
+            )
+
     def test_required_fields_fail_before_process_execution(self) -> None:
         with self.assertRaisesRegex(ValueError, "PDF path"):
             build_command(CommandRequest("extract", {"schema": "schema.json"}))
 
     def test_disabled_capabilities_fail_before_execution(self):
-        for operation in ("crawl", "storage_init", "canonical_compile"):
+        for operation in ("crawl", "storage_init", "canonical_compile", "storage_load_batch"):
             with self.subTest(operation=operation), self.assertRaisesRegex(ValueError, "does not support"):
                 build_command(CommandRequest(operation, {"vertical": "private_health"}))
         with self.assertRaisesRegex(ValueError, "evaluation"):

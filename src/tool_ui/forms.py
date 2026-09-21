@@ -19,12 +19,17 @@ OPERATION_LABELS = {
     "Compile Canonical Schema": "canonical_compile",
     "Initialize PostgreSQL storage": "storage_init",
     "Load extraction into PostgreSQL": "storage_load",
+    "Load extraction folder into PostgreSQL": "storage_load_batch",
 }
 PROVIDER_LABELS = {
     "Environment default": None,
     "OpenAI": "openai",
     "Anthropic": "anthropic",
     "DeepSeek": "deepseek",
+}
+DOCUMENT_PARSER_LABELS = {
+    "PDFingestor (current route)": "pdfingestor",
+    "MinerU (local models, slower)": "mineru",
 }
 
 
@@ -47,6 +52,7 @@ def render_operation_form(operation_label: str, manifest: VerticalManifest) -> F
         "canonical_compile": _canonical_compile,
         "storage_init": _storage_init,
         "storage_load": _storage_load,
+        "storage_load_batch": _storage_load_batch,
     }[operation]
     options, confirmation = renderer(manifest)
     options.update(vertical=manifest.vertical, manifest=str(manifest.source_path))
@@ -71,6 +77,7 @@ def _discovery(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
     with right:
         provider = _provider(manifest)
         model = st.text_input("Model override (optional)", key="_form:model")
+        document_parser = _document_parser()
         output = st.text_input("Schema output path (optional)", key="_form:output")
         timeout = st.number_input("API timeout (seconds)", min_value=1.0, value=600.0, key="_form:timeout")
     options = {
@@ -81,6 +88,7 @@ def _discovery(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
         "seed": seed,
         "provider": provider,
         "model": model,
+        "document_parser": document_parser,
         "output": output,
         "timeout": timeout,
     }
@@ -96,12 +104,14 @@ def _extract(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
     with right:
         provider = _provider(manifest)
         model = st.text_input("Model override (optional)", key="_form:model")
+        document_parser = _document_parser()
     return {
         "pdf": pdf,
         "schema": schema,
         "output": output,
         "provider": provider,
         "model": model,
+        "document_parser": document_parser,
     }, "I understand this operation can call an LLM and incur cost."
 
 
@@ -110,6 +120,26 @@ def _batch(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
     with left:
         schema = st.text_input("Approved schema path *", key="_form:schema")
         input_root = st.text_input("Input root override (optional)", key="_form:input_root")
+        categories = st.multiselect(
+            "Only extract PDFs in these category folders",
+            list(manifest.documents.categories),
+            default=list(manifest.documents.categories),
+            help=(
+                "Travel keeps only <insurer>/pds/ PDFs and skips TMD, FSG and other "
+                "supporting documents. Clear the selection to extract every PDF under "
+                "the input root."
+            ),
+            key="_form:categories",
+        )
+        output_dir = st.text_input(
+            "Extraction output folder (optional)",
+            help=(
+                "Saves <folder>/<insurer>/<category>/<file>.json and skips PDFs already "
+                "extracted there, so a failed run can be resumed. Use a new folder for "
+                "each run you plan to load into PostgreSQL."
+            ),
+            key="_form:output_dir",
+        )
         evaluate = st.checkbox(
             "Evaluate against labels",
             disabled=not manifest.supports("evaluation"),
@@ -119,12 +149,16 @@ def _batch(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
     with right:
         provider = _provider(manifest)
         model = st.text_input("Model override (optional)", key="_form:model")
+        document_parser = _document_parser()
     return {
         "schema": schema,
         "input_root": input_root,
+        "categories": categories,
+        "output_dir": output_dir,
         "evaluate": evaluate,
         "provider": provider,
         "model": model,
+        "document_parser": document_parser,
     }, "I understand this operation can make multiple LLM calls and incur cost."
 
 
@@ -177,6 +211,7 @@ def _refine(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
     with right:
         provider = _provider(manifest)
         model = st.text_input("Model override (optional)", key="_form:model")
+        document_parser = _document_parser()
         output_dir = st.text_input("Refinement output directory (optional)", key="_form:output_dir")
         timeout = st.number_input("API timeout (seconds)", min_value=1.0, value=600.0, key="_form:timeout")
         review_ui = st.checkbox("Stop for human review", value=True, key="_form:review_ui")
@@ -192,6 +227,7 @@ def _refine(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
         "seed": seed,
         "provider": provider,
         "model": model,
+        "document_parser": document_parser,
         "out_dir": output_dir,
         "timeout": timeout,
         "rounds": rounds,
@@ -246,6 +282,43 @@ def _storage_load(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
     }, "I understand this operation writes validated records to the configured database."
 
 
+def _storage_load_batch(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
+    st.caption(
+        "Loads every extraction result below the folder, one transaction per file. "
+        "Insurer codes come from each result's source PDF path; results that share a "
+        "source PDF are not loaded."
+    )
+    left, right = st.columns(2)
+    with left:
+        artifact_dir = st.text_input("Extraction results folder *", key="_form:artifact_dir")
+        schema = st.text_input("Canonical schema override (optional)", key="_form:schema")
+    with right:
+        database_url_env = st.text_input(
+            "Database URL environment variable",
+            value="KONKRD_DATABASE_URL",
+            key="_form:database_url_env",
+        )
+    return {
+        "artifact_dir": artifact_dir,
+        "schema": schema,
+        "database_url_env": database_url_env,
+    }, "I understand this operation writes validated records from every file in the folder to the configured database."
+
+
 def _provider(manifest: VerticalManifest) -> str | None:
     label = st.selectbox("LLM provider", list(PROVIDER_LABELS), key="_form:label")
     return PROVIDER_LABELS[label]
+
+
+def _document_parser() -> str:
+    label = st.selectbox(
+        "PDF parsing route",
+        list(DOCUMENT_PARSER_LABELS),
+        help=(
+            "Both routes send the same page/text/table structure to the model. "
+            "MinerU runs its pipeline models on this machine; an uncached PDF can "
+            "take several minutes."
+        ),
+        key="_form:document_parser",
+    )
+    return DOCUMENT_PARSER_LABELS[label]

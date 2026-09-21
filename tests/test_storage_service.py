@@ -80,6 +80,79 @@ class StoragePreparationTests(unittest.TestCase):
         self.assertEqual(first.raw_artifact["provider"], "openai")
         self.assertEqual(len(first.pdf_sha256), 64)
 
+    def test_directory_load_derives_insurer_codes_and_rejects_duplicate_sources(self) -> None:
+        from src.storage.service import load_extraction_directory
+
+        results_dir = self.root / "run20"
+        artifact = json.loads(self.artifact_path.read_text(encoding="utf-8"))
+        for name in ("fixture.json", "fixture_1.json"):
+            duplicate = results_dir / "cover_more" / "pds" / name
+            duplicate.parent.mkdir(parents=True, exist_ok=True)
+            duplicate.write_text(json.dumps(artifact), encoding="utf-8")
+        tick_pdf = self.input_root / "tick" / "pds" / "single.pdf"
+        tick_pdf.parent.mkdir(parents=True)
+        tick_pdf.write_bytes(b"%PDF-1.4\ntick fixture\n%%EOF\n")
+        tick_result = results_dir / "tick" / "pds" / "single.json"
+        tick_result.parent.mkdir(parents=True)
+        tick_result.write_text(json.dumps({**artifact, "source_path": str(tick_pdf)}), encoding="utf-8")
+        (results_dir / "broken.json").write_text("not json", encoding="utf-8")
+        ignored = results_dir / "errors" / "extraction" / "failed.json"
+        ignored.parent.mkdir(parents=True)
+        ignored.write_text("{}", encoding="utf-8")
+        calls: list[dict] = []
+
+        def fake_load(**kwargs):
+            calls.append(kwargs)
+            return "summary"
+
+        results = load_extraction_directory(
+            database_url="postgresql+psycopg:///unused",
+            manifest=self.manifest,
+            schema_path=self.schema_path,
+            artifact_dir=results_dir,
+            load_one=fake_load,
+        )
+
+        by_name = {result.artifact_path.relative_to(results_dir).as_posix(): result for result in results}
+        self.assertEqual(
+            sorted(by_name),
+            ["broken.json", "cover_more/pds/fixture.json", "cover_more/pds/fixture_1.json", "tick/pds/single.json"],
+        )
+        self.assertEqual([call["insurer_code"] for call in calls], ["tick"])
+        self.assertEqual(by_name["tick/pds/single.json"].summary, "summary")
+        for name in ("cover_more/pds/fixture.json", "cover_more/pds/fixture_1.json"):
+            self.assertIsNone(by_name[name].summary)
+            self.assertIn("keep one and retry", by_name[name].error)
+        self.assertIn("Could not read extraction artifact", by_name["broken.json"].error)
+
+    def test_directory_load_reports_loader_failures_and_requires_results(self) -> None:
+        from src.storage.service import load_extraction_directory
+
+        results_dir = self.root / "run20"
+        result = results_dir / "cover_more" / "pds" / "fixture.json"
+        result.parent.mkdir(parents=True)
+        result.write_text(self.artifact_path.read_text(encoding="utf-8"), encoding="utf-8")
+        options = {
+            "database_url": "postgresql+psycopg:///unused",
+            "manifest": self.manifest,
+            "schema_path": self.schema_path,
+        }
+
+        results = load_extraction_directory(
+            artifact_dir=results_dir,
+            load_one=mock.Mock(side_effect=ValueError("schema version collision")),
+            **options,
+        )
+        self.assertEqual(results[0].insurer_code, "cover_more")
+        self.assertEqual(results[0].error, "schema version collision")
+
+        empty = self.root / "empty"
+        empty.mkdir()
+        with self.assertRaisesRegex(ValueError, "No extraction artifacts"):
+            load_extraction_directory(artifact_dir=empty, load_one=mock.Mock(), **options)
+        with self.assertRaisesRegex(ValueError, "does not exist"):
+            load_extraction_directory(artifact_dir=self.root / "missing", load_one=mock.Mock(), **options)
+
     def test_rejects_source_document_outside_manifest_input_root(self) -> None:
         from src.storage.service import prepare_storage_load
 

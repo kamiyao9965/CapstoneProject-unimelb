@@ -186,6 +186,107 @@ class StructuredOutputTest(unittest.TestCase):
         self.assertEqual(failure.attempts[0].response.usage.total_tokens, 11)
         self.assertIn("refused", failure.errors[0]["message"])
 
+    def test_structural_noise_is_cleaned_before_validation_when_enabled(self) -> None:
+        import json
+
+        messages: list[str] = []
+        products_request = products_contract_request(log=messages.append)
+        noisy = {
+            "__typename": "ExtractionResult",
+            "__document_notes__": "Two plans share one table.",
+            "products": [{
+                "product_name": "Basic",
+                "__proto__": {},
+                "_unfilled": ["limit", "limit"],
+                "_notes": None,
+            }],
+        }
+        provider = SequenceProvider([json.dumps(noisy)])
+
+        result = run_structured_output(
+            provider,
+            products_request,
+            data_contract_schema=products_request.structured_output.schema,
+            drop_structural_noise=True,
+        )
+
+        self.assertEqual(result.data, {
+            "_document_notes": "Two plans share one table.",
+            "products": [{"product_name": "Basic", "_unfilled": ["limit"], "_notes": None}],
+        })
+        self.assertEqual(len(provider.requests), 1)
+        self.assertEqual(len(messages), 1)
+        for expected in ("removed '__typename'", "renamed '__document_notes__' to '_document_notes'",
+                         "$.products[0]: removed '__proto__'", "$.products[0]._unfilled: removed 1 duplicate item(s)"):
+            self.assertIn(expected, messages[0])
+
+    def test_declared_value_wins_over_misspelled_noise_key(self) -> None:
+        import json
+
+        products_request = products_contract_request()
+        provider = SequenceProvider([json.dumps({
+            "_document_notes": "declared",
+            "__document_notes__": "noise",
+            "products": [{"product_name": "Basic", "_unfilled": [], "_notes": None}],
+        })])
+
+        result = run_structured_output(
+            provider,
+            products_request,
+            data_contract_schema=products_request.structured_output.schema,
+            drop_structural_noise=True,
+        )
+
+        self.assertEqual(result.data["_document_notes"], "declared")
+        self.assertNotIn("__document_notes__", result.data)
+
+    def test_structural_noise_still_fails_by_default_and_other_extra_keys_fail(self) -> None:
+        import json
+
+        valid_product = {"product_name": "Basic", "_unfilled": [], "_notes": None}
+        for payload, enabled in (
+            ({"__typename": "X", "_document_notes": None, "products": [valid_product]}, False),
+            ({"extra": 1, "_document_notes": None, "products": [valid_product]}, True),
+        ):
+            products_request = products_contract_request()
+            with self.subTest(enabled=enabled), self.assertRaises(StructuredOutputFailure):
+                run_structured_output(
+                    SequenceProvider([json.dumps(payload)]),
+                    products_request,
+                    data_contract_schema=products_request.structured_output.schema,
+                    max_repair_attempts=0,
+                    drop_structural_noise=enabled,
+                )
+
+
+def products_contract_request(log=None) -> ProviderRequest:
+    product = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["product_name", "_unfilled", "_notes"],
+        "properties": {
+            "product_name": {"type": "string"},
+            "_unfilled": {"type": "array", "items": {"enum": ["limit"]}, "uniqueItems": True},
+            "_notes": {"type": ["string", "null"]},
+        },
+    }
+    return replace(
+        request(),
+        log=log,
+        structured_output=StructuredOutputSpec(
+            name="extraction_result",
+            schema={
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["products", "_document_notes"],
+                "properties": {
+                    "products": {"type": "array", "minItems": 1, "items": product},
+                    "_document_notes": {"type": ["string", "null"]},
+                },
+            },
+        ),
+    )
+
 
 if __name__ == "__main__":
     unittest.main()
