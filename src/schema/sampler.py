@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import math
 from collections import defaultdict
 from functools import lru_cache
 from hashlib import sha256
@@ -9,6 +10,15 @@ from typing import Iterable
 
 
 from src.verticals.manifest import resolve_manifest
+
+
+def sample_quality_passes(identities: Iterable[str], *, rate: float, seed: int) -> list[str]:
+    """Select a reproducible audit sample of judge-passed document identities."""
+    if not 0 <= rate <= 1:
+        raise ValueError("Quality pass sample rate must be between 0 and 1.")
+    unique = sorted(set(identities))
+    count = math.ceil(len(unique) * rate)
+    return sorted(random.Random(seed).sample(unique, count)) if count else []
 
 
 def category_from_path(

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Quality audit human review queue",
+  "type": "object", "additionalProperties": false,
+  "required": ["queue_id", "vertical", "schema_version", "schema_sha256", "seed", "pass_sample_rate", "audited_documents", "judge_review_documents", "judge_uncertain_documents", "items"],
+  "properties": {
+    "queue_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "vertical": {"type": "string", "minLength": 1},
+    "schema_version": {"type": "string", "minLength": 1},
+    "schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "seed": {"type": "integer"},
+    "pass_sample_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "audited_documents": {"type": "integer", "minimum": 0},
+    "judge_review_documents": {"type": "integer", "minimum": 0},
+    "judge_uncertain_documents": {"type": "integer", "minimum": 0},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["item_id", "kind", "source_document", "source_artifact", "product_index", "field_name", "issue_type", "reason", "source_page", "source_quote", "citation_verified", "extracted_value"],
+        "properties": {
+          "item_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "kind": {"enum": ["finding", "uncertain", "pass_sample"]},
+          "source_document": {"type": "string", "minLength": 1},
+          "source_artifact": {"type": "string", "minLength": 1},
+          "product_index": {"type": ["integer", "null"], "minimum": 0},
+          "field_name": {"type": ["string", "null"]},
+          "issue_type": {"type": ["string", "null"]},
+          "reason": {"type": "string", "minLength": 1},
+          "source_page": {"type": ["integer", "null"], "minimum": 1},
+          "source_quote": {"type": ["string", "null"], "minLength": 1},
+          "citation_verified": {"type": "boolean"},
+          "extracted_value": {}
+        }
+      }
+    }
+  }
+}

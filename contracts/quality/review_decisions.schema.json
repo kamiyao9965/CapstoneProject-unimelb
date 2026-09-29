@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Quality audit human decisions",
+  "type": "object", "additionalProperties": false,
+  "required": ["queue_id", "decisions"],
+  "properties": {
+    "queue_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["item_id", "decision", "notes", "reviewer", "reviewed_at"],
+        "properties": {
+          "item_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "decision": {"enum": ["issue_found", "no_issue", "uncertain"]},
+          "notes": {"type": "string", "maxLength": 2000},
+          "reviewer": {"type": "string", "minLength": 1, "maxLength": 200},
+          "reviewed_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  }
+}

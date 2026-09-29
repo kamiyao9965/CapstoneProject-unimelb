@@ -54,6 +54,9 @@
         },
         "storage": {
           "type": "boolean"
+        },
+        "quality_audit": {
+          "type": "boolean"
         }
       }
     },

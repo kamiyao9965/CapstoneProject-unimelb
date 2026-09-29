@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -186,6 +187,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Environment variable containing the PostgreSQL URL",
     )
 
+    quality_audit = subparsers.add_parser(
+        "quality-audit", help="Screen extraction artifacts against source PDFs with an LLM judge",
+    )
+    quality_audit.add_argument("--manifest")
+    quality_audit.add_argument("--schema", help="Approved Canonical Schema override")
+    quality_audit.add_argument("--artifact-dir", required=True)
+    quality_audit.add_argument("--source-root", help="Allowed source PDF root")
+    quality_audit.add_argument("--output-dir", required=True, help="New, separate audit directory")
+    quality_audit.add_argument("--provider")
+    quality_audit.add_argument("--model")
+    quality_audit.add_argument("--document-parser", choices=DOCUMENT_PARSERS,
+                               help="Default: use each extraction artifact's parser route")
+    quality_audit.add_argument("--sample-rate", type=float, default=0.05)
+    quality_audit.add_argument("--seed", type=int, default=42)
+    quality_audit.add_argument("--max-document-chars", type=int, default=120_000)
+
     return parser
 
 
@@ -225,6 +242,11 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
             args.artifact = Path(args.artifact)
         if args.command == "storage-load-batch":
             args.artifact_dir = Path(args.artifact_dir)
+    elif args.command == "quality-audit":
+        args.schema = Path(args.schema) if args.schema else manifest.path("canonical_schema")
+        args.artifact_dir = Path(args.artifact_dir)
+        args.source_root = Path(args.source_root) if args.source_root else manifest.path("input_root")
+        args.output_dir = Path(args.output_dir)
     return manifest
 
 
@@ -735,6 +757,35 @@ def command_storage_load_batch(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def command_quality_audit(args: argparse.Namespace) -> int:
+    """Optional offline quality screen; no extraction, schema or DB mutation."""
+    from src.common.model_provider import create_provider
+    from src.evaluation.quality import run_quality_audit
+
+    try:
+        selection = resolve_selection(
+            provider=args.provider, model=args.model, document_input="markdown",
+        )
+        queue_path = run_quality_audit(
+            manifest=args.vertical_manifest, schema_path=args.schema,
+            artifact_dir=args.artifact_dir, source_root=args.source_root,
+            output_dir=args.output_dir, selection=selection,
+            provider=create_provider(selection), sample_rate=args.sample_rate,
+            seed=args.seed, document_parser=args.document_parser,
+            max_document_chars=args.max_document_chars,
+        )
+    except (ValueError, FileNotFoundError, FileExistsError) as exc:
+        print(f"Quality audit failed: {exc}")
+        return 1
+    except Exception as exc:
+        # Provider failures may contain sensitive request details; keep CLI/UI output safe.
+        print(f"Quality audit failed ({type(exc).__name__}); inspect configuration and retry in a new output directory.")
+        return 1
+    print(f"Quality review queue: {queue_path}")
+    print(f"Open review UI: .venv/bin/python -m streamlit run src/quality_review_app.py -- --quality-dir {shlex.quote(str(args.output_dir))}")
+    return 0
+
+
 def default_output_path(manifest: VerticalManifest, pdf_path: Path, *, input_root=None) -> Path:
     from src.common.json_artifacts import next_available_path
 
@@ -777,6 +828,8 @@ def main() -> int:
         return command_storage_load(args)
     if args.command == "storage-load-batch":
         return command_storage_load_batch(args)
+    if args.command == "quality-audit":
+        return command_quality_audit(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

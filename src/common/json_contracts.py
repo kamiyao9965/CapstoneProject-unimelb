@@ -19,6 +19,10 @@ _CONTRACT_PATHS = {
     "canonical_schema": "canonical_schema.schema.json",
     "vertical_manifest": "vertical_manifest.schema.json",
     "storage_mapping": "storage_mapping.schema.json",
+    "quality/judge_result": "quality/judge_result.schema.json",
+    "quality/audit_report": "quality/audit_report.schema.json",
+    "quality/review_queue": "quality/review_queue.schema.json",
+    "quality/review_decisions": "quality/review_decisions.schema.json",
     "private_health/discovered_schema": (
         "private_health/discovered_schema.schema.json"
     ),

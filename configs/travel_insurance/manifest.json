@@ -7,7 +7,8 @@
     "refinement": true,
     "extraction": true,
     "evaluation": false,
-    "storage": true
+    "storage": true,
+    "quality_audit": true
   },
   "documents": {
     "categories": [
@@ -42,7 +43,8 @@
   "prompts": {
     "discovery": "prompts/discovery.md",
     "patch": "prompts/patch.md",
-    "extraction": "prompts/extraction.md"
+    "extraction": "prompts/extraction.md",
+    "quality_audit": "prompts/quality_audit.md"
   },
   "adapters": {
     "evaluator": null,

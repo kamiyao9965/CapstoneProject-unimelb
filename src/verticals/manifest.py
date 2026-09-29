@@ -18,6 +18,7 @@ OPERATION_CAPABILITIES = {
     "discover": "discovery", "extract": "extraction", "batch": "extraction",
     "crawl": "acquisition", "refine": "refinement", "canonical_compile": "storage",
     "storage_init": "storage", "storage_load": "storage", "storage_load_batch": "storage",
+    "quality_audit": "quality_audit",
 }
 
 
@@ -227,4 +228,8 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
         path = Path(manifest.prompt(name))
         if not path.read_text(encoding="utf-8").strip():
             raise ManifestValidationError(f"Empty prompt {name!r}: {path}")
+    if manifest.supports("quality_audit"):
+        path = Path(manifest.prompt("quality_audit"))
+        if not path.read_text(encoding="utf-8").strip():
+            raise ManifestValidationError(f"Empty prompt 'quality_audit': {path}")
     return manifest

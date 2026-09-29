@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Quality audit report",
+  "type": "object", "additionalProperties": false,
+  "required": ["source_artifact_sha256", "schema_sha256", "pdf_sha256", "prompt_sha256", "verdict", "correctness", "evidence_support", "uncertainty", "summary", "findings"],
+  "properties": {
+    "source_artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "pdf_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "prompt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "verdict": {"enum": ["pass", "review", "uncertain"]},
+    "correctness": {"enum": ["supported", "mixed", "unsupported", "unknown"]},
+    "evidence_support": {"enum": ["supported", "mixed", "unsupported", "unknown"]},
+    "uncertainty": {"enum": ["low", "medium", "high"]},
+    "summary": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "findings": {
+      "type": "array", "maxItems": 25,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["product_index", "field_name", "issue_type", "reason", "source_page", "source_quote", "citation_verified", "extracted_value"],
+        "properties": {
+          "product_index": {"type": ["integer", "null"], "minimum": 0},
+          "field_name": {"type": ["string", "null"]},
+          "issue_type": {"enum": ["wrong_value", "wrong_plan", "missing_condition", "unsupported_claim", "potential_omission", "other"]},
+          "reason": {"type": "string", "minLength": 1, "maxLength": 1000},
+          "source_page": {"type": ["integer", "null"], "minimum": 1},
+          "source_quote": {"type": ["string", "null"], "minLength": 1, "maxLength": 1000},
+          "citation_verified": {"type": "boolean"},
+          "extracted_value": {}
+        }
+      }
+    }
+  }
+}
