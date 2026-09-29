@@ -153,6 +153,28 @@ class ToolCommandBuilderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PDF path"):
             build_command(CommandRequest("extract", {"schema": "schema.json"}))
 
+    def test_quality_audit_command_is_allowlisted_and_requires_separate_output(self) -> None:
+        command = build_command(
+            CommandRequest("quality_audit", {
+                "vertical": "travel_insurance", "artifact_dir": "outputs/travel_insurance/extractions/run1",
+                "output_dir": "outputs/travel_insurance/quality/run1", "sample_rate": 0.05,
+                "seed": 7, "max_document_chars": 100000,
+            }),
+            python_executable="python", project_root=PROJECT_ROOT,
+        )
+        self.assertEqual(command[2], "quality-audit")
+        self.assertIn("--sample-rate", command)
+        self.assertEqual(command[command.index("--output-dir") + 1],
+                         "outputs/travel_insurance/quality/run1")
+        with self.assertRaisesRegex(ValueError, "new quality output folder"):
+            build_command(CommandRequest("quality_audit", {
+                "vertical": "travel_insurance", "artifact_dir": "extractions",
+            }))
+        with self.assertRaisesRegex(ValueError, "does not support"):
+            build_command(CommandRequest("quality_audit", {
+                "vertical": "private_health", "artifact_dir": "extractions", "output_dir": "quality",
+            }))
+
     def test_disabled_capabilities_fail_before_execution(self):
         for operation in ("crawl", "storage_init", "canonical_compile", "storage_load_batch"):
             with self.subTest(operation=operation), self.assertRaisesRegex(ValueError, "does not support"):

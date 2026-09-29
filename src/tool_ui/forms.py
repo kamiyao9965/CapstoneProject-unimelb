@@ -20,6 +20,7 @@ OPERATION_LABELS = {
     "Initialize PostgreSQL storage": "storage_init",
     "Load extraction into PostgreSQL": "storage_load",
     "Load extraction folder into PostgreSQL": "storage_load_batch",
+    "Quality audit (LLM judge)": "quality_audit",
 }
 PROVIDER_LABELS = {
     "Environment default": None,
@@ -53,6 +54,7 @@ def render_operation_form(operation_label: str, manifest: VerticalManifest) -> F
         "storage_init": _storage_init,
         "storage_load": _storage_load,
         "storage_load_batch": _storage_load_batch,
+        "quality_audit": _quality_audit,
     }[operation]
     options, confirmation = renderer(manifest)
     options.update(vertical=manifest.vertical, manifest=str(manifest.source_path))
@@ -303,6 +305,43 @@ def _storage_load_batch(manifest: VerticalManifest) -> tuple[dict[str, object], 
         "schema": schema,
         "database_url_env": database_url_env,
     }, "I understand this operation writes validated records from every file in the folder to the configured database."
+
+
+def _quality_audit(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
+    st.caption(
+        "Optional, non-blocking screen after extraction. The judge reads the original PDF "
+        "and approved field definitions; the output is a separate review queue, never a database update."
+    )
+    left, right = st.columns(2)
+    with left:
+        artifact_dir = st.text_input("Extraction artifacts folder *", key="_form:artifact_dir")
+        output_dir = st.text_input("New quality output folder *", key="_form:output_dir")
+        schema = st.text_input("Approved Canonical Schema override (optional)", key="_form:schema")
+        source_root = st.text_input("Source PDF root override (optional)", key="_form:source_root")
+    with right:
+        provider = _provider(manifest)
+        model = st.text_input("Model override (optional)", key="_form:model")
+        parser_label = st.selectbox(
+            "PDF parsing route",
+            ["Use extraction artifact route", *DOCUMENT_PARSER_LABELS],
+            key="_form:quality_parser",
+        )
+        parser = DOCUMENT_PARSER_LABELS.get(parser_label)
+        sample_rate = st.number_input(
+            "Judge-pass sample rate", min_value=0.0, max_value=1.0,
+            value=0.05, step=0.01, key="_form:sample_rate",
+        )
+        seed = st.number_input("Sample seed", value=42, key="_form:seed")
+        max_document_chars = st.number_input(
+            "Maximum parsed PDF characters", min_value=1, value=120000,
+            key="_form:max_document_chars",
+        )
+    return {
+        "artifact_dir": artifact_dir, "output_dir": output_dir, "schema": schema,
+        "source_root": source_root, "provider": provider, "model": model,
+        "document_parser": parser, "sample_rate": sample_rate, "seed": seed,
+        "max_document_chars": max_document_chars,
+    }, "I understand this audit reads source PDFs, calls an LLM, and incurs cost."
 
 
 def _provider(manifest: VerticalManifest) -> str | None:

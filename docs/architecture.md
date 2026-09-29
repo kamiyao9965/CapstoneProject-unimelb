@@ -2,7 +2,8 @@
 
 This project is a Python CLI for discovering, evaluating, and refining a
 versioned JSON extraction contract for Australian Health and Travel documents.
-The same engine consumes a validated manifest plus three prompt files per vertical.
+The same engine consumes a validated manifest plus discovery, patch and extraction
+prompts per vertical; Travel also supplies a post-extraction quality prompt.
 
 ## Runtime flows
 
@@ -26,6 +27,19 @@ The UI contains no workflow logic. `src/run.py` and `src/refine/loop.py` remain
 the authoritative parsers and orchestrators, so every UI action is reproducible
 as the command preview shown on the page. The console is local-only and has no
 authentication boundary.
+
+The Travel-only `quality-audit` operation is an explicit, post-extraction
+screen. `src/evaluation/quality.py` validates the exact approved Canonical
+Schema and extraction identity, resolves the PDF within an allowed source root,
+renders its pages through `src/PDFingestor/adapter.py`, and sends those pages,
+field definitions and values through the shared structured-output model
+boundary. It writes separate, no-clobber report/queue artifacts and an
+independent usage log. `src/schema/sampler.py` owns deterministic sampling of
+judge passes. `src/evaluation/quality_review.py` binds human decisions to the
+queue identity; `quality_review_ui.py` only presents and records those decisions.
+Neither judge nor human review imports storage or mutates extraction output.
+This screen does not claim ground-truth accuracy; Health's labelled evaluation
+is separate.
 
 ### One-shot discovery
 
@@ -181,7 +195,8 @@ AppConfig and the old Markdown-mirror MinerU preprocessor remain retired.
 Batch evaluation aggregates once and produces one `report.json` / `report.md`
 pair; there is no heuristic extraction or separate model-only report path.
 
-- `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical.
+- `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical;
+  Travel also has a quality-judge prompt.
 - `src/verticals/`: validated manifest resolution and existing executable adapters.
 - `src/PDFingestor/`: PDF-to-prompt entry, pdfplumber parser, MinerU route and parse cache.
 - `src/schema/`: discovery, sampling, schema loader/validation/compiler and Canonical candidate.
@@ -190,7 +205,8 @@ pair; there is no heuristic extraction or separate model-only report path.
 - `src/refine/human_review/`: queue, decisions, UI, reviewed schema.
 - `src/refine/pipeline/`: outer round and resume orchestration.
 - `src/schema_application/`: shared extraction and applicability analysis.
-- `src/evaluation/`: existing Health labelled matching and metrics.
+- `src/evaluation/`: existing Health labelled matching/metrics, plus optional
+  Travel PDF-evidence quality screening and queue-bound human review.
 - `src/storage/`: approved Canonical compilation, PostgreSQL transactions and idempotency.
 - `src/scraper/`: existing Travel acquisition; no new crawler framework.
 - `src/stability/`: semantic schema drift excluding envelope/provenance.

@@ -26,6 +26,7 @@ SUPPORTED_OPERATIONS = frozenset(
         "storage_init",
         "storage_load",
         "storage_load_batch",
+        "quality_audit",
     }
 )
 PROVIDER_VALUES = frozenset({"openai", "anthropic", "deepseek"})
@@ -172,6 +173,17 @@ def build_command(
             command, "--artifact-dir", options.get("artifact_dir"), "extraction results folder"
         )
         _add_database_environment(command, options.get("database_url_env"))
+    elif operation == "quality_audit":
+        _add_required(command, "--artifact-dir", options.get("artifact_dir"), "extraction artifacts folder")
+        _add_required(command, "--output-dir", options.get("output_dir"), "new quality output folder")
+        _add(command, "--schema", options.get("schema"))
+        _add(command, "--source-root", options.get("source_root"))
+        _add_provider(command, options.get("provider"))
+        _add(command, "--model", options.get("model"))
+        _add_document_parser(command, options.get("document_parser"))
+        _add_rate(command, "--sample-rate", options.get("sample_rate"))
+        _add_int(command, "--seed", options.get("seed"))
+        _add_positive_int(command, "--max-document-chars", options.get("max_document_chars"))
     return command
 
 
@@ -303,6 +315,15 @@ def _add_positive_number(command: list[str], flag: str, value: object) -> None:
     parsed = float(value)
     if isinstance(value, bool) or parsed <= 0:
         raise ValueError(f"{flag} must be greater than zero.")
+    _add(command, flag, f"{parsed:g}")
+
+
+def _add_rate(command: list[str], flag: str, value: object) -> None:
+    if value is None:
+        return
+    parsed = float(value)
+    if isinstance(value, bool) or not 0 <= parsed <= 1:
+        raise ValueError(f"{flag} must be between zero and one.")
     _add(command, flag, f"{parsed:g}")
 
 

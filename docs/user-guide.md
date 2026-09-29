@@ -1,6 +1,6 @@
 # Health / Travel 实用手册
 
-面向项目组的开发、实验和演示。依据 `main` 的 `2e4465f` 及其后本分支的引擎精简核对，更新于 2026-09-15（新增 MinerU 解析路线和 InsureandGo / Tick / 1Cover 采集来源）。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
+面向项目组的开发、实验和演示。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
 
 ## 1. 先选对入口
 
@@ -15,8 +15,9 @@
 | 收集 Travel 公开文档 | `src/run.py crawl` | 访问保险公司网站 |
 | 审批 Travel 入库契约 | `src/canonical_review_app.py` | 否 |
 | 生成 SQL 预览 / 真正建表、入库 | `canonical-compile` / `storage-init`、`storage-load`、`storage-load-batch` | 仅建表和入库连接 PostgreSQL |
+| 对 Travel 抽取做最终质检 | `src/run.py quality-audit` + `src/quality_review_app.py` | judge 阶段调用模型；人工复核不调用 |
 
-当前是一套 Python 引擎、三个本地 Streamlit 页面和文件产物，没有 REST API 服务。
+当前是一套 Python 引擎、四个本地 Streamlit 页面和文件产物，没有 REST API 服务。
 
 ### 两个 vertical 的实际差异
 
@@ -31,6 +32,7 @@
 | 默认 proposal 次数 | 1 | 5 |
 | loop 自动 holdout / feedback | 支持 | 未配置 |
 | labelled batch evaluation | 支持，需本地标签数据 | 不支持 |
+| PDF 证据驱动的抽取质检 | 未启用 | 支持，非准确率评估 |
 | 文档采集 / Canonical / PostgreSQL | 未启用 | 支持 |
 
 Travel 的 `pds` 表示文档类型；它不等于 `domestic` 等产品类型。流程不会把 `pds` 当作产品分类真值。
@@ -362,6 +364,40 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
 - 批量入库时每份结果单独一个事务，公司 code 从结果记录的源 PDF 路径自动识别，`errors/` 目录会跳过。同一份 PDF 在文件夹里有多份结果时，这几份都不入库，需要只留一份再重跑。最后打印每份结果和“loaded / failed / total”汇总，只要有一份失败命令就返回非零。
 - 这两个操作在 UI 里同样同步执行，单次最多运行 2 小时；份数很多时，先用少量 PDF 估算耗时。
 
+### F. 可选：LLM judge + 人工终检
+
+这一步在抽取后独立运行；入库能成功只代表结构/映射可接受，不代表 PDF
+事实正确。Judge 看原始 PDF 的解析页、这次 approved Canonical Schema 的字段定义和
+抽取 JSON，然后把可能错误或证据不足的项目排给人。它不自动改值、不重新提取、
+不审批 Schema，也不拦截入库。无需先制作人工 gold labels。
+
+```bash
+.venv/bin/python src/run.py quality-audit \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact-dir outputs/travel_insurance/extractions/run20 \
+  --output-dir outputs/travel_insurance/quality/run20 \
+  --sample-rate 0.05 --seed 42
+
+.venv/bin/python -m streamlit run src/quality_review_app.py -- \
+  --quality-dir outputs/travel_insurance/quality/run20
+```
+
+也可以在操作台选择 Travel → “Quality audit (LLM judge)”：Extraction artifacts
+folder 填 batch 的 `--output-dir`；New quality output folder 填一个**尚不存在**的
+新目录；Schema/Source PDF root 留空即使用 manifest 默认值；Provider/Model 与普通
+模型操作相同；PDF parser 默认遵循每份抽取记录；Pass sample rate 默认 `0.05`，
+seed 默认 `42`。确认后运行。指定的 extraction 文件夹应只放同一批次、同一版
+Canonical Schema 的成功产物。若原 PDF 放在别的根目录，明确填 Source PDF root。
+该命令读取本地 PDF 并调用 LLM，可能产生费用；不会上传 PDF 文件本身，而是发送
+受长度上限约束的解析文本。首次可只用小批次试运行。失败后换一个新 output 目录，
+保留旧目录中的已完成报告与 usage 记录供排查。
+
+在复核页逐项打开 Source PDF 的指定页，核对 judge 引文在原文中的上下文和
+抽取值，再选择 `Issue found`、`No issue` 或 `Uncertain`，填写 reviewer；发现问题
+或无法判断时必须写 notes。待复核队列包括所有 judge 疑点/不确定项，以及按 seed
+抽出的少量 judge-pass 文档。`review_decisions.json` 只记录人的结论，不改原始
+抽取或数据库。页面里的“警报确认/驳回、pass 抽检漏报”是校准信号，不是准确率。
+
 ## 6. 读懂输出、质量和成本
 
 ### 产物去哪找
@@ -376,6 +412,7 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
 | `<实验目录>/round_N/refinement_feedback.json` | Health 本轮反馈 |
 | `<实验目录>/final_schema*.json` | 本次发布的 schema，按日志选择具体版本 |
 | `outputs/<vertical>/extractions/` | 主 CLI 单份 / 批量提取结果 |
+| `outputs/travel_insurance/quality/<run>/` | judge 报告、复核队列/决策、独立 usage log |
 | `errors/<stage>/` | 对应输出根目录下的失败诊断 |
 | `pdfingestor_cache/` | 相应阶段使用的本地解析缓存（PDFingestor 和 MinerU 两条路线都在这里，按解析器区分），可重新生成 |
 | `parsed_markdown/<解析器>/` | 发给模型的每份 PDF 文本，按输入目录结构排列，用于对比两条解析路线，可删除 |

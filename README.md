@@ -114,7 +114,7 @@ Start the local Streamlit console from the project root:
 Select the insurance vertical first. The console discovers `configs/*/manifest.json`
 and shows only operations enabled for that vertical: discovery, extraction,
 batch, refinement, and where supported, acquisition, Canonical compilation and
-PostgreSQL storage. Changing vertical or operation clears form/confirmation/result
+PostgreSQL storage and post-extraction quality audit. Changing vertical or operation clears form/confirmation/result
 state. Confirmation belongs to the full command; changing parameters invalidates it.
 Results display the vertical and command captured at launch. It displays the exact command
 before execution and requires explicit confirmation for LLM, network, and
@@ -183,12 +183,13 @@ src/verticals/registry.py
 
 Private health enables discovery, refinement, extraction, and evaluation.
 Travel insurance enables acquisition, discovery, five-run consensus refinement,
-extraction, and storage. Its manifest
+extraction, storage, and an optional LLM quality audit. Its manifest
 records `product_release` as the extraction unit and `multiple` as the output
 cardinality, so one PDS extraction produces a `products` array rather than
 collapsing several named plans into one record. Travel ground-truth evaluation
 remains disabled until a labelled dataset exists; refinement therefore stops
-after human review instead of claiming a holdout accuracy result.
+after human review instead of claiming a holdout accuracy result. The quality
+audit is a screening workflow, not labelled ground-truth evaluation.
 
 Both verticals now produce the same discovered-schema shape: `fields` includes
 `product_type`, and `taxonomies` contains the named classification collections.
@@ -350,6 +351,44 @@ interrupted run can be resumed without paying again:
 code from the result's source PDF path, skips `errors/` folders, refuses results
 that share a source PDF, prints one line per file plus a summary, and exits
 non-zero when any file fails.
+
+### Optional Travel extraction quality audit
+
+After extracting a dedicated Travel batch with an approved Canonical Schema,
+run a separate LLM judge against the original PDF pages, schema field definitions,
+and extracted values. This does not modify the extraction, schema or database,
+and does not block `storage-load*`:
+
+```bash
+.venv/bin/python src/run.py quality-audit \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact-dir outputs/travel_insurance/extractions/run20 \
+  --output-dir outputs/travel_insurance/quality/run20 \
+  --sample-rate 0.05 --seed 42
+
+.venv/bin/python -m streamlit run src/quality_review_app.py -- \
+  --quality-dir outputs/travel_insurance/quality/run20
+```
+
+The default approved schema and source-PDF root come from the Travel manifest;
+override them with `--schema` and `--source-root` only when they match the
+extraction. The output directory must be new. The audit uses each artifact's
+recorded PDF parser unless `--document-parser` is supplied. It renders parsed
+pages as Markdown; no raw PDF is uploaded by this command. An over-limit PDF
+context fails rather than being silently truncated; adjust
+`--max-document-chars` only if the selected model can handle it. This operation
+calls an LLM and incurs cost, including up to two structured-output repairs.
+
+The output has `reports/` (one immutable report per extraction),
+`review_queue.json`, `quality_usage.jsonl`, and, once reviewed,
+`review_decisions.json`. The queue contains every judge finding/uncertain case
+plus a seeded sample of judge-passed documents. A checker opens the cited PDF
+page and records `issue_found`, `no_issue`, or `uncertain` with notes. Reports
+show quote-verification status, not proof that the judge's interpretation is
+correct. Alert rate, confirmed/dismissed alerts and sampled-pass misses are
+operational signals, not a measured extraction-accuracy percentage. The same
+audit command is available in the local operator UI under “Quality audit
+(LLM judge)”.
 
 Run the opt-in integration check only against a disposable PostgreSQL database:
 

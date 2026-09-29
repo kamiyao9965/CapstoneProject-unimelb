@@ -37,6 +37,18 @@ class ToolAppTests(unittest.TestCase):
         self.assertIn("--categories pds", at.code[0].value)
         self.assertIn("--output-dir outputs/travel_insurance/extractions/run20", at.code[0].value)
 
+    def test_travel_quality_audit_preview_needs_confirmation(self):
+        at = self.app()
+        at.selectbox(key="vertical").set_value("travel_insurance").run()
+        at.selectbox(key="operation").set_value("Quality audit (LLM judge)").run()
+        at.text_input(key="_form:artifact_dir").set_value("outputs/travel_insurance/extractions/run20").run()
+        at.text_input(key="_form:output_dir").set_value("outputs/travel_insurance/quality/run20").run()
+        self.assertFalse(at.exception)
+        self.assertIn("src/run.py quality-audit", at.code[0].value)
+        self.assertTrue(at.button(key="run-command").disabled)
+        at.checkbox[0].check().run()
+        self.assertFalse(at.button(key="run-command").disabled)
+
     def test_mineru_route_appears_in_command_preview(self):
         at = self.app()
         at.selectbox(key="_form:document_parser").set_value("MinerU (local models, slower)").run()

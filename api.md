@@ -378,6 +378,38 @@ load_extraction_directory(*, database_url, manifest, schema_path,
 
 `load_extraction_directory` 递归读取文件夹里的 `*.json`（跳过 `errors/`），从每份结果的源 PDF 路径取公司 code，再逐份调用 `load_extraction_artifact`，每份单独一个事务。同一份源 PDF 对应多份结果时这几份都不加载。返回按路径排序的 `DirectoryLoadResult(artifact_path, insurer_code, summary, error)` 列表，成功时 `summary` 有值、失败时 `error` 有值；单份失败不影响其他文件。文件夹不存在或没有结果时抛 `ValueError`。`load_one` 仅用于测试注入。
 
+### 可选抽取质检（Travel）
+
+```text
+audit_one(*, manifest, schema_path, artifact_path, source_root,
+          selection, provider, usage_log_path=None,
+          document_parser=None, max_document_chars=120000,
+          max_extraction_chars=60000) -> quality_audit envelope
+run_quality_audit(*, manifest, schema_path, artifact_dir, source_root,
+                  output_dir, selection, provider, sample_rate=0.05,
+                  seed=42, document_parser=None,
+                  max_document_chars=120000) -> review_queue_path
+build_review_queue(reports, *, sample_rate, seed) -> quality_review_queue envelope
+load_queue(queue_path) -> quality_review_queue envelope
+load_decisions(queue_path, decisions_path) -> quality_review_decisions envelope
+save_decision(queue_path, decisions_path, item_id, decision, notes, reviewer) -> Path
+quality_metrics(queue, decisions) -> dict
+```
+
+`src.evaluation.quality` 要求 approved Canonical Schema 与 extraction 的 vertical/
+version 匹配，并复验抽取结构、源 PDF 路径和内容 hash；只发送 PDFingestor/MinerU
+解析文本，不上传 PDF。Judge 通过现有 `run_structured_output` 调用注入的 provider，
+最多两次修复。判断结果是 `pass/review/uncertain` 及正确性、证据支持、不确定性
+等级；引用只有在所报页的解析内容里找到原文时才标 `citation_verified=true`。
+这不等于事实已被证实。`src.schema.sampler.sample_quality_passes` 选择可复现的
+pass 抽检。`src.evaluation.quality_review` 校验队列身份并只允许人写独立决策
+`issue_found/no_issue/uncertain`；它不会修改 extraction、schema 或 PostgreSQL。
+`quality_metrics` 是工作量和人工反馈信号，没有“准确率”字段。
+
+产物契约名：`quality/judge_result`（模型输出）、`quality/audit_report`、
+`quality/review_queue`、`quality/review_decisions`。目录执行需要新 output 目录；
+中途失败时已完成报告和独立 `quality_usage.jsonl` 留存，但不生成完成态队列。
+
 ## 10. JSON 文件边界
 
 ### 严格 JSON 与契约
@@ -453,6 +485,7 @@ parse_extraction_artifact(raw: bytes, *, vertical: str,
 | `src/run.py storage-init` | 无，schema 默认来自 manifest | `--manifest --schema --database-url-env` |
 | `src/run.py storage-load` | `--artifact --insurer-code` | `--manifest --schema --database-url-env` |
 | `src/run.py storage-load-batch` | `--artifact-dir` | `--manifest --schema --database-url-env` |
+| `src/run.py quality-audit` | `--artifact-dir --output-dir` | `--manifest --schema --source-root --provider --model --document-parser --sample-rate --seed --max-document-chars` |
 | `src/refine/loop.py` | 无 | `--manifest --input-root --out-dir --per-category --seed --eval-per-category --eval-seed --consensus-runs --review-ui --resume-review --resume-feedback --autonomous --rounds --provider --model --document-input --document-parser --timeout` |
 | `src/refine/consensus.py` | 无，基础 schema 默认来自 manifest 输出根目录 | `--manifest --base-schema --input-root --per-category --runs --seed --out-dir --provider --model --document-input --timeout` |
 | `src/refine/review.py apply` | `--consensus-dir` | `--base-schema --out` |
