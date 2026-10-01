@@ -1,45 +1,49 @@
-# Health / Travel 实用手册
+# Health / Travel operator guide
 
-面向项目组的开发、实验和演示。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
+For project development, experiments, and demonstrations. Run commands from the
+repository root and replace example PDF paths with your own files. See the
+[documentation index](README.md), [Python and file interfaces](api.md),
+[architecture](architecture.md), and [directory conventions](project-layout.md).
 
-## 1. 先选对入口
+## 1. Choose the right entry point
 
-| 我想做什么 | 使用哪个入口 | 是否调用外部服务 |
+| Goal | Entry point | External services |
 | --- | --- | --- |
-| 用页面选择领域、配置并运行 | `src/tool_app.py` | 取决于执行的操作 |
-| 从 PDF 发现字段 | `src/run.py discover` | 模型 API |
-| 用已有 schema 提取 PDF | `src/run.py extract` / `batch` | 模型 API |
-| 生成字段建议、人工审核、继续流程 | `src/refine/loop.py` + `src/review_app.py` | 生成及提取阶段调用模型 |
-| 查看已有提取结果的问题 | `src/schema_application/analyze.py` | 否 |
-| 比较已有 schema 的稳定性 | `src/stability/compare.py` | 否 |
-| 收集 Travel 公开文档 | `src/run.py crawl` | 访问保险公司网站 |
-| 审批 Travel 入库契约 | `src/canonical_review_app.py` | 否 |
-| 生成 SQL 预览 / 真正建表、入库 | `canonical-compile` / `storage-init`、`storage-load`、`storage-load-batch` | 仅建表和入库连接 PostgreSQL |
-| 对 Travel 抽取做最终质检 | `src/run.py quality-audit` + `src/quality_review_app.py` | judge 阶段调用模型；人工复核不调用 |
+| Configure and run workflows in a page | `src/ui/tool_app.py` | Depends on operation |
+| Discover fields from PDFs | `src/run.py discover` | Model API |
+| Extract using a schema | `src/run.py extract` / `batch` | Model API |
+| Generate proposals, review, and continue | `src/refine/loop.py` + `src/ui/review_app.py` | Models for generation/extraction |
+| Inspect existing extraction issues | `src/schema_application/analyze.py` | None |
+| Compare existing schemas | `src/stability/compare.py` | None |
+| Acquire public Travel documents | `src/run.py crawl` | Insurer websites |
+| Approve a Travel storage contract | `src/ui/canonical_review_app.py` | None |
+| Preview SQL / initialize or load tables | `canonical-compile` / `storage-init`, `storage-load`, `storage-load-batch` | Only initialization/loading connects to PostgreSQL |
+| Screen Travel extraction quality | `src/run.py quality-audit` + `src/ui/quality_review_app.py` | Judge calls a model; human review does not |
 
-当前是一套 Python 引擎、四个本地 Streamlit 页面和文件产物，没有 REST API 服务。
+The project has one Python engine, four local Streamlit pages, and file artifacts.
+It has no REST service.
 
-### 两个 vertical 的实际差异
+### Differences between verticals
 
-| 配置 | Health | Travel |
+| Configuration | Health | Travel |
 | --- | --- | --- |
-| vertical code | `private_health` | `travel_insurance` |
-| manifest | `configs/private_health/manifest.json` | `configs/travel_insurance/manifest.json` |
-| 采样目录类别 | `combined`、`extras`、`generalhealth`、`hospital` | `pds` |
-| 提取单位 | 一份文档一个对象 | 一份文档内多个产品 / product release |
-| 产品类型 | `hospital`、`extras`、`generalhealth`、`combined` | `international_single_trip`、`international_multi_trip`、`domestic`、`inbound`、`business`、`cruise` |
-| taxonomy | `hospital_categories`、`extras_services` | `coverage_categories` |
-| 默认 proposal 次数 | 1 | 5 |
-| loop 自动 holdout / feedback | 支持 | 未配置 |
-| labelled batch evaluation | 支持，需本地标签数据 | 不支持 |
-| PDF 证据驱动的抽取质检 | 未启用 | 支持，非准确率评估 |
-| 文档采集 / Canonical / PostgreSQL | 未启用 | 支持 |
+| Vertical code | `private_health` | `travel_insurance` |
+| Manifest | `configs/private_health/manifest.json` | `configs/travel_insurance/manifest.json` |
+| Sampling categories | `combined`, `extras`, `generalhealth`, `hospital` | `pds` |
+| Extraction unit | One object per document | Multiple products/product releases per document |
+| Product types | `hospital`, `extras`, `generalhealth`, `combined` | `international_single_trip`, `international_multi_trip`, `domestic`, `inbound`, `business`, `cruise` |
+| Taxonomies | `hospital_categories`, `extras_services` | `coverage_categories` |
+| Default proposal runs | 1 | 5 |
+| Automatic loop holdout/feedback | Supported | Not configured |
+| Labelled batch evaluation | Supported with local labels | Unsupported |
+| PDF-evidence quality screening | Disabled | Supported; not an accuracy evaluation |
+| Acquisition / Canonical / PostgreSQL | Disabled | Supported |
 
-Travel 的 `pds` 表示文档类型；它不等于 `domestic` 等产品类型。流程不会把 `pds` 当作产品分类真值。
+Travel's `pds` is a document category, not a product-type ground-truth label.
 
-## 2. 安装与环境配置
+## 2. Installation and environment
 
-已有项目虚拟环境时直接使用 `.venv/bin/python`。首次安装：
+Use the existing `.venv/bin/python` when available. For a new installation:
 
 ```bash
 python3 -m venv .venv
@@ -48,9 +52,12 @@ python3 -m venv .venv
 .venv/bin/python src/run.py --help
 ```
 
-项目依赖支持范围见 [README](../README.md#requirements) 和 [依赖政策](dependency-policy.md)。仓库不包含 API key、原始 PDF 和标签数据。
+See the [README](../README.md#installation) and [dependency policy](dependency-policy.md).
+The repository does not contain credentials, source PDFs, or labelled data.
 
-主流程从进程环境读取配置，**不会自动加载 `.env` 文件**。可在启动 CLI / Streamlit 的终端中设置以下非敏感选项，并用自己的安全方式注入 API key：
+Workflows read the process environment and **do not load `.env` automatically**.
+Set nonsensitive options in the terminal launching the CLI/Streamlit process,
+and inject credentials through your own secure method:
 
 ```bash
 export LLM_PROVIDER=openai
@@ -58,7 +65,7 @@ export LLM_MODEL=gpt-5
 export LLM_DOCUMENT_INPUT=markdown
 ```
 
-如果已将自己的配置保存在本地 `.env`，在启动前手动导入：
+If you maintain a trusted local `.env`, import it yourself before launching:
 
 ```bash
 set -a
@@ -66,110 +73,157 @@ source .env
 set +a
 ```
 
-这会执行该文件中的 shell 内容，因此只用于自己维护、可信的 `.env`；不要把配置文件或凭证提交到仓库。
+This executes the file as shell content. Use it only for a trusted file you
+maintain; never commit configuration secrets or paste them into logs/conversations.
 
-| 环境变量 | 含义 |
+| Variable | Meaning |
 | --- | --- |
-| `MY_OPENAI_API_KEY` / `OPENAI_API_KEY` | OpenAI 凭证，前者优先 |
-| `ANTHROPIC_API_KEY` | Anthropic 凭证 |
-| `DEEPSEEK_API_KEY` | DeepSeek 凭证 |
-| `LLM_PROVIDER`、`LLM_MODEL`、`LLM_DOCUMENT_INPUT` | 模型选项；CLI 显式参数优先 |
-| `OPENAI_MODEL` | OpenAI 场景下未设置 `LLM_MODEL` 时的后备模型配置 |
-| `KONKRD_DATA_ROOT` | Health 数据集根目录，其下应有 `data/private_health/...` |
-| `KONKRD_DATABASE_URL` | Travel 入库使用的 PostgreSQL 连接串 |
+| `MY_OPENAI_API_KEY` / `OPENAI_API_KEY` | OpenAI credentials; the former takes precedence |
+| `ANTHROPIC_API_KEY` | Anthropic credentials |
+| `DEEPSEEK_API_KEY` | DeepSeek credentials |
+| `LLM_PROVIDER`, `LLM_MODEL`, `LLM_DOCUMENT_INPUT` | Model selection; explicit CLI arguments take precedence |
+| `OPENAI_MODEL` | OpenAI fallback when `LLM_MODEL` is unset |
+| `KONKRD_DATA_ROOT` | Optional Health data root containing `pdf/private_health`, `markdown/private_health`, and `labelled/private_health` |
+| `KONKRD_DATABASE_URL` | PostgreSQL connection string for Travel storage |
 
-未指定时，主流程选择 `openai / gpt-5 / markdown`。其他 provider 需要指定模型。仓库允许的模型模式见 [model_capabilities.json](../configs/model_capabilities.json)；该表表示本地校验规则，不保证你的账户具有模型访问权限。
+Defaults are `openai / gpt-5 / markdown`. Other providers require a model name.
+[model_capabilities.json](../configs/model_capabilities.json) is the local allowlist;
+it does not guarantee remote account access. Workflows prepare page-numbered
+text blocks and Markdown tables first. Keep Markdown input enabled; provider-native
+PDF support does not imply that the workflow supports switching to PDF input.
 
-主流程会先把 PDF 转成有页码、文本块和表格结构的文本，再发送模型请求。保留 `markdown` 模式；底层 provider 支持原生 PDF 并不代表主流程可以切换为 `pdf`。
+### Choosing a PDF parser
 
-### 选择 PDF 解析路线
+Both routes produce the same page/text/table representation and use the same
+prompt, validation, and storage boundaries.
 
-PDF 解析有两条路线，最后都转成同一种“页码 + 文本块 + Markdown 表格”结构，所以 prompt、校验和入库都不受影响：
-
-| 路线 | 参数 / UI 选项 | 适合场景 |
+| Route | CLI / UI option | Typical use |
 | --- | --- | --- |
-| PDFingestor（默认） | `--document-parser pdfingestor` / “PDFingestor (current route)” | 日常运行，速度快，行为和以前一样 |
-| MinerU | `--document-parser mineru` / “MinerU (local models, slower)” | 版面复杂、表格多或需要 OCR 的 PDF，以及对比两条路线的效果 |
+| PDFingestor (default) | `--document-parser pdfingestor` / “PDFingestor (current route)” | Routine parsing with the existing pdfplumber implementation |
+| MinerU | `--document-parser mineru` / “MinerU (local models, slower)” | Complex layouts, tables, OCR, and route comparisons |
 
-- `discover`、`extract`、`batch` 和 `refine/loop.py` 都支持这个参数；统一 UI 的发现、提取、批量、打磨表单里有同名下拉框。独立的 `refine/consensus.py`、`stability/measure.py` 暂时只走 PDFingestor。
-- MinerU 在本机的单独子进程里运行 `pipeline` 后端，需要本地已有 MinerU 模型（`mineru-models-download`，或 `~/mineru.json` 里配置的模型目录）。它不启动网络服务，也不上传 PDF。
-- MinerU 第一次解析长 PDF 可能要几分钟（本机实测一份 40 页 PDS 约 4 分钟，PDFingestor 约 3 秒）；结果和 PDFingestor 一样缓存在 `<输出根目录>/pdfingestor_cache/`，按 PDF 内容和解析器区分，不会串用，缓存命中后几乎不耗时。
-- 已知限制：MinerU 能识别合并单元格，但会把同一单元格里换行的英文单词直接拼在一起（例如 `transportationexpenses`），这是 MinerU 表格识别本身的行为。对比两条路线的提取质量时要留意。
-- 用 `--resume-review` / `--resume-feedback` 继续同一个实验时，请带上相同的 `--document-parser`，否则后续阶段会换回默认路线。
-- 产物 provenance、`ExtractionResult` 文件和 token 日志里都有 `document_parser` 字段，对比两条路线时以它为准。
-- 每次解析都会把发给模型的文本另存为 Markdown，两条路线各一个文件夹，里面按 PDF 在输入目录下的位置排列：`<输出根目录>/parsed_markdown/pdfingestor/...` 和 `<输出根目录>/parsed_markdown/mineru/...`。同一份 PDF 用两条路线各跑一次后，对比这两个文件（或整个文件夹）即可；不在输入目录下的 PDF 会存成 `<文件名>_<hash>.md`。文本没变化时不会重写，这些文件可以放心删除。
-- MinerU 解析不出任何文本或表格时直接报错，不会调用模型。PDFingestor 路线目前还没有这项检查，扫描件需要先人工确认能否解析。
+- `discover`, `extract`, `batch`, and `refine/loop.py` support the option; their
+  console forms expose the same choice. Standalone `refine/consensus.py` and
+  `stability/measure.py` currently use PDFingestor only.
+- MinerU runs the `pipeline` backend in a local subprocess. It needs local models
+  from `mineru-models-download` or the model directory configured in `~/mineru.json`.
+  It does not start an HTTP service or upload PDFs.
+- A first MinerU pass on a long PDF can take minutes. A previously recorded local
+  40-page PDS smoke test took about four minutes, versus about three seconds for
+  PDFingestor; these are historical observations, not guarantees. Both routes
+  now cache under `.cache/pdf/<vertical>/`, keyed by content and parser settings.
+- MinerU can recognize merged cells but may concatenate English words split
+  across lines, for example `transportationexpenses`. Consider this when comparing
+  extraction quality.
+- Keep the same `--document-parser` when using `--resume-review` or
+  `--resume-feedback`; omitting it returns later stages to the default route.
+- Provenance, `ExtractionResult`, and usage logs record `document_parser`.
+- Discovery and extraction save the per-PDF text sent to the model under
+  `data/markdown/<vertical>/pdfingestor/` or `.../mineru/`, mirroring the input
+  tree. Outside-root PDFs use `<stem>_<path-hash>.md`. Unchanged text is not
+  rewritten. These are derived views that can be regenerated; this migration
+  preserves all existing copies.
+- MinerU fails before model calls when it finds no text or tables. PDFingestor
+  does not currently have this empty-content check, so inspect scanned PDFs first.
 
-### 从旧版升级
+### Upgrading from earlier layouts
 
-- CLI / UI 的领域选择方式不变。修改 prompt、契约和领域规则时更新 `configs/<vertical>/`，Python 构造器不再接受重复覆盖参数。
-- Python 的 discovery / extractor 与 CLI 共用模型配置：未传 selection 就读取进程环境，传入 selection 时使用该对象。旧 `model=` / `client=` / `vertical=` 调用的替换方法见 [API 迁移说明](../api.md#5-discovery-与-extraction)。
-- 已移除没有主流程调用的 `src.config.AppConfig` 和旧 `common.document_preprocessor`。模型配置使用上表 `LLM_*`。MinerU 已作为可选解析路线重新加入依赖，它不再生成 `raw/Markdown` 镜像文件；历史 Markdown、schema 和提取文件不需要删除。
-- Health batch evaluation 只生成一套报告。若脚本读取 `report_model_only.json`，改为 `report.json`；`--no-fallback` 仍可接受，但不改变运行行为。
+Use the [migration map](project-layout.md#migration-map). Python PDF imports now
+use `src.pdf_ingestion`, shared result types use `src.common.models`, and Streamlit
+entry points live in `src/ui/`. Manifests now require `markdown_root` and `cache_root`.
+`KONKRD_DATA_ROOT` denotes the data root itself; migrate external data to the
+same `pdf/`, `markdown/`, and `labelled/` structure before setting it.
 
-### 数据摆放
+The CLI/UI vertical selection model is unchanged. Change vertical rules in
+`configs/<vertical>/`, and model-facing text in `prompts/`. Constructors no longer
+accept duplicate prompt/contract/vertical overrides. See the
+[Python constructor migration](api.md#5-discovery-and-extraction).
 
-建议保持 `公司 / 类别 / 文件.pdf` 结构：
+The unused `src.config.AppConfig` and former `common.document_preprocessor` were
+retired earlier. The implicit neighboring `konkrd-data` search is also retired.
+MinerU remains an explicit parser route, not the old `raw/Markdown` mirror utility.
+Historical Markdown, schemas, and results are retained. Health evaluation writes
+one report set: use `report.json`, not `report_model_only.json`.
+`--no-fallback` is accepted for compatibility but does not change behavior.
+
+### Preparing data
+
+Preserve `insurer / category / file.pdf` below each input root:
 
 ```text
-konkrd-data/data/private_health/raw/PDFs/
+data/pdf/private_health/
   insurer_a/hospital/example.pdf
   insurer_a/extras/example.pdf
   insurer_b/hospital/example.pdf
 
-data/travel_insurance/raw/PDFs/
+data/pdf/travel_insurance/
   allianz/pds/example.pdf
-  covermore/pds/example.pdf
+  cover_more/pds/example.pdf
 ```
 
-这是结构示意，不代表仓库附带这些文件。Health 的其余类别也需要准备。自动采样要求每个类别有足够的不同公司，并按 PDF 内容去重：`--per-category 5` 不是从同一家公司的五个文件取样。复制同一 PDF 不会增加样本数。holdout 还会排除 discovery 和 proposal 已用过的内容。
+This is a layout example, not a claim that those files are supplied. Prepare the
+other Health categories as needed. Sampling requires enough distinct insurers
+per category and deduplicates PDF content: `--per-category 5` does not mean five
+files from one insurer. Copying a PDF does not create another unique sample.
+Holdout also excludes content used by discovery/proposals.
 
-Travel 默认路径不受 `KONKRD_DATA_ROOT` 影响。单次 discovery / batch / loop 可用 `--input-root` 指定路径；如果后续需要 storage，须让 manifest 的 `input_root` 与实际存储来源一致。
+Travel is independent of `KONKRD_DATA_ROOT`. Use `--input-root` for a particular
+discovery/batch/loop run. For later storage, the manifest input root must agree
+with the actual source location. Optional Health labels belong under
+`data/labelled/private_health/`; this migration does not create missing labels.
 
-## 3. 五分钟跑通一次提取
+## 3. Extract with an existing schema
 
-已有可用 schema 时，不必先重复 discovery。以下命令会调用模型 API。
+An existing usable schema avoids repeating discovery. These commands call a model.
 
-Health，使用自己生成或审核过的 schema：
+Health, with a schema you generated or reviewed:
 
 ```bash
 .venv/bin/python src/run.py extract \
   --manifest configs/private_health/manifest.json \
-  --schema outputs/private_health/schema.json \
-  --pdf path/to/health-policy.pdf
+  --schema outputs/private_health/schemas/schema.json \
+  --pdf data/pdf/private_health/insurer_a/hospital/example.pdf
 ```
 
-将 `path/to/health-policy.pdf` 换成实际路径；`outputs/private_health/schema.json` 也必须已存在。
-
-Travel，可直接使用仓库已批准的 Canonical 契约：
+Both schema and PDF must exist. Travel can use the repository's approved reference
+Canonical contract:
 
 ```bash
 .venv/bin/python src/run.py extract \
   --manifest configs/travel_insurance/manifest.json \
   --schema configs/travel_insurance/canonical_schema_v1.json \
-  --pdf data/travel_insurance/raw/PDFs/allianz/pds/example.pdf
+  --pdf data/pdf/travel_insurance/allianz/pds/example.pdf
 ```
 
-成功后查看终端打印的 JSON 路径。`data` 才是模型提取内容；Travel 的数据在 `data.products` 数组中。字段缺失可能表现为 `null`，需结合 `_unfilled`、`_notes` 查看原因。结构校验通过不等于保险条款已被准确理解，演示前应对照原 PDF 检查几项关键值。
+Inspect the JSON path printed by the command. `data` contains extracted values;
+Travel products are in `data.products`. Missing fields can be null; inspect
+`_unfilled` and `_notes`. Structural validity does not establish factual accuracy;
+check key values against the PDF before a demonstration.
 
-默认结果位于对应 vertical 的 `outputs/.../extractions/`，保留输入根目录内的相对路径。再次运行会另存带数字后缀的文件。指定 `--output` 时，目标已存在会拒绝执行，改用新文件名即可。
+Defaults write below `outputs/<vertical>/extractions/`, mirroring the input-relative
+path. Repeated single extraction uses a numbered filename. An explicit `--output`
+that already exists is rejected; choose another name.
 
-### 用统一 UI 完成同样操作
+### Using the console
 
 ```bash
-.venv/bin/python -m streamlit run src/tool_app.py --server.address 127.0.0.1
+.venv/bin/python -m streamlit run src/ui/tool_app.py --server.address 127.0.0.1
 ```
 
-1. 在页面先选择 Health 或 Travel。
-2. 选择操作，填写 PDF、schema、模型和输出参数；需要时在“PDF parsing route”里选择 MinerU。
-3. 核对命令预览和当前 vertical；对需要确认的操作勾选确认，再执行。
-4. 查看本次命令、退出状态和打印的产物位置。
+1. Select Health or Travel.
+2. Select an operation and fill PDF, schema, model, and output settings; choose
+   MinerU in “PDF parsing route” when needed.
+3. Review the command and vertical, then confirm operations that require it.
+4. Inspect the command, exit status, and artifact paths.
 
-切换 vertical 或操作后表单、确认和结果状态会重置；修改执行参数需要重新确认。页面同步运行 CLI，没有后台任务队列。凭证来自启动页面的进程环境，修改终端环境后应重启页面进程。
+Changing the vertical/operation resets forms, confirmation, and result state.
+Changing command settings requires confirmation again. The console runs the CLI
+synchronously without a background queue. Credentials come from the launching
+process; restart the page process after changing its environment.
 
-## 4. Health：发现 → 审核 → holdout → feedback
+## 4. Health: discovery, review, holdout, and feedback
 
-### A. 只发现一个初稿
+### A. Discover a draft
 
 ```bash
 .venv/bin/python src/run.py discover \
@@ -178,11 +232,13 @@ Travel，可直接使用仓库已批准的 Canonical 契约：
   --output outputs/private_health/experiments/demo/schema.json
 ```
 
-四个类别各取两家公司，共八份内容不同的 PDF。样本不足时降低数量或补齐数据。也可用 `--samples path/to/a.pdf path/to/b.pdf` 显式指定样本，此时不走自动采样。
+This selects two insurers in each of four categories: eight content-distinct PDFs.
+Reduce the count or add data if insufficient. `--samples path/to/a.pdf path/to/b.pdf`
+bypasses automatic sampling. Output is a `discovered_schema` envelope with the
+schema in `data`. Read the printed filename: discovery chooses an available suffix
+even with explicit `--output`, rather than assuming overwrite.
 
-产物是 `discovered_schema` envelope，schema 在 `data` 中。CLI 会打印实际保存路径；discovery 遇到文件重名会使用可用后缀路径，即使传了 `--output` 也不要假设覆盖原文件。
-
-### B. 需要逐项审核的推荐流程
+### B. Review proposals
 
 ```bash
 .venv/bin/python src/refine/loop.py \
@@ -192,26 +248,29 @@ Travel，可直接使用仓库已批准的 Canonical 契约：
   --seed 42 --eval-seed 7 --review-ui
 ```
 
-首次运行在 `round_1/consensus/` 生成 review queue 后停止；重用实验目录时会创建下一个空闲 `round_N`，以下路径需相应调整。Health 默认一次 proposal；加上 `--review-ui` 即使只有一次也会生成审核队列。
-
-打开审核页面（如果主 UI 已占用 8501，这里使用 8502）：
+The first run stops after creating `round_1/consensus/`. Reusing the experiment
+root creates the next free `round_N`; adjust paths accordingly. Health defaults
+to one proposal, and `--review-ui` creates a queue even for that single run.
+Open the review page on another port if the console already uses 8501:
 
 ```bash
-.venv/bin/python -m streamlit run src/review_app.py \
+.venv/bin/python -m streamlit run src/ui/review_app.py \
   --server.address 127.0.0.1 --server.port 8502 -- \
   --consensus-dir outputs/private_health/experiments/review-demo/round_1/consensus
 ```
 
-逐项选择 Accept / Reject / Edit，保存决策，然后在页面 Apply；也可以保存后退出页面，用 CLI Apply，二选一：
+Choose Accept, Reject, or Edit per item, save decisions, and Apply in the page.
+Alternatively, save and exit the page, then Apply through the CLI:
 
 ```bash
 .venv/bin/python src/refine/review.py apply \
   --consensus-dir outputs/private_health/experiments/review-demo/round_1/consensus
 ```
 
-Apply 默认生成该目录下的 `reviewed_schema.json`。Pending 和 Reject 不会应用；Apply 不代表所有条目都完成审核。queue、decisions 和基础 schema 必须属于同一次审核，不能在不同实验之间搬运或拼接。
-
-随后继续本轮，保留原来的 manifest、输入根目录和实验输出目录：
+Apply writes `reviewed_schema.json` by default. Pending/rejected proposals do not
+apply; Apply does not mean review is complete. Queue, decisions, and base schema
+must belong to the same review; do not combine files from different experiments.
+Continue with the same manifest, input root, and experiment directory:
 
 ```bash
 .venv/bin/python src/refine/loop.py \
@@ -221,11 +280,16 @@ Apply 默认生成该目录下的 `reviewed_schema.json`。Pending 和 Reject �
   --resume-review outputs/private_health/experiments/review-demo/round_1
 ```
 
-恢复会校验审核结果，提取未用于构建 schema 的 holdout PDF，生成 `refinement_feedback.json`，再发布实验目录下的 `final_schema.json` 或带后缀版本。它不会替换生产 schema。
+Resume validates the review, extracts unused holdout PDFs, writes
+`refinement_feedback.json`, and publishes `final_schema.json` or a suffixed version
+inside the experiment. It does not replace the production schema.
 
-**Apply 的 `--out` 可另存审核结果，但 `--resume-review` 固定读取 `consensus/reviewed_schema.json`。** 已完成 Apply 后再修改 decisions，会使旧审核产物失效；需要重新生成与当前决策一致的审核产物。为保留审计链，日常迭代优先创建新实验，而不是覆盖旧结果。
+**Apply can save elsewhere with `--out`, but `--resume-review` reads only
+`consensus/reviewed_schema.json`.** Later decision edits invalidate a previous
+reviewed artifact; regenerate a matching one. Prefer new experiment directories
+to preserve the audit trail.
 
-### C. 根据 feedback 开始下一轮
+### C. Start the next round from feedback
 
 ```bash
 .venv/bin/python src/refine/loop.py \
@@ -235,9 +299,11 @@ Apply 默认生成该目录下的 `reviewed_schema.json`。Pending 和 Reject �
   --resume-feedback outputs/private_health/experiments/review-demo/round_1/refinement_feedback.json
 ```
 
-feedback 必须是当前格式的成功产物，且 provenance 中的 vertical 匹配。默认每次运行一轮；只有 `--autonomous --rounds N` 才自动迭代 N 轮，并增加模型调用。`--autonomous` 不能与 `--review-ui` 同用。
+Feedback must be a successful current-format artifact with matching vertical
+provenance. The default is one round; `--autonomous --rounds N` runs N rounds and
+increases model calls. `--autonomous` and `--review-ui` cannot be combined.
 
-### D. 批量提取与标签评估
+### D. Batch extraction and labelled evaluation
 
 ```bash
 .venv/bin/python src/run.py batch \
@@ -246,13 +312,18 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
   --evaluate
 ```
 
-先确认打印的 final schema 实际文件名。`--evaluate` 使用 Health 的本地 labelled 数据，默认根目录为 `konkrd-data/data/private_health/labelled`；没有标签时先去掉该参数。batch 会对输入目录中的 PDF 调用模型，并把结果写到 manifest 的输出根目录；它没有 `--out-dir` 参数。需隔离批次时配置独立输出根目录或归档已完成的实验数据。
+Use the actual printed final-schema filename. `--evaluate` requires local Health
+labels under `data/labelled/private_health/` (or the explicit external data root).
+Omit it when labels are unavailable. Batch calls a model for input PDFs and writes
+extractions under the vertical output root; `--output-dir` selects a separate
+extraction folder. It has no `--out-dir` option.
 
-评估报告统一为 `outputs/private_health/evaluation/report.json` 和 `report.md`。新运行不再输出重复的 `report_model_only.*`；旧文件保留作历史记录，后续脚本请读取 `report.json`。
+Reports are `outputs/private_health/evaluation/report.json` and `report.md`.
+New runs do not generate duplicate `report_model_only.*`; historical copies remain.
 
-## 5. Travel：采集 → 发现与审核 → 提取 → 可选入库
+## 5. Travel: acquisition, schema review, extraction, and storage
 
-### A. 采集公开文档
+### A. Acquire public documents
 
 ```bash
 .venv/bin/python src/run.py crawl \
@@ -260,9 +331,16 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
   --discovery-only
 ```
 
-先检查生成的 acquisition metadata，再去掉 `--discovery-only` 下载 PDF。这个选项只是不下载 PDF，仍会访问网站并写 metadata。采集来源由 [sources.json](../configs/travel_insurance/sources.json) 管理；`--insurer CODE` 可重复，用配置中的 code 筛选公司。
+Inspect acquisition metadata, then omit `--discovery-only` to download PDFs. The
+flag still visits websites and writes metadata. Sources live in
+[sources.json](../configs/travel_insurance/sources.json); repeat `--insurer CODE`
+to restrict insurers.
 
-当前配置的公司 code：`allianz`、`cover_more`、`scti`、`insureandgo`、`tick`、`onecover`（1Cover）。InsureandGo、Tick 和 Allianz 在 `seed_documents` 里写死了当前 PDS 的地址（这几家的网页结构会让自动发现混进旧版或把 PDS 误判成 TMD），公司发布新版本后需要手动更新链接。只配置 `seed_documents`、不配置 `start_pages` 的公司不会抓取网页，只下载指定文件。
+Configured codes are `allianz`, `cover_more`, `scti`, `insureandgo`, `tick`, and
+`onecover` (1Cover). InsureandGo, Tick, and Allianz have explicit PDS
+`seed_documents` because page discovery previously mixed historical documents or
+misclassified PDS as TMD. Update configured URLs when new versions are released.
+Insurers with seed documents and no start pages download only the configured files.
 
 ```bash
 .venv/bin/python src/run.py crawl \
@@ -270,11 +348,12 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
   --insurer allianz --insurer insureandgo --insurer tick --insurer onecover
 ```
 
-自动抽样每家公司最多取 1 份，`--per-category` 不能大于 `pds` 目录下的公司数。
+Automatic sampling selects at most one PDF per insurer per category;
+`--per-category` cannot exceed the number of insurers with PDS files. Acquisition
+supports PDS, SPDS, brochure, TMD, and FSG; automatic discovery sampling currently
+uses only `pds` directories.
 
-采集支持 PDS、SPDS、brochure、TMD、FSG；当前 discovery 自动采样仅使用 `pds` 目录。
-
-### B. 生成建议并审核
+### B. Generate proposals and review
 
 ```bash
 .venv/bin/python src/refine/loop.py \
@@ -283,34 +362,45 @@ feedback 必须是当前格式的成功产物，且 provenance 中的 vertical �
   --per-category 2 --seed 42 --review-ui
 ```
 
-默认生成五次 proposal。按第 4 节同样的方法打开 `round_N/consensus`、保存决策、Apply，再使用 Travel manifest 和本次实验目录执行 `--resume-review`。
+Travel defaults to five proposals. Follow section 4 to review `round_N/consensus`,
+save decisions, Apply, and resume with the Travel manifest and this experiment
+root. Only eligible core suggestions are promoted automatically; the queue keeps
+items requiring judgment. `product_name` and `product_type` are protected. Voting
+frequency is not accuracy; inspect semantics even for frequent suggestions.
 
-Travel 默认仅自动提升符合规则的 core 建议，人工队列保留需要决定的项。`product_name`、`product_type` 受保护。投票频率不是准确率；高频建议仍需检查语义。
+Resume publishes a final schema without Health's automatic holdout/feedback loop.
+Use that discovered schema directly for extraction, or continue to Canonical
+approval for database storage.
 
-Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout / feedback 闭环**。可直接用这个 discovered schema 做 `extract` / `batch`；若要入库，则继续下一步 Canonical 审批。
-
-### C. 审批入库契约
+### C. Approve the storage contract
 
 ```bash
-.venv/bin/python -m streamlit run src/canonical_review_app.py \
+.venv/bin/python -m streamlit run src/ui/canonical_review_app.py \
   --server.address 127.0.0.1 --server.port 8503 -- \
   --manifest configs/travel_insurance/manifest.json \
   --schema outputs/travel_insurance/experiments/review-demo/final_schema.json \
   --output outputs/travel_insurance/experiments/review-demo/canonical_approved.json
 ```
 
-页面从 discovered schema 构建 candidate，展示字段和 storage 映射；检查后填写 reviewer、rationale 并确认批准。输入内容、输出路径或存储选项变化会使原确认失效。这里不调用模型、不建表、不入库，也不会覆盖仓库已批准版本。
+The page creates a candidate, displays fields and mappings, and requires a human
+reviewer, rationale, and approval. Changes to inputs, destination, or mapping
+choices invalidate confirmation. It makes no model or DB call and does not
+overwrite the approved reference schema.
 
-映射表里的 `target` 列是字段写入数据库的位置：`core_column` 写进共用核心表（产品名、产品类型）；`extension_column` 写进 `travel_product_details` 表的同名列；`jsonb` 显示为 `attributes`，即写进这个 JSONB 列，以字段名作 key。
+The mapping table's `target` is the database destination: `core_column` maps to
+shared core fields (product name/type); `extension_column` maps to a named column
+in `travel_product_details`; `jsonb` uses the `attributes` column keyed by field name.
+Compatible fields retain their approved mappings. For unmapped fields:
 
-名字能对上已批准版本的字段沿用原来的存储方式，其余字段由左侧栏 “Storage for fields without an approved mapping” 决定：
+- **JSONB attributes (default):** use `attributes`; later field changes need no
+  new SQL columns.
+- **SQL columns:** use same-named extension columns with appropriate numeric,
+  Boolean, or enum types. Lists, already-approved JSONB fields, and reserved
+  `release_id` / `attributes` names stay in JSONB.
 
-- **JSONB attributes（默认）**：都放进 `attributes`，以后增删字段不用改表。
-- **SQL columns**：建成 `travel_product_details` 里的同名列，数字、是/否、枚举有对应的 SQL 类型，查询更方便。列表字段（`list[object]`）、已批准为 JSONB 的字段和保留列名 `release_id`、`attributes` 仍放 JSONB。
-
-映射表上方会显示各存储方式的字段数。列建得多，以后增删字段就要新建数据库或手动改表，因为 `storage-init` 不修改已有的表。
-
-离线生成提取契约和 SQL 预览：
+Counts above the table show each storage strategy. More columns mean more future
+schema migration work; `storage-init` does not alter existing tables.
+Compile the extraction contract and SQL preview offline:
 
 ```bash
 .venv/bin/python src/run.py canonical-compile \
@@ -319,15 +409,19 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
   --output-dir outputs/travel_insurance/experiments/review-demo/compiled
 ```
 
-新目录包含 `extraction_contract.json` 和 `vertical_table.sql`。输出目录必须尚不存在。编译不执行 SQL；candidate 不能作为已批准契约使用。
+The new, previously nonexistent folder contains `extraction_contract.json` and
+`vertical_table.sql`. Compilation executes no SQL. A candidate is not an approved contract.
 
-### D. 按批准版本提取并入库
+### D. Extract and load with the approved version
 
-使用 **同一份 approved schema** 重新执行 `extract`，再将成功 extraction 文件交给 storage。不能仅把 discovered 结果的版本号改成 approved 版本。
+Re-extract using the **same approved schema** passed to storage. Changing the
+version string of a discovered result is not a valid migration. Both CLI
+`ExtractionResult` and holdout envelopes must have vertical/schema identity
+matching the manifest and approved contract. Historical envelopes without it may
+support analysis but require re-extraction before loading; never infer identity.
 
-入库对 CLI 的 `ExtractionResult` 和 holdout 的 envelope 执行相同身份校验：vertical 必须匹配 manifest，schema_version 必须匹配 approved schema。缺少这两个字段的历史 envelope 仍可用于兼容分析，但须重新提取后才能入库；不能从当前选择的 schema 自动补全身份。
-
-下面两条会真正修改 `KONKRD_DATABASE_URL` 指向的 PostgreSQL，执行前确认目标环境：
+These commands write to PostgreSQL selected by `KONKRD_DATABASE_URL`; confirm the
+target environment before running:
 
 ```bash
 .venv/bin/python src/run.py storage-init \
@@ -341,11 +435,16 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
   --insurer-code allianz
 ```
 
-`--artifact` 必须换成实际提取产物。源 PDF 仍需存在，且位于 manifest 输入根目录的 `insurer/document_type/` 下，insurer code 与参数一致。SQLite 不支持。建表仅创建缺少的表，不执行已有表的版本迁移；加载在一个事务中完成，相同身份且内容一致的数据可重复加载，身份冲突会失败。
+Use a real artifact. Its PDF must exist under the manifest input root at
+`insurer/document_type/`, and the insurer must match. SQLite is unsupported.
+Initialization creates missing tables, not migrations. Loading is transactional;
+consistent repeated identities can be loaded again, while conflicts fail.
 
-### E. 批量提取并批量入库
+### E. Batch extraction and loading
 
-一次处理很多份 PDS 时，用下面两条命令代替逐份操作。也可以在统一 UI 里完成：“Batch extraction”页面默认只勾选 `pds` 目录，填好“Extraction output folder”；入库用“Load extraction folder into PostgreSQL”，填同一个文件夹。
+The console provides “Batch extraction” (default PDS category, “Extraction output
+folder”) and “Load extraction folder into PostgreSQL” (the same folder).
+Equivalent commands are:
 
 ```bash
 .venv/bin/python src/run.py batch \
@@ -359,17 +458,25 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
   --artifact-dir outputs/travel_insurance/extractions/run20
 ```
 
-- `--categories pds` 只处理 `<公司>/pds/` 下的 PDF，跳过 TMD、FSG 等附属文件。
-- `--output-dir` 按 `<公司>/pds/<文件名>.json` 保存结果。文件夹里已有结果的 PDF 会跳过，中途失败后重跑同一条命令只补缺的，不会重复付费。每次准备入库的新批次用一个新文件夹。
-- 批量入库时每份结果单独一个事务，公司 code 从结果记录的源 PDF 路径自动识别，`errors/` 目录会跳过。同一份 PDF 在文件夹里有多份结果时，这几份都不入库，需要只留一份再重跑。最后打印每份结果和“loaded / failed / total”汇总，只要有一份失败命令就返回非零。
-- 这两个操作在 UI 里同样同步执行，单次最多运行 2 小时；份数很多时，先用少量 PDF 估算耗时。
+- `--categories pds` excludes auxiliary TMD/FSG folders.
+- `--output-dir` mirrors `<insurer>/pds/<name>.json`. PDFs with existing results
+  there are skipped when rerunning the same command after interruption. Use a
+  fresh folder for a new batch/schema/model experiment.
+- Batch storage uses one transaction per artifact, derives insurer from the
+  recorded source path, and skips `errors/`. Multiple results for one PDF are all
+  rejected; select one result before retrying. It prints per-file outcomes and a
+  loaded/failed/total summary; any failure gives a nonzero exit status.
+- Both UI operations are synchronous with a two-hour limit. Estimate large-batch
+  duration using a small sample first.
 
-### F. 可选：LLM judge + 人工终检
+### F. Optional LLM judge and human review
 
-这一步在抽取后独立运行；入库能成功只代表结构/映射可接受，不代表 PDF
-事实正确。Judge 看原始 PDF 的解析页、这次 approved Canonical Schema 的字段定义和
-抽取 JSON，然后把可能错误或证据不足的项目排给人。它不自动改值、不重新提取、
-不审批 Schema，也不拦截入库。无需先制作人工 gold labels。
+This independent post-extraction step screens PDF evidence and values. Successful
+storage means structure/mapping was acceptable, not that facts are correct. The
+judge receives parsed pages, approved field definitions, and extraction JSON,
+and prioritizes possible errors or unsupported claims for humans. It does not
+change values, re-extract, approve schemas, or block loading. Initial gold labels
+are not required.
 
 ```bash
 .venv/bin/python src/run.py quality-audit \
@@ -378,48 +485,74 @@ Travel 恢复后会发布 final schema，**不会运行 Health 的自动 holdout
   --output-dir outputs/travel_insurance/quality/run20 \
   --sample-rate 0.05 --seed 42
 
-.venv/bin/python -m streamlit run src/quality_review_app.py -- \
+.venv/bin/python -m streamlit run src/ui/quality_review_app.py -- \
   --quality-dir outputs/travel_insurance/quality/run20
 ```
 
-也可以在操作台选择 Travel → “Quality audit (LLM judge)”：Extraction artifacts
-folder 填 batch 的 `--output-dir`；New quality output folder 填一个**尚不存在**的
-新目录；Schema/Source PDF root 留空即使用 manifest 默认值；Provider/Model 与普通
-模型操作相同；PDF parser 默认遵循每份抽取记录；Pass sample rate 默认 `0.05`，
-seed 默认 `42`。确认后运行。指定的 extraction 文件夹应只放同一批次、同一版
-Canonical Schema 的成功产物。若原 PDF 放在别的根目录，明确填 Source PDF root。
-该命令读取本地 PDF 并调用 LLM，可能产生费用；不会上传 PDF 文件本身，而是发送
-受长度上限约束的解析文本。首次可只用小批次试运行。失败后换一个新 output 目录，
-保留旧目录中的已完成报告与 usage 记录供排查。
+In Travel's “Quality audit (LLM judge)” form, set the extraction artifacts folder
+to batch `--output-dir` and choose a new, nonexistent quality folder for a first
+run. Audit mode offers new run, resume, or JSON-only rebuilding without model
+calls. Blank Schema/Source PDF root uses manifest defaults. Provider/model follow
+normal selection; parser defaults to each extraction record. Pass sample rate is
+`0.05`, seed `42`.
 
-在复核页逐项打开 Source PDF 的指定页，核对 judge 引文在原文中的上下文和
-抽取值，再选择 `Issue found`、`No issue` 或 `Uncertain`，填写 reviewer；发现问题
-或无法判断时必须写 notes。待复核队列包括所有 judge 疑点/不确定项，以及按 seed
-抽出的少量 judge-pass 文档。`review_decisions.json` 只记录人的结论，不改原始
-抽取或数据库。页面里的“警报确认/驳回、pass 抽检漏报”是校准信号，不是准确率。
+Use successful artifacts from one batch and one Canonical version. Set Source
+PDF root explicitly if needed. The command reads PDFs locally and sends bounded
+parsed text and extraction values, not PDF files. Long documents may need explicit
+`--max-document-chars` and `--max-extraction-chars`, within model context limits;
+overflow fails rather than silently truncating. Start with a small batch.
 
-## 6. 读懂输出、质量和成本
+Document-level input/structured-output failures record safe `failure_kind` /
+`error_code` and continue. Three new document failures stop the run by default
+to limit cost. Unknown provider/runtime errors stop further model calls immediately
+while preserving completed JSON/reports.
 
-### 产物去哪找
+After failure, keep the same directory and use matching schema/provider/model
+and parameters with `--resume`. It verifies and skips completed reports, retrying
+unfinished ones. `--summary-only` can rebuild `results.json` without API credentials
+or calls; absent historical failure reasons remain pending instead of being guessed.
+These resume rules apply to identity-consistent runs; see the migration limitation
+for [relocated historical artifacts](project-layout.md#historical-artifacts).
 
-| 文件 / 目录 | 用途 |
+`results.json` is atomically updated after each PDF and includes complete successful
+reports, safe failures, and pending entries. The review UI can display/download
+it before a final queue exists. Only a fully valid batch gets `review_queue.json`
+and human decisions; partial results are not a 19-document accuracy estimate.
+
+For each review item, open the indicated source PDF/page, compare the quote's
+context and extracted value, then choose `Issue found`, `No issue`, or `Uncertain`
+and enter reviewer details. Issues/uncertainty require notes. The queue includes
+all judge alerts/uncertainties and a seeded sample of judge passes.
+`review_decisions.json` stores human conclusions separately; original extraction
+and DB values are unchanged. Confirmed/dismissed alerts and sampled-pass misses
+are calibration signals, not accuracy.
+
+## 6. Outputs, quality, and cost
+
+### Finding artifacts
+
+| File / directory | Purpose |
 | --- | --- |
-| `outputs/<vertical>/schema*.json` | 单次 discovery 结果 |
-| `<实验目录>/round_N/schema_draft.json` | 有 consensus 时保留的初稿 |
-| `<实验目录>/round_N/schema*.json` | 本轮采用的 schema；恢复时可能有后缀 |
-| `<实验目录>/round_N/consensus/` | patch、频率、队列、决策和审核结果 |
-| `<实验目录>/round_N/extractions/` | Health holdout 的逐文档提取 |
-| `<实验目录>/round_N/refinement_feedback.json` | Health 本轮反馈 |
-| `<实验目录>/final_schema*.json` | 本次发布的 schema，按日志选择具体版本 |
-| `outputs/<vertical>/extractions/` | 主 CLI 单份 / 批量提取结果 |
-| `outputs/travel_insurance/quality/<run>/` | judge 报告、复核队列/决策、独立 usage log |
-| `errors/<stage>/` | 对应输出根目录下的失败诊断 |
-| `pdfingestor_cache/` | 相应阶段使用的本地解析缓存（PDFingestor 和 MinerU 两条路线都在这里，按解析器区分），可重新生成 |
-| `parsed_markdown/<解析器>/` | 发给模型的每份 PDF 文本，按输入目录结构排列，用于对比两条解析路线，可删除 |
+| `outputs/<vertical>/schemas/schema*.json` | One-shot discovery results |
+| `<experiment>/round_N/schema_draft.json` | Draft retained when consensus runs |
+| `<experiment>/round_N/schema*.json` | Schema used for the round; resumed versions may have suffixes |
+| `<experiment>/round_N/consensus/` | Patches, votes, queue, decisions, and reviewed schema |
+| `<experiment>/round_N/extractions/` | Health holdout extractions |
+| `<experiment>/round_N/refinement_feedback.json` | Health round feedback |
+| `<experiment>/final_schema*.json` | Published experiment schema; use the printed version |
+| `outputs/<vertical>/extractions/` | CLI single/batch extraction results |
+| `outputs/travel_insurance/quality/<run>/` | Results JSON, per-PDF reports, completed review queue/decisions, usage log |
+| `errors/<stage>/` | Failures below the corresponding output directory |
+| `.cache/pdf/<vertical>/` | Reusable content/configuration-based parser cache |
+| `data/markdown/<vertical>/<parser>/` | Per-PDF prompt text for route comparison |
+| `outputs/<vertical>/archive/` | Preserved bundles and historical comparisons |
 
-Discovery、consensus、review、holdout 使用 envelope：`status`、`provenance`、`data`、`error`。主 CLI 的 extract / batch 保留 `ExtractionResult` 格式，顶层有 `vertical`、`schema_version`、`source_path`、`data`，没有 envelope 的 `status`。两种格式都不能只看文件存在就当作有效数据。Python 接入应使用 [api.md](../api.md) 中的对应加载器。
+Discovery, consensus, review, and holdout use envelopes with `status`, `provenance`,
+`data`, and `error`. CLI extract/batch uses `ExtractionResult` with top-level
+`vertical`, `schema_version`, `source_path`, and `data`, but no envelope `status`.
+File existence alone is not validation. Use the loaders in [api.md](api.md).
 
-### 分析已完成的提取
+### Analyze completed extractions
 
 ```bash
 .venv/bin/python src/schema_application/analyze.py \
@@ -428,21 +561,27 @@ Discovery、consensus、review、holdout 使用 envelope：`status`、`provenanc
   --extractions outputs/private_health/experiments/review-demo/round_1/extractions
 ```
 
-使用与提取相匹配的 discovered schema 和独立结果目录。这个分析入口不接受 Canonical schema。加 `--feedback-out 新文件.json` 可以保存 feedback。
+Use the matching discovered schema and a dedicated results directory. This entry
+point does not accept Canonical schemas. `--feedback-out new-file.json` saves feedback.
+Fill rate counts populated applicable fields, not correct values. Health uses
+trusted directory categories, so model `product_type` guesses do not change the
+denominator. Travel lacks product labels; classification accuracy and product-specific
+fill rates are N/A, while universal fields remain measurable. Multiple products
+expand into multiple records, so record count can differ from PDF count.
 
-填充率衡量适用记录里有多少字段被填，不等于值准确率。Health 根据目录类别确定适用范围，模型猜测的 `product_type` 不改变分母。Travel 没有可信产品标签，产品分类准确率和特定产品字段填充率显示 N/A，通用字段仍可分析；多个产品会展开为多条记录，记录数不一定等于 PDF 数。
-
-比较同一领域两个已有 schema，不调用模型：
+Compare two existing schemas from the same vertical without model calls:
 
 ```bash
 .venv/bin/python src/stability/compare.py \
   --manifest configs/private_health/manifest.json \
-  --schemas outputs/private_health/schema.json outputs/private_health/schema_1.json
+  --schemas outputs/private_health/schemas/schema.json outputs/private_health/schemas/schema_1.json
 ```
 
-稳定性衡量字段、产品类型和 taxonomy 的变化，不代表抽取准确率。`src/stability/measure.py` 会在同一组样本上反复调用 discovery，适合单独预算的稳定性实验。
+Stability measures changes in fields, product types, and taxonomies, not extraction
+accuracy. `src/stability/measure.py` repeatedly calls discovery on a fixed sample;
+budget for it separately.
 
-### 查看成本
+### Inspect cost
 
 ```bash
 .venv/bin/python src/cost/estimate.py \
@@ -450,63 +589,90 @@ Discovery、consensus、review、holdout 使用 envelope：`status`、`provenanc
   --log outputs/private_health/experiments/review-demo/token_usage.jsonl
 ```
 
-loop 的 discovery / proposal usage 在实验根目录；holdout usage 在 `round_N/extraction_usage.jsonl`；主 CLI extract / batch usage 在 `outputs/<vertical>/extraction_usage.jsonl`。一次实验可能需要分别查看多个日志。每个逻辑请求最多进行初次生成加两次结构修复；发生修复时会增加 token 消耗。
+Loop discovery/proposal usage stays at the experiment root; holdout usage is in
+`round_N/extraction_usage.jsonl`. CLI extract/batch global usage now lives at
+`outputs/<vertical>/logs/extraction_usage.jsonl`, and one-shot discovery at
+`logs/discovery_usage.jsonl`. One experiment may require multiple logs. Each
+logical request allows the initial generation and at most two structural repairs;
+repairs consume additional tokens.
 
-估算器的内置价格不是账单。需精确估算时，用已核实的每百万 token 单价传入 `--input-rate`、`--output-rate`；混合模型日志应留意各模型费率。日志不要提交到 Git。
+Built-in estimates are not bills. Supply verified per-million-token rates with
+`--input-rate` and `--output-rate` when precision matters, and account for different
+rates in mixed-model logs. Never commit usage logs.
 
-## 7. 调整 manifest 和 prompt
+## 7. Editing manifests and prompts
 
-每个领域的配置都放在同一个包里：
+Each vertical has a manifest. All editable model text remains in
+[prompts/](../prompts/README.md):
 
 ```text
-configs/<vertical>/
-  manifest.json
-  prompts/discovery.md
-  prompts/patch.md
-  prompts/extraction.md
+configs/<vertical>/manifest.json
+prompts/<vertical>/discovery.md
+prompts/<vertical>/patch.md
+prompts/<vertical>/extraction.md
+prompts/travel_insurance/quality_audit.md
+prompts/shared/*.md
 ```
 
-- `manifest.json`：路径、能力开关、文档分类、产品类型、taxonomy、身份字段、consensus 和审核策略。
-- `discovery.md`：模型如何从文档提出公共 schema。
-- `patch.md`：模型如何针对已有 schema 提出修改。
-- `extraction.md`：按契约提取的领域指引。
+Manifests define paths, capabilities, document categories, product types,
+taxonomies, identity fields, and consensus/review policy. Discovery prompts
+propose the shared schema; patch prompts propose changes; extraction prompts
+explain domain semantics. Travel quality prompts define judge rules;
+`shared/quality_audit_request.md` arranges field definitions, values, and pages.
 
-修改前先看两个现有 manifest，不另建 Python 中的领域列表或 prompt 列表。修改后用 `load_vertical_manifest()` 离线校验，再选择小样本实验。JSON Schema 和业务校验仍是最终边界，prompt 不能放宽契约。
+Inspect the existing manifests first; do not add duplicate Python vertical/prompt
+lists. Validate changes offline with `load_vertical_manifest()`, then use a small
+experiment. JSON Schema and business checks remain authoritative; prompts cannot
+relax contracts. Preserve runtime `{name}` placeholders in shared templates.
+Use new experiment directories after prompt changes; resuming old results does
+not evaluate a new prompt.
 
-本次不做 aliases 管理或同义词合并，也不添加第三个 vertical。将来符合现有字段、文档和流程模型的领域可通过配置包接入；如果需要新采集协议、评估数据适配或新的运行步骤，仍可能需要代码。避免为了“完全零代码”提前设计通用规则语言。
+There is no alias-management/synonym-merging feature or third vertical in this
+scope. A future vertical fitting the existing data/workflow model can use another
+configuration package; new acquisition protocols, evaluators, or stages may still
+need code. Do not build a general rule language solely to claim zero-code extension.
 
-## 8. 常见问题与恢复
+## 8. Troubleshooting and recovery
 
-| 现象 | 排查和处理 |
+| Symptom | Action |
 | --- | --- |
-| UI 看不到某个操作 | 检查当前 vertical 的 capability；Health 没有 storage，Travel 没有 labelled evaluation |
-| 设置 `.env` 后仍提示缺少 key | 主流程不自动读 `.env`；确认环境已注入启动 CLI / UI 的进程，勿打印 key |
-| 模型 / document input 被拒绝 | 核对本地 capability 配置；主流程使用 `markdown`，非 OpenAI 显式指定模型 |
-| `Not enough unique PDFs` | 检查类别目录、每类不同公司数、内容去重和 holdout 排除；降低采样量或补数据 |
-| PDF 没有可用文本 / 表格错位 | 先用 PDFingestor 离线检查结果；扫描件及复杂表格可以换 `--document-parser mineru` 对比，确认后再做模型实验 |
-| MinerU 报 `not installed` / 模型加载失败 | 在项目 venv 里 `pip install -r requirements.txt`；确认本地有 MinerU pipeline 模型（`mineru-models-download` 或 `~/mineru.json`） |
-| MinerU 报 `no text or table content` | MinerU 没解析出任何内容，模型没有被调用；先人工打开 PDF 检查 |
-| MinerU 很慢 | 第一次解析长 PDF 属于正常情况，之后会复用缓存；批量前先用一两份 PDF 试跑 |
-| JSON 校验反复失败 | 查看 `errors/<stage>/` 的字段路径和原因，检查 prompt 与 manifest / schema 是否一致；失败数据不能继续分析 |
-| 提取日志出现 `Removed structural noise before validation` | 模型输出了不含数据的多余键（如 `__typename`）或 `_unfilled` 重复项，已在校验前自动清理，提取值没有改动；其他格式错误仍会失败 |
-| `Refusing to overwrite` / `FileExistsError` | 使用新输出文件或新实验目录；不要删除审核链中的文件来强行复用路径 |
-| Apply 成功后仍有 Pending | 正常；未决定的建议不会应用。是否结束审核由项目组决定 |
-| `--resume-review` 拒绝 | 确认传的是 `round_N`，存在默认 `reviewed_schema.json`，queue / decisions / base 与该产物一致 |
-| 旧审核队列无法恢复 | 缺少身份绑定的历史队列只能审计；用当前流程重新生成，或在其原版本环境处理 |
-| Travel 报告指标 N/A | 没有产品类型真值，不是自动按 `pds` 推断；不要把 N/A 填成 0 |
-| 入库拒绝来源 / 版本 | 检查 approved schema、原 PDF、manifest 输入根目录、公司目录和 artifact；不要手改身份字段绕过校验 |
-| 昨天任务中断，今天如何继续 | 有有效审核产物时 `--resume-review`；有 Health feedback 时 `--resume-feedback`；其他中途失败建议开新实验，不具备任意 API 调用的断点续跑 |
+| Operation absent from UI | Check vertical capability; Health has no storage, Travel has no labelled evaluation |
+| Key missing after editing `.env` | Inject the environment into the launching process; the CLI does not read `.env`; do not print keys |
+| Model/input rejected | Check local capability configuration; use Markdown input and explicit non-OpenAI model names |
+| `Not enough unique PDFs` | Check category folders, insurer count, content deduplication, and holdout exclusions; reduce sample size or add data |
+| Empty PDF text or misaligned tables | Inspect parsing offline; compare MinerU for scans/complex tables before a model experiment |
+| MinerU missing or models fail to load | Install approved requirements in the venv and provide local pipeline models via download tooling or `~/mineru.json` |
+| MinerU reports no text/table content | No model was called; inspect the original PDF first |
+| MinerU is slow | Initial long-document parsing can be slow; later runs reuse cache; test one or two PDFs before batching |
+| Repeated JSON failures | Inspect `errors/<stage>/`; align prompt, manifest, and schema; do not analyze failed data |
+| `Removed structural noise before validation` | Temporary cleanup removed non-data keys or duplicate `_unfilled` items without changing extracted values; other failures remain errors |
+| `Refusing to overwrite` / `FileExistsError` | Use a new file or experiment directory; do not delete audit-chain files to force reuse |
+| Pending items remain after Apply | Expected: undecided proposals do not apply; the team decides when review is complete |
+| `--resume-review` rejects input | Pass `round_N` with default `reviewed_schema.json` and matching queue/decisions/base |
+| Historical queue cannot resume | Unbound queues are audit-only; regenerate with the current workflow or use the original version environment |
+| Travel metrics are N/A | No trusted product labels exist; do not infer them from `pds` or replace N/A with zero |
+| Storage rejects source/version | Check approved schema, PDF, manifest root, insurer folder, and artifact; never edit identity fields to bypass checks |
+| A workflow was interrupted | Valid review permits `--resume-review`; Health feedback permits `--resume-feedback`; other cases normally need a new experiment, not arbitrary API-call resume |
+| A migrated historical artifact names an old path | Locate it through the migration inventory; resuming/reloading relocated runs requires a separate identity review |
 
-## 9. 日常验收
+## 9. Routine verification
 
-代码变更后的项目离线检查：
+After code changes:
 
 ```bash
 .venv/bin/python -m compileall src tests
-.venv/bin/python -m unittest discover -s tests
+env -u KONKRD_TEST_DATABASE_URL .venv/bin/python -m unittest discover -s tests
 .venv/bin/python src/run.py --help
+.venv/bin/python src/refine/loop.py --help
+git diff --check
 ```
 
-团队演示前，另外选少量实际 PDF，记录 manifest、schema 版本、模型、种子、样本和输出路径，并人工对照提取值。离线测试不验证真实 API、PDF 解析质量或数据库连接。
+Before a demonstration, separately run a small approved live sample, record the
+manifest, schema version, model, seeds, inputs, and output paths, and compare
+values against original PDFs. Offline tests do not establish real API behavior,
+PDF extraction quality, or database connectivity.
 
-本文的命令参数和 Python 示例按上述代码版本核对；本次更新未执行付费模型调用、PDF 批量下载或 PostgreSQL 写入。新增采集来源只做了不下载正文的链接预检，MinerU 路线只在一份本地 PDS 上做过解析冒烟测试。
+The layout migration ran offline checks only. Earlier project notes recorded a
+single local MinerU PDS smoke test and acquisition-link checks without downloading
+bodies; those historical checks are not a fresh verification of providers,
+websites, or PostgreSQL.

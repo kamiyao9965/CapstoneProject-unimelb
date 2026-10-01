@@ -1,202 +1,225 @@
-# PRD: Travel Insurance 官方文档采集与关联
+# PRD: Official Travel Insurance document acquisition and association
 
-## 文档信息
+> Historical draft, August 2026. Branch names, the three-insurer scope, proposed
+> commands, directory trees, and implementation phases below record the original
+> proposal, not current operating instructions. Consult the
+> [documentation index](../README.md), [operator guide](../user-guide.md),
+> [current layout](../project-layout.md), and current manifests. Translating this
+> draft does not approve or implement its outstanding requirements.
 
-| 项目 | 内容 |
+## Document information
+
+| Item | Value |
 | --- | --- |
-| 文档状态 | Draft，等待业务与技术评审 |
-| 版本 | 0.1.0 |
-| 日期 | 2026-08-10 |
+| Status | Draft, awaiting business and technical review |
+| Version | 0.1.0 |
+| Date | 2026-08-10 |
 | Vertical | Australian Travel Insurance |
-| 建议实施分支 | `feat/travel-insurance` |
-| 建议代码基线 | `origin/merged-pipeline` |
-| 本文范围 | 产品需求、采集边界、文档关联模型、验收标准与实施建议 |
+| Proposed implementation branch | `feat/travel-insurance` |
+| Proposed baseline | `origin/merged-pipeline` |
+| Scope | Product requirements, acquisition boundaries, document association, acceptance criteria, and implementation recommendations |
 
-## 1. 执行摘要
+## 1. Executive summary
 
-本项目计划在现有 Australian Private Health Insurance schema discovery
-项目上增加 Travel Insurance vertical。第一阶段不直接解决报价、推荐或保单销售，
-而是建立一条可审计、可重复运行的官方文档采集链路，从澳大利亚保险公司的公开官网发现并下载
-Travel Insurance 的 PDS、SPDS、Policy Wording、Benefits Summary 和 Brochure，
-然后把属于同一个产品版本的文档关联成完整的 `product_release` 文档包。
+This proposal adds Travel Insurance to the existing Australian Private Health
+Insurance schema-discovery project. The first phase does not address quotations,
+recommendations, or policy sales. It establishes an auditable, repeatable process
+for discovering and downloading PDS, SPDS, Policy Wording, Benefits Summary, and
+Brochure documents from public official Australian insurer websites, then links
+documents belonging to the same version into a `product_release` bundle.
 
-这一设计的核心不是“尽可能多地下载 PDF”，而是形成一套可信的数据资产：每份文件都能回答
-从哪里发现、何时下载、是否为当前版本、适用于哪些产品、与哪份 PDS 相关，以及其内容是否发生过变化。
-只有具备这些信息，后续 schema discovery、字段提取、产品比较和企业级数据服务才有可靠基础。
+The objective is a trustworthy data collection rather than maximum PDF volume.
+Each file should identify where it was found, when it was downloaded, whether it
+is current, which products it covers, which PDS it relates to, and whether its
+content changed. These facts support later schema discovery, extraction,
+comparison, and enterprise data services.
 
-第一版建议覆盖 Allianz、Cover-More 和 Southern Cross Travel Insurance 三家公司的公开官方文档，
-并支持 `international_single_trip`、`annual_multi_trip` 和 `domestic` 三类产品。
-技术上采用配置驱动、静态页面优先、最多跟进一层文档中心页面的受控采集方式，避免建设难以维护的
-通用互联网爬虫。
+The proposed first release covers Allianz, Cover-More, and Southern Cross Travel
+Insurance, with `international_single_trip`, `annual_multi_trip`, and `domestic`
+products. Acquisition is configuration-driven and static-page-first, following
+at most one document-center page level rather than building a general web crawler.
 
-## 2. 背景与问题
+## 2. Background and problem
 
-### 2.1 当前项目背景
+### 2.1 Existing project
 
-当前项目已经具备 PDF 文档处理、schema discovery、structured output、schema validation、
-refinement、human review、holdout evaluation 和成本评估等能力，但现有 contract、采样类别和业务校验
-主要面向 Australian Private Health Insurance。
+The baseline already supports PDF processing, schema discovery, structured output,
+validation, refinement, human review, holdout evaluation, and cost estimation.
+Its contracts, sampling categories, and business checks primarily target Private
+Health Insurance.
 
-Travel Insurance 与 Private Health Insurance 都以保险条款文档为主要信息来源，因此可以复用大量
-通用能力；但 Travel Insurance 的产品分类、保障项目、文档版本关系和官网发布方式不同，不能仅通过
-替换提示词或输入目录完成可靠迁移。
+Travel uses similar PDF inputs and can reuse shared capabilities. Its product
+taxonomy, benefits, version relationships, and website publishing patterns differ,
+so changing only prompts or input directories is insufficient for a reliable migration.
 
-### 2.2 用户问题
+### 2.2 User problem
 
-企业用户需要比较不同 Travel Insurance 产品，但公开信息分散在不同公司的产品页、PDS 页面和 PDF 中：
+Enterprise users need to compare Travel products, but information is spread across
+product pages, document centers, and PDFs:
 
-- PDS 或 Policy Wording 是核心合同文档，但链接位置和命名不统一。
-- SPDS 会修改既有 PDS；如果只保留基础 PDS，提取结果可能已经过期。
-- Brochure 或 Benefits Summary 便于快速比较，但内容可能是摘要，不能替代 PDS。
-- 同一份文档可能覆盖 Single Trip、Annual Multi-Trip 和 Domestic 多个产品。
-- 官网常同时展示 current 和 archived 文档，单靠 PDF 文件名无法稳定判断版本。
-- 同一 PDF 可能在多个页面重复出现，或者 URL 改变但内容完全相同。
+- PDS/Policy Wording is the primary contract, with inconsistent link locations/names.
+- SPDS modifies an existing PDS; retaining only the base can produce outdated results.
+- Brochure/Benefits Summary aids comparison but cannot replace the PDS.
+- One document may cover Single Trip, Annual Multi-Trip, and Domestic products.
+- Current and archived documents often coexist; filenames alone do not identify versions.
+- The same PDF can appear at several URLs, or move to a new URL without changing content.
 
-如果不先解决文档来源、版本和关联问题，后续模型即使正确读取了 PDF，也可能在错误的产品版本上生成
-结构化数据，产生“技术上成功、业务上错误”的结果。
+Without source, version, and relationship handling, a model may correctly read a
+PDF yet produce data for the wrong product version: technical success with a
+business error.
 
-### 2.3 为什么优先做 Travel Insurance
+### 2.3 Why Travel first
 
-Travel Insurance 与当前项目具有较高的迁移复用度：主要输入仍是公开 PDF，产品保障项目也适合表示成
-结构化 contract。相比需要大量个人信息才能报价的 Car Insurance，Travel Insurance 第一阶段可以在
-不进入 quote flow、不处理个人数据的条件下获得较高价值的数据。
+Travel has high reuse potential: public PDF inputs and benefits that fit structured
+contracts. Unlike Car Insurance quotations that often need personal information,
+this first phase can provide useful data without entering quote flows or collecting
+personal details.
 
-这符合“企业用户”和“低成本迁移”的业务方向：先建立可复用的官方文档与版本数据层，再逐步增加
-产品比较、保障差异分析和推荐能力。
+The proposal supports enterprise users and low-cost vertical extension by first
+building reusable official-document/version data, then potentially adding product
+comparison, coverage analysis, and recommendations.
 
-## 3. 产品目标
+## 3. Product goals
 
-### 3.1 核心目标
+### 3.1 Core goals
 
-1. 从配置的保险公司官方公开页面发现 Travel Insurance 当前产品文档。
-   原因：官方来源可提供最强的出处证明，并降低错误、过期和第三方转载带来的风险。
-2. 验证、下载并按内容哈希去重 PDF。
-   原因：URL、文件名和页面结构都会变化，内容哈希才是稳定的文档身份。
-3. 将 PDS、SPDS 和 Brochure/Benefits Summary 关联到同一个产品版本。
-   原因：单份文件不能完整表达一个当前有效产品；尤其 SPDS 可能改变 PDS 的实际条款。
-4. 为每次采集生成完整 provenance、状态和错误记录。
-   原因：企业数据需要可追溯、可复现，也需要区分“没有文档”和“采集失败”。
-5. 让采集结果能够作为现有 schema discovery 与 extraction pipeline 的输入。
-   原因：避免形成第二套孤立的数据处理系统，控制 vertical 迁移成本。
+1. Discover current Travel documents from configured official public pages.
+   Official sources strengthen provenance and reduce third-party/outdated-copy risk.
+2. Validate, download, and deduplicate PDFs by content hash. URLs, names, and page
+   structures change; content hashes provide stable document identity.
+3. Link PDS, SPDS, and Brochure/Benefits Summary to a product release. One file may
+   not describe all current terms, particularly when supplements amend the base.
+4. Record complete provenance, status, and errors per run. Enterprise data must
+   distinguish no documents from acquisition failure and support reproduction.
+5. Feed the existing discovery/extraction pipeline rather than create an isolated
+   second processing system.
 
-### 3.2 成功定义
+### 3.2 Success definition
 
-MVP 完成时应满足：
+The proposed MVP should:
 
-- 配置至少 3 家保险公司，并能独立运行，单家公司失败不影响其他公司。
-- 对人工标注的 current PDS/SPDS/Brochure 集合达到至少 95% 的发现覆盖率。
-- 所有保存文件都通过 PDF 类型、文件签名和大小校验。
-- 对人工确认的文档关系达到至少 95% 的高置信度关联准确率。
-- 第二次运行相同来源时不重复保存相同内容，并能报告新增、变化、失效和未变化文档。
-- 每份文件都可以追溯到来源页面、发现 URL、最终 URL、抓取时间和内容哈希。
-- 模糊版本或模糊关系进入 review queue，不被静默标记为 current。
+- Configure at least three insurers independently, without one failure stopping others.
+- Discover at least 95% of a manually labelled current PDS/SPDS/Brochure set.
+- Validate every saved file's PDF type, signature, and size.
+- Achieve at least 95% precision for high-confidence associations on manually
+  confirmed document relationships.
+- Avoid saving identical content again and report added, changed, unavailable,
+  and unchanged documents on repeated runs.
+- Trace every file to source page, discovered/final URL, retrieval time, and hash.
+- Send ambiguous versions/relationships to review rather than silently mark them current.
 
-覆盖率目标采用人工标注集合而不是“官网全部 PDF”作为分母，因为官网可能包含 claim form、FSG、隐私政策
-和历史文件，这些并不是本产品要采集的核心产品文档。
+The coverage denominator is the labelled target set, not every PDF on a website;
+claim forms, FSG, privacy policies, and historical documents are not all core targets.
 
-## 4. 非目标
+## 4. Non-goals
 
-MVP 明确不包含：
+The MVP excludes:
 
-- 不进入在线报价、购买、登录或客户门户流程。
-- 不提交姓名、年龄、目的地、旅行日期或健康信息。
-- 不采集个性化 premium，也不承诺价格比较。
-- 不绕过验证码、访问控制、robots.txt 或网站技术限制。
-- 不建设全网搜索引擎或无限递归 crawler。
-- 不自动把低置信度文档关系升级为正式数据。
-- 不把营销 Brochure 当成最终合同依据。
-- 不公开再分发原始 PDF；商业使用和再分发范围需要单独法律确认。
-- 不在 crawler 内调用 LLM。模型处理属于下游阶段，不能影响确定性的数据获取结果。
+- Online quotation, purchase, login, and customer-portal flows.
+- Submission of names, ages, destinations, travel dates, or health information.
+- Personalized premiums and price-comparison promises.
+- Bypassing CAPTCHAs, access controls, robots rules, or technical restrictions.
+- General web search or unlimited recursive crawling.
+- Automatic promotion of low-confidence associations to authoritative data.
+- Treating marketing brochures as final contractual authority.
+- Public redistribution of original PDFs; commercial use/redistribution requires
+  a separate legal decision.
+- LLM calls inside the crawler. Models belong downstream and must not influence
+  deterministic acquisition outcomes.
 
-这些边界可以降低隐私、法律、运行成本和数据正确性风险，并让 MVP 专注验证最关键的官方文档数据层。
+These boundaries limit privacy, legal, operating-cost, and correctness risks and
+keep the MVP focused on the official-document data layer.
 
-## 5. 假设与待确认前提
+## 5. Assumptions to confirm
 
-本文基于以下假设。评审中若任何假设不成立，应先更新 PRD，再进入实现：
+If review invalidates an assumption, update the PRD before implementation:
 
-1. 首期市场范围是 Australia，来源以澳大利亚官方产品页面为准。
-2. 首期用途是内部研究和产品验证，不公开重新发布保险公司的完整 PDF。
-3. 首期关注当前可销售产品；历史版本可记录，但不作为默认 schema discovery 输入。
-4. 团队接受少量人工 review，以换取文档版本和关联关系的可靠性。
-5. PDS/Policy Wording 是合同主文档；SPDS 是有效修改；Brochure 和 Benefits Summary 是辅助摘要。
-6. `origin/merged-pipeline` 在实施前仍是团队认可的最新集成基线。
-7. 新第三方依赖必须先经过依赖政策评审和用户批准。
+1. Initial geography is Australia, using official Australian product pages.
+2. Initial use is internal research/product validation without republishing full PDFs.
+3. Current saleable products are primary; historical versions can be recorded but
+   are not default schema-discovery inputs.
+4. The team accepts limited human review to improve version/relationship reliability.
+5. PDS/Policy Wording is primary; SPDS amends it; brochures and summaries are supporting material.
+6. `origin/merged-pipeline` remains the team's approved integrated baseline at implementation.
+7. New dependencies require dependency-policy review and user approval.
 
-## 6. 用户与使用场景
+## 6. Users and scenarios
 
-### 6.1 数据工程/研究人员
+### 6.1 Data engineers and researchers
 
-需要运行一次采集命令，获得经过验证的 PDF、manifest 和文档关系，而不必手动逐个访问保险公司网站。
+Run one acquisition command to obtain validated PDFs, manifests, and relationships
+without manually visiting each insurer.
 
-### 6.2 Schema 研究人员
+### 6.2 Schema researchers
 
-需要选择一组 current、彼此关联且来源明确的文档，用于发现 Travel Insurance 的结构化字段，避免旧版本和
-重复文件污染样本。
+Select current, related, clearly sourced documents for Travel field discovery,
+avoiding obsolete versions and duplicate-content samples.
 
-### 6.3 产品或商业分析人员
+### 6.3 Product and business analysts
 
-需要知道每家公司提供哪些产品类型、当前适用哪份 PDS/SPDS，以及不同产品的 benefit 信息来自哪份文档。
+Identify each insurer's product types, applicable PDS/SPDS, and the document
+supporting each benefit statement.
 
-### 6.4 审核人员
+### 6.4 Reviewers
 
-需要查看低置信度的版本和关联结果，依据来源页面、标题、生效日期和正文证据接受、修改或拒绝系统建议。
+Inspect low-confidence version/association proposals using source pages, titles,
+effective dates, and text evidence, then accept, edit, or reject them.
 
-## 7. MVP 范围
+## 7. MVP scope
 
-### 7.1 初始公司
+### 7.1 Initial insurers
 
-| Provider | 初始官方入口 | 纳入原因 |
+| Provider | Proposed official entry | Reason |
 | --- | --- | --- |
-| Allianz | <https://www.allianz.com.au/travel-insurance.html> | 产品类别较完整，适合验证一份 PDS 覆盖多个计划的情况 |
-| Cover-More | <https://www.covermore.com.au/pds> | 有明确的 PDS 文档入口，适合验证 current/previous 文档发现 |
-| Southern Cross Travel Insurance | <https://scti.com.au/our-policies/comprehensive> | 产品页和 policy wording 结构清晰，适合验证多产品、多页面来源 |
+| Allianz | [Travel Insurance](https://www.allianz.com.au/travel-insurance.html) | Broad product range; tests a PDS covering multiple plans |
+| Cover-More | [PDS documents](https://www.covermore.com.au/pds) | Explicit document entry; tests current/previous discovery |
+| Southern Cross Travel Insurance | [Comprehensive policies](https://scti.com.au/our-policies/comprehensive) | Clear product/policy-wording pages; tests multiple products and sources |
 
-Southern Cross 还提供 Annual Multi-Trip 和 Domestic 产品页，可作为同一 provider 下多入口页面的测试样本。
-后续可加入 nib、1Cover 等公司，但必须先确认其官方域名、文档入口和使用条款。
+Southern Cross Annual Multi-Trip and Domestic pages provide additional entries
+for one insurer. nib and 1Cover could follow after official domains, document
+entries, and terms are confirmed.
 
-### 7.2 产品类型
+### 7.2 Product types
 
-MVP 使用以下 canonical product types：
+Proposed canonical types:
 
 - `international_single_trip`
 - `annual_multi_trip`
 - `domestic`
 
-暂缓加入 `inbound`, `medical_only`, `working_overseas`, `cruise_only` 等类型。原因是第一版需要先验证通用
-文档关联机制；过早扩充 taxonomy 会提高分类歧义和人工标注成本。
+Defer `inbound`, `medical_only`, `working_overseas`, and `cruise_only` until the
+shared association mechanism is validated. Early taxonomy expansion increases
+ambiguity and labelling cost. Rental vehicle excess remains a Travel benefit,
+not a separate vertical or product type.
 
-Rental vehicle excess 作为 Travel Insurance benefit 存在，不建立独立 vertical 或 product type。
+### 7.3 Document types
 
-### 7.3 文档类型
-
-| Canonical type | 业务角色 | MVP 处理 |
+| Canonical type | Business role | Proposed MVP handling |
 | --- | --- | --- |
-| `pds` | 产品合同主体，包括明确作为 Policy Wording 发布的主文档 | 必须采集 |
-| `spds` | 对指定 PDS 的补充或修改 | 必须采集并建立 `amends` 关系 |
-| `benefit_summary` | 保障限额和计划差异摘要 | 必须采集，存在时关联到产品版本 |
-| `brochure` | 产品营销或概览材料 | 必须采集，存在时关联到产品版本 |
-| `tmd` | Target Market Determination | 可选采集，不进入 MVP 核心比较 |
-| `fsg` | Financial Services Guide | 仅记录发现结果，默认不下载 |
-| `claim_form` | 理赔表格 | 跳过 |
-| `archive` | 历史版本 | 记录但默认不进入当前产品包 |
+| `pds` | Primary contract, including primary Policy Wording | Required acquisition |
+| `spds` | Supplement/amendment to identified PDS | Required acquisition and `amends` relationship |
+| `benefit_summary` | Benefit limits and plan differences | Acquire and associate when present |
+| `brochure` | Marketing/overview | Acquire and associate when present |
+| `tmd` | Target Market Determination | Optional; outside core comparison |
+| `fsg` | Financial Services Guide | Record discovery; do not download by default |
+| `claim_form` | Claims form | Skip |
+| `archive` | Historical version | Record; exclude from current bundles by default |
 
-将 Benefit Summary 与 Brochure 分开，是因为前者通常更接近结构化权益表，后者可能是营销说明。两者都不能
-覆盖 PDS 的法律角色，但对快速比较和字段发现有不同价值。
+Benefits Summary is separate from Brochure because structured benefit tables and
+marketing overviews have different comparison/discovery value. Neither replaces
+the legal role of the PDS.
 
-## 8. 核心概念与关联模型
+## 8. Concepts and association model
 
-### 8.1 为什么不能只保存三个文件列表
+### 8.1 Why three file lists are insufficient
 
-PDS、SPDS 和 Brochure 不是简单的一对一关系：
+Relationships are not one-to-one: a PDS can cover several types; an SPDS can amend
+several PDS files; a summary can compare several plans; and a new PDS can supersede
+an old one without automatically inheriting its brochure. Support many-to-many
+relationships through `product_release`, representing an insurer's applicable
+document set for a period.
 
-- 一个 PDS 可能覆盖多个 product types。
-- 一个 SPDS 可能修改一份或多份 PDS。
-- 一个 Benefits Summary 可能同时比较多个 plan。
-- 一个新版 PDS 会取代旧 PDS，但旧 Brochure 不应自动迁移到新版本。
-
-因此系统必须支持多对多关系，并通过中间实体 `product_release` 表示某家公司在某一时期有效的一组产品文档。
-
-### 8.2 实体模型
+### 8.2 Entity model
 
 ```text
 Provider
@@ -212,89 +235,91 @@ Document ── Document Relationship ── Document
     └── Document Release Link ── Product Release
 ```
 
-### 8.3 关系类型
+### 8.3 Relationship types
 
-| 来源 | 目标 | `relationship_type` | 含义 |
+| Source | Target | `relationship_type` | Meaning |
 | --- | --- | --- | --- |
-| SPDS | PDS | `amends` | SPDS 修改或补充目标 PDS |
-| Brochure | PDS | `summarizes` | Brochure 概述目标 PDS 所对应产品 |
-| Benefits Summary | PDS | `summarizes_benefits_of` | 权益摘要解释目标产品的保障和限额 |
-| 新 PDS | 旧 PDS | `supersedes` | 新版 PDS 取代旧版 PDS |
-| TMD | Product Release | `targets_market_for` | TMD 描述产品版本的目标市场 |
+| SPDS | PDS | `amends` | Supplements/amends the target PDS |
+| Brochure | PDS | `summarizes` | Summarizes the associated product |
+| Benefits Summary | PDS | `summarizes_benefits_of` | Explains benefits and limits |
+| New PDS | Old PDS | `supersedes` | Replaces the earlier PDS |
+| TMD | Product Release | `targets_market_for` | Describes the target market |
 
-### 8.4 产品版本身份
+### 8.4 Product release identity
 
-`product_release_id` 应由 provider、规范化产品家族和基础 PDS 版本共同决定。例如：
+The proposed `product_release_id` combines insurer, normalized family, and base
+PDS version, for example:
 
 ```text
 allianz:travel_insurance:2026-01-01:ab12cd34
 ```
 
-其中日期来自明确生效日期；短哈希来自主 PDS 内容。加入哈希是为了区分同一生效日下内容不同的重新发布文件。
+Use an explicit effective date and a short primary-PDS content hash. The hash
+distinguishes content changes republished with the same effective date.
 
-### 8.5 文档关系判定
+### 8.5 Relationship evidence
 
-关系识别按照证据强度依次使用：
+Use evidence in descending strength:
 
-1. PDF 正文明确写明修改、补充或适用的 PDS 名称和日期。
-2. 官方页面明确把多份文件放在同一 current product/document 区域。
-3. Provider、产品名称和适用 product types 一致。
-4. 生效时间重叠且没有更新 PDS 取代关系。
-5. URL、文件名和 anchor text 提供辅助线索。
+1. PDF text explicitly names the amended/supplemented/applicable PDS and date.
+2. The official page groups files in the same current-product/document section.
+3. Insurer, product name, and applicable product types agree.
+4. Effective periods overlap without a newer superseding PDS.
+5. URLs, filenames, and anchor text provide supporting clues.
 
-正文的明确引用优先于 URL 和文件名，因为网站维护者可能修改路径或使用模糊文件名。
+Explicit text references outrank names/URLs because publishers may change paths
+or use ambiguous filenames.
 
-### 8.6 置信度与人工审核
+### 8.6 Confidence and review
 
-| 置信度 | 处理方式 |
+| Confidence | Handling |
 | --- | --- |
-| `high` | 自动关联，但保留 evidence 和匹配规则 |
-| `medium` | 写入 review queue，审核后才能进入 current 文档包 |
-| `low` | 保持未关联，不进入下游产品级处理 |
+| `high` | Associate automatically; preserve evidence and rules |
+| `medium` | Review before joining a current bundle |
+| `low` | Leave unassociated; exclude from product-level downstream processing |
 
-任何自动关联都必须包含 `evidence`。不能只保存一个 confidence 数字，否则审核人员无法理解系统为什么建立关系。
+Every automatic association must include evidence. A confidence number alone does
+not explain the relationship to reviewers.
 
-## 9. 用户流程
+## 9. User workflow
 
-### 9.1 配置来源
+### 9.1 Configure sources
 
-维护人员在 tracked source registry 中配置 provider、入口 URL、允许域名、产品提示词和文档提示词。
+Maintain insurer codes, entry URLs, allowed domains, and product/document hints
+in a tracked source registry.
 
 ### 9.2 Dry run
 
-运行 dry run 只发现页面和候选文档，不下载 PDF。使用者先检查候选数量、域名、current/archive 判断及排除原因。
+Discover pages and candidates without downloading PDFs. Inspect candidate counts,
+domains, current/archive judgments, and exclusion reasons.
 
-### 9.3 正式采集
+### 9.3 Acquire documents
 
-系统按 provider 独立处理来源页面，验证 robots 和 URL，受控跟进一次文档中心页面，验证并下载 PDF。
+Process insurers independently, validate robots and URLs, follow at most one
+eligible document-page level, then validate/download PDFs.
 
-### 9.4 元数据与关系解析
+### 9.4 Resolve metadata and relationships
 
-系统读取页面上下文和 PDF 可提取文本，识别文档类型、产品类型、有效日期、版本状态和文档关系。
+Inspect page context and extractable PDF text for document/product types,
+effective dates, version states, and relationships.
 
-### 9.5 人工审核
+### 9.5 Human review
 
-审核人员处理 `needs_review` 项目。接受后进入当前产品文档包；拒绝后保留决定及理由，防止下一次运行重复提出。
+Review `needs_review` items. Accepted items join current bundles. Rejections retain
+decisions/reasons so the next run does not blindly propose the same association.
 
-### 9.6 下游使用
+### 9.6 Downstream selection
 
-Schema discovery 只选择：
+Schema discovery selects only current, validated PDFs whose relationships are
+confirmed or high confidence and whose content does not duplicate selected samples.
 
-- `version_status = current`
-- 关系已确认或为 high confidence
-- PDF 校验成功
-- 不与当前样本内容重复
+## 10. Functional requirements
 
-## 10. 功能需求
+### FR-01: Configurable source registry (P0)
 
-### FR-01：配置驱动的来源注册表（P0）
-
-系统必须通过配置增加或修改 provider，不要求为每家公司复制一套 crawler。
-
-原因：公司页面结构会变化；把 URL、选择规则和提示词放在配置层可以降低维护成本，同时让通用安全和下载逻辑
-保持一致。
-
-建议配置字段：
+Add/edit insurers through configuration without copying a crawler per company.
+Website changes should mostly affect URLs, selection rules, and hints, while shared
+security/download logic stays consistent. Proposed fields:
 
 ```json
 {
@@ -316,86 +341,65 @@ Schema discovery 只选择：
 }
 ```
 
-### FR-02：受控页面发现（P0）
+### FR-02: Bounded page discovery (P0)
 
-系统必须静态 HTML 优先，从入口页提取候选链接；仅允许跟进同一官方 allowlist 域名内、符合文档页面提示词的
-一层页面。不得进行无边界递归。
+Prefer static HTML. Extract links from entry pages and follow only one eligible
+document-page level on official allowlisted domains. No unbounded recursion.
+The usual product-page → policy-documents → PDF pattern needs limited depth;
+unlimited crawling adds quote, claims, news, and privacy noise/risk.
 
-原因：保险公司通常通过“产品页 → policy documents 页面 → PDF”发布文档，一层跟进足以覆盖主要场景；
-无限递归会进入报价、理赔、新闻和隐私页面，增加风险和噪音。
+### FR-03: Preserve page context (P0)
 
-### FR-03：保留页面上下文（P0）
+Store anchor text, nearest section heading, source page, and date text per
+candidate. Current/previous status often lives around the link rather than in
+the filename; storing only URLs loses valuable version evidence.
 
-每个候选链接必须保存 anchor text、最近的 section heading、来源页面和页面上的日期文本。
+### FR-04: URL and access safety (P0)
 
-原因：`Current documents`、`Previous documents` 等版本信息经常存在于链接周围，而不在 PDF 文件名中。
-如果只保存 URL，下载后会丢失最可靠的版本证据之一。
+Require HTTPS; validate allowlists before requests and after redirects; reject
+loopback, private, link-local, and local-file targets; respect robots.txt and use
+a clear User-Agent. Set connect/read/total timeouts and per-insurer rate, page,
+and candidate limits. Page-supplied URLs/redirects create SSRF and cross-domain
+risk; hard limits also contain erroneous configurations.
 
-### FR-04：URL 与访问安全（P0）
+### FR-05: Candidate classification (P0)
 
-系统必须：
+Distinguish `pds`, `spds`, `benefit_summary`, `brochure`, `tmd`, `fsg`, `claim_form`,
+and `unknown`, saving matched rules/evidence rather than labels alone. Document
+roles differ; treating every PDF as a brochure can misrepresent marketing summaries
+as complete terms downstream.
 
-- 只访问 HTTPS。
-- 请求前和重定向后都验证 allowlist。
-- 禁止访问 loopback、private、link-local 和本地文件地址。
-- 尊重 robots.txt，并使用清晰的 User-Agent。
-- 设置连接、读取和总超时。
-- 设置每 provider 的速率限制、最大页面数和最大候选数。
+### FR-06: PDF validation and streaming downloads (P0)
 
-原因：URL 可能来自页面内容并发生重定向，这会形成 SSRF 或意外跨域风险；限速和硬上限也可以避免错误配置造成
-过量请求。
+Stream downloads with a default 50 MiB cap. Check both Content-Type and `%PDF-`
+signature; reject HTML errors, empty files, and oversized responses. Move temporary
+files into final paths only after validation. Compute SHA-256 for identity.
+A `.pdf` URL may return login/error HTML; temporary validated writes prevent
+partial files from contaminating the dataset.
 
-### FR-05：候选文档分类（P0）
+### FR-07: Idempotency, deduplication, and content changes (P0)
 
-系统必须区分 `pds`、`spds`、`benefit_summary`、`brochure`、`tmd`、`fsg`、`claim_form` 和 `unknown`。
-分类必须保存命中的规则和证据，不得只输出标签。
+Save each SHA-256 content once while retaining multiple source URLs. A changed
+hash at the same URL becomes a new version or `content_changed` event, never an
+overwrite. URL-only deduplication misses both duplicate links and replaced content.
 
-原因：不同文档的法律地位和下游用途不同。把所有 PDF 当成 brochure 会使下游模型错误地将营销摘要解释为完整条款。
+### FR-08: Version status (P0)
 
-### FR-06：PDF 验证与流式下载（P0）
+Support `current`, `archived`, `superseded`, `unknown`, and `needs_review`.
+Presence on an entry page alone does not establish currentness. Combine section,
+effective-date, supersession, and text evidence. A stale PDS incorrectly marked
+current can be more harmful than a missed document; uncertainty must fail closed.
 
-系统必须：
+### FR-09: Relationships and bundles (P0)
 
-- 以流式方式下载，默认最大 50 MiB。
-- 同时检查响应 Content-Type 和文件头 `%PDF-`。
-- 拒绝 HTML 错误页、空文件和超限文件。
-- 在验证完成后再将文件移动到正式路径。
-- 计算 SHA-256，并使用哈希作为稳定身份。
+Create explicit PDS/SPDS/Benefits Summary/Brochure relationships and product-release
+bundles. One document can link to several releases. Multi-plan PDS files make
+single-product-only directories prone to duplicated files or lost applicability.
 
-原因：扩展名为 `.pdf` 的链接可能返回登录页、错误页或重定向页面；先写临时文件再验证可以避免留下半文件和
-污染数据集。
+### FR-10: Manifest and provenance (P0)
 
-### FR-07：幂等、去重和内容变化检测（P0）
-
-同一 SHA-256 内容只能保存一次，但可以保留多个来源 URL。相同 URL 若返回新哈希，应记录为新文档版本或
-`content_changed` 事件，不能覆盖旧文件。
-
-原因：按 URL 去重无法识别同一文件的多个链接，也无法保留“同一路径内容被替换”的重要版本变化。
-
-### FR-08：版本状态识别（P0）
-
-支持以下状态：
-
-- `current`
-- `archived`
-- `superseded`
-- `unknown`
-- `needs_review`
-
-系统不能只因文档出现在入口页就认定为 current。判断必须结合页面区域、有效日期、替代关系和正文信息。
-
-原因：错误地把旧 PDS 作为 current 比漏掉一份文档风险更高，因此不确定时必须 fail closed。
-
-### FR-09：文档关联和产品文档包（P0）
-
-系统必须为 PDS、SPDS、Benefits Summary 和 Brochure 建立显式关系，并形成 `product_release`。
-一份文档必须允许关联多个 product releases。
-
-原因：Travel Insurance 的一份 PDS 经常覆盖多个计划；强制单产品目录会复制文件或丢失适用范围。
-
-### FR-10：Manifest 与 provenance（P0）
-
-每个候选和下载结果都必须产生记录，包括成功、重复、跳过和失败。建议字段：
+Record every candidate/download outcome: success, duplicate, skip, and failure.
+Example:
 
 ```json
 {
@@ -420,87 +424,90 @@ Schema discovery 只选择：
 }
 ```
 
-原因：只有成功记录会掩盖 coverage gap；失败与跳过原因同样是数据质量的一部分。
+Success-only records hide coverage gaps. Skips and failures are also data-quality evidence.
 
-### FR-11：结构化错误码（P0）
+### FR-11: Structured error codes (P0)
 
-至少支持：
+At minimum:
 
-- `ROBOTS_DISALLOWED`
-- `OFF_DOMAIN_URL`
-- `OFF_DOMAIN_REDIRECT`
-- `PRIVATE_NETWORK_TARGET`
-- `HTTP_ERROR`
-- `TIMEOUT`
-- `SIZE_LIMIT_EXCEEDED`
-- `NOT_PDF`
-- `DUPLICATE_CONTENT`
-- `NO_DOCUMENT_CANDIDATES`
-- `AMBIGUOUS_DOCUMENT_TYPE`
-- `AMBIGUOUS_VERSION`
-- `AMBIGUOUS_RELATIONSHIP`
+```text
+ROBOTS_DISALLOWED
+OFF_DOMAIN_URL
+OFF_DOMAIN_REDIRECT
+PRIVATE_NETWORK_TARGET
+HTTP_ERROR
+TIMEOUT
+SIZE_LIMIT_EXCEEDED
+NOT_PDF
+DUPLICATE_CONTENT
+NO_DOCUMENT_CANDIDATES
+AMBIGUOUS_DOCUMENT_TYPE
+AMBIGUOUS_VERSION
+AMBIGUOUS_RELATIONSHIP
+```
 
-原因：稳定错误码适合自动统计、告警和测试；原始异常文字可以保留为 redacted detail，但不能作为唯一接口。
+Stable codes support aggregation, alerts, and tests. Original exception text may
+be retained as redacted detail, not the sole interface.
 
-### FR-12：Provider 故障隔离（P0）
+### FR-12: Insurer failure isolation (P0)
 
-一个 provider 或一个 URL 失败不能终止整个采集任务。最终 run status 可为 `success`、`partial_success` 或 `failed`。
+One insurer or URL failure must not stop the entire acquisition. Final status may
+be `success`, `partial_success`, or `failed`. Temporary outages and site redesigns
+are expected; preserve useful results while exposing failure scope.
 
-原因：官网临时不可用或页面改版很常见；故障隔离能让批量运行仍产生可用结果，同时明确暴露失败范围。
+### FR-13: Dry run and report (P0)
 
-### FR-13：Dry run 与报告（P0）
+Show pages to visit, candidate PDFs, classifications, version decisions,
+exclusions, and warnings without writing raw PDFs. This provides a cheap check
+before enabling new source configuration and helps business reviewers assess rules.
 
-Dry run 应显示预计访问页面、候选 PDF、分类、版本判断、排除项和警告，不写入 raw PDF。
+### FR-14: Optional dynamic-page adapter (P1)
 
-原因：这是上线新 provider 配置前成本最低的安全检查，也便于业务人员验证规则是否抓到了正确文档。
+Enable browser rendering for a particular insurer only when static HTML and official
+document entries are insufficient. Browser runtimes such as Playwright are larger,
+slower, and sensitive to page changes. They require explicit approval and per-insurer
+activation, not a default path.
 
-### FR-14：可选动态页面适配器（P1）
+### FR-15: Historical comparison (P1)
 
-只有在静态 HTML 和官方文档入口不能满足需求时，才允许为特定 provider 开启浏览器渲染适配器。
+Compare adjacent runs for `added`, `removed`, `content_changed`, `metadata_changed`,
+and `unchanged`. Ongoing PDS updates and SPDS publication are valuable beyond a
+one-time download.
 
-原因：Playwright 等浏览器依赖体积大、运行慢、容易受页面变化影响。静态优先符合低成本迁移目标；动态能力应是
-明确授权、按 provider 启用的 fallback，而不是默认路径。
+## 11. Nonfunctional requirements
 
-### FR-15：历史对比（P1）
+### 11.1 Correctness
 
-系统应能比较相邻 run，输出 added、removed、content_changed、metadata_changed 和 unchanged。
+Do not guess uncertain types, versions, or relationships. Preserve evidence for
+automatic classification/association. Downstream consumers accept only successful,
+contract-validated artifacts.
 
-原因：企业价值不仅来自一次性下载，还来自持续发现 PDS 更新和 SPDS 发布。
+### 11.2 Reproducibility
 
-## 11. 非功能需求
+The same configuration, page snapshots, and file content produce the same
+canonical classifications/relationships. Nondeterministic run IDs/times must not
+affect semantic comparisons.
 
-### 11.1 正确性
+### 11.3 Performance and resource limits
 
-- 不确定的 document type、版本和关系不得静默猜测。
-- 所有自动分类和关联必须保留 evidence。
-- 下游只能消费经过 contract validation 的 success artifacts。
+Defaults: at most 0.5 requests/second per insurer, one followed page level,
+20 HTML pages, 100 PDF candidates, and 50 MiB per PDF. Any concurrency is bounded
+per insurer/domain; serial MVP execution is acceptable. Protect websites and
+operational control, then tune using real measurements rather than premature concurrency.
 
-### 11.2 可重复性
+### 11.4 Maintainability
 
-- 相同配置、相同页面快照和相同文件内容应产生相同 canonical 分类和关系结果。
-- 时间、run ID 等非确定性 provenance 不得影响语义结果比较。
+Express insurer differences in configuration or narrow adapters. Do not duplicate
+URL, security, download, hashing, manifest, or error logic. Keep acquisition separate
+from schema discovery, provider calls, and PDF content extraction.
 
-### 11.3 性能与资源上限
+### 11.5 Auditability
 
-- 默认每 provider 每秒最多 0.5 个请求。
-- 默认最多跟进一层、20 个 HTML 页面和 100 个 PDF 候选。
-- 默认 PDF 上限 50 MiB。
-- 并发必须按 provider 和域名限流，MVP 可先串行以降低复杂度。
+Retain original/final URLs, timestamps, hashes, classification rules, relationship
+evidence, and review decisions. New acquisition runs must not silently overwrite
+human decisions.
 
-这些默认值优先保护来源网站和任务可控性。后续可基于真实运行数据调整，而不是提前增加复杂并发。
-
-### 11.4 可维护性
-
-- Provider 差异优先放在配置或窄适配器中。
-- 通用 URL、安全、下载、哈希、manifest 和错误逻辑不得复制。
-- 采集模块与 schema discovery、LLM provider 和 PDF 内容提取保持清晰边界。
-
-### 11.5 可审计性
-
-- 原始来源 URL、最终 URL、时间、哈希、分类规则、关系证据和审核决定必须保留。
-- 审核决定不可被下一次采集静默覆盖。
-
-## 12. 建议系统流程
+## 12. Proposed system flow
 
 ```text
 Tracked source registry
@@ -518,12 +525,12 @@ Tracked source registry
   -> schema discovery / extraction pipeline
 ```
 
-采集与下游模型处理分开运行。原因是网络失败、文件真实性、版本识别和模型输出错误属于不同故障域；分开后可以
-独立重试、测试和审计。
+Run acquisition separately from model processing. Network failure, file validity,
+version resolution, and model-output errors need independent retry, testing, and audit.
 
-## 13. 数据与文件结构
+## 13. Proposed data and file structure
 
-建议结构：
+Historical proposal; current paths are in [project layout](../project-layout.md):
 
 ```text
 configs/travel_insurance/
@@ -554,20 +561,21 @@ outputs/travel_insurance/acquisition/
     errors/
 ```
 
-原始 PDF 和 runtime outputs 必须继续忽略，不进入 Git。Tracked source config 和 JSON contracts 应进入 Git，
-因为它们定义可重复行为和公共数据契约。
-
-文件路径建议使用：
+Raw PDFs/runtime outputs remain ignored by Git. Source configuration and JSON
+contracts are tracked because they define repeatable behavior and public contracts.
+Proposed file naming:
 
 ```text
 <provider>/<document_type>/<sha256-prefix>_<sanitized-title>.pdf
 ```
 
-产品类型不作为唯一目录层级，因为一份文件可能适用于多个产品。适用范围应保存在 manifest 的数组字段中。
+Do not use product type as the sole directory hierarchy: a file can cover several
+types. Store applicability in manifest arrays.
 
-## 14. CLI 需求
+## 14. Proposed CLI
 
-建议入口：
+These are historical interface sketches, not current executable instructions.
+Current acquisition uses `src/run.py crawl` as described in the operator guide.
 
 ```bash
 .venv/bin/python -m src.acquisition.travel \
@@ -575,7 +583,7 @@ outputs/travel_insurance/acquisition/
   --dry-run
 ```
 
-正式运行：
+Proposed actual acquisition:
 
 ```bash
 .venv/bin/python -m src.acquisition.travel \
@@ -583,7 +591,7 @@ outputs/travel_insurance/acquisition/
   --output-root outputs/travel_insurance/acquisition
 ```
 
-单 provider 调试：
+Proposed single-insurer debugging:
 
 ```bash
 .venv/bin/python -m src.acquisition.travel \
@@ -592,12 +600,12 @@ outputs/travel_insurance/acquisition/
   --dry-run
 ```
 
-CLI 必须提供清晰的阶段进度和最终摘要，但不得打印 PDF 正文、API key 或不必要的完整错误页面。
+The CLI should show clear stages and a final summary without printing PDF bodies,
+credentials, or unnecessary complete error pages. This PRD does not mandate a
+module name; consult the approved architecture owner map before implementation
+and avoid confusing acquisition with schema discovery in `src/run.py`.
 
-本 PRD 不强制最终模块名称；实施前应结合团队认可的最新 architecture owner map 确认入口位置，避免与现有
-`src/run.py` 的 schema discovery 职责混淆。
-
-## 15. Product Release 数据契约示例
+## 15. Example product-release contract
 
 ```json
 {
@@ -627,286 +635,242 @@ CLI 必须提供清晰的阶段进度和最终摘要，但不得打印 PDF 正�
 }
 ```
 
-`primary_pds` 使用数组而不是单值，是为了兼容一个产品包由多个主条款文件共同组成的情况；MVP 通常只有一个，
-但 contract 不应提前排除合理的多文档产品结构。
+`primary_pds` is an array to permit bundles with multiple primary terms files.
+The MVP normally has one, but the contract should not preclude reasonable
+multi-document products.
 
-## 16. Review Queue
+## 16. Review queue
 
-Review item 至少包含：
+Each item should contain candidate document/relationship ID, system proposal and
+confidence, source page/final URL, section/anchor/date context, PDF title/effective
+date/text evidence, and conflicts such as a current page label beside a newer PDS.
+Decisions are accept/reject/edit with reviewer, timestamp, and rationale.
 
-- 候选 document 或 relationship ID。
-- 系统建议及 confidence。
-- 来源页面和最终 PDF URL。
-- 页面 section heading、anchor text 和日期上下文。
-- PDF 标题、有效日期和正文证据片段。
-- 冲突信息，例如“页面标记 current，但存在日期更新的 PDS”。
-- 可选决定：accept、reject、edit。
-- 审核人、时间和理由。
+Keep generated queues immutable and decisions separate. Overwriting a queue loses
+the distinction between the system's original proposal and the human's final decision.
 
-审核队列本身在生成后应保持不可变，决定单独保存。原因是覆盖原队列会破坏审计轨迹，也无法区分系统最初建议和
-人工最终决定。
+## 17. Safety, compliance, and legal boundaries
 
-## 17. 安全、合规与法律边界
+### 17.1 Website access
 
-### 17.1 网站访问
+Visit only configured official public URLs; respect robots.txt, rate limits, and
+website responses. Do not bypass controls or conceal automation. Do not enter
+quote, account, or claims-submission workflows.
 
-- 只访问配置的官方公开 URL。
-- 尊重 robots.txt、合理限速和网站响应。
-- 不绕过访问控制或隐藏自动化身份。
-- 不访问 quote、account、claims submission 等交互式用户流程。
+### 17.2 Content use
 
-### 17.2 内容使用
+Public download availability does not establish permission for commercial
+redistribution. The draft cites [Allianz Terms of Use](https://www.allianz.com.au/terms-of-use.html)
+as an example. The default MVP treats PDFs as internal research inputs. Before
+enterprise launch, customer delivery, or a public dataset, business/legal owners
+must establish whether automated download, long-term retention, fact extraction,
+third-party display of text/screenshots/full PDFs, and required notices/source
+links are permitted.
 
-公开可下载不等于允许商业再发布。例如 Allianz 网站另有 Terms of Use：
-<https://www.allianz.com.au/terms-of-use.html>。
+### 17.3 Data security
 
-MVP 默认将 PDF 视为内部研究输入。进入企业产品、客户交付或公开数据集前，必须由业务和法律负责人确认：
+Collect no personal information. Ordinary logs must not contain environment
+variables, credentials, PDF body text, or raw error responses.
 
-- 是否允许自动下载。
-- 是否允许长期保存。
-- 是否允许提取事实数据。
-- 是否允许向第三方展示原文、截图或完整 PDF。
-- 是否需要保留版权声明或来源链接。
+## 18. Dependency policy
 
-### 17.3 数据安全
+Prefer existing dependencies and the standard library. Additions require approval
+and an updated dependency policy.
 
-系统不得采集个人信息，也不得将环境变量、凭据、PDF 正文或原始错误响应写入普通日志。
+- Static HTML: first determine whether existing/standard-library tools suffice.
+- Stronger selection: evaluate httpx/BeautifulSoup explicitly; do not rely on
+  incidental transitive installation.
+- Dynamic pages: consider Playwright only for a demonstrated static-discovery gap,
+  with separate approval.
+- PDF metadata/text: reuse the integrated PDFingestor/parsing boundary rather than
+  add another parser.
 
-## 18. 依赖策略
+This limits migration cost and avoids adding a browser runtime merely because
+crawlers often use one.
 
-MVP 应优先使用现有依赖和 Python 标准库。任何新增依赖都必须先更新 dependency policy 并获得批准。
+## 19. Testing strategy
 
-潜在依赖决策：
+### 19.1 Unit tests
 
-- 静态 HTML：先验证标准库或现有能力是否足够。
-- 更稳健的 HTML 选择器：httpx/BeautifulSoup 需要作为显式依赖评审，不能依赖间接安装。
-- 动态页面：Playwright 仅在静态方式确实不能覆盖目标 provider 时考虑，且必须单独批准。
-- PDF 元数据和正文：优先复用集成基线已有的 PDFingestor/PDF parsing 能力，不再增加平行 parser。
+Cover URL normalization/domain/private-IP rejection; hints/type classification;
+dates/current/archive decisions; SHA-256 deduplication/naming; PDS/SPDS/Brochure
+relations; confidence/review thresholds; and stable error codes.
 
-这一路径符合低成本迁移原则，同时避免因为“爬虫常用”就引入重型浏览器运行时。
+### 19.2 Fixture integration
 
-## 19. 测试策略
+Use minimized saved HTML and fake PDF bytes for direct PDF links, one-hop document
+centers, separate current/archive sections, multiple URLs per PDF, changed content
+at one URL, off-allowlist redirects, PDF URLs returning HTML, and partial success
+after insurer failure. Run offline by default so CI does not depend on website
+structure or network reliability.
 
-### 19.1 单元测试
+### 19.3 Contract tests
 
-覆盖：
+Validate all acquisition runs, manifests, releases, relationships, and review
+artifacts against authoritative JSON Schema. Reject unknown fields, invalid enums,
+missing provenance, and automatic relationships without evidence.
 
-- URL 规范化、域名和 private IP 拒绝。
-- 链接提示词和 document type 分类。
-- 日期解析与 current/archive 判断。
-- SHA-256 去重和文件命名。
-- PDS/SPDS/Brochure 关联规则。
-- 关系 confidence 和 review threshold。
-- 结构化错误码。
+### 19.4 Golden dataset
 
-### 19.2 Fixture 集成测试
+Create a small human-confirmed dataset for the three proposed insurers: expected
+current documents; excluded archived/FSG/claim forms; correct document/product
+types; and PDS/SPDS/Brochure relationships. Use it to measure the proposed 95%
+coverage and association-precision targets.
 
-使用保存的、经过最小化处理的 HTML fixtures 和伪造 PDF bytes，测试：
+### 19.5 Live smoke tests
 
-- 入口页直接链接 PDF。
-- 入口页链接文档中心，再链接 PDF。
-- current 与 archived 位于不同 section。
-- 同一 PDF 有多个 URL。
-- 同一 URL 内容发生变化。
-- 重定向到非 allowlist 域名。
-- `.pdf` URL 返回 HTML。
-- 单 provider 失败后的 partial success。
+Require explicit opt-in and visit only a few official pages. Acceptance: robots/
+allowlist checks pass; at least one valid candidate or an explainable
+`NO_DOCUMENT_CANDIDATES`; no off-config domain access; no quotations/forms.
+Offline success cannot be described as verified website acquisition. Only an
+actual live smoke run supports that statement.
 
-Fixture 测试默认离线，避免 CI 依赖外部网站结构和网络稳定性。
+### 19.6 Repository checks
 
-### 19.3 Contract 测试
-
-所有 acquisition run、manifest、product release、relationship 和 review artifacts 都必须通过权威 JSON Schema。
-未知字段、非法枚举、缺少 provenance 和无 evidence 的自动关系应被拒绝。
-
-### 19.4 Golden dataset 测试
-
-为 3 家 MVP provider 建立人工确认的小型 golden dataset，至少标注：
-
-- 应发现的 current 文档。
-- 应排除的 archived/FSG/claim form。
-- 正确 document type。
-- 正确 product types。
-- 正确 PDS/SPDS/Brochure 关系。
-
-Golden dataset 用于衡量前述 95% 覆盖率和关系准确率。
-
-### 19.5 Live smoke test
-
-Live test 必须显式 opt-in，并只访问少量官方页面。通过标准包括：
-
-- robots 和 allowlist 检查成功。
-- 至少发现一个有效候选或给出可解释的 `NO_DOCUMENT_CANDIDATES`。
-- 不访问配置外域名。
-- 不进行报价或提交表单。
-
-离线测试通过不能被描述为“官网采集已经验证”；只有实际运行 live smoke 才能做这一声明。
-
-### 19.6 仓库级验证
-
-实现阶段至少运行：
+The proposed implementation should at least run:
 
 ```bash
 .venv/bin/python -m compileall src tests
 .venv/bin/python -m unittest discover -s tests
 ```
 
-如果新增 CLI，还必须运行其 `--help`。
+Also exercise new CLI `--help`. Current offline instructions additionally unset
+the live-test database variable; see the operator guide.
 
-## 20. 监控与运行报告
+## 20. Monitoring and run reports
 
-每次 run 至少汇总：
+Summarize insurers and success/partial/failure counts; pages, candidates,
+downloads, duplicates, skips, and failures; counts by document type and version
+status; added/changed/removed/unchanged documents; automatic associations and
+high/medium/low confidence; error-code counts; total bytes and duration.
 
-- Provider 总数和 success/partial/failed 数量。
-- 访问页面数、候选数、下载数、重复数、跳过数和失败数。
-- 按 document type 的数量。
-- current、archived、unknown 和 needs_review 数量。
-- 新增、变化、移除和未变化文档数。
-- 自动关联、高/中/低 confidence 关系数。
-- 每类错误码数量。
-- 总下载字节和运行时长。
+These support diagnostics and product KPIs. A sudden zero candidate count may
+indicate a website redesign, not withdrawal of the insurer's products.
 
-这些指标同时服务运行诊断和产品 KPI。例如候选数量突然归零通常表示页面改版，而不是该公司不再销售产品。
+## 21. Proposed implementation phases
 
-## 21. 分阶段实施建议
+### Phase 0: Requirements and legal scope
 
-### Phase 0：需求和法律确认
+Review the PRD, confirm insurers/internal use, and decide whether browser tooling
+and new dependencies are allowed. Access/content boundaries affect design and
+should be settled before coding.
 
-- 评审本 PRD。
-- 确认 MVP provider 和内部使用边界。
-- 确认动态浏览器和新增依赖是否允许。
+### Phase 1: Contracts and static acquisition core
 
-完成原因：访问和内容使用边界会直接影响实现，不应在代码完成后再补决定。
+Define registry, artifact contracts, and error codes. Implement URL/robots checks,
+static discovery, streaming download, PDF validation, hashing, and manifests, with
+offline fixture tests. Done when generic acquisition works end-to-end on fixtures
+without an insurer-specific implementation.
 
-### Phase 1：采集 contract 与静态核心
+### Phase 2: Three insurer configurations
 
-- 建立 source registry、artifact contracts 和错误码。
-- 实现 URL 安全、robots、静态发现、流式下载、PDF 验证、哈希和 manifest。
-- 完成纯离线 fixture tests。
+Configure Allianz, Cover-More, and SCTI, with golden expectations and opt-in live
+smokes. Target at least 95% discovery coverage of current core documents.
 
-完成标准：不依赖任何单独 provider 规则即可在 fixture 上跑通端到端 acquisition。
+### Phase 3: Versions and associations
 
-### Phase 2：三家 Provider 配置
+Extract titles/effective dates; implement releases, relationship resolution, and
+review queues; test many-to-many PDS/SPDS/Brochure scenarios. Target at least 95%
+high-confidence precision against human-labelled relationships.
 
-- Allianz。
-- Cover-More。
-- Southern Cross Travel Insurance。
-- 对每家建立 golden expectations 和 opt-in live smoke。
+### Phase 4: Pipeline integration
 
-完成标准：达到 current 核心文档 95% 发现覆盖率。
+Let sampling read confirmed current releases. Add Travel contracts/business
+checks and verify vertical isolation across discovery, extraction, analysis, and
+refinement. Preserve default Health behavior while allowing explicit Travel config.
 
-### Phase 3：文档版本与关联
+### Phase 5: Updates and optional dynamic pages
 
-- 提取标题和有效日期。
-- 建立 product release、relationship resolver 和 review queue。
-- 验证 PDS/SPDS/Brochure 多对多场景。
+Add run comparisons, website-change alerts, and dynamic adapters only for insurers
+with demonstrated need.
 
-完成标准：人工标注关系上的 high-confidence precision 至少 95%。
+## 22. Proposed MVP acceptance
 
-### Phase 4：接入现有 pipeline
+### Acquisition
 
-- 让 schema sampler 读取已确认的 current product releases。
-- 增加 Travel Insurance contract 和业务校验。
-- 验证 discovery、extraction、analysis 和 refinement 的 vertical 隔离。
+- [ ] At least three insurer configurations pass contract validation.
+- [ ] HTTPS and allowlists are enforced, including redirects.
+- [ ] Follow depth/page count have hard limits.
+- [ ] Every saved file passes PDF signature and size checks.
+- [ ] Identical SHA-256 content is not saved twice.
+- [ ] One insurer failure produces partial success without losing others' results.
 
-完成标准：Private Health 默认行为不变，Travel 可以通过显式 vertical/config 运行。
+### Classification and association
 
-### Phase 5：持续更新和可选动态页面
+- [ ] PDS, SPDS, Benefits Summary, and Brochure are distinguished.
+- [ ] An SPDS can link to one or more PDS files.
+- [ ] A document can apply to several product types.
+- [ ] Current/archive decisions retain page/text evidence.
+- [ ] Ambiguous relationships enter review.
+- [ ] Confirmed documents form a validated release artifact.
 
-- Run-to-run change report。
-- 页面改版告警。
-- 仅为已证明需要的 provider 增加动态适配器。
+### Auditability
 
-## 22. MVP 验收标准
+- [ ] Every candidate has source page, discovered/final URL, and status.
+- [ ] Saved files have SHA-256, timestamp, size, and Content-Type.
+- [ ] Failures/skips use stable codes.
+- [ ] Human decisions are stored separately from immutable queues.
 
-### 数据采集
+### Engineering quality
 
-- [ ] 至少 3 家 provider 配置通过 contract validation。
-- [ ] 只访问 HTTPS 和 allowlist 域名，重定向后再次校验。
-- [ ] 跟进深度和页面数量存在硬上限。
-- [ ] 所有已保存文件均通过 PDF 签名和大小校验。
-- [ ] 相同 SHA-256 不重复保存。
-- [ ] 单 provider 故障产生 partial success，而不是丢失其他结果。
+- [ ] No raw PDFs, outputs, usage logs, or credentials are committed.
+- [ ] No unapproved dependencies are added.
+- [ ] Compileall and offline tests pass in a clean checkout.
+- [ ] CLI help works without network access.
+- [ ] README, architecture, and project index follow public workflow changes.
 
-### 文档分类与关联
+## 23. Risks and mitigations
 
-- [ ] PDS、SPDS、Benefits Summary 和 Brochure 被区分处理。
-- [ ] SPDS 可以关联一份或多份 PDS。
-- [ ] 一份文档可以适用于多个 product types。
-- [ ] current/archive 判断保留页面和正文 evidence。
-- [ ] 模糊关系进入 review queue。
-- [ ] 已确认文档组成可验证的 product release artifact。
-
-### 可审计性
-
-- [ ] 每个候选都有 source page、discovered URL、final URL 和处理状态。
-- [ ] 每个保存文件都有 SHA-256、时间、大小和 Content-Type。
-- [ ] 失败和跳过使用稳定错误码。
-- [ ] 审核决定与原始 queue 分开保存。
-
-### 工程质量
-
-- [ ] 不提交 raw PDFs、runtime outputs、usage logs 或 credentials。
-- [ ] 不增加未经批准的依赖。
-- [ ] clean checkout 下 compileall 和全部 offline tests 通过。
-- [ ] CLI `--help` 可运行且不需要网络。
-- [ ] README、architecture 和 project index 在实现公共 workflow 后同步更新。
-
-## 23. 风险与缓解措施
-
-| 风险 | 影响 | 缓解措施 |
+| Risk | Impact | Mitigation |
 | --- | --- | --- |
-| 官网页面改版 | 候选数量归零或分类失败 | 配置驱动、fixture、候选数量监控、provider 隔离 |
-| Current/archived 误判 | 下游使用过期条款 | 页面上下文 + PDF 日期 + supersedes 关系；不确定则 review |
-| SPDS 未关联 | 实际条款不完整 | 明确 `amends` 关系和 current bundle 完整性检查 |
-| Brochure 与 PDS 内容冲突 | 比较结果不可信 | PDS/SPDS 优先级高于营销摘要，并保存来源级 evidence |
-| 动态页面增加维护成本 | 本地和 CI 运行变重 | 静态优先，动态能力按 provider 显式开启 |
-| 网站条款限制商业使用 | 企业发布存在法律风险 | MVP 内部使用；上线前完成 provider 级法律审核 |
-| URL 重定向到非官方站点 | 安全和来源风险 | 请求前后 allowlist 与网络地址验证 |
-| 现有 private-health 假设泄漏 | Travel 分类和评估错误 | vertical-specific contracts、taxonomy 和业务校验 |
-| 新分支基线继续变化 | 合并冲突 | 短周期、小切片实施；在集成基线合并后及时 rebase |
+| Website redesign | Missing candidates/misclassification | Config-driven rules, fixtures, count monitoring, insurer isolation |
+| Incorrect current/archive state | Outdated terms downstream | Page context, dates, supersession, review on uncertainty |
+| Missing SPDS association | Incomplete applicable terms | Explicit `amends` relationships and bundle completeness checks |
+| Brochure/PDS conflict | Unreliable comparisons | PDS/SPDS authority over summaries; source-level evidence |
+| Dynamic-page maintenance | Heavier local/CI runtime | Static-first, explicitly enabled per insurer |
+| Commercial-use restrictions | Enterprise legal risk | Internal MVP; per-insurer legal review before release |
+| Redirects to unofficial sites | Security/provenance risk | Allowlists and address validation before/after requests |
+| Leaking Health assumptions | Wrong Travel classification/evaluation | Vertical-specific contracts, taxonomies, and checks |
+| Moving integration baseline | Merge conflicts | Small short-lived increments; rebase after baseline integration |
 
-## 24. 尚待产品评审的问题
+## 24. Questions pending product review
 
-1. 原始 PDF 的允许使用范围是内部研究，还是未来需要向客户展示或下载？
-2. Archived PDS 是否需要完整保存，还是只记录 metadata 和 URL？
-3. TMD 是否进入第一版下载范围？
-4. MVP 是否确认 Allianz、Cover-More、Southern Cross，还是需要替换其中一家？
-5. 关系 review 由谁负责，期望的响应时间是多少？
-6. 采集运行频率是手动、每周还是每月？
-7. 当官网 PDF 和页面摘要冲突时，是否统一采用 PDS/SPDS 为最高权威来源？
-8. 是否允许新增 HTML parsing 依赖；如果不允许，标准库实现的维护成本是否可接受？
-9. 是否需要在 MVP 中生成字段级 provenance，指出每个提取值来自 PDS、SPDS 还是 Brochure？
+1. Are PDFs internal research inputs only, or will customers view/download them?
+2. Should archived PDS content be retained, or only metadata/URLs?
+3. Is TMD downloading in the first release?
+4. Confirm Allianz, Cover-More, and SCTI, or replace one?
+5. Who reviews relationships, and how quickly?
+6. Is acquisition manual, weekly, or monthly?
+7. Do PDS/SPDS always take precedence over conflicting website summaries?
+8. Are new HTML dependencies allowed; if not, is standard-library maintenance acceptable?
+9. Must the MVP include field-level attribution to PDS, SPDS, or Brochure?
 
-## 25. 外部参考
+## 25. External references
 
-- Australian Government Moneysmart, Travel insurance:
-  <https://moneysmart.gov.au/other-types-of-insurance/travel-insurance>
-- Allianz Travel Insurance:
-  <https://www.allianz.com.au/travel-insurance.html>
-- Allianz Policy Information:
-  <https://www.allianz.com.au/my-allianz/policy-information.html>
-- Cover-More Product Disclosure Statements:
-  <https://www.covermore.com.au/pds>
-- Southern Cross Comprehensive Travel Insurance:
-  <https://scti.com.au/our-policies/comprehensive>
-- Southern Cross Annual Multi-Trip Travel Insurance:
-  <https://scti.com.au/our-policies/annual-multi-trip>
-- Southern Cross Domestic Policy Wording:
-  <https://scti.com.au/our-policies/domestic/policy-wording>
+Historical references; this translation does not revalidate them:
 
-外部页面会随时间变化。实施 provider 配置和 live smoke test 时应重新核对页面、robots.txt 和使用条款，不能把
-本文中的 URL 视为永久稳定接口。
+- [Moneysmart: Travel insurance](https://moneysmart.gov.au/other-types-of-insurance/travel-insurance)
+- [Allianz Travel Insurance](https://www.allianz.com.au/travel-insurance.html)
+- [Allianz Policy Information](https://www.allianz.com.au/my-allianz/policy-information.html)
+- [Cover-More PDS](https://www.covermore.com.au/pds)
+- [SCTI Comprehensive](https://scti.com.au/our-policies/comprehensive)
+- [SCTI Annual Multi-Trip](https://scti.com.au/our-policies/annual-multi-trip)
+- [SCTI Domestic Policy Wording](https://scti.com.au/our-policies/domestic/policy-wording)
 
-## 26. 建议决策
+Pages change. Recheck pages, robots.txt, and terms when implementing configurations
+or live smokes; these URLs are not permanent stable interfaces.
 
-建议批准以下方向进入技术设计阶段：
+## 26. Proposed decision
 
-1. MVP 先做三家 provider、三类 product types 和四类核心文档。
-2. 使用 `product_release` 统一关联 PDS、SPDS、Benefits Summary 和 Brochure。
-3. 使用官方页面、静态优先、最多一层跟进、严格 allowlist 的受控采集。
-4. 低置信度版本或关系必须人工审核，PDS/SPDS 权威级别高于 Brochure。
-5. 采集与 LLM/schema discovery 解耦，以 manifest 和 versioned JSON contracts 连接。
-6. 实施分支建议使用 `feat/travel-insurance`，代码基线建议使用 `origin/merged-pipeline`。
+Approve the following direction for technical design:
 
-本文获批前不进入实现阶段。评审后如业务范围、provider、法律边界或文档 taxonomy 有变化，应先更新本 PRD。
+1. Start with three insurers, three product types, and four core document types.
+2. Associate PDS, SPDS, Benefits Summary, and Brochure through `product_release`.
+3. Use official pages, static-first discovery, at most one followed level, and strict allowlists.
+4. Require human review of low-confidence versions/relationships; prioritize PDS/SPDS over brochures.
+5. Separate acquisition from LLM/discovery through manifests and versioned JSON contracts.
+6. Use the originally proposed `feat/travel-insurance` branch and `origin/merged-pipeline` baseline only if still approved at implementation time.
+
+The original proposal required approval before implementation. Changes to business
+scope, insurers, legal boundaries, or taxonomy require updating the PRD first.
+This remains a historical draft, not new instructions to implement its proposal.

@@ -29,7 +29,7 @@ normalisation, and evaluation modules.
 ## PDF parsing dependencies
 
 - `mineru[all]==3.4.3`
-  - Owner: `src/PDFingestor/mineru.py`, reached only through
+  - Owner: `src/pdf_ingestion/mineru.py`, reached only through
     `--document-parser mineru` (CLI) or the UI "PDF parsing route" option.
   - Reason: provides a second, layout-model-based PDF parsing route that can be
     compared with the default pdfplumber-based PDFingestor route. MinerU runs

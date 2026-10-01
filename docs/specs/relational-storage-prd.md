@@ -55,7 +55,7 @@ Load one validated extraction artifact:
 ```bash
 .venv/bin/python src/run.py storage-load \
   --manifest configs/travel_insurance/manifest.json \
-  --schema outputs/travel_insurance/schema.json \
+  --schema outputs/travel_insurance/schemas/schema.json \
   --artifact outputs/travel_insurance/extractions/example.json \
   --insurer-code cover_more
 ```

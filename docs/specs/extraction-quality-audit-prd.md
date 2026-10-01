@@ -42,7 +42,7 @@ The `quality-audit` CLI command takes a Travel manifest, an extraction artifact
 folder, optional approved Canonical Schema/source root, a new output directory,
 provider/model, parser, sample rate and seed. `--resume` reuses an existing
 directory after identity checks; `--summary-only` rebuilds JSON without a
-provider call. The operator console wraps these modes. `src/quality_review_app.py`
+provider call. The operator console wraps these modes. `src/ui/quality_review_app.py`
 shows the JSON overview in partial and complete states, then opens the review
 queue and records checker decisions only when every report is valid; it never
 calls an LLM or writes PostgreSQL.

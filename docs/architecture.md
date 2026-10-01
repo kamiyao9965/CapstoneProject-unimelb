@@ -15,10 +15,10 @@ Streamlit controls -> validated allowlisted argv -> existing CLI entry point
 ```
 
 `src/verticals/manifest.py` owns package discovery, default selection and operation
-capabilities. `src/tool_app.py` selects vertical first and owns presentation and
+capabilities. `src/ui/tool_app.py` selects vertical first and owns presentation and
 result state; forms and results reset on context changes, and confirmation is
-bound to command/configuration content. `src/tool_ui/forms.py`
-owns operation-specific controls, while `src/tool_ui/commands.py` is the only
+bound to command/configuration content. `src/ui/tool/forms.py`
+owns operation-specific controls, while `src/ui/tool/commands.py` is the only
 UI-to-process boundary. It validates supported operations and values, launches
 an argument list without a shell, enforces timeouts, and redacts credential-like
 console output. It does not accept arbitrary commands or credential values.
@@ -31,12 +31,19 @@ authentication boundary.
 The Travel-only `quality-audit` operation is an explicit, post-extraction
 screen. `src/evaluation/quality.py` validates the exact approved Canonical
 Schema and extraction identity, resolves the PDF within an allowed source root,
-renders its pages through `src/PDFingestor/adapter.py`, and sends those pages,
+renders its pages through `src/pdf_ingestion/adapter.py`, and sends those pages,
 field definitions and values through the shared structured-output model
-boundary. It writes separate, no-clobber report/queue artifacts and an
-independent usage log. `src/schema/sampler.py` owns deterministic sampling of
+boundary. It writes immutable per-PDF reports, an atomically refreshed,
+contract-validated `results.json` that embeds complete reports or safe typed
+failure diagnostics, and an independent usage log. Existing reports are reused
+only after artifact/schema/prompt-bundle/model/PDF identity checks; summary-only mode
+rebuilds the JSON without provider or source-PDF access. A bounded number of
+document failures leaves a partial JSON instead of discarding the batch. The
+review queue is created only when every report is valid, so later resumes
+cannot silently change a queue already carrying human decisions.
+`src/schema/sampler.py` owns deterministic sampling of
 judge passes. `src/evaluation/quality_review.py` binds human decisions to the
-queue identity; `quality_review_ui.py` only presents and records those decisions.
+queue identity; `src/ui/quality_review.py` only presents and records those decisions.
 Neither judge nor human review imports storage or mutates extraction output.
 This screen does not claim ground-truth accuracy; Health's labelled evaluation
 is separate.
@@ -46,7 +53,7 @@ is separate.
 ```text
 PDF sample -> document preparation -> provider-native structured output
   -> JSON parse -> JSON Schema validation -> business validation
-  -> manifest output_root / schema*.json
+  -> manifest output_root / schemas / schema*.json
 ```
 
 `src/run.py` owns the CLI and final envelope. `src/schema/discovery.py` owns the
@@ -59,16 +66,19 @@ source PDF -> document_parser = pdfingestor | mineru
   -> ParsedPDF (pages, text blocks, Markdown tables) -> shared prompt renderer
 ```
 
-`src/PDFingestor/adapter.py` is the only PDF-to-prompt entry and owns the parser
+`src/pdf_ingestion/adapter.py` is the only PDF-to-prompt entry and owns the parser
 choice. `pdfingestor` (default) uses the pdfplumber parser. `mineru` uses
-`src/PDFingestor/mineru.py`, which calls MinerU's `do_parse()` with the `pipeline`
+`src/pdf_ingestion/mineru.py`, which calls MinerU's `do_parse()` with the `pipeline`
 backend in a separate Python process (no HTTP service), converts
 `*_content_list.json` into the same `ParsedPDF` model, and
 fails before any provider call when the document has no usable content. Both
-parsers share the cache directory with parser-specific cache keys. Discovery,
+parsers share the manifest's `cache_root` (`.cache/pdf/<vertical>/`) with
+parser-specific cache keys. Cache hits rebind only the in-memory source path and
+document name to the currently requested PDF. Discovery,
 patch generation and holdout/CLI extraction record the route as
 `document_parser` in provenance, `ExtractionResult` and usage logs, and save each
-PDF's prompt text below `<output_root>/parsed_markdown/<document_parser>/`,
+PDF's prompt text below `<markdown_root>/<document_parser>/`, normally
+`data/markdown/<vertical>/<document_parser>/`,
 mirroring the input tree, for side-by-side comparison. These Markdown files are
 derived views, not runtime artifacts.
 
@@ -153,6 +163,8 @@ validation and enter the bounded repair cycle; they cannot reach storage.
   JSON object mode. Workflow modules contain no provider branches.
 - `src/common/structured_output.py` performs strict JSON parsing, contract and
   business validation, and at most two repair retries after the first attempt.
+  Each attempt exposes a typed failure stage; callers may record safe rule codes
+  without persisting raw model text or parser exception messages.
 - `src/common/json_contracts.py` is the only authoritative contract loader.
 - `src/common/json_artifacts.py` is the only envelope and JSON persistence
   boundary. It validates before reads/writes and refuses overwrite by default.
@@ -195,14 +207,17 @@ AppConfig and the old Markdown-mirror MinerU preprocessor remain retired.
 Batch evaluation aggregates once and produces one `report.json` / `report.md`
 pair; there is no heuristic extraction or separate model-only report path.
 
-- `configs/*/`: one manifest and discovery/patch/extraction prompt files per vertical;
-  Travel also has a quality-judge prompt.
+- `configs/*/`: one manifest per vertical, including validated references to
+  its model prompts.
+- `prompts/`: all model-facing text; per-vertical system prompts plus shared
+  request, feedback, repair, and provider-format templates. Manifests may
+  resolve only their own central prompt directory or package-local prompts.
 - `src/verticals/`: validated manifest resolution and existing executable adapters.
-- `src/PDFingestor/`: PDF-to-prompt entry, pdfplumber parser, MinerU route and parse cache.
+- `src/pdf_ingestion/`: PDF-to-prompt entry, pdfplumber parser, MinerU route and parse cache.
 - `src/schema/`: discovery, sampling, schema loader/validation/compiler and Canonical candidate.
 - `src/refine/candidates/`: patch parsing, normalization, voting, stability.
 - `src/refine/artifacts/`: deterministic consensus data and CLI rendering.
-- `src/refine/human_review/`: queue, decisions, UI, reviewed schema.
+- `src/refine/human_review/`: queue, decisions, reviewed schema.
 - `src/refine/pipeline/`: outer round and resume orchestration.
 - `src/schema_application/`: shared extraction and applicability analysis.
 - `src/evaluation/`: existing Health labelled matching/metrics, plus optional
@@ -211,10 +226,14 @@ pair; there is no heuristic extraction or separate model-only report path.
 - `src/scraper/`: existing Travel acquisition; no new crawler framework.
 - `src/stability/`: semantic schema drift excluding envelope/provenance.
 - `src/cost/`: JSONL token-cost estimation.
+- `src/common/models.py`: shared extraction result models.
+- `src/common/data_paths.py`: repository root; manifest resolution owns data paths.
+- `src/ui/`: operator, schema-review, Canonical-review, and quality-review entry
+  points and presentation helpers; `src/ui/tool/` owns operator controls.
 
 ## Safety rules
 
-- Treat `outputs/private_health/schema.json` as a production contract and never
+- Treat `outputs/private_health/schemas/schema.json` as a production contract and never
   overwrite it automatically.
 - Do not coerce, infer, or silently repair invalid model data.
 - One initial request plus two repair attempts is the hard validation limit.
