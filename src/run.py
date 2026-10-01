@@ -22,8 +22,8 @@ from src.common.json_artifacts import (
 from src.common.json_codec import dumps_json
 from src.common.json_contracts import load_contract
 from src.common.model_config import resolve_selection
-from src.models import ExtractionResult
-from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
+from src.common.models import ExtractionResult
+from src.pdf_ingestion.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
 from src.schema.sampler import category_from_path, print_samples, select_samples
 from src.schema.loader import load_schema_data
 from src.verticals.manifest import ManifestValidationError, VerticalManifest, resolve_manifest
@@ -226,9 +226,9 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
         args.input_root = Path(args.input_root) if args.input_root else manifest.path("input_root")
         args.categories = args.categories or list(manifest.documents.categories)
         output_root = manifest.path("output_root")
-        args.output = Path(args.output) if args.output else output_root / "schema.json"
+        args.output = Path(args.output) if args.output else output_root / "schemas/schema.json"
         args.usage_log = (
-            Path(args.usage_log) if args.usage_log else output_root / "token_usage.jsonl"
+            Path(args.usage_log) if args.usage_log else output_root / "logs/discovery_usage.jsonl"
         )
     elif args.command == "batch":
         args.input_root = Path(args.input_root) if args.input_root else manifest.path("input_root")
@@ -602,7 +602,7 @@ def _build_schema_extractor(
         schema_data=schema_data,
         selection=selection,
         manifest=manifest,
-        usage_log_path=manifest.path("output_root") / "extraction_usage.jsonl",
+        usage_log_path=manifest.path("output_root") / "logs/extraction_usage.jsonl",
         pdf_root=pdf_root,
         document_parser=document_parser,
     )
@@ -803,7 +803,7 @@ def command_quality_audit(args: argparse.Namespace) -> int:
         print(f"Quality review queue: {result.queue_path}")
     else:
         print("Quality review queue is unavailable until every document has a valid judge report.")
-    print(f"Open review UI: .venv/bin/python -m streamlit run src/quality_review_app.py -- --quality-dir {shlex.quote(str(args.output_dir))}")
+    print(f"Open review UI: .venv/bin/python -m streamlit run src/ui/quality_review_app.py -- --quality-dir {shlex.quote(str(args.output_dir))}")
     if args.summary_only:
         return 0
     return 0 if result.queue_path is not None else 1

@@ -12,7 +12,7 @@ from unittest.mock import patch
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.common.json_contracts import load_contract
 from src.common.model_provider import ModelResponse
-from src.models import ExtractionResult
+from src.common.models import ExtractionResult
 from src.refine.consensus import SchemaConsensusRefinement
 from src.refine.human_review import apply_review_files, load_review_queue, save_review_decision
 from src.run import default_output_path

@@ -26,12 +26,14 @@
     "category_product_types": {}
   },
   "paths": {
-    "input_root": "data/travel_insurance/raw/PDFs",
+    "input_root": "data/pdf/travel_insurance",
     "output_root": "outputs/travel_insurance",
     "acquisition_config": "configs/travel_insurance/sources.json",
     "acquisition_output": "outputs/travel_insurance/acquisition",
     "canonical_schema": "configs/travel_insurance/canonical_schema_v1.json",
-    "storage_mapping": "configs/travel_insurance/storage_mapping.json"
+    "storage_mapping": "configs/travel_insurance/storage_mapping.json",
+    "markdown_root": "data/markdown/travel_insurance",
+    "cache_root": ".cache/pdf/travel_insurance"
   },
   "path_environment": {},
   "contracts": {

@@ -162,7 +162,7 @@ def _print_review_stop(round_dir: Path, queue_path: Path) -> None:
         "\n--- Human review stop ---\n"
         f"Review queue: {queue_path}\n"
         "1. Review proposals:\n"
-        f"     streamlit run src/review_app.py -- --consensus-dir {consensus_dir}\n"
+        f"     streamlit run src/ui/review_app.py -- --consensus-dir {consensus_dir}\n"
         "2. Apply your decisions (also available from the UI):\n"
         f"     python src/refine/review.py apply --consensus-dir {consensus_dir}\n"
         "3. Resume with the reviewed schema for holdout extraction, failure discovery, "
@@ -207,7 +207,7 @@ def resume_review(args) -> int:
         print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
         print(
             "Review the deterministic Canonical mapping next:\n"
-            f"  streamlit run src/canonical_review_app.py -- --manifest {shlex.quote(str(manifest.source_path))} --schema {shlex.quote(str(reviewed_path))}"
+            f"  streamlit run src/ui/canonical_review_app.py -- --manifest {shlex.quote(str(manifest.source_path))} --schema {shlex.quote(str(reviewed_path))}"
         )
         return 0
     schema_build_samples = _schema_build_samples_from_review_queue(

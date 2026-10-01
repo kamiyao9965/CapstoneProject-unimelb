@@ -18,9 +18,9 @@ from importlib import metadata
 from pathlib import Path
 from typing import Any
 
-from src.PDFingestor.cache import PDFCache, sha256_file, stable_config_hash
-from src.PDFingestor.models import BBox, PageRepresentation, ParsedPDF, TableBlock, TextBlock
-from src.PDFingestor.parser import (
+from src.pdf_ingestion.cache import PDFCache, sha256_file, stable_config_hash
+from src.pdf_ingestion.models import BBox, PageRepresentation, ParsedPDF, TableBlock, TextBlock
+from src.pdf_ingestion.parser import (
     clean_rows,
     estimate_table_confidence,
     split_headers,
@@ -92,7 +92,10 @@ class MinerUIngestor:
         if use_cache and self.cache is not None:
             cached = self.cache.load(pdf_hash, parser_config_hash)
             if cached is not None:
-                return ParsedPDF.model_validate(cached)
+                # Cache identity is content-based; location belongs to this request.
+                return ParsedPDF.model_validate(cached).model_copy(
+                    update={"source_path": str(path), "pdf_id": path.name}
+                )
 
         pages = content_list_to_pages(self._run_mineru(path))
         if not any(page.blocks for page in pages):

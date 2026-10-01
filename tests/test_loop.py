@@ -95,9 +95,9 @@ class ParserBackwardCompatTest(unittest.TestCase):
 
         self.assertEqual(
             args.input_root,
-            PROJECT_ROOT / "konkrd-data/data/private_health/raw/PDFs",
+            PROJECT_ROOT / "data/pdf/private_health",
         )
-        self.assertEqual(args.out_dir, PROJECT_ROOT / "outputs/private_health/refine")
+        self.assertEqual(args.out_dir, PROJECT_ROOT / "outputs/private_health/experiments/refinement")
         self.assertEqual(
             args.vertical_manifest.documents.categories,
             ("combined", "extras", "generalhealth", "hospital"),

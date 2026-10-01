@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_contract
-from src.models import ExtractionResult
+from src.common.models import ExtractionResult
 
 
 @dataclass(frozen=True)

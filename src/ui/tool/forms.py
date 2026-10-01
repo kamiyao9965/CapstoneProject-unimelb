@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import streamlit as st
 
-from src.tool_ui.commands import CommandRequest
+from src.ui.tool.commands import CommandRequest
 from src.verticals.manifest import VerticalManifest
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from src.models import EvaluationReport, ExtractionResult, ProductMatch
+from src.common.models import EvaluationReport, ExtractionResult, ProductMatch
 
 
 class PrivateHealthGroundTruthStore:

@@ -156,7 +156,7 @@ class TravelCanonicalReviewTests(unittest.TestCase):
                                      "applies_to": schema["product_types"], "required": False, "values": [], "aliases": []})
             source = root / "schema.json"
             source.write_text(json.dumps(schema))
-            at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "src/canonical_review_app.py"), default_timeout=20).run()
+            at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "src/ui/canonical_review_app.py"), default_timeout=20).run()
             at.sidebar.text_input[0].set_value(str(source)).run()
             at.sidebar.text_input[1].set_value(str(root / "approved.json")).run()
             self.assertNotIn("new_benefit", at.code[0].value)
@@ -187,7 +187,7 @@ class TravelCanonicalReviewTests(unittest.TestCase):
             root = Path(tmp)
             source = root / "schema.json"
             source.write_text(json.dumps(reviewed_travel_schema()))
-            at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "src/canonical_review_app.py"), default_timeout=20).run()
+            at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "src/ui/canonical_review_app.py"), default_timeout=20).run()
             at.sidebar.text_input[0].set_value(str(source)).run()
             at.sidebar.text_input[1].set_value(str(root / "approved.json")).run()
             self.assertFalse(at.exception)

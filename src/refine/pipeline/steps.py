@@ -9,7 +9,7 @@ from uuid import uuid4
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.common.json_contracts import load_contract
 from src.common.model_config import ModelSelection, resolve_selection
-from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER
+from src.pdf_ingestion.adapter import DEFAULT_DOCUMENT_PARSER
 from src.schema_application.analyze import (
     analyze,
     build_feedback,

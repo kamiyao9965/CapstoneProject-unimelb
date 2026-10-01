@@ -75,7 +75,7 @@ class SchemaDiscoveryInputTest(unittest.TestCase):
             self.assertEqual(render.call_args.kwargs["document_parser"], "mineru")
             self.assertEqual(
                 render.call_args.kwargs["markdown_dir"],
-                discovery.manifest.path("output_root") / "parsed_markdown",
+                discovery.manifest.path("markdown_root"),
             )
             failures = list((Path(tmp) / "errors").rglob("*.json"))
             self.assertEqual(len(failures), 1)

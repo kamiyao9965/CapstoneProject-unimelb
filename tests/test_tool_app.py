@@ -5,13 +5,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
-from src.tool_ui.commands import CommandResult
-from src.tool_ui.forms import OPERATION_LABELS
+from src.ui.tool.commands import CommandResult
+from src.ui.tool.forms import OPERATION_LABELS
 from src.verticals.manifest import discover_manifests, OPERATION_CAPABILITIES
 
 
 class ToolAppTests(unittest.TestCase):
-    APP_PATH = Path(__file__).resolve().parents[1] / "src/tool_app.py"
+    APP_PATH = Path(__file__).resolve().parents[1] / "src/ui/tool_app.py"
 
     def app(self):
         return AppTest.from_file(str(self.APP_PATH), default_timeout=20).run()
@@ -90,7 +90,7 @@ class ToolAppTests(unittest.TestCase):
         model.set_value("test-model").run()
         self.assertTrue(at.button(key="run-command").disabled)
         at.checkbox[0].check().run()
-        with patch("src.tool_ui.commands.run_command", side_effect=lambda command: CommandResult(tuple(command), 0, "fixture-result", 0.1)) as runner:
+        with patch("src.ui.tool.commands.run_command", side_effect=lambda command: CommandResult(tuple(command), 0, "fixture-result", 0.1)) as runner:
             at.button(key="run-command").click().run()
         runner.assert_called_once()
         self.assertIn("fixture-result", [code.value for code in at.code])

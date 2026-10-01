@@ -116,7 +116,9 @@
       },
       "required": [
         "input_root",
-        "output_root"
+        "output_root",
+        "markdown_root",
+        "cache_root"
       ]
     },
     "path_environment": {

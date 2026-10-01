@@ -11,10 +11,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-from src.PDFingestor.adapter import DOCUMENT_PARSERS
+from src.pdf_ingestion.adapter import DOCUMENT_PARSERS
 from src.verticals.manifest import resolve_manifest
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SUPPORTED_OPERATIONS = frozenset(
     {
         "discover",

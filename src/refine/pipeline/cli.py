@@ -9,7 +9,7 @@ from pathlib import Path
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
-from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
+from src.pdf_ingestion.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
 from src.refine.pipeline.rounds import next_round_index, resume_review, run_round
 from src.verticals.manifest import resolve_manifest, ManifestValidationError, VerticalManifest
 
@@ -101,7 +101,7 @@ def configure_args(args: argparse.Namespace) -> VerticalManifest:
     args.out_dir = (
         Path(args.out_dir)
         if args.out_dir
-        else manifest.path("output_root") / "refine"
+        else manifest.path("output_root") / "experiments/refinement"
     )
     if args.consensus_runs is None:
         args.consensus_runs = manifest.consensus_runs

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from src.tool_ui.commands import (
+from src.ui.tool.commands import (
     CommandRequest,
     build_command,
     redact_console_output,

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from src.PDFingestor.adapter import (
+from src.pdf_ingestion.adapter import (
     DEFAULT_DOCUMENT_PARSER,
     ingest_pdfs,
     render_documents_for_prompt,
@@ -121,7 +121,7 @@ def audit_one(
     )
     documents = ingest_pdfs(
         (pdf_path,), pdf_root=root,
-        cache_dir=manifest.path("output_root") / "pdfingestor_cache",
+        cache_dir=manifest.path("cache_root"),
         document_parser=parser,
     )
     if len(documents) != 1 or not documents[0].pages:

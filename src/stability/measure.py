@@ -46,7 +46,7 @@ def main() -> int:
     args = parser.parse_args()
     manifest = resolve_manifest(args.manifest)
     args.input_root = args.input_root or manifest.path("input_root")
-    args.out_dir = args.out_dir or manifest.path("output_root") / "stability"
+    args.out_dir = args.out_dir or manifest.path("output_root") / "experiments/stability"
     try:
         selection = resolve_selection(
             provider=args.provider,

@@ -10,8 +10,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from src.PDFingestor.adapter import ingest_pdfs, render_documents_for_prompt
-from src.PDFingestor.mineru import MinerUIngestor, content_list_to_pages, html_table_rows
+from src.pdf_ingestion.adapter import ingest_pdfs, render_documents_for_prompt
+from src.pdf_ingestion.mineru import MinerUIngestor, content_list_to_pages, html_table_rows
 
 
 CONTENT_LIST = [
@@ -264,8 +264,8 @@ class DocumentParserRoutingTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             pdf = Path(tmp) / "travel.pdf"
             pdf.write_bytes(b"%PDF-1.7 fixture")
-            with mock.patch("src.PDFingestor.adapter.MinerUIngestor") as factory, \
-                 mock.patch("src.PDFingestor.adapter.build_ingestor") as default_factory:
+            with mock.patch("src.pdf_ingestion.adapter.MinerUIngestor") as factory, \
+                 mock.patch("src.pdf_ingestion.adapter.build_ingestor") as default_factory:
                 ingest_pdfs([pdf], cache_dir=Path(tmp) / "cache", document_parser="mineru")
 
         factory.assert_called_once_with(Path(tmp) / "cache")
@@ -273,8 +273,8 @@ class DocumentParserRoutingTest(unittest.TestCase):
         default_factory.assert_not_called()
 
     def test_default_choice_keeps_pdfingestor(self) -> None:
-        with mock.patch("src.PDFingestor.adapter.MinerUIngestor") as factory, \
-             mock.patch("src.PDFingestor.adapter.build_ingestor") as default_factory:
+        with mock.patch("src.pdf_ingestion.adapter.MinerUIngestor") as factory, \
+             mock.patch("src.pdf_ingestion.adapter.build_ingestor") as default_factory:
             ingest_pdfs([], cache_dir="cache")
 
         default_factory.assert_called_once_with("cache", camelot_enabled=True)

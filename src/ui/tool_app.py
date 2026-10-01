@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import shlex
 import hashlib
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 
-from src.tool_ui.commands import CommandResult, build_command, run_command
-from src.tool_ui.forms import OPERATION_LABELS, render_operation_form
+from src.ui.tool.commands import CommandResult, build_command, run_command
+from src.ui.tool.forms import OPERATION_LABELS, render_operation_form
 from src.verticals.manifest import discover_manifests, OPERATION_CAPABILITIES
 
 

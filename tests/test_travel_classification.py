@@ -38,7 +38,7 @@ def valid_acquisition_data() -> dict[str, object]:
                 "retrieval_status": "downloaded",
                 "validation_status": "valid_pdf",
                 "parse_status": "parsed",
-                "local_path": "data/travel_insurance/raw/PDFs/cover_more/pds/a.pdf",
+                "local_path": "data/pdf/travel_insurance/cover_more/pds/a.pdf",
                 "sha256": "a" * 64,
                 "content_type": "application/pdf",
                 "size_bytes": 128,

@@ -58,7 +58,7 @@ def prepared_load() -> PreparedStorageLoad:
         pdf_sha256="d" * 64,
         document_type="pds",
         document_title="Travel PDS",
-        source_path="/project/data/travel_insurance/raw/PDFs/cover_more/pds/travel.pdf",
+        source_path="/project/data/pdf/travel_insurance/cover_more/pds/travel.pdf",
         schema_version_id="sha256:" + "s" * 64,
         schema_payload=schema,
         run_id="run-1",

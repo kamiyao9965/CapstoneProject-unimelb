@@ -4,13 +4,14 @@ import hashlib
 from pathlib import Path
 from typing import Iterable
 
+from src.common.data_paths import PROJECT_ROOT
 from src.common.json_artifacts import write_text_output
-from src.PDFingestor.mineru import MinerUIngestor
-from src.PDFingestor.parser import PDFIngestor
-from src.PDFingestor.models import PageRepresentation, ParsedPDF
+from src.pdf_ingestion.mineru import MinerUIngestor
+from src.pdf_ingestion.parser import PDFIngestor
+from src.pdf_ingestion.models import PageRepresentation, ParsedPDF
 
 
-DEFAULT_CACHE_DIR = Path("outputs/pdfingestor_cache")
+DEFAULT_CACHE_DIR = PROJECT_ROOT / ".cache/pdf/shared"
 DOCUMENT_PARSERS = ("pdfingestor", "mineru")
 DEFAULT_DOCUMENT_PARSER = "pdfingestor"
 

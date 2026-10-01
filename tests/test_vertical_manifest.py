@@ -222,7 +222,7 @@ class VerticalManifestTest(unittest.TestCase):
         ):
             self.assertEqual(
                 manifest.path("input_root"),
-                Path(tmp).resolve() / "data/private_health/raw/PDFs",
+                Path(tmp).resolve() / "pdf/private_health",
             )
 
     def test_adapter_registry_rejects_unregistered_code(self) -> None:

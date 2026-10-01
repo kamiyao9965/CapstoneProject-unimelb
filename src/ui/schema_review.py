@@ -21,7 +21,7 @@ def parse_cli_args() -> argparse.Namespace:
     parser.add_argument("--consensus-dir")
     args, _ = parser.parse_known_args()
     manifest = resolve_manifest(args.manifest)
-    args.consensus_dir = args.consensus_dir or str(manifest.path("output_root") / "consensus")
+    args.consensus_dir = args.consensus_dir or str(manifest.path("output_root") / "experiments/consensus")
     return args
 
 

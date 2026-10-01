@@ -154,7 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     manifest = resolve_manifest(args.manifest)
-    runs = load_runs(Path(args.log) if args.log else manifest.path("output_root") / "token_usage.jsonl")
+    runs = load_runs(Path(args.log) if args.log else manifest.path("output_root") / "logs/discovery_usage.jsonl")
 
     if args.project:
         verticals = parse_vertical(args.vertical)

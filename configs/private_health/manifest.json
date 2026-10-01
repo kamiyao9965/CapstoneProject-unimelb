@@ -30,18 +30,24 @@
     }
   },
   "paths": {
-    "input_root": "konkrd-data/data/private_health/raw/PDFs",
+    "input_root": "data/pdf/private_health",
     "output_root": "outputs/private_health",
-    "labelled_root": "konkrd-data/data/private_health/labelled"
+    "labelled_root": "data/labelled/private_health",
+    "markdown_root": "data/markdown/private_health",
+    "cache_root": ".cache/pdf/private_health"
   },
   "path_environment": {
     "input_root": {
       "variable": "KONKRD_DATA_ROOT",
-      "suffix": "data/private_health/raw/PDFs"
+      "suffix": "pdf/private_health"
     },
     "labelled_root": {
       "variable": "KONKRD_DATA_ROOT",
-      "suffix": "data/private_health/labelled"
+      "suffix": "labelled/private_health"
+    },
+    "markdown_root": {
+      "variable": "KONKRD_DATA_ROOT",
+      "suffix": "markdown/private_health"
     }
   },
   "contracts": {

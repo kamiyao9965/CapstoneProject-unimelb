@@ -7,14 +7,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from src.PDFingestor.models import PageRepresentation, ParsedPDF, TextBlock
+from src.pdf_ingestion.models import PageRepresentation, ParsedPDF, TextBlock
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.json_codec import loads_json
 from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ModelUsage
 from src.evaluation.quality import audit_one, build_review_queue, load_quality_results, run_quality_audit
 from src.evaluation.quality_review import load_decisions, quality_metrics, save_decision
-from src.models import ExtractionResult
+from src.common.models import ExtractionResult
 from src.schema.canonical import compile_canonical_extraction_contract
 from src.verticals.manifest import resolve_manifest
 

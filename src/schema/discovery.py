@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
-from src.PDFingestor.adapter import (
+from src.pdf_ingestion.adapter import (
     DEFAULT_DOCUMENT_PARSER,
     render_pdf_paths_for_prompt,
     require_document_parser,
@@ -72,8 +72,8 @@ class SchemaDiscovery:
         # (parsed by PDFingestor or MinerU) and sends it inline as text.
         self.document_parser = require_document_parser(document_parser)
         self.pdf_root = Path(pdf_root) if pdf_root else None
-        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("output_root") / "pdfingestor_cache")
-        self.parsed_markdown_dir = Path(parsed_markdown_dir or manifest.path("output_root") / "parsed_markdown")
+        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or manifest.path("cache_root"))
+        self.parsed_markdown_dir = Path(parsed_markdown_dir or manifest.path("markdown_root"))
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
         self.usage_log_path = Path(usage_log_path) if usage_log_path else None

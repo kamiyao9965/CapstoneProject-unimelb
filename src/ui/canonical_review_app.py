@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import sys
 from collections import Counter
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 from sqlalchemy.dialects import postgresql
@@ -52,8 +57,8 @@ def main() -> None:
     vertical = st.sidebar.selectbox("Insurance vertical", list(manifests), format_func=lambda code: manifests[code].display_name)
     manifest = manifests[vertical]
     root = manifest.path("output_root")
-    schema_path = Path(st.sidebar.text_input("Reviewed schema", value=args.schema or str(root / "refine/round_1/consensus/reviewed_schema.json"), key=f"schema:{vertical}"))
-    output_path = Path(st.sidebar.text_input("Approved output", value=args.output or str(root / "canonical_schema_approved.json"), key=f"output:{vertical}"))
+    schema_path = Path(st.sidebar.text_input("Reviewed schema", value=args.schema or str(root / "experiments/refinement/round_1/consensus/reviewed_schema.json"), key=f"schema:{vertical}"))
+    output_path = Path(st.sidebar.text_input("Approved output", value=args.output or str(root / "schemas/canonical_schema_approved.json"), key=f"output:{vertical}"))
     storage_label = st.sidebar.radio(
         "Storage for fields without an approved mapping",
         list(UNMAPPED_STORAGE_LABELS),

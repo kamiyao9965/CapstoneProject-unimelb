@@ -42,7 +42,7 @@ from src.refine.candidates.stability import (
 from src.refine.human_review import build_review_queue, write_review_queue
 from src.common.model_config import resolve_selection
 from src.common.json_artifacts import read_artifact
-from src.PDFingestor.adapter import DEFAULT_DOCUMENT_PARSER
+from src.pdf_ingestion.adapter import DEFAULT_DOCUMENT_PARSER
 from src.common.json_contracts import load_contract
 from src.schema.discovery import SchemaDiscovery
 from src.schema.sampler import print_samples, select_samples
@@ -97,7 +97,7 @@ class SchemaConsensusRefinement:
             raise ValueError("--alias-config is no longer supported; aliases are read-only history.")
         runs = runs if runs is not None else self.manifest.consensus_runs
         categories = categories or self.manifest.documents.categories
-        output_dir = output_dir or self.manifest.path("output_root") / "consensus"
+        output_dir = output_dir or self.manifest.path("output_root") / "experiments/consensus"
         if runs <= 0:
             raise ValueError("runs must be greater than 0.")
         input_root = input_root or self.manifest.path("input_root")
@@ -279,9 +279,9 @@ def main() -> int:
         parser.error("--alias-config is no longer supported.")
     manifest = resolve_manifest(args.manifest)
     manifest.require_capability("refinement")
-    args.base_schema = args.base_schema or manifest.path("output_root") / "schema.json"
+    args.base_schema = args.base_schema or manifest.path("output_root") / "schemas/schema.json"
     args.input_root = args.input_root or manifest.path("input_root")
-    args.out_dir = args.out_dir or manifest.path("output_root") / "consensus"
+    args.out_dir = args.out_dir or manifest.path("output_root") / "experiments/consensus"
     try:
         selection = resolve_selection(
             provider=args.provider,
@@ -315,7 +315,7 @@ def main() -> int:
     print(outputs.report)
     print(
         "\nNext: review the queue, then apply decisions:\n"
-        f"  streamlit run src/review_app.py -- --consensus-dir {args.out_dir}\n"
+        f"  streamlit run src/ui/review_app.py -- --consensus-dir {args.out_dir}\n"
         f"  python src/refine/review.py apply --consensus-dir {args.out_dir}"
     )
     return 0

@@ -22,3 +22,6 @@ outputs/
 # Local scratch outputs and personal office documents
 /tmp/
 /docs/*.docx
+
+# Reusable local parser and bytecode caches
+.cache/

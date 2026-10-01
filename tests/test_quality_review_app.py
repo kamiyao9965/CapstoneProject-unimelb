@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class QualityReviewAppTests(unittest.TestCase):
-    APP_PATH = ROOT / "src/quality_review_app.py"
+    APP_PATH = ROOT / "src/ui/quality_review_app.py"
 
     def test_review_ui_records_a_queue_bound_human_decision(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -53,7 +53,7 @@ class QualityReviewAppTests(unittest.TestCase):
             decisions_path = quality_dir / "review_decisions.json"
             write_artifact(queue_path, queue, data_contract="quality/review_queue")
             item_id = queue["data"]["items"][0]["item_id"]
-            with patch("src.evaluation.quality_review_ui.parse_cli_args",
+            with patch("src.ui.quality_review.parse_cli_args",
                        return_value=argparse.Namespace(quality_dir=str(quality_dir))):
                 at = AppTest.from_file(str(self.APP_PATH), default_timeout=20).run()
                 self.assertFalse(at.exception)
@@ -104,7 +104,7 @@ class QualityReviewAppTests(unittest.TestCase):
             )
             write_artifact(quality_dir / "results.json", result,
                            data_contract="quality/batch_results")
-            with patch("src.evaluation.quality_review_ui.parse_cli_args",
+            with patch("src.ui.quality_review.parse_cli_args",
                        return_value=argparse.Namespace(quality_dir=str(quality_dir))):
                 at = AppTest.from_file(str(self.APP_PATH), default_timeout=20).run()
             self.assertFalse(at.exception)

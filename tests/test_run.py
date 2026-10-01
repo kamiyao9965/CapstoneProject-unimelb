@@ -232,7 +232,7 @@ class RunParserTest(unittest.TestCase):
         args = build_parser().parse_args(["discover"])
         configure_command(args)
 
-        self.assertEqual(args.output, PROJECT_ROOT / "outputs/private_health/schema.json")
+        self.assertEqual(args.output, PROJECT_ROOT / "outputs/private_health/schemas/schema.json")
 
     def test_explicit_vertical_cannot_conflict_with_manifest(self) -> None:
         args = build_parser().parse_args(
@@ -261,7 +261,7 @@ class RunParserTest(unittest.TestCase):
         )
         self.assertEqual(
             args.data_root,
-            PROJECT_ROOT / "data/travel_insurance/raw/PDFs",
+            PROJECT_ROOT / "data/pdf/travel_insurance",
         )
         self.assertEqual(
             args.output_root,

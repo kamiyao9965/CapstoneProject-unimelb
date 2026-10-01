@@ -7,8 +7,8 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from src.PDFingestor.cache import PDFCache, sha256_file, stable_config_hash
-from src.PDFingestor.models import (
+from src.pdf_ingestion.cache import PDFCache, sha256_file, stable_config_hash
+from src.pdf_ingestion.models import (
     BBox,
     PageRepresentation,
     ParsedPDF,
@@ -82,7 +82,10 @@ class PDFIngestor:
         if use_cache and self.cache is not None:
             cached = self.cache.load(pdf_hash, parser_config_hash)
             if cached is not None:
-                return ParsedPDF.model_validate(cached)
+                # Cache identity is content-based; location belongs to this request.
+                return ParsedPDF.model_validate(cached).model_copy(
+                    update={"source_path": str(path), "pdf_id": path.name}
+                )
 
         parsed = self._parse_pdf(path, pdf_hash, parser_config, parser_config_hash)
         if self.cache is not None:

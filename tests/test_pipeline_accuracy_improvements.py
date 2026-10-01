@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from src.evaluation.metrics import ExtractionEvaluator
-from src.models import ExtractionResult
+from src.common.models import ExtractionResult
 
 
 class EvaluationMetricTest(unittest.TestCase):

@@ -1,25 +1,12 @@
+"""Project location shared by manifest resolution and local parser defaults.
+
+Data locations and optional environment overrides belong to vertical manifests.
+The former implicit search for a neighbouring ``konkrd-data`` tree is retired.
+"""
+
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT_ENV = "KONKRD_DATA_ROOT"
-
-
-def default_konkrd_data_root() -> Path:
-    configured = os.getenv(DATA_ROOT_ENV)
-    if configured:
-        return Path(configured).expanduser()
-
-    bundled = PROJECT_ROOT / "konkrd-data"
-    if bundled.exists():
-        return bundled
-
-    for parent in PROJECT_ROOT.parents:
-        candidate = parent / "konkrd-data"
-        if candidate.exists():
-            return candidate
-
-    return PROJECT_ROOT / "konkrd-data"

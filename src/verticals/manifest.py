@@ -8,11 +8,11 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
 
+from src.common.data_paths import PROJECT_ROOT
 from src.common.json_contracts import ContractValidationError, load_contract, validate_contract
 from src.common.json_codec import loads_json
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_VERTICAL = "private_health"
 OPERATION_CAPABILITIES = {
     "discover": "discovery", "extract": "extraction", "batch": "extraction",
