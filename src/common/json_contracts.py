@@ -21,6 +21,7 @@ _CONTRACT_PATHS = {
     "storage_mapping": "storage_mapping.schema.json",
     "quality/judge_result": "quality/judge_result.schema.json",
     "quality/audit_report": "quality/audit_report.schema.json",
+    "quality/batch_results": "quality/batch_results.schema.json",
     "quality/review_queue": "quality/review_queue.schema.json",
     "quality/review_decisions": "quality/review_decisions.schema.json",
     "private_health/discovered_schema": (

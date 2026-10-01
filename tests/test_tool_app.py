@@ -49,6 +49,18 @@ class ToolAppTests(unittest.TestCase):
         at.checkbox[0].check().run()
         self.assertFalse(at.button(key="run-command").disabled)
 
+    def test_quality_summary_mode_never_requests_paid_confirmation(self):
+        at = self.app()
+        at.selectbox(key="vertical").set_value("travel_insurance").run()
+        at.selectbox(key="operation").set_value("Quality audit (LLM judge)").run()
+        at.text_input(key="_form:artifact_dir").set_value("outputs/travel_insurance/extractions/run20").run()
+        at.text_input(key="_form:output_dir").set_value("outputs/travel_insurance/quality/run20").run()
+        at.selectbox(key="_form:quality_mode").set_value("Build JSON overview only (no model calls)").run()
+        self.assertFalse(at.exception)
+        self.assertIn("--summary-only", at.code[0].value)
+        self.assertEqual(len(at.checkbox), 0)
+        self.assertFalse(at.button(key="run-command").disabled)
+
     def test_mineru_route_appears_in_command_preview(self):
         at = self.app()
         at.selectbox(key="_form:document_parser").set_value("MinerU (local models, slower)").run()

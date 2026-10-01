@@ -129,6 +129,10 @@ class StructuredOutputTest(unittest.TestCase):
         self.assertEqual(len(failure.attempts), 3)
         self.assertEqual(len(provider.requests), 3)
         self.assertTrue(failure.errors)
+        self.assertEqual(
+            [attempt.failure_kind for attempt in failure.attempts],
+            ["json_parse", "schema_validation", "schema_validation"],
+        )
 
     def test_non_standard_numbers_and_duplicate_keys_are_repaired(self) -> None:
         import json
@@ -185,6 +189,26 @@ class StructuredOutputTest(unittest.TestCase):
         self.assertIs(failure.attempts[0].response, response)
         self.assertEqual(failure.attempts[0].response.usage.total_tokens, 11)
         self.assertIn("refused", failure.errors[0]["message"])
+        self.assertEqual(failure.attempts[0].failure_kind, "provider_response")
+
+    def test_business_failure_exposes_a_stable_diagnostic_code(self) -> None:
+        import json
+
+        from src.common.structured_output import StructuredBusinessValidationError
+
+        provider = SequenceProvider([json.dumps(VALID_DISCOVERED_SCHEMA)])
+
+        def reject(_value: object) -> None:
+            raise StructuredBusinessValidationError("invalid_plan", "Plan does not match.")
+
+        with self.assertRaises(StructuredOutputFailure) as caught:
+            run_structured_output(
+                provider, request(), data_contract="private_health/discovered_schema",
+                business_validator=reject, max_repair_attempts=0,
+            )
+        attempt = caught.exception.result.attempts[0]
+        self.assertEqual(attempt.failure_kind, "business_validation")
+        self.assertEqual(attempt.error_code, "invalid_plan")
 
     def test_structural_noise_is_cleaned_before_validation_when_enabled(self) -> None:
         import json

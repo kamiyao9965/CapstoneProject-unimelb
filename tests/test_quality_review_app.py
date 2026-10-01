@@ -66,6 +66,52 @@ class QualityReviewAppTests(unittest.TestCase):
             decisions = load_decisions(queue_path, decisions_path)
             self.assertEqual(decisions["data"]["decisions"][0]["decision"], "issue_found")
 
+    def test_partial_results_render_without_a_review_queue(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            quality_dir = Path(temporary)
+            result = build_success_artifact(
+                artifact_type="quality_batch_results", contract_version="1.0.0",
+                data={
+                    "vertical": "travel_insurance", "schema_version": "1.0.0",
+                    "schema_sha256": "a" * 64, "prompt_sha256": "b" * 64,
+                    "provider": "openai", "model": "gpt-5.5", "status": "partial",
+                    "total_documents": 2, "completed_documents": 0,
+                    "failed_documents": 1, "pending_documents": 1,
+                    "documents": [
+                        {
+                            "source_artifact": str(quality_dir / "failed.json"),
+                            "source_artifact_sha256": "c" * 64,
+                            "source_document": str(quality_dir / "failed.pdf"),
+                            "status": "failed", "report_path": None, "report": None,
+                            "failure": {"kind": "business_validation", "code": "invalid_field_name",
+                                        "attempts": 3, "paths": ["$"]},
+                        },
+                        {
+                            "source_artifact": str(quality_dir / "pending.json"),
+                            "source_artifact_sha256": "d" * 64,
+                            "source_document": str(quality_dir / "pending.pdf"),
+                            "status": "pending", "report_path": None, "report": None,
+                            "failure": None,
+                        },
+                    ],
+                },
+                data_contract="quality/batch_results",
+                provenance={
+                    "run_id": "test", "vertical": "travel_insurance", "schema_version": "1.0.0",
+                    "provider": "openai", "model": "gpt-5.5", "document_input": "markdown",
+                    "source_documents": [], "source_artifacts": [],
+                },
+            )
+            write_artifact(quality_dir / "results.json", result,
+                           data_contract="quality/batch_results")
+            with patch("src.evaluation.quality_review_ui.parse_cli_args",
+                       return_value=argparse.Namespace(quality_dir=str(quality_dir))):
+                at = AppTest.from_file(str(self.APP_PATH), default_timeout=20).run()
+            self.assertFalse(at.exception)
+            self.assertTrue(any("2" == metric.value for metric in at.metric))
+            self.assertTrue(any("invalid_field_name" in element.value for element in at.markdown))
+            self.assertTrue(any("not available" in element.value.lower() for element in at.info))
+
 
 if __name__ == "__main__":
     unittest.main()

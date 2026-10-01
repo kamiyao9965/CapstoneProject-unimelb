@@ -194,7 +194,7 @@ def build_parser() -> argparse.ArgumentParser:
     quality_audit.add_argument("--schema", help="Approved Canonical Schema override")
     quality_audit.add_argument("--artifact-dir", required=True)
     quality_audit.add_argument("--source-root", help="Allowed source PDF root")
-    quality_audit.add_argument("--output-dir", required=True, help="New, separate audit directory")
+    quality_audit.add_argument("--output-dir", required=True, help="Separate audit directory; new unless --resume or --summary-only")
     quality_audit.add_argument("--provider")
     quality_audit.add_argument("--model")
     quality_audit.add_argument("--document-parser", choices=DOCUMENT_PARSERS,
@@ -202,6 +202,13 @@ def build_parser() -> argparse.ArgumentParser:
     quality_audit.add_argument("--sample-rate", type=float, default=0.05)
     quality_audit.add_argument("--seed", type=int, default=42)
     quality_audit.add_argument("--max-document-chars", type=int, default=120_000)
+    quality_audit.add_argument("--max-extraction-chars", type=int, default=60_000)
+    quality_audit.add_argument("--resume", action="store_true",
+                               help="Reuse verified reports in an existing audit directory")
+    quality_audit.add_argument("--summary-only", action="store_true",
+                               help="Build results.json from an existing audit without model calls")
+    quality_audit.add_argument("--max-failures", type=int, default=3,
+                               help="Stop after this many new document failures (default: 3)")
 
     return parser
 
@@ -766,24 +773,40 @@ def command_quality_audit(args: argparse.Namespace) -> int:
         selection = resolve_selection(
             provider=args.provider, model=args.model, document_input="markdown",
         )
-        queue_path = run_quality_audit(
+        result = run_quality_audit(
             manifest=args.vertical_manifest, schema_path=args.schema,
             artifact_dir=args.artifact_dir, source_root=args.source_root,
             output_dir=args.output_dir, selection=selection,
-            provider=create_provider(selection), sample_rate=args.sample_rate,
+            provider=None if args.summary_only else create_provider(selection),
+            sample_rate=args.sample_rate,
             seed=args.seed, document_parser=args.document_parser,
             max_document_chars=args.max_document_chars,
+            max_extraction_chars=args.max_extraction_chars,
+            resume=args.resume, summary_only=args.summary_only,
+            max_failures=args.max_failures,
         )
     except (ValueError, FileNotFoundError, FileExistsError) as exc:
         print(f"Quality audit failed: {exc}")
         return 1
     except Exception as exc:
         # Provider failures may contain sensitive request details; keep CLI/UI output safe.
-        print(f"Quality audit failed ({type(exc).__name__}); inspect configuration and retry in a new output directory.")
+        print(f"Quality audit failed ({type(exc).__name__}); inspect configuration and any saved results.json before resuming.")
         return 1
-    print(f"Quality review queue: {queue_path}")
+    print(f"Quality results JSON: {result.results_path}")
+    print(
+        "Quality audit: "
+        f"completed={result.completed_documents}, "
+        f"failed={result.failed_documents}, "
+        f"pending={result.pending_documents}"
+    )
+    if result.queue_path is not None:
+        print(f"Quality review queue: {result.queue_path}")
+    else:
+        print("Quality review queue is unavailable until every document has a valid judge report.")
     print(f"Open review UI: .venv/bin/python -m streamlit run src/quality_review_app.py -- --quality-dir {shlex.quote(str(args.output_dir))}")
-    return 0
+    if args.summary_only:
+        return 0
+    return 0 if result.queue_path is not None else 1
 
 
 def default_output_path(manifest: VerticalManifest, pdf_path: Path, *, input_root=None) -> Path:

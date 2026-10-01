@@ -8,6 +8,7 @@
     "schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "pdf_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "prompt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "prompt_bundle_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "verdict": {"enum": ["pass", "review", "uncertain"]},
     "correctness": {"enum": ["supported", "mixed", "unsupported", "unknown"]},
     "evidence_support": {"enum": ["supported", "mixed", "unsupported", "unknown"]},

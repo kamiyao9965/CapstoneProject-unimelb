@@ -159,14 +159,19 @@ class ToolCommandBuilderTests(unittest.TestCase):
                 "vertical": "travel_insurance", "artifact_dir": "outputs/travel_insurance/extractions/run1",
                 "output_dir": "outputs/travel_insurance/quality/run1", "sample_rate": 0.05,
                 "seed": 7, "max_document_chars": 100000,
+                "max_extraction_chars": 160000,
+                "resume": True, "max_failures": 2,
             }),
             python_executable="python", project_root=PROJECT_ROOT,
         )
         self.assertEqual(command[2], "quality-audit")
         self.assertIn("--sample-rate", command)
+        self.assertEqual(command[command.index("--max-extraction-chars") + 1], "160000")
+        self.assertIn("--resume", command)
+        self.assertEqual(command[command.index("--max-failures") + 1], "2")
         self.assertEqual(command[command.index("--output-dir") + 1],
                          "outputs/travel_insurance/quality/run1")
-        with self.assertRaisesRegex(ValueError, "new quality output folder"):
+        with self.assertRaisesRegex(ValueError, "quality output folder"):
             build_command(CommandRequest("quality_audit", {
                 "vertical": "travel_insurance", "artifact_dir": "extractions",
             }))

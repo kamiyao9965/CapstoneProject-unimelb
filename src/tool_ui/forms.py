@@ -307,15 +307,21 @@ def _storage_load_batch(manifest: VerticalManifest) -> tuple[dict[str, object], 
     }, "I understand this operation writes validated records from every file in the folder to the configured database."
 
 
-def _quality_audit(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
+def _quality_audit(manifest: VerticalManifest) -> tuple[dict[str, object], str | None]:
     st.caption(
         "Optional, non-blocking screen after extraction. The judge reads the original PDF "
         "and approved field definitions; the output is a separate review queue, never a database update."
     )
     left, right = st.columns(2)
     with left:
+        mode = st.selectbox(
+            "Audit mode",
+            ["New audit (model calls)", "Resume existing audit (model calls)",
+             "Build JSON overview only (no model calls)"],
+            key="_form:quality_mode",
+        )
         artifact_dir = st.text_input("Extraction artifacts folder *", key="_form:artifact_dir")
-        output_dir = st.text_input("New quality output folder *", key="_form:output_dir")
+        output_dir = st.text_input("Quality output folder *", key="_form:output_dir")
         schema = st.text_input("Approved Canonical Schema override (optional)", key="_form:schema")
         source_root = st.text_input("Source PDF root override (optional)", key="_form:source_root")
     with right:
@@ -336,12 +342,25 @@ def _quality_audit(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
             "Maximum parsed PDF characters", min_value=1, value=120000,
             key="_form:max_document_chars",
         )
+        max_extraction_chars = st.number_input(
+            "Maximum extraction characters", min_value=1, value=60000,
+            key="_form:max_extraction_chars",
+        )
+        max_failures = st.number_input(
+            "Stop after document failures", min_value=1, value=3,
+            key="_form:max_failures",
+            help="Prevents repeated expensive judge failures from consuming the full batch budget.",
+        )
+    summary_only = mode.startswith("Build JSON")
     return {
         "artifact_dir": artifact_dir, "output_dir": output_dir, "schema": schema,
         "source_root": source_root, "provider": provider, "model": model,
         "document_parser": parser, "sample_rate": sample_rate, "seed": seed,
         "max_document_chars": max_document_chars,
-    }, "I understand this audit reads source PDFs, calls an LLM, and incurs cost."
+        "max_extraction_chars": max_extraction_chars,
+        "max_failures": max_failures,
+        "resume": mode.startswith("Resume"), "summary_only": summary_only,
+    }, (None if summary_only else "I understand this audit reads source PDFs, calls an LLM, and incurs cost.")
 
 
 def _provider(manifest: VerticalManifest) -> str | None:

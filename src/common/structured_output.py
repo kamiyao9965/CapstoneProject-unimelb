@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
+import re
 from typing import Any
 
 from src.common.json_contracts import (
@@ -19,7 +20,6 @@ from src.common.model_provider import (
     ProviderRequest,
     ProviderResponseError,
 )
-
 from src.verticals.registry import get_shared_prompt
 
 
@@ -28,6 +28,8 @@ class StructuredAttempt:
     number: int
     response: ModelResponse
     errors: tuple[dict[str, str], ...]
+    failure_kind: str | None = None
+    error_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,16 @@ class StructuredOutputFailure(RuntimeError):
             f"{len(result.attempts)} attempt(s)"
             + (f": {detail}" if detail else ".")
         )
+
+
+class StructuredBusinessValidationError(ValueError):
+    """A business-rule rejection with a safe, stable diagnostic code."""
+
+    def __init__(self, code: str, message: str) -> None:
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", code):
+            raise ValueError("Business validation code must be a safe identifier.")
+        self.code = code
+        super().__init__(message)
 
 
 def run_structured_output(
@@ -89,7 +101,9 @@ def run_structured_output(
             response = provider.generate(current_request)
         except ProviderResponseError as exc:
             errors = ({"path": "$", "message": str(exc)},)
-            attempt = StructuredAttempt(attempt_number, exc.response, errors)
+            attempt = StructuredAttempt(
+                attempt_number, exc.response, errors, "provider_response",
+            )
             result = StructuredOutputResult(
                 data=None,
                 attempts=(*attempts, attempt),
@@ -97,7 +111,7 @@ def run_structured_output(
             )
             raise StructuredOutputFailure(result) from exc
         noise_notes: list[str] = []
-        data, errors = _validate_response(
+        data, errors, failure_kind, error_code = _validate_response(
             response.text,
             data_contract=data_contract,
             data_contract_schema=data_contract_schema,
@@ -108,7 +122,9 @@ def run_structured_output(
         if noise_notes and current_request.log:
             current_request.log("Removed structural noise before validation: " + "; ".join(noise_notes))
         attempts.append(
-            StructuredAttempt(attempt_number, response, tuple(errors))
+            StructuredAttempt(
+                attempt_number, response, tuple(errors), failure_kind, error_code,
+            )
         )
         if not errors:
             return StructuredOutputResult(data=data, attempts=tuple(attempts))
@@ -134,14 +150,14 @@ def _validate_response(
     business_validator: Callable[[object], object] | None,
     noise_schema: Mapping[str, Any] | None = None,
     noise_notes: list[str] | None = None,
-) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
+) -> tuple[dict[str, Any] | None, list[dict[str, str]], str | None, str | None]:
     try:
         payload = loads_json(text)
     except StrictJSONError as exc:
         return None, [{
             "path": "$",
             "message": f"Invalid strict JSON: {exc}",
-        }]
+        }], "json_parse", None
     if noise_schema is not None:
         payload = _drop_structural_noise(payload, noise_schema, "$", noise_notes if noise_notes is not None else [])
 
@@ -154,15 +170,16 @@ def _validate_response(
                 payload, data_contract_schema, "runtime_extraction_result"
             )
     except ContractValidationError as exc:
-        return None, list(exc.errors)
+        return None, list(exc.errors), "schema_validation", None
     if business_validator is not None:
         try:
             business_validator(payload)
         except ValueError as exc:
-            return None, [{"path": "$", "message": str(exc)}]
+            code = exc.code if isinstance(exc, StructuredBusinessValidationError) else None
+            return None, [{"path": "$", "message": str(exc)}], "business_validation", code
     if not isinstance(payload, dict):
-        return None, [{"path": "$", "message": "Output must be a JSON object."}]
-    return payload, []
+        return None, [{"path": "$", "message": "Output must be a JSON object."}], "schema_validation", None
+    return payload, [], None, None
 
 
 def _drop_structural_noise(

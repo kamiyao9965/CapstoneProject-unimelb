@@ -1,6 +1,6 @@
 # Post-extraction quality audit
 
-**Status:** Implemented (Travel first; live judge run pending operator approval)
+**Status:** Implemented (Travel first). A 19-document Travel judge batch completed on 2026-09-29; this does not establish extraction accuracy or completion of human review.
 
 ## Goal
 
@@ -26,7 +26,10 @@ quality feedback, not a second extraction or a storage gate.
 - Queue every finding or uncertain verdict, plus a seeded sample of passes.
   Human decisions are `issue_found`, `no_issue`, or `uncertain` with notes.
 - Persist immutable per-document judge reports, a bound review queue, and
-  queue-bound review decisions under `outputs/`. Do not change extraction JSON,
+  queue-bound review decisions under `outputs/`. Also persist a validated
+  `results.json` after each document, including complete reports or safe typed
+  failure codes so an interrupted batch remains inspectable in the UI. Reuse
+  matching reports on resume and guard against repeated paid failures. Do not change extraction JSON,
   Canonical Schema, or database records from either step.
 - Do not treat repeated umbrella product names across plan tiers as proof of a
   quality defect. Existing storage identity behavior is a separate open issue.
@@ -37,9 +40,12 @@ quality feedback, not a second extraction or a storage gate.
 
 The `quality-audit` CLI command takes a Travel manifest, an extraction artifact
 folder, optional approved Canonical Schema/source root, a new output directory,
-provider/model, parser, sample rate and seed. The operator console wraps this
-same command. `src/quality_review_app.py` opens the resulting review queue and
-records checker decisions; it never calls an LLM or writes PostgreSQL.
+provider/model, parser, sample rate and seed. `--resume` reuses an existing
+directory after identity checks; `--summary-only` rebuilds JSON without a
+provider call. The operator console wraps these modes. `src/quality_review_app.py`
+shows the JSON overview in partial and complete states, then opens the review
+queue and records checker decisions only when every report is valid; it never
+calls an LLM or writes PostgreSQL.
 
 All model calls use the existing provider and structured-output boundary, with
 at most two schema-repair attempts. Each attempt goes to a separate quality
@@ -49,7 +55,8 @@ during module import, form rendering, or tests.
 ## Acceptance
 
 Offline fake-provider tests cover valid reports, malformed judge output and
-bounded repairs, source/schema mismatch before calling the judge, citation
-verification, deterministic pass sampling, queue/decision binding and the
-review UI. No raw insurer PDF, live model, or PostgreSQL write is needed for
-development verification.
+bounded repairs, safe failure classification, partial/complete JSON, resume
+identity, summary-only recovery, source/schema mismatch before calling the
+judge, citation verification, deterministic pass sampling,
+queue/decision binding and the review UI. No raw insurer PDF, live model, or
+PostgreSQL write is needed for development verification.

@@ -175,7 +175,7 @@ def build_command(
         _add_database_environment(command, options.get("database_url_env"))
     elif operation == "quality_audit":
         _add_required(command, "--artifact-dir", options.get("artifact_dir"), "extraction artifacts folder")
-        _add_required(command, "--output-dir", options.get("output_dir"), "new quality output folder")
+        _add_required(command, "--output-dir", options.get("output_dir"), "quality output folder")
         _add(command, "--schema", options.get("schema"))
         _add(command, "--source-root", options.get("source_root"))
         _add_provider(command, options.get("provider"))
@@ -184,6 +184,10 @@ def build_command(
         _add_rate(command, "--sample-rate", options.get("sample_rate"))
         _add_int(command, "--seed", options.get("seed"))
         _add_positive_int(command, "--max-document-chars", options.get("max_document_chars"))
+        _add_positive_int(command, "--max-extraction-chars", options.get("max_extraction_chars"))
+        _add_flag(command, "--resume", options.get("resume"))
+        _add_flag(command, "--summary-only", options.get("summary_only"))
+        _add_positive_int(command, "--max-failures", options.get("max_failures"))
     return command
 
 

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 import streamlit as st
 
 from src.common.json_codec import dumps_json
+from src.evaluation.quality import load_quality_results
 from src.evaluation.quality_review import load_decisions, load_queue, quality_metrics, save_decision
 
 
@@ -37,6 +39,20 @@ def main() -> None:
     ))
     queue_path = quality_dir / "review_queue.json"
     decisions_path = quality_dir / "review_decisions.json"
+    results_path = quality_dir / "results.json"
+    if results_path.is_file():
+        try:
+            results = load_quality_results(results_path)
+        except (OSError, ValueError) as exc:
+            st.error(f"Could not open quality results JSON: {exc}")
+            st.stop()
+        _render_results(results["data"], results_path)
+    if not queue_path.is_file():
+        st.info("Human review is not available yet. The JSON overview remains visible while the batch is partial. If all reports are complete, run --resume to verify the source PDFs and create the review queue without repeating successful judge calls.")
+        return
+
+    st.divider()
+    st.subheader("Human review queue")
     try:
         queue = load_queue(queue_path)
         decisions = load_decisions(queue_path, decisions_path)
@@ -126,3 +142,80 @@ def main() -> None:
                 st.error(str(exc))
             else:
                 st.rerun()
+
+
+def _render_results(data: dict, results_path: Path) -> None:
+    st.subheader("Judge results")
+    st.caption(
+        f"{data['vertical']} · schema {data['schema_version']} · "
+        f"{data['provider']} / {data['model']} · {data['status']}"
+    )
+    columns = st.columns(4)
+    columns[0].metric("Total PDFs", data["total_documents"])
+    columns[1].metric("Judged", data["completed_documents"])
+    columns[2].metric("Failed", data["failed_documents"])
+    columns[3].metric("Pending", data["pending_documents"])
+    st.download_button(
+        "Download results.json", data=results_path.read_bytes(),
+        file_name="results.json", mime="application/json",
+    )
+    st.caption("Judge verdicts are screening signals, not measured extraction accuracy.")
+    entries = data["documents"]
+    st.dataframe([
+        {
+            "PDF": _document_label(item),
+            "Status": item["status"],
+            "Verdict": item["report"]["verdict"] if item["report"] else "—",
+            "Findings": len(item["report"]["findings"]) if item["report"] else 0,
+            "Failure code": item["failure"]["code"] if item["failure"] else "—",
+        }
+        for item in entries
+    ], hide_index=True, width="stretch")
+    selected = st.selectbox(
+        "PDF result", range(len(entries)),
+        format_func=lambda index: (
+            f"{entries[index]['status']} · {_document_label(entries[index])}"
+        ),
+    )
+    item = entries[selected]
+    with st.expander("Files and provenance"):
+        st.text(f"Extraction artifact: {item['source_artifact']}")
+        if item["report_path"]:
+            st.text(f"Per-PDF report: {item['report_path']}")
+    if item["status"] == "failed":
+        failure = item["failure"]
+        st.error("No valid quality report was produced for this PDF.")
+        st.write(f"Failure kind: `{failure['kind']}` · code: `{failure['code']}` · attempts: {failure['attempts']}")
+        if failure["paths"]:
+            st.caption("Validation paths: " + ", ".join(failure["paths"]))
+        return
+    if item["status"] == "pending":
+        st.info("No successful report is available for this PDF. It may be unattempted or a legacy failure without a saved diagnostic. Resume the audit to process it.")
+        return
+    report = item["report"]
+    st.write(
+        f"Verdict: `{report['verdict']}` · correctness: `{report['correctness']}` · "
+        f"evidence: `{report['evidence_support']}` · uncertainty: `{report['uncertainty']}`"
+    )
+    st.text(report["summary"])
+    if not report["findings"]:
+        st.success("No judge findings in this report.")
+    for index, finding in enumerate(report["findings"], start=1):
+        with st.expander(f"Finding {index}: {finding['field_name'] or 'document'} · {finding['issue_type']}"):
+            st.text(finding["reason"])
+            st.write(f"Product index: {finding['product_index']} · PDF page: {finding['source_page']}")
+            if finding["source_quote"]:
+                st.text(f"Judge quote: {finding['source_quote']}")
+                st.caption("Quote found on parsed page" if finding["citation_verified"]
+                           else "Quote was not verified on the cited parsed page")
+            st.code(dumps_json(finding["extracted_value"], ensure_ascii=False, indent=2),
+                    language="json")
+
+
+def _document_label(item: dict) -> str:
+    name = Path(item["source_document"] or item["source_artifact"]).name
+    name = re.sub(r"^[a-f0-9]{64}_", "", name)
+    artifact_path = Path(item["source_artifact"])
+    if artifact_path.parent.name.lower() == "pds":
+        return f"{artifact_path.parent.parent.name} · {name}"
+    return name
