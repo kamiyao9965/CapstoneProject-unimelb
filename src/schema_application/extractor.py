@@ -38,7 +38,7 @@ from src.schema.canonical import (
     validate_canonical_extraction_identities,
 )
 from src.verticals.manifest import VerticalManifest, resolve_manifest
-from src.verticals.registry import get_prompt
+from src.verticals.registry import get_prompt, get_shared_prompt
 from src.schema.validation import validate_schema_mapping, validate_extraction_record
 
 
@@ -150,13 +150,10 @@ class SchemaExtractor:
         request = ProviderRequest(
             selection=self.selection,
             system_prompt=self.extraction_prompt,
-            user_text=(
-                f"{self.schema_prompt_label} data:\n"
-                f"{json.dumps(self.schema_data, ensure_ascii=False)}\n\n"
-                "Extract from this PDFingestor structured representation. "
-                "Text and Markdown tables are already in source reading order; "
-                "do not assume there is an attached raw PDF.\n\n"
-                f"{document_text}"
+            user_text=get_shared_prompt("extraction_request").format(
+                schema_label=self.schema_prompt_label,
+                schema_json=json.dumps(self.schema_data, ensure_ascii=False),
+                document_text=document_text,
             ),
             document_paths=(),
             timeout_seconds=self.timeout_seconds,

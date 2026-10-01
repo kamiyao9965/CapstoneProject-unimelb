@@ -32,8 +32,13 @@ class VerticalManifestTest(unittest.TestCase):
     def test_registry_discovers_packages_and_rejects_duplicate_verticals(self) -> None:
         from src.verticals.manifest import discover_manifests
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp) / "configs"
+            root.mkdir()
             shutil.copytree(PROJECT_ROOT / "configs/private_health", root / "health")
+            shutil.copytree(
+                PROJECT_ROOT / "prompts/private_health",
+                Path(tmp) / "prompts/private_health",
+            )
             manifests = discover_manifests(root)
             self.assertEqual(list(manifests), ["private_health"])
             shutil.copytree(root / "health", root / "duplicate")
@@ -43,13 +48,20 @@ class VerticalManifestTest(unittest.TestCase):
     def test_prompt_files_are_package_relative_and_cannot_escape(self) -> None:
         from src.verticals.registry import get_prompt
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "health"
+            root = Path(tmp) / "configs/health"
             shutil.copytree(PROJECT_ROOT / "configs/private_health", root)
+            shutil.copytree(
+                PROJECT_ROOT / "prompts/private_health",
+                Path(tmp) / "prompts/private_health",
+            )
             path = root / "manifest.json"
-            manifest = load_vertical_manifest(path)
-            (root / "prompts/discovery.md").write_text("test prompt")
-            self.assertEqual(get_prompt(manifest.prompt("discovery")), "test prompt")
             source = json.loads(path.read_text())
+            source["prompts"]["discovery"] = "prompts/discovery.md"
+            path.write_text(json.dumps(source))
+            (root / "prompts").mkdir(exist_ok=True)
+            (root / "prompts/discovery.md").write_text("test prompt")
+            manifest = load_vertical_manifest(path)
+            self.assertEqual(get_prompt(manifest.prompt("discovery")), "test prompt")
             source["prompts"]["discovery"] = "../outside.md"
             path.write_text(json.dumps(source))
             with self.assertRaisesRegex(ManifestValidationError, "prompt"):
@@ -57,11 +69,73 @@ class VerticalManifestTest(unittest.TestCase):
 
     def test_missing_prompt_fails_during_manifest_loading(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "health"
+            root = Path(tmp) / "configs/health"
             shutil.copytree(PROJECT_ROOT / "configs/private_health", root)
-            (root / "prompts/discovery.md").unlink()
+            shutil.copytree(
+                PROJECT_ROOT / "prompts/private_health",
+                Path(tmp) / "prompts/private_health",
+            )
+            (Path(tmp) / "prompts/private_health/discovery.md").unlink()
             with self.assertRaisesRegex(ManifestValidationError, "prompt"):
                 load_vertical_manifest(root / "manifest.json")
+
+    def test_builtin_prompts_resolve_from_central_directory(self) -> None:
+        for vertical in ("private_health", "travel_insurance"):
+            with self.subTest(vertical=vertical):
+                manifest = load_vertical_manifest(
+                    PROJECT_ROOT / "configs" / vertical / "manifest.json"
+                )
+                for stage, value in manifest.prompts.items():
+                    if value is not None:
+                        with self.subTest(stage=stage):
+                            self.assertEqual(
+                                Path(manifest.prompt(stage)),
+                                PROJECT_ROOT / "prompts" / vertical / f"{stage}.md",
+                            )
+
+    def test_central_prompt_cannot_cross_verticals(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "configs/private_health"
+            shutil.copytree(PROJECT_ROOT / "configs/private_health", root)
+            for vertical in ("private_health", "travel_insurance"):
+                shutil.copytree(
+                    PROJECT_ROOT / "prompts" / vertical,
+                    Path(tmp) / "prompts" / vertical,
+                )
+            path = root / "manifest.json"
+            source = json.loads(path.read_text())
+            source["prompts"]["discovery"] = "../../prompts/travel_insurance/discovery.md"
+            path.write_text(json.dumps(source))
+            with self.assertRaisesRegex(ManifestValidationError, "prompt"):
+                load_vertical_manifest(path)
+
+    def test_central_prompt_requires_configs_layout_and_rejects_symlinks_out(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            prompt_root = Path(tmp) / "prompts/private_health"
+            shutil.copytree(PROJECT_ROOT / "prompts/private_health", prompt_root)
+            misplaced = Path(tmp) / "other/private_health"
+            shutil.copytree(PROJECT_ROOT / "configs/private_health", misplaced)
+            with self.assertRaisesRegex(ManifestValidationError, "prompt"):
+                load_vertical_manifest(misplaced / "manifest.json")
+
+            configured = Path(tmp) / "configs/private_health"
+            shutil.copytree(PROJECT_ROOT / "configs/private_health", configured)
+            outside = Path(tmp) / "outside.md"
+            outside.write_text("not a prompt")
+            (prompt_root / "discovery.md").unlink()
+            (prompt_root / "discovery.md").symlink_to(outside)
+            with self.assertRaisesRegex(ManifestValidationError, "prompt"):
+                load_vertical_manifest(configured / "manifest.json")
+
+    def test_shared_prompt_templates_are_centralized_and_safe(self) -> None:
+        from src.verticals.registry import get_shared_prompt
+
+        self.assertIn(
+            "Generate a {vertical} schema",
+            get_shared_prompt("discovery_request"),
+        )
+        with self.assertRaisesRegex(ManifestValidationError, "prompt"):
+            get_shared_prompt("../private_health/discovery")
 
     def test_private_health_manifest_preserves_pipeline_defaults(self) -> None:
         manifest = load_vertical_manifest(

@@ -117,8 +117,17 @@ class VerticalManifest:
             raise ManifestValidationError(
                 f"Vertical {self.vertical!r} does not define prompt {name!r}."
             )
-        candidate = (self.source_path.parent / value).resolve()
-        if not candidate.is_relative_to(self.source_path.parent) or not candidate.is_file():
+        package_root = self.source_path.parent
+        project_root = package_root.parent.parent
+        shared_root = (project_root / "prompts" / self.vertical).resolve()
+        candidate = (package_root / value).resolve()
+        package_prompt = candidate.is_relative_to(package_root)
+        shared_prompt = (
+            package_root.parent.name == "configs"
+            and shared_root.is_relative_to(project_root)
+            and candidate.is_relative_to(shared_root)
+        )
+        if not (package_prompt or shared_prompt) or not candidate.is_file():
             raise ManifestValidationError(f"Missing or unsafe prompt {name!r}: {value}")
         return str(candidate)
 

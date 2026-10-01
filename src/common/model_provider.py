@@ -22,6 +22,7 @@ from src.common.openai_run import (
     run_response,
     usage_value,
 )
+from src.verticals.registry import get_shared_prompt
 from openai import OpenAI
 
 try:
@@ -328,10 +329,8 @@ class DeepSeekProvider:
         if request.structured_output is not None:
             _reserve_parameter(parameters, "response_format", "DeepSeek structured output")
             parameters["response_format"] = {"type": "json_object"}
-            system_prompt += (
-                "\n\nReturn one complete valid JSON object only. It must satisfy this "
-                "JSON Schema exactly:\n"
-                + json.dumps(request.structured_output.schema, ensure_ascii=False)
+            system_prompt += "\n\n" + get_shared_prompt("deepseek_json_schema").format(
+                schema_json=json.dumps(request.structured_output.schema, ensure_ascii=False)
             )
         response = client.chat.completions.create(
             model=request.selection.model,

@@ -32,7 +32,7 @@ from src.common.structured_output import (
     run_structured_output,
 )
 from src.verticals.manifest import resolve_manifest, VerticalManifest
-from src.verticals.registry import get_prompt, get_schema_validator
+from src.verticals.registry import get_prompt, get_schema_validator, get_shared_prompt
 from src.schema.validation import validate_schema_mapping
 from src.refine.candidates.patch import parse_patch_payload
 
@@ -156,8 +156,9 @@ class SchemaDiscovery:
         resolved_output_path = Path(output_path) if output_path else None
         self._log(f"{progress_message} with {self.selection.provider}/{self.model}. This can take a few minutes...")
         if self.extra_instructions:
-            system_prompt += "\n\nRefinement feedback from the previous round:\n"
-            system_prompt += self.extra_instructions
+            system_prompt += "\n\n" + get_shared_prompt("refinement_feedback").format(
+                feedback=self.extra_instructions
+            )
         logical_run_id = run_id or uuid4().hex
         if self.document_parser == "mineru":
             self._log("Parsing PDFs locally with MinerU; uncached documents can take several minutes each.")
@@ -295,7 +296,9 @@ class SchemaDiscovery:
 
     def _input_text(self, pdf_paths: list[Path]) -> str:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
-        return f"Generate a {self.vertical} schema from these PDFs:\n{sample_list}"
+        return get_shared_prompt("discovery_request").format(
+            vertical=self.vertical, pdf_paths=sample_list
+        )
 
     def _patch_input_text(
         self,
@@ -303,11 +306,9 @@ class SchemaDiscovery:
         current_schema: dict[str, object],
     ) -> str:
         sample_list = "\n".join(f"- {path.as_posix()}" for path in pdf_paths)
-        return (
-            "Current JSON schema baseline:\n"
-            f"{json.dumps(current_schema, ensure_ascii=False)}\n\n"
-            "Generate candidate schema patches from these PDFs:\n"
-            f"{sample_list}"
+        return get_shared_prompt("patch_request").format(
+            schema_json=json.dumps(current_schema, ensure_ascii=False),
+            pdf_paths=sample_list,
         )
 
     def _log(self, message: str) -> None:

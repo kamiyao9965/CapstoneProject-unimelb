@@ -15,6 +15,7 @@ from src.schema.contract import compile_extraction_contract
 from src.schema.loader import load_schema_data
 from src.schema_application.records import parse_extraction_artifact
 from src.verticals.manifest import resolve_manifest, default_manifest_path, load_vertical_manifest
+from src.verticals.registry import get_shared_prompt
 from src.schema.sampler import category_from_path
 from src.schema.validation import (
     JSONScalar,
@@ -303,26 +304,23 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
     """Build structured refinement instructions without parsing rendered text."""
     if analysis.documents == 0:
         return [
-            "No documents were successfully extracted; "
-            f"{analysis.error_docs} extraction or artifact validation attempt(s) failed. "
-            "Fix extraction, parsing, contract, or source-category errors before "
-            "refining the schema."
+            get_shared_prompt("feedback_no_documents").format(
+                error_docs=analysis.error_docs
+            )
         ]
 
     lines: list[str] = []
     if analysis.weak_fields:
         lines.append(
-            "The following fields were extractable in fewer than "
-            f"{int(WEAK_FILL_THRESHOLD * 100)}% of applicable holdout documents. "
-            "Either drop them, split "
-            "them into more specific fields, or clarify their description so they map "
-            "to what the PDFs actually contain: " + ", ".join(analysis.weak_fields) + "."
+            get_shared_prompt("feedback_weak_fields").format(
+                threshold=int(WEAK_FILL_THRESHOLD * 100),
+                fields=", ".join(analysis.weak_fields),
+            )
         )
     if analysis.missing_required:
         names = ", ".join(sorted(analysis.missing_required))
         lines.append(
-            f"These fields are marked required but were missing in some documents: {names}. "
-            "Reconsider whether they are truly required across all product types."
+            get_shared_prompt("feedback_missing_required").format(fields=names)
         )
     if analysis.enum_violations:
         details = "; ".join(
@@ -330,8 +328,7 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
             for name, vals in analysis.enum_violations.items()
         )
         lines.append(
-            "These enum fields saw values outside their allowed list; expand or correct "
-            f"the allowed values: {details}."
+            get_shared_prompt("feedback_enum_violations").format(details=details)
         )
     if analysis.product_type_mismatches:
         details = "; ".join(
@@ -339,15 +336,14 @@ def build_feedback_instructions(analysis: Analysis) -> list[str]:
             for transition, count in analysis.product_type_mismatches.items()
         )
         lines.append(
-            "Model product_type matched the authoritative directory category in "
-            f"{analysis.product_type_accuracy:.0%} of evaluated documents. Clarify the "
-            "product_type field description or allowed-value guidance without "
-            f"changing field applicability. Mismatches: {details}."
+            get_shared_prompt("feedback_product_type_mismatches").format(
+                accuracy=f"{analysis.product_type_accuracy:.0%}", details=details
+            )
         )
     if analysis.product_type_accuracy is None:
-        lines.append("No trusted product labels: classification accuracy and product-specific applicability are not evaluated.")
+        lines.append(get_shared_prompt("feedback_no_labels"))
     if not lines:
-        lines.append("No systematic extraction failures detected in the evaluated holdout samples.")
+        lines.append(get_shared_prompt("feedback_no_failures"))
     return lines
 
 

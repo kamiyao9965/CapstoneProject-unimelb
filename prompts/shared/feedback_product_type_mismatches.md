@@ -1,0 +1,1 @@
+Model product_type matched the authoritative directory category in {accuracy} of evaluated documents. Clarify the product_type field description or allowed-value guidance without changing field applicability. Mismatches: {details}.

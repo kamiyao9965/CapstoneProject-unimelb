@@ -20,6 +20,8 @@ from src.common.model_provider import (
     ProviderResponseError,
 )
 
+from src.verticals.registry import get_shared_prompt
+
 
 @dataclass(frozen=True)
 class StructuredAttempt:
@@ -211,10 +213,6 @@ def _repair_text(
     details = "\n".join(
         f"- {item['path']}: {item['message']}" for item in errors
     )
-    return (
-        f"{original_user_text}\n\n"
-        f"Repair attempt {repair_number}. The previous response failed validation:\n"
-        f"{details}\n"
-        "Return the complete corrected JSON object. Do not omit unchanged fields, "
-        "add commentary, or wrap it in Markdown."
+    return f"{original_user_text}\n\n" + get_shared_prompt("structured_repair").format(
+        repair_number=repair_number, details=details
     )

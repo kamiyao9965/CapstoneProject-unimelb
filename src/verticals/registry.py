@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
+import re
 from typing import Any
 
-from src.verticals.manifest import ManifestValidationError
+from src.verticals.manifest import ManifestValidationError, PROJECT_ROOT
 
 
 AcquisitionAdapter = Callable[..., Any]
@@ -30,8 +32,7 @@ def get_schema_validator(manifest) -> SchemaValidator:
 
 
 def get_prompt(prompt_path: str) -> str:
-    """Read the package path already validated by VerticalManifest.prompt."""
-    from pathlib import Path
+    """Read a path already validated by the manifest or shared-prompt loader."""
 
     try:
         text = Path(prompt_path).read_text(encoding="utf-8").strip()
@@ -40,6 +41,17 @@ def get_prompt(prompt_path: str) -> str:
     if not text:
         raise ManifestValidationError(f"Empty prompt {prompt_path!r}.")
     return text
+
+
+def get_shared_prompt(name: str) -> str:
+    """Load one named, model-facing template from the central prompt directory."""
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+        raise ManifestValidationError(f"Unsafe shared prompt name {name!r}.")
+    root = (PROJECT_ROOT / "prompts/shared").resolve()
+    candidate = (root / f"{name}.md").resolve()
+    if not root.is_relative_to(PROJECT_ROOT) or not candidate.is_relative_to(root):
+        raise ManifestValidationError(f"Unsafe shared prompt {name!r}.")
+    return get_prompt(str(candidate))
 
 
 def get_evaluation_tools(manifest, labelled_root):

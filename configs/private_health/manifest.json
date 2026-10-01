@@ -50,9 +50,9 @@
     "refinement_feedback": "schema_refinement/refinement_feedback"
   },
   "prompts": {
-    "discovery": "prompts/discovery.md",
-    "patch": "prompts/patch.md",
-    "extraction": "prompts/extraction.md"
+    "discovery": "../../prompts/private_health/discovery.md",
+    "patch": "../../prompts/private_health/patch.md",
+    "extraction": "../../prompts/private_health/extraction.md"
   },
   "adapters": {
     "evaluator": "private_health_labelled_v1",

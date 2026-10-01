@@ -1,0 +1,1 @@
+The following fields were extractable in fewer than {threshold}% of applicable holdout documents. Either drop them, split them into more specific fields, or clarify their description so they map to what the PDFs actually contain: {fields}.

@@ -41,10 +41,10 @@
     "refinement_feedback": null
   },
   "prompts": {
-    "discovery": "prompts/discovery.md",
-    "patch": "prompts/patch.md",
-    "extraction": "prompts/extraction.md",
-    "quality_audit": "prompts/quality_audit.md"
+    "discovery": "../../prompts/travel_insurance/discovery.md",
+    "patch": "../../prompts/travel_insurance/patch.md",
+    "extraction": "../../prompts/travel_insurance/extraction.md",
+    "quality_audit": "../../prompts/travel_insurance/quality_audit.md"
   },
   "adapters": {
     "evaluator": null,
