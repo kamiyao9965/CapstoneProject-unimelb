@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from copy import deepcopy
 
 from src.common.json_contracts import validate_contract
 from src.schema.validation import normalize_schema, validate_schema_mapping
@@ -35,7 +36,7 @@ def compile_extraction_contract(
             **product_contract,
         }
     if output_cardinality == "multiple":
-        return {
+        contract = {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "additionalProperties": False,
@@ -49,6 +50,15 @@ def compile_extraction_contract(
                 "_document_notes": {"type": ["string", "null"]},
             },
         }
+        if schema.get('validation_profile') == 'car_insurance.review_v2':
+            from src.car_insurance.schema_revision import document_evidence_contract
+            contract['properties']['document_evidence'] = document_evidence_contract()
+            contract['required'].append('document_evidence')
+        elif schema.get('validation_profile') == 'car_insurance.review_v3':
+            contract['$defs'] = deepcopy(schema['$defs'])
+            contract['properties']['document_evidence'] = deepcopy(schema['document_evidence_schema'])
+            contract['required'].append('document_evidence')
+        return contract
     raise ValueError(
         "output_cardinality must be either 'single' or 'multiple'."
     )
@@ -89,12 +99,14 @@ def _field_contract(field: Mapping[str, object]) -> dict[str, object]:
     if field_type == "enum":
         return {"enum": [*field["values"], None]}
     if field_type == "list[object]":
+        if 'item_schema' in field:
+            return {'type':['array','null'],'items':deepcopy(field['item_schema'])}
         return {
             "oneOf": [
                 {"type": "null"},
                 {
                     "type": "array",
-                    "items": {"type": "object", "additionalProperties": True},
+                    "items": deepcopy(field.get('item_schema', {"type": "object", "additionalProperties": True})),
                 },
             ]
         }

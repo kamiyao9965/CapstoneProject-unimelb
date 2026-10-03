@@ -4,6 +4,12 @@ A Python CLI for discovering, stabilising, reviewing, and evaluating reusable
 extraction schemas from Australian health and travel insurance PDFs.
 Health and Travel share the same discovery, consensus, review and extraction engine.
 
+Car Insurance is available as an initial manifest package for Australian private
+passenger car PDS discovery, review and multi-product extraction. See the
+[Car Insurance plan and runbook](docs/car-insurance-plan.md) for scope, dataset
+intake and commands. Its crawler, labelled evaluation and storage remain disabled
+pending corpus preparation, human labels and an approved canonical schema.
+
 Start with the Chinese [practical user guide](docs/user-guide.md) for complete
 Health/Travel workflows, review and recovery steps, and troubleshooting.
 See [api.md](api.md) for Python interfaces, CLI options, and artifact contracts.

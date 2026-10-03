@@ -168,6 +168,7 @@ class SchemaDiscovery:
                 pdf_root=self.pdf_root,
                 document_parser=self.document_parser,
                 markdown_dir=self.parsed_markdown_dir,
+                enforce_quality=self.manifest.vertical == 'car_insurance',
             )
         except Exception as exc:
             self._write_failure(

@@ -14,6 +14,10 @@
     "taxonomies"
   ],
   "properties": {
+    "validation_profile": {"enum": ["car_insurance.review_v2", "car_insurance.review_v3"]},
+    "$defs": {"type": "object", "additionalProperties": {"type": "object"}},
+    "document_evidence_schema": {"type": "object"},
+    "validation_rules": {"type": "object", "additionalProperties": {"type": "string"}},
     "vertical": {
       "type": "string",
       "minLength": 1
@@ -68,6 +72,7 @@
         "values"
       ],
       "properties": {
+        "item_schema": {"type": "object"},
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"

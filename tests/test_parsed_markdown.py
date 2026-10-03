@@ -80,8 +80,10 @@ class ParsedMarkdownTest(unittest.TestCase):
             ):
                 render_pdf_paths_for_prompt([source], **options)
                 os.utime(markdown_path, ns=(1, 1))
+                # Windows filesystems may round nanoseconds to their resolution.
+                original_mtime_ns = markdown_path.stat().st_mtime_ns
                 render_pdf_paths_for_prompt([source], **options)
-            self.assertEqual(markdown_path.stat().st_mtime_ns, 1)
+            self.assertEqual(markdown_path.stat().st_mtime_ns, original_mtime_ns)
 
             with mock.patch(
                 "src.PDFingestor.adapter.ingest_pdfs",

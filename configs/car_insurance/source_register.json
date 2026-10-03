@@ -1,0 +1,17 @@
+{
+  "vertical": "car_insurance",
+  "checked_at": "2026-09-21",
+  "status": "seed_pages_only",
+  "notes": "Official entry pages, not a crawler configuration or an acquired dataset. Record exact PDF URL, release and retrieval date during intake.",
+  "scope_reference": "https://moneysmart.gov.au/car-insurance/choosing-car-insurance",
+  "providers": [
+    {
+      "insurer_code": "allianz",
+      "document_pages": ["https://www.allianz.com.au/my-allianz/policy-information/policy-documents.html"]
+    },
+    {
+      "insurer_code": "aami",
+      "document_pages": ["https://www.aami.com.au/policy-documents/third-party-car-insurance"]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Iterable
 
@@ -80,6 +81,7 @@ def render_pdf_paths_for_prompt(
     camelot_enabled: bool = True,
     document_parser: str = DEFAULT_DOCUMENT_PARSER,
     markdown_dir: str | Path | None = None,
+    enforce_quality: bool = False,
 ) -> str:
     documents = ingest_pdfs(
         pdf_paths,
@@ -96,6 +98,9 @@ def render_pdf_paths_for_prompt(
                 document_parser=document_parser,
                 pdf_root=pdf_root,
             )
+    if enforce_quality:
+        from src.PDFingestor.quality import require_quality
+        require_quality(documents, review_path=os.environ.get('CAR_INSURANCE_PARSER_REVIEW'))
     return render_documents_for_prompt(documents)
 
 
@@ -134,6 +139,8 @@ def save_document_markdown(
 
 def render_page(page: PageRepresentation) -> str:
     chunks = [f"<!-- page {page.page_num} -->"]
+    chunks.extend(f"[Parser warning: {warning}]" for warning in page.warnings)
+    chunks.extend(f"[Continuation evidence: {link}]" for link in page.continuations)
     for block in page.blocks:
         if block.type == "text":
             chunks.append(f"<!-- text block_id={block.block_id} -->")

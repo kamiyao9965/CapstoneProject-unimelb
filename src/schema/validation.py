@@ -64,7 +64,7 @@ def validate_schema_mapping(payload: object, *, manifest: VerticalManifest | Non
     fields = [*([payload["product_type_field"]] if "product_type_field" in payload else []), *fields]
     by_name = {}
     for index, field in enumerate(fields):
-        validated = validate_field_payload(field, product_types, index=index)
+        validated = validate_field_payload(field, product_types, index=index, definitions=payload.get('$defs'))
         name = str(validated["name"])
         if name in by_name:
             raise ValueError(f"Schema contains duplicate field name: {name}")
@@ -84,6 +84,21 @@ def validate_schema_mapping(payload: object, *, manifest: VerticalManifest | Non
             raise ValueError(f"Schema taxonomy {name!r} entries need canonical_name.")
         if len(names) != len(set(names)):
             raise ValueError(f"Duplicate taxonomy category in {name!r}.")
+    if payload.get('validation_profile') == 'car_insurance.review_v2':
+        if manifest.vertical != 'car_insurance':
+            raise ValueError('Car validation profile cannot be used for another vertical')
+        from src.car_insurance.schema_revision import build_revision, TYPES
+        expected=build_revision(payload)
+        keys=['name','type','required','applies_to','values','item_schema']
+        actual_defs={f['name']:{k:f.get(k) for k in keys} for f in fields}
+        expected_defs={f['name']:{k:f.get(k) for k in keys} for f in expected['fields']}
+        if actual_defs!=expected_defs or product_types!=TYPES or taxonomies!=expected['taxonomies']:
+            raise ValueError('Car review_v2 profile and structural field definitions disagree')
+    if payload.get('validation_profile') == 'car_insurance.review_v3':
+        from src.car_insurance.schema_revision_v3 import validate_profile
+        validate_profile(payload, manifest)
+    elif any(key in payload for key in ('$defs', 'document_evidence_schema', 'validation_rules')):
+        raise ValueError('Local definitions/document rules currently require the car review_v3 profile')
     return normalize_schema(payload, manifest)
 
 
@@ -125,6 +140,7 @@ def validate_field_payload(
     allowed_product_types: Collection[str],
     *,
     index: int | None = None,
+    definitions: Mapping | None = None,
 ) -> Mapping[str, object]:
     """Validate one schema field without silently repairing external data."""
     label = f"field {index}" if index is not None else "field"
@@ -170,6 +186,11 @@ def validate_field_payload(
         raise ValueError(f"Schema enum field {name!r} values must be scalar.")
 
     aliases = payload.get("aliases", [])
+    if 'item_schema' in payload:
+        if field_type != 'list[object]':
+            raise ValueError('item_schema is only allowed on list[object] fields')
+        from src.schema.nested import validate_item_schema
+        validate_item_schema(payload['item_schema'], definitions)
     if (
         not isinstance(aliases, list)
         or any(not isinstance(alias, str) or not alias.strip() for alias in aliases)
@@ -180,6 +201,12 @@ def validate_field_payload(
 
 def validate_extraction_record(schema: dict[str, object], payload: object, *, manifest: VerticalManifest) -> None:
     """Check applicability and document-local product identities after JSON validation."""
+    if schema.get('validation_profile') == 'car_insurance.review_v2':
+        from src.car_insurance.schema_revision import validate_records
+        validate_records(schema,payload)
+    elif schema.get('validation_profile') == 'car_insurance.review_v3':
+        from src.car_insurance.schema_revision_v3 import validate_records
+        validate_records(schema, payload)
     records = payload["products"] if manifest.documents.output_cardinality == "multiple" else [payload]
     identities = set()
     for record in records:

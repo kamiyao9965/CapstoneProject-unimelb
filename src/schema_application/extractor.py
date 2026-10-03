@@ -102,11 +102,40 @@ class SchemaExtractor:
                 manifest=manifest,
             )
             self.structured_output_strict = not any(
-                field["type"] == "list[object]"
+                field["type"] == "list[object]" and 'item_schema' not in field
                 for field in self.schema_data["fields"]
             )
             self.schema_prompt_label = "Discovered schema"
         self.extraction_prompt = get_prompt(manifest.prompt("extraction"))
+        if self.schema_data.get('validation_profile') == 'car_insurance.review_v3':
+            self.extraction_prompt = self.extraction_prompt.replace(
+                'Return exactly "products" and "_document_notes" at top level.',
+                'Return exactly "products", "_document_notes", and "document_evidence" at top level.')
+            self.extraction_prompt += (
+                '\nThe review_v3 schema, taxonomy definitions and validation_rules govern the output. '
+                'Resolve local $defs when reading item schemas. Store shared caps once in each product\'s limit_pools; '
+                'benefits use limit_pool_ids and never copy that cap into their own limits. Sub-limits belong to the pool. '
+                'Multiple independent limits apply simultaneously; lesser_of/greater_of combine terms within ONE limit. '
+                'Document identity and raw summary tables are in document_evidence, once per PDF. '
+                'Separate source-named products/tiers, not selected add-on configurations. '
+                'Add-on tiers are separate mutually exclusive options in an option_group_id. '
+                'Theft hire car included and accident hire car optional must remain separate benefits. '
+                'not_available requires explicit evidence, not silence. Preserve unknowns; never infer purchased options. '
+                'Added categories are extraction slots, not evidence that cover exists. '
+                'This remains a human-review candidate, not an approved schema.'
+            )
+        if self.schema_data.get('validation_profile') == 'car_insurance.review_v2':
+            self.extraction_prompt = self.extraction_prompt.replace(
+                'Return exactly "products" and "_document_notes" at top level.',
+                'Return exactly "products", "_document_notes", and "document_evidence" at top level.')
+            self.extraction_prompt += (
+                '\nThe car review_v2 contract supersedes legacy field layout: document_evidence holds document metadata and raw summary tables ONCE. '
+                'Each benefit category has one field owner. available_addons describes availability only, never a selected policy configuration. '
+                'Do not generate a product by enabling an option. Connect optional benefits via reciprocal option_id/benefit_ids references. '
+                'Keep aggregate/shared limits in one owner and preserve period and basis independently. '
+                'All nested keys are required; use allowed nulls for unknown values. Missing optional lists can be null with _unfilled, '
+                'or [] when confirmed to contain no applicable entries. A review candidate is not an approved canonical schema.'
+            )
         self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
             raise ValueError(
@@ -146,6 +175,7 @@ class SchemaExtractor:
             pdf_root=self.pdf_root,
             document_parser=self.document_parser,
             markdown_dir=self.parsed_markdown_dir,
+            enforce_quality=self.manifest.vertical == 'car_insurance',
         )
         request = ProviderRequest(
             selection=self.selection,

@@ -1,0 +1,47 @@
+{
+  "manifest_version": "1.0",
+  "vertical": "car_insurance",
+  "display_name": "Car insurance (Australia)",
+  "capabilities": {
+    "acquisition": false,
+    "discovery": true,
+    "refinement": true,
+    "extraction": true,
+    "evaluation": false,
+    "storage": false
+  },
+  "documents": {
+    "categories": ["pds"],
+    "document_types": ["pds", "spds", "ped", "tmd", "fsg"],
+    "extraction_unit": "document",
+    "output_cardinality": "multiple",
+    "category_product_types": {}
+  },
+  "paths": {
+    "input_root": "data/car_insurance/development",
+    "output_root": "outputs/car_insurance"
+  },
+  "path_environment": {},
+  "contracts": {
+    "discovered_schema": "car_insurance/discovered_schema",
+    "candidate_patch_set": "schema_refinement/candidate_patch_set",
+    "refinement_feedback": "schema_refinement/refinement_feedback"
+  },
+  "prompts": {
+    "discovery": "prompts/discovery.md",
+    "patch": "prompts/patch.md",
+    "extraction": "prompts/extraction.md"
+  },
+  "adapters": {"acquisition": null, "evaluator": null},
+  "schema": {
+    "product_types": ["comprehensive", "third_party_property_damage", "third_party_fire_and_theft"],
+    "taxonomies": ["coverage_categories"],
+    "identity_fields": ["product_name"]
+  },
+  "refinement": {
+    "consensus_runs": 3,
+    "promoted_decisions": ["core"],
+    "manual_only_queue": true,
+    "protected_fields": ["product_name", "product_type"]
+  }
+}

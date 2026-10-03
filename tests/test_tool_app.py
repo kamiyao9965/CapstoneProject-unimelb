@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import shlex
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,7 +25,10 @@ class ToolAppTests(unittest.TestCase):
         self.assertIn("Schema refinement", at.selectbox(key="operation").options)
         self.assertNotIn("Compile Canonical Schema", at.selectbox(key="operation").options)
         self.assertTrue(at.button(key="run-command").disabled)
-        self.assertIn("src/run.py discover", at.code[0].value)
+        command = shlex.split(at.code[0].value)
+        self.assertEqual(Path(command[1]).name, "run.py")
+        self.assertEqual(command[2], "discover")
+        self.assertEqual(at.selectbox(key="vertical").value, "private_health")
         self.assertIn("--document-parser pdfingestor", at.code[0].value)
 
     def test_travel_batch_defaults_to_pds_folders(self):
@@ -75,12 +79,23 @@ class ToolAppTests(unittest.TestCase):
         self.assertNotIn("fixture-result", [code.value for code in at.code])
         self.assertTrue(at.button(key="run-command").disabled)
         self.assertEqual(next(field for field in at.text_input if field.label == "Model override (optional)").value, "")
-        self.assertIn("travel_insurance/manifest.json", at.code[0].value)
+        self.assertIn("travel_insurance/manifest.json", at.code[0].value.replace("\\", "/"))
         at.selectbox(key="operation").set_value("Schema refinement").run()
         self.assertEqual(next(field for field in at.number_input if field.label == "Consensus proposal runs").value, 5)
         at.selectbox(key="vertical").set_value("private_health").run()
         self.assertEqual(next(field for field in at.number_input if field.label == "Consensus proposal runs").value, 1)
         self.assertTrue(at.button(key="run-command").disabled)
+
+    def test_car_package_is_selectable_with_only_implemented_operations(self):
+        at = self.app()
+        at.selectbox(key="vertical").set_value("car_insurance").run()
+        self.assertFalse(at.exception)
+        self.assertEqual(set(at.selectbox(key="operation").options), {
+            "Schema discovery", "Single PDF extraction", "Batch extraction", "Schema refinement"
+        })
+        self.assertIn("car_insurance/manifest.json", at.code[0].value.replace("\\", "/"))
+        at.selectbox(key="operation").set_value("Schema refinement").run()
+        self.assertEqual(next(field for field in at.number_input if field.label == "Consensus proposal runs").value, 3)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ import streamlit as st
 
 from src.tool_ui.commands import CommandResult, build_command, run_command
 from src.tool_ui.forms import OPERATION_LABELS, render_operation_form
-from src.verticals.manifest import discover_manifests, OPERATION_CAPABILITIES
+from src.verticals.manifest import discover_manifests, OPERATION_CAPABILITIES, DEFAULT_VERTICAL
 
 
 st.set_page_config(page_title="Insurance schema operations", page_icon="🧰", layout="wide")
@@ -28,6 +28,7 @@ except ValueError as exc:
     st.stop()
 vertical = st.selectbox(
     "Insurance vertical", list(manifests), key="vertical",
+    index=list(manifests).index(DEFAULT_VERTICAL) if DEFAULT_VERTICAL in manifests else 0,
     format_func=lambda code: manifests[code].display_name,
 )
 manifest = manifests[vertical]

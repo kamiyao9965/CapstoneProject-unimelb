@@ -55,6 +55,7 @@ class PageRepresentation(BaseModel):
     vision_reason: str | None = None
     blocks: list[TextBlock | TableBlock | VisionBlock] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    continuations: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ParsedPDF(BaseModel):
@@ -73,6 +74,8 @@ class ParsedPDF(BaseModel):
         for page in self.pages:
             if page_separator:
                 chunks.append(f"\n\n<!-- page {page.page_num} -->\n")
+            chunks.extend(f"[Parser warning: {warning}]" for warning in page.warnings)
+            chunks.extend(f"[Continuation evidence: {link}]" for link in page.continuations)
             for block in page.blocks:
                 if block.type == "text":
                     chunks.append(block.content)

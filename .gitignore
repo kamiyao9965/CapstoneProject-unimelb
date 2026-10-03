@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 .DS_Store
 outputs/
+/.worktrees/
 
 # Local agent instructions and working notes
 /AGENTS.md

@@ -39,7 +39,7 @@ DEFAULT_TABLE_SETTINGS: dict[str, Any] = {
     "intersection_tolerance": 3,
 }
 
-INGEST_VERSION = "pdfingestor.v5"
+INGEST_VERSION = "pdfingestor.v9"
 
 
 class PDFIngestor:
@@ -109,6 +109,8 @@ class PDFIngestor:
             for page in pdf.pages:
                 pages.append(self._parse_page(path, page))
 
+        from src.PDFingestor.quality import annotate_continuations
+        annotate_continuations(pages)
         return ParsedPDF(
             pdf_id=path.name,
             pdf_hash=pdf_hash,
@@ -140,7 +142,7 @@ class PDFIngestor:
             table_objects = []
             warnings.append(f"pdfplumber table detection failed: {exc}")
 
-        tables = self._extract_pdfplumber_tables(page_num, table_objects, warnings)
+        tables = self._extract_pdfplumber_tables(page_num, table_objects, warnings, page=page)
         if self._should_try_camelot(tables, page):
             tables.extend(
                 self._extract_camelot_tables(
@@ -151,6 +153,15 @@ class PDFIngestor:
                 )
             )
 
+        tables = [table for table in tables if self._usable_table(table, warnings)]
+        if not tables and hasattr(page, 'horizontal_edges'):
+            from src.PDFingestor.summary_tables import recover
+            try:
+                summary = recover(page, warnings, table_to_markdown)
+                if summary is not None:
+                    tables.append(summary)
+            except Exception as exc:
+                warnings.append(f'Coverage summary recovery failed: {exc}; visual review required')
         if self._should_use_vision(tables, warnings):
             return self._parse_page_with_vision(pdf_path, page, warnings)
 
@@ -160,6 +171,15 @@ class PDFIngestor:
             page_width=float(page.width),
         )
         self._attach_caption_context(ordered_blocks)
+        from src.PDFingestor.vector_tables import circles
+        graphic_symbols = circles(page)
+        if len(graphic_symbols)>=6 and not any(t.source_engine in {'pdfplumber:vector-legend','pdfplumber:ruled-summary'} for t in tables):
+            warnings.append('Repeated vector symbols without verified status mapping; visual review required')
+        page_text = page.extract_text() if hasattr(page, 'extract_text') else ''
+        if 'Summary of your cover' in (page_text or '') and not any(t.source_engine=='pdfplumber:ruled-summary' for t in tables):
+            warnings.append('Coverage summary layout not verified; visual review required')
+        if any(b.type=='text' and b.content.strip() in {'We', 'cover', 'don’t', "don't"} for b in ordered_blocks):
+            warnings.append('Orphan coverage label detected; visual review required')
         return PageRepresentation(
             page_num=page_num,
             width=float(page.width),
@@ -174,6 +194,7 @@ class PDFIngestor:
         page_num: int,
         table_objects: Sequence[Any],
         warnings: list[str],
+        page: Any = None,
     ) -> list[TableBlock]:
         tables: list[TableBlock] = []
         for index, table in enumerate(table_objects):
@@ -185,7 +206,19 @@ class PDFIngestor:
                 continue
             if not raw_rows:
                 continue
+            bbox = normalize_bbox(table.bbox)
+            recovered = None
+            if page is not None and len(raw_rows) == 1:
+                from src.PDFingestor.vector_tables import recover
+                try:
+                    recovered = recover(page, table)
+                except Exception as exc:
+                    warnings.append(f'{table_id}: vector recovery failed: {exc}; visual review required')
+                if recovered:
+                    raw_rows, bbox = recovered
             headers, rows, notes = split_headers(raw_rows)
+            if recovered:
+                notes.append('Vector symbols matched to same-page legend; row labels recovered by cell geometry')
             tables.append(
                 TableBlock(
                     block_id=table_id,
@@ -194,14 +227,21 @@ class PDFIngestor:
                     raw_rows=raw_rows,
                     headers=headers,
                     rows=rows,
-                    bbox=normalize_bbox(table.bbox),
+                    bbox=bbox,
                     top=float(table.bbox[1]),
-                    source_engine="pdfplumber",
-                    confidence=estimate_table_confidence(raw_rows, table.bbox),
+                    source_engine="pdfplumber:vector-legend" if recovered else "pdfplumber",
+                    confidence=0.8 if recovered else estimate_table_confidence(raw_rows, table.bbox),
                     extraction_notes=notes,
                 )
             )
         return tables
+
+    @staticmethod
+    def _usable_table(table: TableBlock, warnings: list[str]) -> bool:
+        if not table.rows or len(table.headers) < 2:
+            warnings.append(f'{table.table_id}: rejected degenerate table; preserving original text; visual review required')
+            return False
+        return True
 
     def _extract_camelot_tables(
         self,
@@ -255,18 +295,21 @@ class PDFIngestor:
             y_tolerance=3,
             keep_blank_chars=False,
             use_text_flow=True,
+            extra_attrs=['size'],
         ) or []
         text_words = [
             word
             for word in words
             if not self._word_overlaps_any_table(word, table_bboxes)
         ]
+        from src.PDFingestor.labelled_sections import extract
+        labelled, text_words = extract(text_words, page.page_number, float(page.width), group_words_into_lines, float(page.height))
         lines = group_words_into_lines(
             text_words,
             self.line_y_tolerance,
             page_width=float(page.width),
         )
-        return [
+        return labelled + [
             TextBlock(
                 block_id=f"p{page.page_number}_text_{index}",
                 content=line["text"],
@@ -533,10 +576,11 @@ def _looks_like_two_column_page(
     for block in blocks:
         if not block.bbox or _is_full_width_block(block, page_width):
             continue
-        center = (block.bbox[0] + block.bbox[2]) / 2.0
-        if center < midpoint:
+        # A short heading crossing the midpoint is not evidence of a left
+        # column (e.g. an indented single-column contents page).
+        if block.bbox[2] <= midpoint:
             left += 1
-        else:
+        elif block.bbox[0] >= midpoint:
             right += 1
     return left >= 2 and right >= 2
 
@@ -627,7 +671,7 @@ def union_bboxes(bboxes: Sequence[BBox] | Any) -> BBox:
 
 
 def estimate_table_confidence(rows: Sequence[Sequence[str]], bbox: BBox) -> float:
-    if not rows:
+    if len(rows) < 2 or max((len(row) for row in rows), default=0) < 2:
         return 0.0
     column_counts = [len(row) for row in rows if row]
     if not column_counts:
