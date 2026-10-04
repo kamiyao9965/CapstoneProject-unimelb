@@ -21,7 +21,6 @@ from src.common.json_contracts import load_contract
 from src.common.model_config import ModelSelection, resolve_selection
 from src.common.model_provider import (
     ModelProvider,
-    ModelResponse,
     ProviderRequest,
     StructuredOutputSpec,
     create_provider,
@@ -29,6 +28,7 @@ from src.common.model_provider import (
 from src.common.openai_run import append_jsonl
 from src.common.structured_output import (
     StructuredOutputFailure,
+    StructuredOutputResult,
     run_structured_output,
 )
 from src.verticals.manifest import resolve_manifest, VerticalManifest
@@ -216,15 +216,10 @@ class SchemaDiscovery:
                     business_validator=business_validator,
                 )
             except StructuredOutputFailure as exc:
-                completed_at = datetime.now(timezone.utc)
-                duration_seconds = round(time.perf_counter() - started_perf, 3)
-                for attempt in exc.result.attempts:
-                    self._log_usage(
-                        attempt.response, pdf_paths, started_at, completed_at,
-                        duration_seconds, resolved_output_path, usage_event,
-                        run_id=logical_run_id, attempt_number=attempt.number,
-                        validation_succeeded=False,
-                    )
+                self._log_usage(
+                    exc.result, pdf_paths, started_at, started_perf,
+                    resolved_output_path, usage_event, run_id=logical_run_id,
+                )
                 self._write_failure(
                     resolved_output_path,
                     usage_event,
@@ -243,15 +238,10 @@ class SchemaDiscovery:
                     exc,
                 )
                 raise
-            completed_at = datetime.now(timezone.utc)
-            duration_seconds = round(time.perf_counter() - started_perf, 3)
-            for attempt in result.attempts:
-                self._log_usage(
-                    attempt.response, pdf_paths, started_at, completed_at,
-                    duration_seconds, resolved_output_path, usage_event,
-                    run_id=logical_run_id, attempt_number=attempt.number,
-                    validation_succeeded=not attempt.errors,
-                )
+            self._log_usage(
+                result, pdf_paths, started_at, started_perf,
+                resolved_output_path, usage_event, run_id=logical_run_id,
+            )
             assert result.data is not None
             return validate_schema_mapping(result.data, manifest=self.manifest) if usage_event == "schema_discovery" else result.data
 
@@ -317,27 +307,23 @@ class SchemaDiscovery:
 
     def _log_usage(
         self,
-        response: ModelResponse,
+        result: StructuredOutputResult,
         pdf_paths: list[Path],
         started_at: datetime,
-        completed_at: datetime,
-        duration_seconds: float,
+        started_perf: float,
         output_path: Path | None,
         usage_event: str = "schema_discovery",
         *,
         run_id: str,
-        attempt_number: int,
-        validation_succeeded: bool,
     ) -> None:
-        usage = response.usage
-        input_tokens = usage.input_tokens if usage else None
-        output_tokens = usage.output_tokens if usage else None
-        total_tokens = usage.total_tokens if usage else None
-
-        if usage is None:
-            self._log(f"Task duration: {duration_seconds:.3f}s")
-            self._log("Token usage: unavailable")
-        else:
+        completed_at = datetime.now(timezone.utc)
+        duration_seconds = round(time.perf_counter() - started_perf, 3)
+        for attempt in result.attempts:
+            response = attempt.response
+            usage = response.usage
+            input_tokens = usage.input_tokens if usage else None
+            output_tokens = usage.output_tokens if usage else None
+            total_tokens = usage.total_tokens if usage else None
             self._log(f"Task duration: {duration_seconds:.3f}s")
             parts = []
             if input_tokens is not None:
@@ -349,29 +335,29 @@ class SchemaDiscovery:
 
             self._log("Token usage: " + (", ".join(parts) if parts else "unavailable"))
 
-        append_jsonl(
-            self.usage_log_path,
-            {
-                "timestamp": completed_at.isoformat(),
-                "event": usage_event,
-                "provider": response.provider,
-                "model": response.model,
-                "document_input": self.selection.document_input,
-                "document_parser": self.document_parser,
-                "api_key_env": response.api_key_env,
-                "artifact_output_path": output_path.as_posix() if output_path else None,
-                "run_id": run_id,
-                "attempt_number": attempt_number,
-                "validation_succeeded": validation_succeeded,
-                "started_at": started_at.isoformat(),
-                "completed_at": completed_at.isoformat(),
-                "duration_seconds": duration_seconds,
-                "response_id": response.response_id,
-                "sample_count": len(pdf_paths),
-                "sample_pdfs": [path.as_posix() for path in pdf_paths],
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": total_tokens,
-            },
-            log=self._log,
-        )
+            append_jsonl(
+                self.usage_log_path,
+                {
+                    "timestamp": completed_at.isoformat(),
+                    "event": usage_event,
+                    "provider": response.provider,
+                    "model": response.model,
+                    "document_input": self.selection.document_input,
+                    "document_parser": self.document_parser,
+                    "api_key_env": response.api_key_env,
+                    "artifact_output_path": output_path.as_posix() if output_path else None,
+                    "run_id": run_id,
+                    "attempt_number": attempt.number,
+                    "validation_succeeded": not attempt.errors,
+                    "started_at": started_at.isoformat(),
+                    "completed_at": completed_at.isoformat(),
+                    "duration_seconds": duration_seconds,
+                    "response_id": response.response_id,
+                    "sample_count": len(pdf_paths),
+                    "sample_pdfs": [path.as_posix() for path in pdf_paths],
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": total_tokens,
+                },
+                log=self._log,
+            )

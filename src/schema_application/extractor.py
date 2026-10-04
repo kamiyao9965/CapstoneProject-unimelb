@@ -23,13 +23,16 @@ from src.common.json_artifacts import (
 from src.common.model_config import ModelSelection, resolve_selection
 from src.common.model_provider import (
     ModelProvider,
-    ModelResponse,
     ProviderRequest,
     StructuredOutputSpec,
     create_provider,
 )
 from src.common.openai_run import append_jsonl
-from src.common.structured_output import StructuredOutputFailure, run_structured_output
+from src.common.structured_output import (
+    StructuredOutputFailure,
+    StructuredOutputResult,
+    run_structured_output,
+)
 from src.schema.contract import compile_extraction_contract
 from src.schema.canonical import (
     compile_canonical_extraction_contract,
@@ -177,19 +180,9 @@ class SchemaExtractor:
                 drop_structural_noise=True,
             )
         except StructuredOutputFailure as exc:
-            duration = round(time.perf_counter() - started, 3)
-            for attempt in exc.result.attempts:
-                self._log_usage(
-                    attempt.response, pdf_path, duration, logical_run_id,
-                    attempt.number, False,
-                )
+            self._log_usage(exc.result, pdf_path, started, logical_run_id)
             raise
-        duration = round(time.perf_counter() - started, 3)
-        for attempt in result.attempts:
-            self._log_usage(
-                attempt.response, pdf_path, duration, logical_run_id,
-                attempt.number, not attempt.errors,
-            )
+        self._log_usage(result, pdf_path, started, logical_run_id)
         assert result.data is not None
         return result.data
 
@@ -254,25 +247,28 @@ class SchemaExtractor:
             self.log(message)
 
     def _log_usage(
-        self, response: ModelResponse, pdf_path: Path, duration: float,
-        run_id: str, attempt_number: int, validation_succeeded: bool,
+        self, result: StructuredOutputResult, pdf_path: Path,
+        started: float, run_id: str,
     ) -> None:
-        usage = response.usage
-        append_jsonl(
-            self.usage_log_path,
-            {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "event": "extraction", "provider": response.provider,
-                "model": response.model, "document_input": self.selection.document_input,
-                "document_parser": self.document_parser,
-                "api_key_env": response.api_key_env, "source_pdf": pdf_path.as_posix(),
-                "duration_seconds": duration, "run_id": run_id,
-                "attempt_number": attempt_number,
-                "validation_succeeded": validation_succeeded,
-                "input_tokens": usage.input_tokens if usage else None,
-                "output_tokens": usage.output_tokens if usage else None,
-                "total_tokens": usage.total_tokens if usage else None,
-            },
-            log=self._log,
-            error_label="extraction usage log",
-        )
+        duration = round(time.perf_counter() - started, 3)
+        for attempt in result.attempts:
+            response = attempt.response
+            usage = response.usage
+            append_jsonl(
+                self.usage_log_path,
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "event": "extraction", "provider": response.provider,
+                    "model": response.model, "document_input": self.selection.document_input,
+                    "document_parser": self.document_parser,
+                    "api_key_env": response.api_key_env, "source_pdf": pdf_path.as_posix(),
+                    "duration_seconds": duration, "run_id": run_id,
+                    "attempt_number": attempt.number,
+                    "validation_succeeded": not attempt.errors,
+                    "input_tokens": usage.input_tokens if usage else None,
+                    "output_tokens": usage.output_tokens if usage else None,
+                    "total_tokens": usage.total_tokens if usage else None,
+                },
+                log=self._log,
+                error_label="extraction usage log",
+            )
