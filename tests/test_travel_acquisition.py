@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from src.common.json_artifacts import read_artifact
+from src.scraper.downloader import PdfValidationError
 from src.scraper.http_client import FetchedBytes
 from src.scraper.travel import load_acquisition_config, run_travel_acquisition
 
@@ -135,6 +136,43 @@ def write_config(
 
 
 class TravelAcquisitionTest(unittest.TestCase):
+    def test_download_failures_keep_diagnostics_and_continue_other_documents(self) -> None:
+        cases = (
+            (PdfValidationError("unexpected_content_type", "not_pdf", "Not a PDF"),
+             "unexpected_content_type", "not_pdf", "Not a PDF"),
+            (RuntimeError("Connection failed"),
+             "document_download_failed", "not_validated", "Connection failed"),
+            (RuntimeError(), "document_download_failed", "not_validated", "RuntimeError"),
+        )
+        for error, expected_code, expected_status, expected_message in cases:
+            with self.subTest(error=expected_message), tempfile.TemporaryDirectory() as tmp:
+                class FailingDocumentClient(FakeHttpClient):
+                    @contextmanager
+                    def open_stream(self, url, allowed_domains, *, accept=""):
+                        if url.endswith("benefits.pdf"):
+                            raise error
+                        yield FakeStream(url, self.pdf_bodies[url])
+
+                root = Path(tmp)
+                config_path = root / "sources.json"
+                write_config(config_path)
+                outcome = run_travel_acquisition(
+                    config_path=config_path,
+                    data_root=root / "data",
+                    output_root=root / "outputs",
+                    http_client=FailingDocumentClient(),
+                    run_id="20261005T000000Z-a1b2c3d4",
+                )
+                failures = [document for document in outcome.data["documents"]
+                            if document["retrieval_status"] == "failed"]
+                self.assertEqual(len(failures), 1)
+                self.assertEqual(failures[0]["error_code"], expected_code)
+                self.assertEqual(failures[0]["validation_status"], expected_status)
+                self.assertEqual(outcome.data["errors"][0]["code"], expected_code)
+                self.assertEqual(outcome.data["errors"][0]["message"], expected_message)
+                self.assertEqual(outcome.data["summary"]["documents_downloaded"], 2)
+                self.assertEqual(len(outcome.pdf_paths), 2)
+
     def test_config_rejects_duplicate_provider_codes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "sources.json"

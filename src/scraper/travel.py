@@ -229,21 +229,13 @@ def run_travel_acquisition(
                         content_type=_header(stream.headers, "content-type"),
                     )
                     final_url = stream.final_url
-            except PdfValidationError as exc:
-                documents.append(
-                    _failed_document(provider, candidate, preliminary_type, exc)
-                )
-                errors.append(
-                    _run_error(
-                        provider.insurer_code,
-                        "download",
-                        candidate.url,
-                        exc.code,
-                        str(exc),
-                    )
-                )
-                continue
             except Exception as exc:
+                if isinstance(exc, PdfValidationError):
+                    error_code = exc.code
+                    error_message = str(exc)
+                else:
+                    error_code = "document_download_failed"
+                    error_message = str(exc) or exc.__class__.__name__
                 documents.append(
                     _failed_document(provider, candidate, preliminary_type, exc)
                 )
@@ -252,8 +244,8 @@ def run_travel_acquisition(
                         provider.insurer_code,
                         "download",
                         candidate.url,
-                        "document_download_failed",
-                        str(exc) or exc.__class__.__name__,
+                        error_code,
+                        error_message,
                     )
                 )
                 continue
