@@ -283,26 +283,12 @@ def run_quality_audit(
     shared_prompt_sha = _shared_quality_prompt_sha256()
     prompt_bundle_sha = _prompt_bundle_sha256(prompt_sha, shared_prompt_sha)
     results_path = destination / "results.json"
-    batch_run_id = uuid4().hex
-    prior_by_path: dict[str, dict] = {}
-    if results_path.exists():
-        prior_results = load_quality_results(results_path)
-        prior = prior_results["data"]
-        batch_run_id = prior_results["provenance"]["run_id"]
-        expected = (manifest.vertical, str(schema["version"]), schema_sha,
-                    prompt_sha, selection.provider, selection.model)
-        actual = (prior["vertical"], prior["schema_version"], prior["schema_sha256"],
-                  prior["prompt_sha256"], prior["provider"], prior["model"])
-        if actual != expected:
-            raise ValueError("Existing quality results belong to a different schema, prompt or judge model.")
-        prior_bundle_sha = prior.get("prompt_bundle_sha256")
-        if prior_bundle_sha is not None and prior_bundle_sha != prompt_bundle_sha:
-            raise ValueError("Existing quality results used different shared prompt templates.")
-        if prior_bundle_sha is None and shared_prompt_sha != LEGACY_QUALITY_SHARED_SHA256:
-            raise ValueError("Legacy quality results cannot resume after shared prompt changes.")
-        prior_by_path = {item["source_artifact"]: item for item in prior["documents"]}
-        if set(prior_by_path) != {str(path) for path in artifacts}:
-            raise ValueError("Existing quality results have a different extraction artifact set.")
+    batch_run_id, prior_by_path = _load_prior_entries(
+        results_path, artifacts,
+        expected_identity=(manifest.vertical, str(schema["version"]), schema_sha,
+                           prompt_sha, selection.provider, selection.model),
+        prompt_bundle_sha=prompt_bundle_sha, shared_prompt_sha=shared_prompt_sha,
+    )
     existing_report_paths = set((destination / "reports").rglob("*.json"))
     expected_report_paths = {destination / "reports" / path.relative_to(source_dir) for path in artifacts}
     if existing_report_paths - expected_report_paths:
@@ -375,44 +361,46 @@ def run_quality_audit(
         return write_artifact(results_path, result, data_contract="quality/batch_results", overwrite=True)
 
     persist_results()
+    if summary_only:
+        return _quality_run_result(results_path)
+
+    assert provider is not None
     new_failures = 0
-    if not summary_only:
-        assert provider is not None
-        for entry in entries:
-            if entry["status"] == "completed":
-                continue
-            artifact_path = Path(entry["source_artifact"])
-            fatal_failure = False
-            try:
-                report = audit_one(
-                    manifest=manifest, schema_path=schema_file,
-                    artifact_path=artifact_path, source_root=source_root,
-                    selection=selection, provider=provider,
-                    usage_log_path=destination / "quality_usage.jsonl",
-                    document_parser=document_parser,
-                    max_document_chars=max_document_chars,
-                    max_extraction_chars=max_extraction_chars,
-                )
-            except Exception as exc:
-                entry["status"] = "failed"
-                entry["failure"] = _safe_quality_failure(exc)
-                new_failures += 1
-                # Unknown provider/runtime failures may reflect a shared outage;
-                # do not launch another potentially billable request.
-                fatal_failure = not isinstance(exc, (StructuredOutputFailure, ValueError, FileNotFoundError))
-            else:
-                report_path = destination / "reports" / artifact_path.relative_to(source_dir)
-                write_artifact(report_path, report, data_contract="quality/audit_report")
-                entry.update(
-                    status="completed", source_document=report["provenance"]["source_documents"][0],
-                    report_path=str(report_path), report=report["data"], failure=None,
-                )
-            persist_results()
-            if fatal_failure or new_failures >= max_failures:
-                break
+    for entry in entries:
+        if entry["status"] == "completed":
+            continue
+        artifact_path = Path(entry["source_artifact"])
+        fatal_failure = False
+        try:
+            report = audit_one(
+                manifest=manifest, schema_path=schema_file,
+                artifact_path=artifact_path, source_root=source_root,
+                selection=selection, provider=provider,
+                usage_log_path=destination / "quality_usage.jsonl",
+                document_parser=document_parser,
+                max_document_chars=max_document_chars,
+                max_extraction_chars=max_extraction_chars,
+            )
+        except Exception as exc:
+            entry["status"] = "failed"
+            entry["failure"] = _safe_quality_failure(exc)
+            new_failures += 1
+            # Unknown provider/runtime failures may reflect a shared outage;
+            # do not launch another potentially billable request.
+            fatal_failure = not isinstance(exc, (StructuredOutputFailure, ValueError, FileNotFoundError))
+        else:
+            report_path = destination / "reports" / artifact_path.relative_to(source_dir)
+            write_artifact(report_path, report, data_contract="quality/audit_report")
+            entry.update(
+                status="completed", source_document=report["provenance"]["source_documents"][0],
+                report_path=str(report_path), report=report["data"], failure=None,
+            )
+        persist_results()
+        if fatal_failure or new_failures >= max_failures:
+            break
 
     queue_path: Path | None = None
-    if all(entry["status"] == "completed" for entry in entries) and not summary_only:
+    if all(entry["status"] == "completed" for entry in entries):
         reports = [read_artifact(entry["report_path"], expected_type="quality_audit",
                                  data_contract="quality/audit_report") for entry in entries]
         queue = build_review_queue(reports, sample_rate=sample_rate, seed=seed)
@@ -425,11 +413,7 @@ def run_quality_audit(
         else:
             write_artifact(candidate, queue, data_contract="quality/review_queue")
         queue_path = candidate
-    final = load_quality_results(results_path)["data"]
-    return QualityAuditRun(
-        results_path, queue_path, final["completed_documents"],
-        final["failed_documents"], final["pending_documents"],
-    )
+    return _quality_run_result(results_path, queue_path)
 
 
 def load_quality_results(path: str | Path) -> dict:
@@ -473,6 +457,41 @@ def load_quality_results(path: str | Path) -> dict:
         elif entry["report"] is not None or entry["failure"] is not None or entry["report_path"] is not None:
             raise ValueError("Pending quality result has report/failure data.")
     return result
+
+
+def _load_prior_entries(
+    results_path: Path, artifacts: Sequence[Path], *,
+    expected_identity: tuple[str, str, str, str, str, str],
+    prompt_bundle_sha: str, shared_prompt_sha: str,
+) -> tuple[str, dict[str, dict]]:
+    """Load resumable progress only when the batch and judge inputs still match."""
+    batch_run_id = uuid4().hex
+    if not results_path.exists():
+        return batch_run_id, {}
+    prior_results = load_quality_results(results_path)
+    prior = prior_results["data"]
+    batch_run_id = prior_results["provenance"]["run_id"]
+    actual = (prior["vertical"], prior["schema_version"], prior["schema_sha256"],
+              prior["prompt_sha256"], prior["provider"], prior["model"])
+    if actual != expected_identity:
+        raise ValueError("Existing quality results belong to a different schema, prompt or judge model.")
+    prior_bundle_sha = prior.get("prompt_bundle_sha256")
+    if prior_bundle_sha is not None and prior_bundle_sha != prompt_bundle_sha:
+        raise ValueError("Existing quality results used different shared prompt templates.")
+    if prior_bundle_sha is None and shared_prompt_sha != LEGACY_QUALITY_SHARED_SHA256:
+        raise ValueError("Legacy quality results cannot resume after shared prompt changes.")
+    prior_by_path = {item["source_artifact"]: item for item in prior["documents"]}
+    if set(prior_by_path) != {str(path) for path in artifacts}:
+        raise ValueError("Existing quality results have a different extraction artifact set.")
+    return batch_run_id, prior_by_path
+
+
+def _quality_run_result(results_path: Path, queue_path: Path | None = None) -> QualityAuditRun:
+    final = load_quality_results(results_path)["data"]
+    return QualityAuditRun(
+        results_path, queue_path, final["completed_documents"],
+        final["failed_documents"], final["pending_documents"],
+    )
 
 
 def _source_document_for_summary(path: Path, vertical: str, schema_version: str) -> str | None:

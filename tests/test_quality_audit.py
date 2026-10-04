@@ -356,6 +356,36 @@ class QualityAuditTests(unittest.TestCase):
                 )
         self.assertFalse(provider.requests)
 
+    def test_resume_identity_mismatch_preserves_results_before_model_call(self):
+        out = self.root / "quality"
+        with patch("src.evaluation.quality.ingest_pdfs", return_value=(self.document,)):
+            initial = run_quality_audit(
+                manifest=self.manifest, schema_path=SCHEMA_PATH,
+                artifact_dir=self.artifact.parent, source_root=self.source_root,
+                output_dir=out, selection=self.selection,
+                provider=FakeProvider(judge_response()),
+            )
+        before = initial.results_path.read_bytes()
+        for mismatch in ("model", "artifact_set"):
+            with self.subTest(mismatch=mismatch):
+                selection = self.selection
+                if mismatch == "model":
+                    selection = ModelSelection("openai", "gpt-5-mini", "markdown")
+                    message = "different schema, prompt or judge model"
+                else:
+                    (self.artifact.parent / "extra.json").write_bytes(self.artifact.read_bytes())
+                    message = "different extraction artifact set"
+                provider = FakeProvider(judge_response())
+                with self.assertRaisesRegex(ValueError, message):
+                    run_quality_audit(
+                        manifest=self.manifest, schema_path=SCHEMA_PATH,
+                        artifact_dir=self.artifact.parent, source_root=self.source_root,
+                        output_dir=out, selection=selection, provider=provider,
+                        resume=True,
+                    )
+                self.assertFalse(provider.requests)
+                self.assertEqual(initial.results_path.read_bytes(), before)
+
     def test_resume_accepts_legacy_reports_with_unchanged_shared_prompts(self):
         out = self.root / "quality"
         with patch("src.evaluation.quality.ingest_pdfs", return_value=(self.document,)):
