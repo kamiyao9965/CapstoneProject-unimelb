@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+from src.common.model_config import SUPPORTED_PROVIDERS
 from src.pdf_ingestion.adapter import DOCUMENT_PARSERS
 from src.verticals.manifest import resolve_manifest
 
@@ -29,7 +30,6 @@ SUPPORTED_OPERATIONS = frozenset(
         "quality_audit",
     }
 )
-PROVIDER_VALUES = frozenset({"openai", "anthropic", "deepseek"})
 ENVIRONMENT_NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,127}$")
 INSURER_CODE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _KEY_ASSIGNMENT = re.compile(
@@ -282,7 +282,7 @@ def _add_provider(command: list[str], value: object) -> None:
     if value is None or not str(value).strip():
         return
     provider = str(value).strip()
-    if provider not in PROVIDER_VALUES:
+    if provider not in SUPPORTED_PROVIDERS:
         raise ValueError(f"Unsupported provider: {provider!r}.")
     _add(command, "--provider", provider)
 
