@@ -206,6 +206,9 @@ entry with two parser routes (PDFingestor by default, MinerU opt-in); the unused
 AppConfig and the old Markdown-mirror MinerU preprocessor remain retired.
 Batch evaluation aggregates once and produces one `report.json` / `report.md`
 pair; there is no heuristic extraction or separate model-only report path.
+`src/evaluation/batch.py` owns per-document labelled matching, batch statistics,
+and diagnostics through the existing evaluator and reporter. The CLI passes each
+extraction to it after writing that extraction, then requests the final report pair.
 
 - `configs/*/`: one manifest per vertical, including validated references to
   its model prompts.

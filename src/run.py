@@ -467,18 +467,15 @@ def command_batch(args: argparse.Namespace) -> int:
         document_parser=args.document_parser,
     )
 
-    reports = []
     provider_counts: dict[str, int] = {}
-    unmatched_documents = 0
-    low_confidence_matches = 0
-    ambiguous_matches = 0
     extraction_errors = 0
-    gt_match_diagnostics: list[dict[str, object]] = []
-    gt_store = None
-    evaluator = None
-    reporter = None
+    evaluation = None
     if args.evaluate:
-        gt_store, evaluator, reporter = get_evaluation_tools(manifest, manifest.path("labelled_root"))
+        from src.evaluation.batch import BatchEvaluation
+
+        evaluation = BatchEvaluation(
+            *get_evaluation_tools(manifest, manifest.path("labelled_root"))
+        )
 
     for pdf_path in pdf_paths:
         try:
@@ -505,70 +502,20 @@ def command_batch(args: argparse.Namespace) -> int:
         provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
         print(f"Extracted {pdf_path.name} -> {output_path}")
 
-        if gt_store and evaluator:
-            product_match, ground_truth = gt_store.load_ground_truth(pdf_path)
-            if ground_truth:
-                report = evaluator.evaluate(
-                    extracted=result,
-                    ground_truth=ground_truth,
-                    product_key=product_match.id_master if product_match else None,
-                )
-                if product_match:
-                    report.match_score = product_match.match_score
-                    report.low_confidence_match = product_match.low_confidence_match
-                    if product_match.low_confidence_match:
-                        low_confidence_matches += 1
-                reports.append(report)
-            else:
-                unmatched_documents += 1
-                gt_match_diagnostics.append(
-                    {
-                        "source_path": str(pdf_path),
-                        "issue": "unmatched",
-                        "candidates": gt_store.rank_pdf_candidates(pdf_path) if gt_store else [],
-                    }
-                )
-            if product_match and product_match.ambiguous_match:
-                ambiguous_matches += 1
-                gt_match_diagnostics.append(
-                    {
-                        "source_path": str(pdf_path),
-                        "issue": "ambiguous",
-                        "selected_id_master": product_match.id_master,
-                        "selected_score": product_match.match_score,
-                        "candidates": product_match.candidate_matches,
-                    }
-                )
+        if evaluation is not None:
+            evaluation.evaluate_one(pdf_path, result)
 
-    if evaluator and reporter:
-        summary = evaluator.aggregate(
-            reports,
-            total_documents=len(pdf_paths),
-            unmatched_documents=unmatched_documents,
-            low_confidence_matches=low_confidence_matches,
-            extraction_errors=extraction_errors,
-        )
-        summary["ambiguous_matches"] = float(ambiguous_matches)
+    if evaluation is not None:
         report_root = manifest.path("output_root") / "evaluation"
-        reporter.write_json(reports, summary, report_root / "report.json")
-        reporter.write_markdown(reports, summary, report_root / "report.md")
-        if gt_match_diagnostics:
-            import json
-
-            diagnostics_path = report_root / "ground_truth_match_diagnostics.json"
-            diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
-            diagnostics_path.write_text(
-                json.dumps(gt_match_diagnostics, indent=2),
-                encoding="utf-8",
-            )
+        evaluation.write_reports(
+            report_root, total_documents=len(pdf_paths), extraction_errors=extraction_errors,
+        )
         print(f"Wrote evaluation reports to {report_root}")
-        if gt_match_diagnostics:
+        if evaluation.diagnostics:
             print(
                 "Evaluation warning: wrote ground-truth match diagnostics for unmatched "
                 "or ambiguous PDFs."
             )
-    elif args.evaluate:
-        print("Evaluation skipped: no private-health ground truth matched the PDFs.")
 
     print("\nBatch extraction summary:")
     print(

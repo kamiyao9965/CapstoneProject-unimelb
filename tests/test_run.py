@@ -21,6 +21,66 @@ from tests.test_travel_schema_migration import (
 
 
 class RunParserTest(unittest.TestCase):
+    def test_batch_evaluation_preserves_matching_diagnostics_and_error_counts(self) -> None:
+        from src.common.models import ProductMatch
+        from src.evaluation.metrics import ExtractionEvaluator
+        from src.evaluation.reporter import EvaluationReporter
+        from tests.test_extractor import VALID_RECORD
+
+        with tempfile.TemporaryDirectory(dir=PROJECT_ROOT) as tmp:
+            root = Path(tmp)
+            input_root = root / "input"
+            input_root.mkdir()
+            for name in ("a_matched", "b_unmatched", "c_failed"):
+                (input_root / f"{name}.pdf").touch()
+            output_dir = root / "extractions"
+            args = build_parser().parse_args([
+                "batch", "--schema", "schema.json", "--evaluate",
+                "--input-root", str(input_root), "--output-dir", str(output_dir),
+            ])
+            manifest = configure_command(args)
+            args.vertical_manifest = replace(manifest, paths={
+                **manifest.paths, "output_root": str(root / "outputs"),
+            })
+            match = ProductMatch(
+                pdf_path=str(input_root / "a_matched.pdf"), id_master="example",
+                fund_code="EX", brand_code="EX", name_master="Example",
+                product_type="hospital", match_score=0.75,
+                low_confidence_match=True, ambiguous_match=True,
+                candidate_matches=[{"id_master": "alternative", "score": 0.73}],
+            )
+
+            def load_ground_truth(pdf_path):
+                self.assertTrue((output_dir / pdf_path.with_suffix(".json").name).exists())
+                if pdf_path.stem == "a_matched":
+                    return match, {"hospital": {"product_name": "Example"}}
+                return None, None
+
+            labels = mock.Mock()
+            labels.load_ground_truth.side_effect = load_ground_truth
+            labels.rank_pdf_candidates.return_value = []
+            extractor = mock.Mock()
+            extractor.extract_one.side_effect = [VALID_RECORD, VALID_RECORD, ValueError("invalid output")]
+            with mock.patch.object(run_module, "load_schema_data", return_value={
+                "vertical": "private_health", "version": "test",
+            }), mock.patch.object(run_module, "_build_schema_extractor", return_value=extractor), \
+                 mock.patch("src.verticals.registry.get_evaluation_tools", return_value=(
+                     labels, ExtractionEvaluator(), EvaluationReporter(),
+                 )), mock.patch("builtins.print"):
+                self.assertEqual(run_module.command_batch(args), 1)
+            report_root = root / "outputs" / "evaluation"
+            report = json.loads((report_root / "report.json").read_text())
+            for key, expected in {
+                "total_documents": 3, "matched_documents": 1, "unmatched_documents": 1,
+                "low_confidence_matches": 1, "ambiguous_matches": 1, "extraction_errors": 1,
+            }.items():
+                self.assertEqual(report["summary"][key], expected)
+            self.assertEqual(report["reports"][0]["match_score"], 0.75)
+            self.assertTrue(report["reports"][0]["low_confidence_match"])
+            diagnostics = json.loads((report_root / "ground_truth_match_diagnostics.json").read_text())
+            self.assertEqual([item["issue"] for item in diagnostics], ["ambiguous", "unmatched"])
+            self.assertEqual(labels.load_ground_truth.call_count, 2)
+
     def test_batch_evaluation_writes_one_report_pair(self) -> None:
         from src.evaluation.metrics import ExtractionEvaluator
         from src.evaluation.reporter import EvaluationReporter
