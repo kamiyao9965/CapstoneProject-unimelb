@@ -1,0 +1,535 @@
+{
+  "artifact_type": "candidate_patch_set",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-15T04:03:16.134947Z",
+  "provenance": {
+    "run_id": "consensus-004",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "patches": [
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.96,
+        "type": "string",
+        "values": [],
+        "rationale": "Inbound policies commonly separate medical expenses incurred in Australia from overseas emergency medical cover. The baseline taxonomy includes inbound_medical_in_australia but there is no first-class limit field, making inbound comparison less stable if forced into emergency_medical_limit or inbound_cover_details.",
+        "description": "Medical and hospital expenses limit for non-Australian residents travelling to Australia where treatment is provided in Australia, as printed, e.g. $1,000,000, $10,000,000, Unlimited, Nil. Use for inbound-specific medical expenses in Australia rather than overseas emergency medical limits.",
+        "applies_to": [
+          "inbound"
+        ],
+        "field_name": "inbound_medical_in_australia_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p9-t1 Inbound Plan Section 19 Medical and Dental Expenses in Australia: Medical Expenses in Australia limit $1,000,000~; p41-t1: Inbound Emergency Medical Expenses in Australia $1,000,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p69 Benefit 21 Emergency Medical and Dental Expenses in Australia: applies to Inbound Plan; maximum benefit limit Inbound $1,000,000."
+          }
+        ],
+        "canonical_name": "inbound_medical_in_australia_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.93,
+        "type": "string",
+        "values": [],
+        "rationale": "Inbound PDS wording often separates emergency dental treatment in Australia from inbound medical expenses and from overseas dental limits. A distinct field improves comparison with inbound medical cover.",
+        "description": "Emergency dental expenses limit for non-Australian residents travelling to Australia where treatment is provided in Australia, as printed, e.g. $2,000, $1,000, Nil. Use only for inbound-specific dental expenses in Australia.",
+        "applies_to": [
+          "inbound"
+        ],
+        "field_name": "inbound_emergency_dental_in_australia_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p9-t1 Inbound Plan Section 19: Emergency Dental Expenses in Australia $2,000; p41-t1: Emergency Dental Expenses in Australia $2,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p69 Benefit 21 describes Dental expenses: emergency dental treatment provided in Australia by a qualified dentist to relieve pain or temporarily restore function."
+          }
+        ],
+        "canonical_name": "inbound_emergency_dental_in_australia_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.88,
+        "type": "string",
+        "values": [],
+        "rationale": "Adding inbound-specific Australian medical fields requires the existing emergency_medical_limit description to avoid conflating overseas medical limits with inbound Australian treatment limits.",
+        "description": "Emergency overseas medical and hospital expenses limit as printed, e.g. Unlimited, $10,000,000, Nil, not covered. For inbound plans, use this only for medical expenses outside the traveller's country of residence/overseas component; use inbound_medical_in_australia_limit for medical expenses provided in Australia.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "emergency_medical_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p8-t1 lists Inbound overseas medical expenses separately from p9-t1/p41-t1 Medical Expenses in Australia."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p51-t1 Benefit 1 has Inbound $10,000,000 under Emergency Medical and Dental Expenses Overseas; p69 separately has Benefit 21 Emergency Medical and Dental Expenses in Australia with Inbound $1,000,000."
+          }
+        ],
+        "canonical_name": "emergency_medical_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.9,
+        "type": "string",
+        "values": [],
+        "rationale": "Legal expenses is already a taxonomy category but lacks a prominent scalar limit field. Multiple cruise PDSs list legal expenses as a table benefit with limits, making this a stable comparison field.",
+        "description": "Legal expenses benefit limit as printed for pursuing compensation, wrongful detention/arrest or other covered legal costs, separate from personal liability defence costs where separable, e.g. $10,000, $25,000, Nil.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "legal_expenses_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5-t1 Table of Benefits: H Legal expenses Nil / $10,000 / $25,000; p43 Section H Legal expenses explains covered legal expenses."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1 Table of Benefits: H Legal expenses Nil / Nil / $10,000 / $25,000; p42 Section H describes legal expenses incurred in seeking compensation or damages."
+          }
+        ],
+        "canonical_name": "legal_expenses_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.86,
+        "type": "string",
+        "values": [],
+        "rationale": "Travel provider insolvency/financial default is handled inconsistently across insurers: some include a benefit, others exclude it. A dedicated limit/status field supports stable cross-insurer comparison beyond generic exclusions.",
+        "description": "Travel services provider insolvency, financial default or financial collapse benefit limit/status as printed, e.g. $5,000, $10,000, Nil, excluded/not covered. Capture whether travel agent/tour operator insolvency is excluded in notes or coverage_benefits.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "travel_services_provider_insolvency_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p3-t1 International benefits table Section 3 Travel Services Provider Insolvency: $Nil / $5,000 / $10,000; p31-t1 Domestic/International limits table for Section 3."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p109 General Exclusion 7: Financial collapse of any accommodation, tour, transport provider, booking agent, or travel agency is excluded."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p22 General Exclusion 27 excludes refusal/failure to provide services by reason of financial default; p57 defines financial default."
+          }
+        ],
+        "canonical_name": "travel_services_provider_insolvency_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.89,
+        "type": "string",
+        "values": [],
+        "rationale": "Pet boarding/pet care and domestic services appear as distinct table benefits across insurers. The baseline has only a broad narrative details field, not a concise limit field for comparison.",
+        "description": "Pet care, kennel/cattery boarding, veterinary, domestic services, housekeeping, childcare or similar domestic-assistance benefit limit as printed, e.g. $300, $500, $600, Nil. Use sub_limits or coverage_benefits for per-day amounts and separate pet/domestic-service components.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "pets_childcare_and_domestic_services_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p3-t1 and p6-t1 list Pet Cat or Dog Boarding: $Nil/No cover, $300, $300; p29 states up to $25 per 24 hour period to maximum $300."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p25-t2 Benefits table: Domestic Pets $500; Domestic Services $500; p92-p93 describe $50 per 24-hour kennel/cattery fees and housekeeping services."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5-t1 Table of Benefits: J Pet care Nil/Nil/$600; p44 Section J covers extra kennel or cattery fees."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1 Table of Benefits: J Pet care Nil/Nil/Nil/$600; p43 Section J covers extra kennel or cattery fees."
+          }
+        ],
+        "canonical_name": "pets_childcare_and_domestic_services_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.91,
+        "type": "string",
+        "values": [],
+        "rationale": "Most reviewed PDSs include an optional high-value/specified-item/increased luggage item-limit feature. It is important for luggage comparison and is better surfaced than burying only in optional_add_ons.",
+        "description": "Options and limits for specified high-value items or increased luggage item limits, including availability by plan, per-item limit, combined total limit, excluded item types, receipt/valuation age requirements and whether an extra premium is required.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "specified_items_or_high_value_items_cover_options",
+        "target_group": "luggage_and_personal_effects",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p12: Increase luggage item limit cover; p34 states multiple-item overall increase cannot exceed $15,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p40-p41 High Value Items: additional cover up to total $5,000; cannot be more than 12 months old except medical aids; excludes drones, jewellery, watches and watercraft."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p17 Increase Luggage Item Limits; p18 Electronic Gadgets cover up to maximum $5,000 with item limits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p6-t2 Additional Specified Items Cover: $4,000 for a single item, up to $8,000 combined items; available on Silver and Gold."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p17-t3 Additional Specified Items Cover: $4,000 for a single item, up to $6,000 combined items; p34 states optional cover available on Top level."
+          }
+        ],
+        "canonical_name": "specified_items_or_high_value_items_cover_options"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.84,
+        "type": "enum",
+        "values": [
+          "included",
+          "optional_add_on",
+          "excluded",
+          "conditionally_included",
+          "unknown"
+        ],
+        "rationale": "Natural disaster cover is a common comparison point and may be included for some benefits, optional via upgrade, or excluded unless upgraded. A status enum improves cross-insurer comparability while details remain in optional_add_ons/coverage_benefits.",
+        "description": "Overall natural disaster cover status for cancellation, additional expenses, travel delay or other disruption benefits. Use optional_add_on when a separate natural disaster upgrade is required; use conditionally_included when included only for specified benefits or plans; record limits and affected sections in coverage_benefits or optional_add_ons.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "natural_disaster_cover_status",
+        "target_group": "optional_add_ons",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p7 Natural Disaster Cover: upgrade extends cover to Cancellation, Additional emergency expenses and Travel delay depending on level; p7-t3 shows Yes/No by section and tier."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5 Natural disaster cover: must have purchased option; p17-t2 Natural Disaster Cover table shows sections A, C1, C2, C3 by tier."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p30 Section 2 Additional Expenses covers other circumstances including a Natural Disaster; p25 defines Natural Disaster."
+          }
+        ],
+        "canonical_name": "natural_disaster_cover_status"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.9,
+        "type": "number",
+        "values": [],
+        "rationale": "Several PDSs cap medical, dental, evacuation or COVID medical cover to expenses incurred within 12 months from onset/treatment. This is a stable eligibility/benefit-duration constraint that is hard to compare if embedded only in notes.",
+        "description": "Maximum period in months after onset of illness, injury or condition during which emergency medical, dental, evacuation, repatriation or related expenses remain payable, where stated as a general medical benefit duration cap.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "medical_expenses_continuation_limit_months",
+        "target_group": "medical_conditions",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p3/p4 footnote: Cover will not exceed 12 months from onset of the illness, condition or injury; p29 says cover applies for a maximum of 12 months from date of suffering."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p64: medical or hospital expenses incurred within 12 months after an illness first showed itself or the injury happened."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p7 footnote: Medical and dental cover and assistance will not exceed 12 months from onset of illness or injury; p51 repeats maximum of 12 months."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p32 exclusion: expenses incurred more than 12 months from the time you first received treatment for the injury or illness."
+          }
+        ],
+        "canonical_name": "medical_expenses_continuation_limit_months"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.87,
+        "type": "number",
+        "values": [],
+        "rationale": "Claim notification deadlines vary materially by insurer (30, 60, 180 days) and are important for comparison. The existing claims_process_summary can store it narratively but not in a queryable way.",
+        "description": "Deadline in days after return/completion of travel or other stated trigger by which the insured must notify, register or submit a claim, using the main general claim deadline. Capture benefit-specific reporting deadlines in claims_process_summary, luggage_conditions or coverage_benefits.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "claim_notification_deadline_days",
+        "target_group": "claims",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p27 Policy condition 3(d): advise of any claim or occurrence as soon as possible and within 60 days of the return date shown on Certificate of Insurance."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p118 Step 1: give notice as soon as practicable and within 180 days of the return date shown on certificate of insurance."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p21 How to make a Claim: You must register any claim within 30 days after completion of your travel."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p10 How to make a Claim: You must register any claim within 30 days after completion of your travel."
+          }
+        ],
+        "canonical_name": "claim_notification_deadline_days"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.86,
+        "type": "number",
+        "values": [],
+        "rationale": "PDSs frequently specify a dollar threshold above which emergency assistance/prior approval must be contacted for medical treatment. It is operationally important and comparable.",
+        "description": "Medical expense amount in AUD above which the insured must contact emergency assistance or obtain prior approval, where a general threshold is stated. Use emergency_assistance_details for hospitalisation, evacuation and non-dollar approval triggers.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "emergency_assistance_approval_threshold_aud",
+        "target_group": "claims",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p21: phone emergency assistance as soon as possible if you require hospitalisation, if medical expenses will exceed $2,000 or if you want to return early."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p35: should phone emergency assistance if hospitalisation is required, medical expenses will exceed $2,000 or you want to return early."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p64: if hospitalised or outpatient total cost will exceed $1,000, contact assistance service and obtain prior approval."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p25 General Condition 13: if you require hospitalisation or emergency transportation services and want us to pay, contact as soon as possible and obtain approval where reasonably practicable."
+          }
+        ],
+        "canonical_name": "emergency_assistance_approval_threshold_aud"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.82,
+        "type": "string",
+        "values": [],
+        "rationale": "Schengen visa repatriation amounts are repeatedly disclosed as a distinct sub-limit/alternative to the AUD repatriation limit. A dedicated field helps preserve foreign-currency requirements without overloading the main repatriation limit.",
+        "description": "Schengen visa repatriation, funeral or return-of-remains limit as printed, including currency and conditions, e.g. €30,000 EUR if death occurs in a Schengen member state while holding a valid Schengen visa.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "schengen_repatriation_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p30: Basic plan if valid Schengen Visa and death in a Schengen member state, pay up to 30,000EUR for expenses incurred in that Schengen member state."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p23-t1 and p67: In event of death in a Schengen member state, €30,000 EUR."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p53: if valid Schengen Visa and death in Schengen member state, maximum 30,000EUR for expenses incurred in that state."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4-t1/p31: return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; funeral or burial expenses outside Australia $10,000."
+          }
+        ],
+        "canonical_name": "schengen_repatriation_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.8,
+        "type": "string",
+        "values": [],
+        "rationale": "Cancellation benefits often include a separate sub-limit or formula for travel-agent cancellation fees/commission and loyalty points. The general cancellation_cover_limit does not capture this comparison point.",
+        "description": "Travel agent cancellation fee, commission, service-fee or similar sub-limit under cancellation cover, as printed, e.g. lesser of $4,000 and earned commission, 10% of amount paid subject to dollar caps. Include loyalty-points calculation notes if grouped in the same cancellation sub-limit wording.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "travel_agent_cancellation_fee_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p31 Section 4 Amendment or Cancellation Costs includes travel agent’s commission limited to the lesser of $4,000 or amount of commission earned on prepaid refundable amount."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p56 Benefit 7 includes travel agent’s commission limited to the lesser of $4,000 or earned commission."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p29 Section A covers travel agent’s cancellation fee up to 10% of amount paid to travel agent when full monies or maximum deposit paid."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p23 Section A covers travel agent’s cancellation fee up to 10% of amount paid or $1,500 individual / $3,000 couple/family, whichever lesser."
+          }
+        ],
+        "canonical_name": "travel_agent_cancellation_fee_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.74,
+        "type": "string",
+        "values": [],
+        "rationale": "Some insurers sell or disclose party-cover options such as Individual, Couple and Family, with implications for dependent children and per-policy limits. It is somewhat less universal than benefit limits but useful for product-configuration extraction.",
+        "description": "Available insured-party or policyholder group options for the product, e.g. Individual, Couple, Family, one adult per policy, family cover. Include dependency/supervision rules only if not captured in dependent_child_age_limit_years or eligibility_rules.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "traveller_party_options",
+        "target_group": "eligibility",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9 Policy types: Individual, Couple, Family; definitions describe one adult plus dependants, two adults in partner relationship, or two adults plus accompanying dependent children."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p3 Policy Types: Individual, Couple, Family; p14 table applies to individual, couple and family cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p9-t1 Non-medical Single Trip - One adult per policy; p42 defines you/yourself and accompanied children, and notes Domestic Plan applies per person only."
+          }
+        ],
+        "canonical_name": "traveller_party_options"
+      },
+      {
+        "required": false,
+        "patch_type": "reject_field",
+        "confidence": 0.78,
+        "type": "string",
+        "values": [],
+        "rationale": "Although CBA includes an 'Overseas Rent' benefit, it is not supported across the supplied insurer set as a stable reusable comparison field and can be captured in coverage_benefits under additional accommodation/medical-related benefits if present.",
+        "description": "Rejected as a standalone reusable field. Capture overseas rent or boarding accommodation costs in coverage_benefits/sub_limits when a PDS includes it.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "business"
+        ],
+        "field_name": "overseas_rent_limit",
+        "target_group": "benefit_limits",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p52 Benefit 3 Overseas Rent: up to $1,000 per week for pre-arranged rental or boarding accommodation costs outside Australia; p52-t2 limits Comprehensive $5,000, Essentials $2,500, others $0."
+          }
+        ],
+        "canonical_name": "overseas_rent_limit"
+      }
+    ]
+  },
+  "error": null
+}

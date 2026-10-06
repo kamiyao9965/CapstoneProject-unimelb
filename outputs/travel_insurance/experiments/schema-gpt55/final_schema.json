@@ -1,0 +1,1524 @@
+{
+  "artifact_type": "discovered_schema",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-15T07:31:29.219529Z",
+  "provenance": {
+    "run_id": "291f512016c806cd4c4facbb9b957510c39c32d937b6b12fb508ff57e5cdf6ea",
+    "provider": null,
+    "model": null,
+    "document_input": null,
+    "source_documents": [],
+    "source_artifacts": [
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/consensus/review_queue.json",
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/consensus/review_decisions.json",
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/consensus/consensus_schema.json"
+    ]
+  },
+  "data": {
+    "vertical": "travel_insurance",
+    "description": "Reusable comparison schema for Australian travel insurance Product Disclosure Statements (PDS/FSG). A PDS may contain multiple plan tiers, trip-frequency variants, geographic scopes and optional add-ons; extraction should emit one record for each distinct plan/tier or purchasable product configuration described, preserving table evidence for limits, excesses, inclusions and exclusions.",
+    "taxonomies": {
+      "coverage_categories": [
+        {
+          "description": "24/7 assistance, emergency assistance services, medical transfer coordination and payment guarantees.",
+          "canonical_name": "emergency_assistance"
+        },
+        {
+          "description": "Emergency medical, hospital, surgical, ambulance, evacuation and repatriation expenses incurred overseas or away from home.",
+          "canonical_name": "emergency_medical_and_evacuation"
+        },
+        {
+          "description": "Emergency dental treatment, usually for pain relief or temporary restoration of function.",
+          "canonical_name": "emergency_dental"
+        },
+        {
+          "description": "Cash allowance or incidentals payable for hospitalisation or confinement after a waiting period.",
+          "canonical_name": "hospital_cash_or_incidentals"
+        },
+        {
+          "description": "Funeral expenses, cremation, burial, return of mortal remains or ashes, including Schengen visa repatriation amounts.",
+          "canonical_name": "repatriation_of_remains"
+        },
+        {
+          "description": "Cancellation, amendment, lost deposits, unused prepaid travel and accommodation before departure.",
+          "canonical_name": "pre_departure_cancellation_and_amendment"
+        },
+        {
+          "description": "On-trip cancellation, curtailment, trip interruption, cutting journey short and resumption of journey.",
+          "canonical_name": "trip_interruption_and_curtailment"
+        },
+        {
+          "description": "Additional accommodation, meals and transport expenses caused by illness, injury, transport disruption, lost documents, natural disaster or other insured events.",
+          "canonical_name": "additional_accommodation_and_travel_expenses"
+        },
+        {
+          "description": "Travel delay expenses, usually accommodation or meals after a transport delay threshold.",
+          "canonical_name": "travel_delay"
+        },
+        {
+          "description": "Special event transport, festivals/gigs, conferences, weddings, funerals or other time-critical events.",
+          "canonical_name": "special_events"
+        },
+        {
+          "description": "Loss, theft or damage to luggage, baggage, personal effects, valuables and specified/high-value items.",
+          "canonical_name": "luggage_and_personal_effects"
+        },
+        {
+          "description": "Delayed, misplaced or misdirected checked baggage and emergency purchases.",
+          "canonical_name": "luggage_delay"
+        },
+        {
+          "description": "Passports, travel documents, transaction cards, credit cards, replacement costs and fraudulent use where covered.",
+          "canonical_name": "travel_documents_and_cards"
+        },
+        {
+          "description": "Cash, money, bank notes, travellers cheques or currency lost or stolen.",
+          "canonical_name": "money_or_cash"
+        },
+        {
+          "description": "Rental car or rental vehicle insurance excess, deductible or damage liability fee reimbursement.",
+          "canonical_name": "rental_vehicle_excess"
+        },
+        {
+          "description": "Legal liability to third parties for bodily injury, death or property damage.",
+          "canonical_name": "personal_liability"
+        },
+        {
+          "description": "Accidental death, permanent disability, total permanent disablement, loss of limb/sight and related lump sums.",
+          "canonical_name": "personal_accident_death_and_disability"
+        },
+        {
+          "description": "Loss of income or wages after injury or disability arising during travel.",
+          "canonical_name": "loss_of_income"
+        },
+        {
+          "description": "COVID-19 cover for medical expenses, cancellation, trip disruption, quarantine or related exclusions/sub-limits.",
+          "canonical_name": "covid_19"
+        },
+        {
+          "description": "Cruise-specific cover, including onboard medical, ship-to-shore evacuation, cabin confinement, missed ports, shore excursions, formal wear and marine rescue diversion.",
+          "canonical_name": "cruise_cover"
+        },
+        {
+          "description": "Winter sports cover, including ski equipment, equipment hire, ski pack/lift passes, piste/resort closure, avalanche and emergency rescue.",
+          "canonical_name": "winter_sports"
+        },
+        {
+          "description": "Adventure activities, sports packs, moped/motorcycle options, trekking, scuba, skydiving and other activity extensions.",
+          "canonical_name": "sports_and_adventure_activities"
+        },
+        {
+          "description": "Bicycle or e-bike cover and accessories where separately covered or excluded from standard luggage.",
+          "canonical_name": "bicycle_cover"
+        },
+        {
+          "description": "Business travel cover, business equipment, business money, emergency courier, alternative/replacement staff and business samples.",
+          "canonical_name": "business_travel_benefits"
+        },
+        {
+          "description": "Legal expenses for pursuing compensation or defending covered proceedings, separate from personal liability defence costs.",
+          "canonical_name": "legal_expenses"
+        },
+        {
+          "description": "Pet boarding, kennel/cattery fees, domestic pets, domestic services, childcare or household assistance benefits.",
+          "canonical_name": "pets_childcare_and_domestic_services"
+        },
+        {
+          "description": "Hijacking, kidnap and ransom, detention or similar security-event benefits.",
+          "canonical_name": "hijack_kidnap_and_ransom"
+        },
+        {
+          "description": "Inbound medical or dental expenses in Australia for non-Australian residents travelling to Australia.",
+          "canonical_name": "inbound_medical_in_australia"
+        }
+      ]
+    },
+    "product_types": [
+      "international_single_trip",
+      "international_multi_trip",
+      "domestic",
+      "inbound",
+      "business",
+      "cruise"
+    ],
+    "fields": [
+      {
+        "required": true,
+        "description": "Required product classification for the extracted record. Use one of the schema product_types only. For annual/frequent traveller plans use international_multi_trip or domestic as appropriate; for business annual products use business; for inbound travel-to-Australia plans use inbound; for cruise-specific products or cruise cover records use cruise.",
+        "name": "product_type",
+        "type": "enum",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ]
+      },
+      {
+        "required": true,
+        "description": "Trading brand or distributor name shown on the PDS, e.g. 1Cover, Cover-More, Commonwealth Bank, Southern Cross Travel Insurance, Insure&Go.",
+        "name": "brand_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Legal insurer or underwriter name and identifiers, including ABN, AFSL or overseas branch details where stated.",
+        "name": "insurer_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Issuer, underwriting agent, administrator, authorised representative or arranging entity where different from the insurer.",
+        "name": "issuer_or_agent_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": true,
+        "description": "Name of the travel insurance product or PDS product family, excluding individual plan tier where possible.",
+        "name": "product_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": true,
+        "description": "Plan, tier or variant name for this product record, e.g. Comprehensive, Essentials, Medical Only, Domestic, Inbound, Gold, Silver, Bare Essentials, Annual Multi-Trip, Overseas Frequent Traveller.",
+        "name": "plan_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Commercial tier or level of cover when the PDS groups plans into levels, e.g. Basic/Bare Essentials/Silver/Gold/Comprehensive/Essentials. Leave blank if plan_name already fully identifies the tier.",
+        "name": "cover_level",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "PDS or combined PDS/FSG title as printed on the document cover or first pages.",
+        "name": "pds_title",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Effective date of the PDS or policy wording, normalised as ISO date when possible while preserving original wording in evidence.",
+        "name": "pds_effective_date",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Prepared, issue, version or document date if different from the effective date.",
+        "name": "pds_prepared_or_version_date",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Geographic scope sold for this plan, e.g. worldwide, worldwide excluding/including Americas, selected country/region, Australia only, travel to Australia, domestic cruising. Include destination-selection rules if embedded in the wording.",
+        "name": "geographic_scope",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Trip frequency covered by the plan.",
+        "name": "trip_frequency",
+        "type": "enum",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": [
+          "single_trip",
+          "annual_multi_trip",
+          "frequent_traveller",
+          "already_overseas",
+          "unknown"
+        ]
+      },
+      {
+        "required": false,
+        "description": "Whether the plan covers unlimited trips during a 12-month or annual period.",
+        "name": "annual_unlimited_trips",
+        "type": "boolean",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Available maximum duration options for each journey/trip, expressed as a readable string when multiple options exist, e.g. 21/45 days, 30/60/90 days, 30/45/60 days.",
+        "name": "maximum_trip_duration_options",
+        "type": "string",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Maximum journey/trip duration in days for this extracted record where a single value applies. If multiple selectable values exist, use maximum_trip_duration_options instead or emit separate records if the plan is priced/structured separately by duration.",
+        "name": "maximum_trip_duration_days",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Overall policy period in months, usually 12 for annual multi-trip policies.",
+        "name": "policy_period_months",
+        "type": "number",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Minimum distance from home required for a domestic or annual multi-trip journey to be covered, in kilometres, where stated.",
+        "name": "minimum_distance_from_home_km",
+        "type": "number",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether paid overnight accommodation can satisfy eligibility when travel is within the stated minimum distance from home.",
+        "name": "paid_accommodation_exception",
+        "type": "boolean",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Eligibility and residency rules, including Australian resident/citizen/permanent resident, temporary resident, Medicare/private health/visa requirements, return-home requirement, already overseas rules and inbound non-resident rules.",
+        "name": "eligibility_rules",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Minimum applicant or traveller age in years if stated.",
+        "name": "minimum_age_years",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Maximum traveller age in years for the plan/tier at policy issue or application date. Use the strictest generally applicable plan limit; capture nuanced rules in age_eligibility_notes.",
+        "name": "maximum_age_years",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Age limit for accompanied/dependent children, if specified.",
+        "name": "dependent_child_age_limit_years",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Additional age-related eligibility notes, such as different limits by tier, reduced trip duration for older travellers, or benefits limited to age ranges.",
+        "name": "age_eligibility_notes",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether this plan can be purchased after the traveller has already left home/departure point, or while already overseas.",
+        "name": "already_travelling_or_overseas_available",
+        "type": "boolean",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Waiting period in hours for cover after purchase or for specified benefits, if a single dominant waiting period is stated.",
+        "name": "waiting_period_hours",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Structured waiting period rules. Each object should include benefit/section, waiting period, trigger/start time, exceptions and evidence reference.",
+        "name": "waiting_period_rules",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Cooling-off/free-look period in days for cancellation refund rights.",
+        "name": "cooling_off_period_days",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Refund and policy cancellation rules after cooling-off, including administration fees and restrictions after travel starts or after a claim.",
+        "name": "policy_cancellation_refund_terms",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Available excess choices or selectable excess amounts, preserving wording such as nil, chosen excess, $50, $100, $250, double excess for winter sports, or per-event/per-person application.",
+        "name": "excess_options",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Standard or default excess amount in AUD where a single amount applies to the plan.",
+        "name": "standard_excess_aud",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Rules for how excess applies. Each object should include benefit/section, excess applies yes/no, amount if stated, per claim/event/person/policy, and evidence reference.",
+        "name": "excess_rules",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Emergency medical and hospital expenses limit as printed for medical/hospital/ambulance/evacuation expenses, e.g. Unlimited, $10,000,000, Nil, not covered. Do not include separate emergency dental, repatriation/funeral/remains limits or maximum months-from-onset duration where those can be captured in emergency_dental_limit, repatriation_of_remains_limit, or medical_expenses_max_months_from_onset; preserve footnotes in evidence.",
+        "name": "emergency_medical_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Emergency dental treatment limit as printed, if separable from medical cover.",
+        "name": "emergency_dental_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Cancellation, amendment, lost deposits or pre-departure cancellation limit as printed, including Chosen Limit, Cover chosen, Unlimited, Nil, or a dollar amount.",
+        "name": "cancellation_cover_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether cancellation cover is optional/selectable rather than automatically included at a fixed amount.",
+        "name": "cancellation_cover_selectable",
+        "type": "boolean",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "On-trip additional accommodation, transport, disruption, curtailment or trip interruption limit as printed.",
+        "name": "additional_expenses_or_trip_disruption_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Travel delay benefit limit as printed, including per-hour/per-day sub-limits if concise.",
+        "name": "travel_delay_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Total luggage, baggage and personal effects limit as printed.",
+        "name": "luggage_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "General single-item, pair or set item limit for luggage/personal effects as printed. If categories differ, also populate sub_limits or coverage_benefits.",
+        "name": "luggage_single_item_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Electronics, camera, laptop, phone, tablet, gadget or valuables limit/sub-limit as printed where prominent.",
+        "name": "electronics_or_valuables_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Delayed luggage or baggage delay benefit limit as printed.",
+        "name": "luggage_delay_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Travel documents, passport, transaction card or credit card replacement/fraudulent-use limit as printed.",
+        "name": "travel_documents_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Money, cash, currency or travellers cheque limit as printed.",
+        "name": "money_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Rental vehicle insurance excess/deductible/damage liability limit as printed, including optional increase amounts.",
+        "name": "rental_vehicle_excess_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Personal liability limit as printed.",
+        "name": "personal_liability_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Accidental death, disability, total permanent disablement or personal accident limit as printed. Use sub_limits for separate death/disability/loss-of-limb amounts.",
+        "name": "personal_accident_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Loss of income benefit limit as printed, including weekly/monthly percentages and maximum duration if concise.",
+        "name": "loss_of_income_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether the plan provides any COVID-19 cover beyond general pandemic exclusions.",
+        "name": "covid_cover_available",
+        "type": "boolean",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "COVID-19 medical expense limit as printed, if separately identified.",
+        "name": "covid_medical_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "COVID-19 cancellation, amendment, quarantine or trip disruption limit as printed, if separately identified.",
+        "name": "covid_cancellation_or_disruption_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Concise summary of COVID-19 covered events and exclusions, e.g. positive diagnosis only, hospitalisation, life-threatening relative infection, no border closures/government bans, no close-contact-only claims.",
+        "name": "covid_cover_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Cruise cover status for the plan.",
+        "name": "cruise_cover_status",
+        "type": "enum",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": [
+          "included",
+          "optional_add_on",
+          "mandatory_for_cruise",
+          "excluded",
+          "not_applicable",
+          "unknown"
+        ]
+      },
+      {
+        "required": false,
+        "description": "Whether cruise cover must be selected and paid for to cover multi-night cruise-related claims.",
+        "name": "cruise_cover_required_for_cruises",
+        "type": "boolean",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Cruise-specific benefits. Each object should include benefit name, category, included yes/no, limit, excess, conditions, exclusions and source evidence/table cells.",
+        "name": "cruise_benefits",
+        "type": "list[object]",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Optional add-ons, packs, upgrades or amendments available for the plan, such as cruise, winter sports, adventure, motorcycle/moped, bicycle, high value items, electronic gadgets, natural disaster, business cover or rental vehicle excess increase. Each object should include add-on name, availability, limit changes, eligibility/age rules, waiting period, premium requirement and evidence.",
+        "name": "optional_add_ons",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "All plan benefits from benefits tables and policy wording. Each object should include canonical coverage category, source section number/name, benefit name, included yes/no, limit text, excess applies, sub-limits, per-person/per-policy basis, conditions, exclusions and table/text evidence.",
+        "name": "coverage_benefits",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Sub-limits and item limits not already captured in major fields. Each object should include parent benefit, sub-limit name, amount, basis, trigger/waiting period and evidence.",
+        "name": "sub_limits",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Basis on which limits apply, e.g. per person, per adult, per policy, per journey, per trip, per item, per event, shared with dependants, reinstated each journey.",
+        "name": "limit_basis_notes",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether benefit limits are automatically reinstated after each journey on an annual or multi-trip policy.",
+        "name": "annual_limit_reinstatement",
+        "type": "boolean",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Pre-existing medical condition cover approach.",
+        "name": "pre_existing_medical_cover_status",
+        "type": "enum",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": [
+          "not_covered_unless_approved",
+          "some_conditions_automatically_included",
+          "covered_if_screened_and_approved",
+          "not_available",
+          "unknown"
+        ]
+      },
+      {
+        "required": false,
+        "description": "Whether a medical assessment/screening is required to obtain cover for pre-existing medical conditions or pregnancy complications.",
+        "name": "medical_assessment_required",
+        "type": "boolean",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Summary of the definition and treatment of pre-existing medical conditions, automatically included conditions, non-coverable conditions, undiagnosed conditions and additional premium/endorsement requirements.",
+        "name": "pre_existing_medical_conditions_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Pregnancy cover summary, including covered complications, assisted conception/multiple pregnancy rules, childbirth/newborn exclusions and disclosure/screening requirements.",
+        "name": "pregnancy_cover_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Latest gestational week up to which pregnancy-related cover may apply for a single pregnancy, expressed as a numeric week threshold where stated.",
+        "name": "pregnancy_single_week_limit",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Latest gestational week up to which pregnancy-related cover may apply for a multiple pregnancy, if different from single pregnancy.",
+        "name": "pregnancy_multiple_week_limit",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Rules for non-traveller relatives, business partners, travelling companions or relevant persons whose illness/death may trigger cancellation or curtailment, including age and pre-existing condition restrictions.",
+        "name": "non_traveller_health_rules",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Activities automatically included in cover. Each object should include activity, conditions, exclusions from liability/death benefits and evidence.",
+        "name": "included_activities",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Activities or sports that require an add-on, upgrade or pack. Each object should include activity, required add-on, conditions, excluded benefit sections and evidence.",
+        "name": "optional_activity_cover",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Activities, sports or travel arrangements excluded under all circumstances or unless specified add-on is purchased. Each object should include exclusion, scope and evidence.",
+        "name": "excluded_activities",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Rental vehicle eligibility and exclusions, including vehicle types, licence/nominated driver requirements, rental agreement requirements, unsealed/off-road exclusions, administration/loss-of-use exclusions and document requirements.",
+        "name": "rental_vehicle_excess_conditions",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Luggage and valuables conditions, including unattended property rules, locked vehicle/concealed storage limits, checked-in valuables exclusions, proof of ownership, depreciation, IMEI blocking and reporting deadlines.",
+        "name": "luggage_conditions",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Depreciation rules for personal effects or equipment claims. Each object should include item category, age band, depreciation percentage or payable percentage, maximum deduction and evidence.",
+        "name": "depreciation_rules",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Business-specific benefits and conditions such as business equipment, samples, business money, emergency courier, equipment hire, alternative/replacement staff, leisure travel allowance and business-purpose eligibility.",
+        "name": "business_cover_details",
+        "type": "string",
+        "applies_to": [
+          "business"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Inbound-specific eligibility and benefits for non-Australian residents travelling to Australia, including medical expenses in Australia and exclusions for Medicare-eligible persons.",
+        "name": "inbound_cover_details",
+        "type": "string",
+        "applies_to": [
+          "inbound"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "General exclusions applicable to all benefits. Each object should include exclusion heading/name, description, exceptions, affected sections if specified and evidence reference.",
+        "name": "general_exclusions",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Benefit-specific exclusions. Each object should include benefit/section, exclusion text, exceptions and evidence reference.",
+        "name": "benefit_exclusions",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Travel-warning, sanction and embargo rules, including Smartraveller Do Not Travel/Reconsider advice, Cuba/Iran/Syria/North Korea/Ukraine regions, Antarctica rules and sanction limitations.",
+        "name": "travel_warning_and_sanctions_rules",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Claims process summary, including claim notification deadline, online/postal submission method, required supporting documents, emergency approval thresholds, payment currency and claim assessment timeframe.",
+        "name": "claims_process_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Emergency assistance contact details and mandatory contact/approval thresholds, such as hospitalisation, surgery or medical expenses over a stated amount.",
+        "name": "emergency_assistance_details",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Factors the PDS says affect premium, such as destination, duration, age, plan, excess, number of travellers, cancellation amount and add-ons.",
+        "name": "premium_factors",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Source PDF path used for extraction.",
+        "name": "source_pdf_path",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Source PDF hash or document identifier used for traceability.",
+        "name": "source_pdf_hash",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": true,
+        "description": "Evidence supporting key extracted fields. Each object should include field name(s), page number, block/table id, exact quote or table cell(s), and any interpretation notes. Tables must be treated as first-class evidence.",
+        "name": "source_evidence",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "values": []
+      },
+      {
+        "name": "claim_notification_deadline_days",
+        "type": "number",
+        "description": "General claim notification or claim registration deadline in days after return/completion of travel where stated. Use claims_process_summary or coverage-specific conditions for benefit-specific reporting deadlines such as 72-hour baggage reports.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": []
+      },
+      {
+        "name": "legal_expenses_limit",
+        "type": "string",
+        "description": "Legal expenses benefit limit as printed for pursuing compensation, wrongful detention/arrest consultation, or similar legal-cost cover separate from personal liability defence costs.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": []
+      },
+      {
+        "name": "natural_disaster_cover_status",
+        "type": "enum",
+        "description": "Natural disaster cover status for cancellation, additional expenses or travel delay benefits at plan level. Use included where the plan covers natural disaster events without extra premium, optional_add_on where a natural-disaster upgrade must be purchased, conditionally_included where only some sections or specified circumstances are covered, excluded where natural disasters are not covered, not_applicable where the plan has no relevant benefits, or unknown. Capture section-specific differences in coverage_benefits or optional_add_ons.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": [
+          "included",
+          "optional_add_on",
+          "conditionally_included",
+          "excluded",
+          "not_applicable",
+          "unknown"
+        ]
+      },
+      {
+        "name": "medical_expenses_max_months_from_onset",
+        "type": "number",
+        "description": "Maximum number of months emergency medical/dental expenses cover may continue from onset of illness, condition or injury, where stated separately from the policy/trip duration.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": []
+      },
+      {
+        "name": "repatriation_of_remains_limit",
+        "type": "string",
+        "description": "Funeral expenses, burial/cremation, return of body, ashes or mortal remains limit as printed, including Schengen visa EUR amounts and whether the limit is per person or per deceased person.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": []
+      },
+      {
+        "name": "travel_delay_minimum_delay_hours",
+        "type": "number",
+        "description": "Minimum transport delay in hours before the travel delay benefit can be claimed for this plan/record. If thresholds differ by sub-benefit, use coverage_benefits or sub_limits for detail.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": []
+      },
+      {
+        "name": "travel_services_provider_insolvency_limit",
+        "type": "string",
+        "description": "Travel services provider insolvency, financial default or financial collapse benefit limit/status as printed, e.g. $5,000, $10,000, Nil, excluded/not covered. Capture whether travel agent/tour operator insolvency is excluded in notes or coverage_benefits.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": []
+      },
+      {
+        "name": "winter_sports_cover_status",
+        "type": "enum",
+        "description": "Winter sports or snow sports cover status for the plan: included, optional add-on, separate plan/tier, excluded, not applicable, or unknown. Use detailed benefit limits and activity rules in coverage_benefits, optional_activity_cover and optional_add_ons.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": [
+          "included",
+          "optional_add_on",
+          "separate_plan_or_tier",
+          "excluded",
+          "not_applicable",
+          "unknown"
+        ]
+      }
+    ],
+    "version": "1.0.0",
+    "notes": [
+      "Use one extracted product record per distinct plan/tier described by a PDS. If a plan has materially different selectable trip durations, excesses or add-on configurations, capture options in the relevant option fields unless the comparison task requires separate records.",
+      "Use string limit fields to preserve values such as Unlimited, Nil, Included, Chosen Limit, Cover chosen, per-adult/per-policy footnotes, and foreign-currency Schengen amounts. Use coverage_benefits and sub_limits for detailed table-level comparison.",
+      "Cruise cover is modelled both as product_type=cruise when a cruise-specific product/record is emitted and as optional add-on/status fields where cruise cover modifies another travel insurance plan.",
+      "Car rental vehicle excess is a benefit category and field, not a separate car-insurance product type.",
+      "When evidence comes from Markdown tables, record the table id, row/column labels and cell text in source_evidence or the evidence fields inside list objects."
+    ]
+  },
+  "error": null
+}

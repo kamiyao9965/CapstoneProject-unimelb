@@ -1,0 +1,875 @@
+{
+  "vertical": "travel_insurance",
+  "schema_version": "1.0.0-canonical-candidate",
+  "source_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-international-screen.pdf",
+  "extracted_at": "2026-09-15T14:03:02+00:00",
+  "provider": "openai",
+  "model": "gpt-5",
+  "document_parser": "mineru",
+  "data": {
+    "products": [
+      {
+        "product_type": "international_single_trip",
+        "brand_name": "Travel Insurance Saver",
+        "insurer_name": "Pacific International Insurance Pty Ltd ABN 83 169 311 193, AFSL No 523921",
+        "issuer_or_agent_name": "nib Travel Services (Australia) Pty Limited ABN 81 115 932 173, AFSL 308461 (underwriting agent) and Insurance Saver Pty Ltd ABN 18 624 919 366 AR 1263726 (authorised representative/distributor)",
+        "product_name": "Travel Insurance Saver International - Comprehensive",
+        "plan_name": "Comprehensive Plan",
+        "cover_level": null,
+        "pds_title": "International Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "17 September 2024",
+        "pds_prepared_or_version_date": "6 August 2024 (Version: NP_EXP_08_06AUG2024)",
+        "geographic_scope": "International; includes publicly available international river cruises and ocean cruises within Australian waters or international waters.",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available to Australian residents; no age limit. Accompanying children covered at no additional premium when named. Cruises (international river and ocean in AU or international waters) covered. Existing medical conditions: over 40 conditions automatically covered if criteria met; other conditions can be screened and added as specified medical conditions for an extra premium (pre-approval required).",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 24,
+        "age_eligibility_notes": "Child means under 25 years of age and working less than 30 hours per week at the time of issue (must be on the same itinerary).",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "General (already travelling when policy issued)",
+            "waiting_period_hours": 72,
+            "trigger": "Certificate of Insurance issued after trip has started",
+            "exceptions": "If an injury from an accident occurs after departure but before the 72-hour waiting period ends, Medical expenses and Medical evacuation/repatriation start from the time of the accident for that injury.",
+            "evidence": {
+              "page": 15,
+              "quote": "a 72-hour waiting period applies from the time the Certificate of Insurance is issued... however... if you suffer an injury as a result of an accident... cover as per the conditions of Medical expenses and Medical evacuation and repatriation begins from the time of the accident."
+            }
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21-day cooling-off if trip not started, no claim made/intended. Outside cooling-off, refund for unused period may be provided at insurer's discretion if trip has not started, no claim made/intended.",
+        "excess_options": "Chosen excess; Variable excess option available (lower excess = higher premium). An additional excess may apply for any approved specified medical condition(s). No excess applies to certain listed benefits.",
+        "standard_excess_aud": null,
+        "excess_rules": null,
+        "emergency_medical_limit": "Unlimited (expenses must be incurred within 12 months of illness/injury onset)",
+        "emergency_dental_limit": "$1,000 (sudden and acute pain)",
+        "cancellation_cover_limit": "Chosen limit (per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "Emergency travel arrangements and accommodation: Unlimited (Meals sub-limit $500, $75 per 24 hrs; Internet/telephone $250; Post hospital accommodation $500, $100 per day)",
+        "travel_delay_limit": "$2,000 (max $250 per 24 hrs; minimum 6-hour delay)",
+        "luggage_limit": "$12,000",
+        "luggage_single_item_limit": "Personal computer/camera/video: $4,000; Smartphone: $1,000; Other individual item: $700",
+        "electronics_or_valuables_limit": "Personal computer/camera/video $4,000; Smartphone $1,000",
+        "luggage_delay_limit": "Emergency luggage: $500 (doubles if still missing after 72 hours)",
+        "travel_documents_limit": "$3,000 (replacement passports and travel documents)",
+        "money_limit": "$250 (Stolen cash)",
+        "rental_vehicle_excess_limit": "$5,000 per policy (optional additional units available up to $5,000 extra)",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "Accidental death $25,000; Total permanent disability $12,500; Funeral expenses overseas $25,000; Accompanying children sub-limit $1,000 per child",
+        "loss_of_income_limit": "$10,000 (up to $1,667 per month)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "Covered under Overseas medical expenses (Unlimited; pandemic exclusion carve-out applies to medical sections)",
+        "covid_cancellation_or_disruption_limit": "$10,000 (Coronavirus travel costs)",
+        "covid_cover_summary": "Coronavirus travel costs cover for post-purchase diagnosis affecting you/travelling party; close relative/business partner in Australia hospitalised or dies; pre-approved leave cancellation for eligible workers; escorted tour/accommodation provider impacts; denied boarding due to suspected infection; compulsory quarantine due to diagnosis/confirmed close contact; additional childcare/pet care. Exclusions include known/foreseeable circumstances at purchase/extension, failure to follow government/WHO guidance, change of mind, expenses without documentation, upgrades above original standard without approval, expenses after return home, double claiming, broadly imposed quarantine not due to your diagnosis/confirmed close contact. Medical, hospital, evacuation and funeral benefits remain available despite pandemic exclusion.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Cancellation option (Chosen limit)",
+            "availability": "Included as selectable limit at purchase",
+            "effects": "Sets the policy cancellation limit for this plan; printed on Certificate of Insurance.",
+            "evidence": {
+              "page": 6,
+              "quote": "For the Comprehensive... the policy limit for Cancellation or holiday deferment costs must be chosen at the time of purchase."
+            }
+          },
+          {
+            "name": "Snow sports cover option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Extends cover to snow sports-related claims under all sections and adds Ski lift passes $300; Ski run closure $100 per day up to $500; Hire replacement snow equipment $300.",
+            "evidence": {
+              "pages": [
+                6,
+                7,
+                56,
+                57
+              ],
+              "quotes": [
+                "This option is available with the Comprehensive... Plans with payment of an additional premium.",
+                "Any claim arising from participation in snow sports... up to the applicable limit...",
+                "Ski lift passes $300; Ski run closure $100 per day up to $500; Hire replacement snow equipment $300."
+              ]
+            }
+          },
+          {
+            "name": "Additional rental vehicle insurance excess option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Increase Rental vehicle insurance excess limit by $1,000 units up to an extra $5,000.",
+            "evidence": {
+              "page": 7,
+              "table_id": "p7-t2",
+              "quote": "Maximum additional policy limit $5,000; Additional premium charged for each $1,000 unit."
+            }
+          },
+          {
+            "name": "Specified items option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Specify high-value items above item limits; max $4,000 per item; $10,000 total specified items. No depreciation applies to specified items.",
+            "evidence": {
+              "page": 7,
+              "quote": "Maximum individual specified item limit: $4,000; Maximum total for all specified items: $10,000."
+            }
+          },
+          {
+            "name": "Variable excess option",
+            "availability": "Optional selection at purchase",
+            "effects": "Premium adjusts by chosen excess.",
+            "evidence": {
+              "page": 8,
+              "quote": "Where a plan allows you to vary the excess, your premium will be adjusted accordingly."
+            }
+          },
+          {
+            "name": "Specified medical conditions option",
+            "availability": "Optional (subject to medical screening and insurer approval)",
+            "effects": "Adds cover for declared existing medical conditions with possible additional excess/premium; shown on Certificate of Insurance.",
+            "evidence": {
+              "pages": [
+                8,
+                30
+              ],
+              "quotes": [
+                "(Not available on Essentials and Bare Essentials Plans.)",
+                "If we agree to offer you cover for your existing medical condition(s)... additional excess and premium... shown on your Certificate of Insurance."
+              ]
+            }
+          }
+        ],
+        "coverage_benefits": null,
+        "sub_limits": null,
+        "limit_basis_notes": "Unless stated otherwise, limits apply per adult and are not increased for accompanying children; Cancellation chosen limit and Rental vehicle insurance excess are per policy (shared across all insured persons). Travel delay payable up to $250 per 24 hours. Emergency luggage doubles if bags missing >72 hours.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "covered_if_screened_and_approved",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "Over 40 conditions automatically covered when criteria are met. Other existing medical conditions may be covered if declared, medically screened and approved with any advised additional premium/excess (Comprehensive and Annual Multi Trip only). If not automatically covered or approved, no cover for claims arising from that condition.",
+        "pregnancy_cover_summary": "Pregnancy-related illness/events covered up to end of 26th week if event is covered by the policy and pregnancy-related illness first developed unexpectedly after purchase. Pregnancy itself is not an existing medical condition; existing pregnancy-related conditions require screening/approval where available. No cover for birth/newborn care.",
+        "pregnancy_single_week_limit": 26,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "Cancellation/Additional expenses cover may apply for death, sudden serious illness or serious injury of a close relative or business partner resident in Australia or New Zealand (hospitalisation or need for your care required). Existing medical conditions of non-travellers are generally excluded unless automatically covered or specified for you.",
+        "included_activities": null,
+        "optional_activity_cover": null,
+        "excluded_activities": null,
+        "rental_vehicle_excess_conditions": "Covers rental vehicle insurance excess or repair cost (whichever is lower) when renting from a registered company, vehicle has comprehensive insurance, and you are a nominated driver. No cover for liability from use of vehicle, administration or loss-of-use fees, or events not covered by the rental's comprehensive insurance.",
+        "luggage_conditions": "Unattended property exclusions apply; valuables (PCs, smartphones, cameras, jewellery, electronic equipment, watches) not covered if left in any motor vehicle/motorhome/caravan; items must be with you unless stored securely with proof of forced entry; no cover for items in a tent; checked-in valuables excluded; depreciation applies per schedule; proof of ownership/value required; report theft/misdelivery promptly.",
+        "depreciation_rules": [
+          {
+            "category": "Camping/sporting/leisure equipment, musical instruments",
+            "rate_percent_per_year": 10
+          },
+          {
+            "category": "Clothing/footwear/personal effects/luggage/prescription glasses/sunglasses/costume jewellery/books",
+            "rate_percent_per_year": 15
+          },
+          {
+            "category": "Personal computer/communication/photographic/electronic equipment/mobile/smart phones/CDs/DVDs",
+            "rate_percent_per_year": 20
+          },
+          {
+            "category": "Toiletries, makeup, perfume, medication",
+            "rate_percent_per_year": 50
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": null,
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel to/remaining in regions with Australian Government 'Do not travel' advice; sanctions restrictions apply; certain government intervention/prohibition risks excluded; insolvency of providers excluded; pandemic exclusion applies except to specified medical sections and Coronavirus travel costs per policy wording.",
+        "claims_process_summary": "Prevent further loss; notify authorities (police/carrier/hotel) as soon as possible; contact nib International Assistance in emergencies; submit claim as soon as you can with required documents (medical certificates, receipts, reports). Claims paid in AUD; decision target within 10 working days of complete claim.",
+        "emergency_assistance_details": "nib International Assistance 24/7: +61 3 8523 2800 or 1300 555 019 (within Australia); travelassist@nib.com.au",
+        "premium_factors": "Trip length; time between purchase and departure; destination/region; plan selected; traveller age; chosen cancellation limit; snow sports option; rental vehicle excess increase; specified items; variable excess; specified medical conditions.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-international-screen.pdf",
+        "source_pdf_hash": "68c40cd8d9be56738476a42360dea2d826c0a8ca405b42fa98a4af13ea89af43",
+        "source_evidence": [
+          {
+            "field_names": [
+              "pds_effective_date",
+              "pds_title"
+            ],
+            "page": 1,
+            "quote": "International Travel Insurance\nCombined Financial Services Guide and Product Disclosure Statement\nEffective Date 17 September 2024"
+          },
+          {
+            "field_names": [
+              "excess_options",
+              "excess table"
+            ],
+            "page": 13,
+            "table_id": "p13-t1",
+            "quote": "Plan | Policy excess ... Comprehensive Plan | Chosen excess"
+          },
+          {
+            "field_names": [
+              "optional_add_ons"
+            ],
+            "page": 7,
+            "table_id": "p7-t1",
+            "quote": "Snow sports cover option benefits: Ski lift passes $300; Ski run closure $100 per day up to a maximum of $500; Hire replacement snow equipment $300"
+          },
+          {
+            "field_names": [
+              "rental_vehicle_excess_limit"
+            ],
+            "page": 16,
+            "table_id": "p16-t1",
+            "quote": "Rental vehicle insurance excess | $5,000* (per policy)"
+          },
+          {
+            "field_names": [
+              "emergency_medical_limit",
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 16,
+            "table_id": "p16-t1",
+            "quote": "Overseas medical expenses | Unlimited^ ; ^ For up to 12 months after the illness first appears or injury first occurs."
+          },
+          {
+            "field_names": [
+              "cancellation_cover_limit"
+            ],
+            "page": 16,
+            "table_id": "p16-t1",
+            "quote": "Cancellation or holiday deferment costs | Chosen limit*"
+          },
+          {
+            "field_names": [
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 16,
+            "table_id": "p16-t1",
+            "quote": "Coronavirus travel costs | $10,000"
+          },
+          {
+            "field_names": [
+              "waiting_period_hours",
+              "already_travelling_or_overseas_available"
+            ],
+            "page": 15,
+            "quote": "a 72-hour waiting period applies from the time the Certificate of Insurance is issued before cover for any events begins."
+          },
+          {
+            "field_names": [
+              "eligibility_rules"
+            ],
+            "page": 18,
+            "quote": "This plan is only available to residents of Australia. ... There is no age limit on this plan. ... There is cover for publicly available international river cruises, and ocean cruises within Australian waters or international waters, under this plan."
+          }
+        ],
+        "claim_notification_deadline_days": null,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": null,
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Excluded / Not covered",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "COVID-19 medical cover is provided under standard medical sections due to the pandemic exclusion carve-out; a separate Coronavirus travel costs limit applies only to this plan. Cancellation and Rental vehicle excess limits are per policy. Child age is 'under 25'.",
+        "_unfilled": []
+      },
+      {
+        "product_type": "international_single_trip",
+        "brand_name": "Travel Insurance Saver",
+        "insurer_name": "Pacific International Insurance Pty Ltd ABN 83 169 311 193, AFSL No 523921",
+        "issuer_or_agent_name": "nib Travel Services (Australia) Pty Limited ABN 81 115 932 173, AFSL 308461 (underwriting agent) and Insurance Saver Pty Ltd ABN 18 624 919 366 AR 1263726 (authorised representative/distributor)",
+        "product_name": "Travel Insurance Saver International - Essentials",
+        "plan_name": "Essentials Plan",
+        "cover_level": null,
+        "pds_title": "International Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "17 September 2024",
+        "pds_prepared_or_version_date": "6 August 2024 (Version: NP_EXP_08_06AUG2024)",
+        "geographic_scope": "International; includes publicly available international river cruises and ocean cruises within Australian waters or international waters.",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available to Australian residents up to 69 years of age at the time of issue. Accompanying children covered at no additional premium when named. Cruises (international river and ocean in AU or international waters) covered. No option to add cover for non-automatic existing medical conditions (only automatically covered conditions apply). No snow sports cover under this plan.",
+        "minimum_age_years": null,
+        "maximum_age_years": 69,
+        "dependent_child_age_limit_years": 24,
+        "age_eligibility_notes": "Child means under 25 years of age and working less than 30 hours per week at the time of issue (must be on the same itinerary).",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "General (already travelling when policy issued)",
+            "waiting_period_hours": 72,
+            "trigger": "Certificate of Insurance issued after trip has started",
+            "exceptions": "If an injury from an accident occurs after departure but before the 72-hour waiting period ends, Medical expenses and Medical evacuation/repatriation start from the time of the accident for that injury.",
+            "evidence": {
+              "page": 15,
+              "quote": "a 72-hour waiting period applies..."
+            }
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21-day cooling-off if trip not started, no claim made/intended. Outside cooling-off, refund for unused period may be provided at insurer's discretion if trip has not started, no claim made/intended.",
+        "excess_options": "Chosen excess; Variable excess option available (lower excess = higher premium).",
+        "standard_excess_aud": null,
+        "excess_rules": null,
+        "emergency_medical_limit": "Unlimited (expenses must be incurred within 12 months of illness/injury onset)",
+        "emergency_dental_limit": "$1,000 (sudden and acute pain)",
+        "cancellation_cover_limit": "Chosen limit (per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "Emergency travel arrangements and accommodation: $15,000 (Meals sub-limit $500, $75 per 24 hrs; Internet/telephone $250)",
+        "travel_delay_limit": "$1,000 (max $250 per 24 hrs; minimum 6-hour delay)",
+        "luggage_limit": "$5,000",
+        "luggage_single_item_limit": "Individual item limit $500",
+        "electronics_or_valuables_limit": "Individual item limit $500 (includes electronics/valuables)",
+        "luggage_delay_limit": "Emergency luggage: $200 (doubles if still missing after 72 hours)",
+        "travel_documents_limit": "$1,000 (replacement passports and travel documents)",
+        "money_limit": "Not insured",
+        "rental_vehicle_excess_limit": "$2,000 per policy",
+        "personal_liability_limit": "$1,000,000",
+        "personal_accident_limit": "Accidental death $10,000; Funeral expenses overseas $15,000",
+        "loss_of_income_limit": "Not insured",
+        "covid_cover_available": true,
+        "covid_medical_limit": "Covered under Overseas medical expenses (Unlimited; pandemic exclusion carve-out applies to medical sections)",
+        "covid_cancellation_or_disruption_limit": "Not insured",
+        "covid_cover_summary": "Coronavirus travel costs benefit not available under this plan. Medical, hospital, evacuation and funeral benefits remain available despite the pandemic exclusion. Exclusions and documentation requirements as per policy apply.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Cancellation option (Chosen limit)",
+            "availability": "Included as selectable limit at purchase",
+            "effects": "Sets the policy cancellation limit for this plan; printed on Certificate of Insurance.",
+            "evidence": {
+              "page": 6,
+              "quote": "For the... Essentials... the policy limit for Cancellation... must be chosen at the time of purchase."
+            }
+          },
+          {
+            "name": "Specified items option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Specify high-value items above item limits; max $4,000 per item; $10,000 total specified items. No depreciation applies to specified items.",
+            "evidence": {
+              "page": 7,
+              "quote": "Maximum individual specified item limit: $4,000; Maximum total for all specified items: $10,000."
+            }
+          },
+          {
+            "name": "Variable excess option",
+            "availability": "Optional selection at purchase",
+            "effects": "Premium adjusts by chosen excess.",
+            "evidence": {
+              "page": 8,
+              "quote": "Where a plan allows you to vary the excess, your premium will be adjusted accordingly."
+            }
+          }
+        ],
+        "coverage_benefits": null,
+        "sub_limits": null,
+        "limit_basis_notes": "Unless stated otherwise, limits apply per adult and are not increased for accompanying children; Cancellation chosen limit and Rental vehicle insurance excess are per policy (shared across all insured persons). Travel delay payable up to $250 per 24 hours. Emergency luggage doubles if bags missing >72 hours.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": null,
+        "pre_existing_medical_conditions_summary": "Over 40 conditions automatically covered when criteria are met. No option to add other existing medical conditions under this plan; if not automatically covered, no cover for that condition.",
+        "pregnancy_cover_summary": "Pregnancy-related illness/events covered up to end of 26th week if event is covered by the policy and pregnancy-related illness first developed unexpectedly after purchase. No cover for birth/newborn care.",
+        "pregnancy_single_week_limit": 26,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "Cancellation/Additional expenses cover may apply for death, sudden serious illness or serious injury of a close relative or business partner resident in Australia or New Zealand (hospitalisation or need for your care required). Existing medical conditions of non-travellers are generally excluded unless automatically covered for you.",
+        "included_activities": null,
+        "optional_activity_cover": null,
+        "excluded_activities": null,
+        "rental_vehicle_excess_conditions": "Covers rental vehicle insurance excess or repair cost (whichever is lower) when renting from a registered company, vehicle has comprehensive insurance, and you are a nominated driver. No cover for liability from use of vehicle, administration or loss-of-use fees, or events not covered by the rental's comprehensive insurance.",
+        "luggage_conditions": "Unattended property exclusions apply; valuables (PCs, smartphones, cameras, jewellery, electronic equipment, watches) not covered if left in any motor vehicle/motorhome/caravan; items must be with you unless stored securely with proof of forced entry; no cover for items in a tent; checked-in valuables excluded; depreciation applies per schedule; proof of ownership/value required; report theft/misdelivery promptly.",
+        "depreciation_rules": [
+          {
+            "category": "Camping/sporting/leisure equipment, musical instruments",
+            "rate_percent_per_year": 10
+          },
+          {
+            "category": "Clothing/footwear/personal effects/luggage/prescription glasses/sunglasses/costume jewellery/books",
+            "rate_percent_per_year": 15
+          },
+          {
+            "category": "Personal computer/communication/photographic/electronic equipment/mobile/smart phones/CDs/DVDs",
+            "rate_percent_per_year": 20
+          },
+          {
+            "category": "Toiletries, makeup, perfume, medication",
+            "rate_percent_per_year": 50
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": null,
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel to/remaining in regions with Australian Government 'Do not travel' advice; sanctions restrictions apply; certain government intervention/prohibition risks excluded; insolvency of providers excluded; pandemic exclusion applies except to specified medical sections; no Coronavirus travel costs cover under this plan.",
+        "claims_process_summary": "Prevent further loss; notify authorities (police/carrier/hotel) as soon as possible; contact nib International Assistance in emergencies; submit claim as soon as you can with required documents (medical certificates, receipts, reports). Claims paid in AUD; decision target within 10 working days of complete claim.",
+        "emergency_assistance_details": "nib International Assistance 24/7: +61 3 8523 2800 or 1300 555 019 (within Australia); travelassist@nib.com.au",
+        "premium_factors": "Trip length; time between purchase and departure; destination/region; plan selected; traveller age; chosen cancellation limit; specified items; variable excess.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-international-screen.pdf",
+        "source_pdf_hash": "68c40cd8d9be56738476a42360dea2d826c0a8ca405b42fa98a4af13ea89af43",
+        "source_evidence": [
+          {
+            "field_names": [
+              "plan_name",
+              "eligibility_rules",
+              "maximum_age_years"
+            ],
+            "page": 20,
+            "quote": "This plan is only available to residents of Australia up to 69 years of age... There is cover for publicly available international river cruises, and ocean cruises within Australian waters or international waters, under this plan. This plan does not provide cover for any snow sports."
+          },
+          {
+            "field_names": [
+              "cancellation_cover_limit"
+            ],
+            "page": 18,
+            "table_id": "p18-t1",
+            "quote": "Cancellation or holiday deferment costs | Chosen limit*"
+          },
+          {
+            "field_names": [
+              "emergency_medical_limit",
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 18,
+            "table_id": "p18-t1",
+            "quote": "Overseas medical expenses | Unlimited^ ; ^ For up to 12 months after the illness first appears or injury first occurs."
+          },
+          {
+            "field_names": [
+              "travel_delay_limit"
+            ],
+            "page": 18,
+            "table_id": "p18-t1",
+            "quote": "Travel delay | $1,000; limit $250 per 24 hrs"
+          },
+          {
+            "field_names": [
+              "rental_vehicle_excess_limit"
+            ],
+            "page": 18,
+            "table_id": "p18-t1",
+            "quote": "Rental vehicle insurance excess | $2,000 *"
+          }
+        ],
+        "claim_notification_deadline_days": null,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": null,
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Excluded / Not covered",
+        "winter_sports_cover_status": "excluded",
+        "_notes": "Coronavirus travel costs not available, but COVID-19 related medical/evacuation/funeral cover is available via the pandemic exclusion carve-out. Cancellation and Rental vehicle excess limits are per policy. Child age is 'under 25'.",
+        "_unfilled": []
+      },
+      {
+        "product_type": "international_single_trip",
+        "brand_name": "Travel Insurance Saver",
+        "insurer_name": "Pacific International Insurance Pty Ltd ABN 83 169 311 193, AFSL No 523921",
+        "issuer_or_agent_name": "nib Travel Services (Australia) Pty Limited ABN 81 115 932 173, AFSL 308461 (underwriting agent) and Insurance Saver Pty Ltd ABN 18 624 919 366 AR 1263726 (authorised representative/distributor)",
+        "product_name": "Travel Insurance Saver International - Bare Essentials",
+        "plan_name": "Bare Essentials Plan",
+        "cover_level": null,
+        "pds_title": "International Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "17 September 2024",
+        "pds_prepared_or_version_date": "6 August 2024 (Version: NP_EXP_08_06AUG2024)",
+        "geographic_scope": "International; includes publicly available international river cruises and ocean cruises within Australian waters or international waters.",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available to Australian residents up to 69 years of age at the time of issue. Accompanying children covered at no additional premium when named. Cruises (international river and ocean in AU or international waters) covered. No option to add cover for non-automatic existing medical conditions (only automatically covered conditions apply). No snow sports cover. Budget-focused limits.",
+        "minimum_age_years": null,
+        "maximum_age_years": 69,
+        "dependent_child_age_limit_years": 24,
+        "age_eligibility_notes": "Child means under 25 years of age and working less than 30 hours per week at the time of issue (must be on the same itinerary).",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "General (already travelling when policy issued)",
+            "waiting_period_hours": 72,
+            "trigger": "Certificate of Insurance issued after trip has started",
+            "exceptions": "If an injury from an accident occurs after departure but before the 72-hour waiting period ends, Medical expenses and Medical evacuation/repatriation start from the time of the accident for that injury.",
+            "evidence": {
+              "page": 15,
+              "quote": "a 72-hour waiting period applies..."
+            }
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21-day cooling-off if trip not started, no claim made/intended. Outside cooling-off, refund for unused period may be provided at insurer's discretion if trip has not started, no claim made/intended.",
+        "excess_options": "Chosen excess; Variable excess option available (lower excess = higher premium).",
+        "standard_excess_aud": null,
+        "excess_rules": null,
+        "emergency_medical_limit": "Unlimited (expenses must be incurred within 12 months of illness/injury onset)",
+        "emergency_dental_limit": "$1,000 (sudden and acute pain)",
+        "cancellation_cover_limit": "$2,500",
+        "cancellation_cover_selectable": false,
+        "additional_expenses_or_trip_disruption_limit": "Emergency travel arrangements and accommodation: $5,000 (Meals sub-limit $500, $75 per 24 hrs; Internet/telephone $250)",
+        "travel_delay_limit": "Not insured",
+        "luggage_limit": "$2,000",
+        "luggage_single_item_limit": "Individual item limit $250",
+        "electronics_or_valuables_limit": "Individual item limit $250 (includes electronics/valuables)",
+        "luggage_delay_limit": "Emergency luggage: $150 (doubles if still missing after 72 hours)",
+        "travel_documents_limit": "$500 (replacement passports and travel documents)",
+        "money_limit": "Not insured",
+        "rental_vehicle_excess_limit": "Not insured",
+        "personal_liability_limit": "$1,000,000",
+        "personal_accident_limit": "Funeral expenses overseas $15,000 (Accidental death and TPD not insured)",
+        "loss_of_income_limit": "Not insured",
+        "covid_cover_available": true,
+        "covid_medical_limit": "Covered under Overseas medical expenses (Unlimited; pandemic exclusion carve-out applies to medical sections)",
+        "covid_cancellation_or_disruption_limit": "Not insured",
+        "covid_cover_summary": "Coronavirus travel costs benefit not available under this plan. Medical, hospital, evacuation and funeral benefits remain available despite the pandemic exclusion. Exclusions and documentation requirements as per policy apply.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Variable excess option",
+            "availability": "Optional selection at purchase",
+            "effects": "Premium adjusts by chosen excess.",
+            "evidence": {
+              "page": 8,
+              "quote": "Where a plan allows you to vary the excess, your premium will be adjusted accordingly."
+            }
+          }
+        ],
+        "coverage_benefits": null,
+        "sub_limits": null,
+        "limit_basis_notes": "Unless stated otherwise, limits apply per adult and are not increased for accompanying children. Emergency luggage doubles if bags missing >72 hours.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": null,
+        "pre_existing_medical_conditions_summary": "Over 40 conditions automatically covered when criteria are met. No option to add other existing medical conditions under this plan; if not automatically covered, no cover for that condition.",
+        "pregnancy_cover_summary": "Pregnancy-related illness/events covered up to end of 26th week if event is covered by the policy and pregnancy-related illness first developed unexpectedly after purchase. No cover for birth/newborn care.",
+        "pregnancy_single_week_limit": 26,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "Cancellation/Additional expenses cover may apply for death, sudden serious illness or serious injury of a close relative or business partner resident in Australia or New Zealand (hospitalisation or need for your care required). Existing medical conditions of non-travellers are generally excluded unless automatically covered for you.",
+        "included_activities": null,
+        "optional_activity_cover": null,
+        "excluded_activities": null,
+        "rental_vehicle_excess_conditions": null,
+        "luggage_conditions": "Unattended property exclusions apply; valuables (PCs, smartphones, cameras, jewellery, electronic equipment, watches) not covered if left in any motor vehicle/motorhome/caravan; items must be with you unless stored securely with proof of forced entry; no cover for items in a tent; checked-in valuables excluded; depreciation applies per schedule; proof of ownership/value required; report theft/misdelivery promptly.",
+        "depreciation_rules": [
+          {
+            "category": "Camping/sporting/leisure equipment, musical instruments",
+            "rate_percent_per_year": 10
+          },
+          {
+            "category": "Clothing/footwear/personal effects/luggage/prescription glasses/sunglasses/costume jewellery/books",
+            "rate_percent_per_year": 15
+          },
+          {
+            "category": "Personal computer/communication/photographic/electronic equipment/mobile/smart phones/CDs/DVDs",
+            "rate_percent_per_year": 20
+          },
+          {
+            "category": "Toiletries, makeup, perfume, medication",
+            "rate_percent_per_year": 50
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": null,
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel to/remaining in regions with Australian Government 'Do not travel' advice; sanctions restrictions apply; certain government intervention/prohibition risks excluded; insolvency of providers excluded; pandemic exclusion applies except to specified medical sections; no Coronavirus travel costs cover under this plan.",
+        "claims_process_summary": "Prevent further loss; notify authorities (police/carrier/hotel) as soon as possible; contact nib International Assistance in emergencies; submit claim as soon as you can with required documents (medical certificates, receipts, reports). Claims paid in AUD; decision target within 10 working days of complete claim.",
+        "emergency_assistance_details": "nib International Assistance 24/7: +61 3 8523 2800 or 1300 555 019 (within Australia); travelassist@nib.com.au",
+        "premium_factors": "Trip length; time between purchase and departure; destination/region; plan selected; traveller age; variable excess.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-international-screen.pdf",
+        "source_pdf_hash": "68c40cd8d9be56738476a42360dea2d826c0a8ca405b42fa98a4af13ea89af43",
+        "source_evidence": [
+          {
+            "field_names": [
+              "plan_name",
+              "eligibility_rules",
+              "maximum_age_years"
+            ],
+            "page": 22,
+            "quote": "This plan is only available to residents of Australia up to 69 years of age... There is cover for publicly available international river cruises, and ocean cruises within Australian waters or international waters, under this plan. This plan does not provide cover for any snow sports."
+          },
+          {
+            "field_names": [
+              "cancellation_cover_limit"
+            ],
+            "page": 20,
+            "table_id": "p20-t2",
+            "quote": "Cancellation or holiday deferment costs | $2,500"
+          },
+          {
+            "field_names": [
+              "emergency_medical_limit",
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 20,
+            "table_id": "p20-t2",
+            "quote": "Overseas medical expenses | Unlimited^ ; ^ For up to 12 months after the illness first appears or injury first occurs."
+          }
+        ],
+        "claim_notification_deadline_days": null,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": null,
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Excluded / Not covered",
+        "winter_sports_cover_status": "excluded",
+        "_notes": "Coronavirus travel costs not available, but COVID-19 related medical/evacuation/funeral cover is available via the pandemic exclusion carve-out. Child age is 'under 25'.",
+        "_unfilled": []
+      },
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Travel Insurance Saver",
+        "insurer_name": "Pacific International Insurance Pty Ltd ABN 83 169 311 193, AFSL No 523921",
+        "issuer_or_agent_name": "nib Travel Services (Australia) Pty Limited ABN 81 115 932 173, AFSL 308461 (underwriting agent) and Insurance Saver Pty Ltd ABN 18 624 919 366 AR 1263726 (authorised representative/distributor)",
+        "product_name": "Travel Insurance Saver International - Annual Multi Trip",
+        "plan_name": "Annual Multi Trip Plan",
+        "cover_level": null,
+        "pds_title": "International Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "17 September 2024",
+        "pds_prepared_or_version_date": "6 August 2024 (Version: NP_EXP_08_06AUG2024)",
+        "geographic_scope": "Annual multi-trip: Worldwide or Worldwide excluding USA and Nepal; trips overseas or within Australia to a destination at least 200 km from home; each trip up to 45 days.",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": 45,
+        "policy_period_months": 12,
+        "minimum_distance_from_home_km": 200,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available to Australian residents; no age limit. Unlimited number of trips in 12-month period; max 45 days per trip. Trips must start and end at home in Australia and be at least 200 km from home and include pre-paid public transport or hire car, or at least one night of pre-booked publicly available accommodation. Cruises (international river and ocean in AU or international waters) covered. Existing medical conditions: over 40 conditions automatically covered if criteria met; other conditions can be screened and added as specified medical conditions for an extra premium (pre-approval required).",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 24,
+        "age_eligibility_notes": "Child means under 25 years of age and working less than 30 hours per week at the time of issue (must be on the same itinerary and accompanied by a named adult).",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "New policy purchased while travelling after prior policy ends (gap)",
+            "waiting_period_hours": 72,
+            "trigger": "If there is a gap between policy periods or AMT trip exceeds 45 days and new policy is bought while travelling",
+            "exceptions": "No exceptions noted beyond accident injury provision on waiting period rule for already travelling.",
+            "evidence": {
+              "page": 11,
+              "quote": "If you do not extend or buy a new policy before your current policy ends... a 72-hour waiting period will apply to a policy you purchase whilst you are travelling."
+            }
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21-day cooling-off if trip not started, no claim made/intended. Outside cooling-off, refund for unused period may be provided at insurer's discretion if no trips have commenced, no claim made/intended.",
+        "excess_options": "Chosen excess; Variable excess option available (lower excess = higher premium). An additional excess may apply for any approved specified medical condition(s). No excess applies to certain listed benefits.",
+        "standard_excess_aud": null,
+        "excess_rules": null,
+        "emergency_medical_limit": "Unlimited (expenses must be incurred within 12 months of illness/injury onset)",
+        "emergency_dental_limit": "$1,000 (sudden and acute pain)",
+        "cancellation_cover_limit": "Chosen limit (per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "Emergency travel arrangements and accommodation: Unlimited (Meals sub-limit $500, $75 per 24 hrs; Internet/telephone $250; Post hospital accommodation $500, $100 per day)",
+        "travel_delay_limit": "$2,000 (max $250 per 24 hrs; minimum 6-hour delay)",
+        "luggage_limit": "$12,000",
+        "luggage_single_item_limit": "Personal computer/camera/video: $4,000; Smartphone: $1,000; Other individual item: $700",
+        "electronics_or_valuables_limit": "Personal computer/camera/video $4,000; Smartphone $1,000",
+        "luggage_delay_limit": "Emergency luggage: $500 (doubles if still missing after 72 hours)",
+        "travel_documents_limit": "$3,000 (replacement passports and travel documents)",
+        "money_limit": "$250 (Stolen cash)",
+        "rental_vehicle_excess_limit": "$5,000 per policy (optional additional units available up to $5,000 extra)",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "Accidental death $25,000; Total permanent disability $12,500; Funeral expenses overseas $25,000; Accompanying children sub-limit $1,000 per child",
+        "loss_of_income_limit": "$10,000 (up to $1,667 per month)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "Covered under Overseas medical expenses (Unlimited; pandemic exclusion carve-out applies to medical sections)",
+        "covid_cancellation_or_disruption_limit": "$7,500 (Coronavirus travel costs)",
+        "covid_cover_summary": "Coronavirus travel costs cover for post-purchase diagnosis affecting you/travelling party; close relative/business partner in Australia hospitalised or dies; pre-approved leave cancellation for eligible workers; escorted tour/accommodation provider impacts; denied boarding due to suspected infection; compulsory quarantine due to diagnosis/confirmed close contact; additional childcare/pet care. Exclusions include known/foreseeable circumstances at purchase/extension, failure to follow government/WHO guidance, change of mind, expenses without documentation, upgrades above original standard without approval, expenses after return home, double claiming, broadly imposed quarantine not due to your diagnosis/confirmed close contact. Medical, hospital, evacuation and funeral benefits remain available despite pandemic exclusion.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Region selection",
+            "availability": "Required at purchase",
+            "effects": "Choose Worldwide or Worldwide excluding USA and Nepal.",
+            "evidence": {
+              "page": 25,
+              "quote": "You must select a region... Worldwide; or Worldwide excluding USA and Nepal."
+            }
+          },
+          {
+            "name": "Cancellation option (Chosen limit)",
+            "availability": "Included as selectable limit at purchase",
+            "effects": "Sets the policy cancellation limit for this plan; printed on Certificate of Insurance.",
+            "evidence": {
+              "page": 6,
+              "quote": "For the... Annual Multi Trip Plans, the policy limit for Cancellation... must be chosen at the time of purchase."
+            }
+          },
+          {
+            "name": "Snow sports cover option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Extends cover to snow sports-related claims under all sections and adds Ski lift passes $300; Ski run closure $100 per day up to $500; Hire replacement snow equipment $300.",
+            "evidence": {
+              "pages": [
+                6,
+                7,
+                56,
+                57
+              ],
+              "quotes": [
+                "This option is available with the... Annual Multi Trip Plans...",
+                "Ski lift passes $300; Ski run closure $100 per day up to a maximum of $500; Hire replacement snow equipment $300."
+              ]
+            }
+          },
+          {
+            "name": "Additional rental vehicle insurance excess option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Increase Rental vehicle insurance excess limit by $1,000 units up to an extra $5,000.",
+            "evidence": {
+              "page": 7,
+              "table_id": "p7-t2",
+              "quote": "Maximum additional policy limit $5,000; Additional premium charged for each $1,000 unit."
+            }
+          },
+          {
+            "name": "Specified items option",
+            "availability": "Optional add-on (additional premium)",
+            "effects": "Specify high-value items above item limits; max $4,000 per item; $10,000 total specified items. No depreciation applies to specified items.",
+            "evidence": {
+              "page": 7,
+              "quote": "Maximum individual specified item limit: $4,000; Maximum total for all specified items: $10,000."
+            }
+          },
+          {
+            "name": "Variable excess option",
+            "availability": "Optional selection at purchase",
+            "effects": "Premium adjusts by chosen excess.",
+            "evidence": {
+              "page": 8,
+              "quote": "Where a plan allows you to vary the excess, your premium will be adjusted accordingly."
+            }
+          },
+          {
+            "name": "Specified medical conditions option",
+            "availability": "Optional (subject to medical screening and insurer approval)",
+            "effects": "Adds cover for declared existing medical conditions with possible additional excess/premium; shown on Certificate of Insurance.",
+            "evidence": {
+              "pages": [
+                8,
+                30
+              ],
+              "quotes": [
+                "(Not available on Essentials and Bare Essentials Plans.)",
+                "If we agree to offer you cover for your existing medical condition(s)... additional excess and premium... shown on your Certificate of Insurance."
+              ]
+            }
+          }
+        ],
+        "coverage_benefits": null,
+        "sub_limits": null,
+        "limit_basis_notes": "Unless stated otherwise, limits apply per adult and are not increased for accompanying children; per-trip limits reinstate for each journey within the annual period. Cancellation chosen limit and Rental vehicle insurance excess are per policy (shared across all insured persons). Travel delay payable up to $250 per 24 hours. Emergency luggage doubles if bags missing >72 hours.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "covered_if_screened_and_approved",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "Over 40 conditions automatically covered when criteria are met. Other existing medical conditions may be covered if declared, medically screened and approved with any advised additional premium/excess (Comprehensive and Annual Multi Trip only). If not automatically covered or approved, no cover for claims arising from that condition.",
+        "pregnancy_cover_summary": "Pregnancy-related illness/events covered up to end of 26th week if event is covered by the policy and pregnancy-related illness first developed unexpectedly after purchase. Pregnancy itself is not an existing medical condition; existing pregnancy-related conditions require screening/approval where available. No cover for birth/newborn care.",
+        "pregnancy_single_week_limit": 26,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "Cancellation/Additional expenses cover may apply for death, sudden serious illness or serious injury of a close relative or business partner resident in Australia or New Zealand (hospitalisation or need for your care required). Existing medical conditions of non-travellers are generally excluded unless automatically covered or specified for you.",
+        "included_activities": null,
+        "optional_activity_cover": null,
+        "excluded_activities": null,
+        "rental_vehicle_excess_conditions": "Covers rental vehicle insurance excess or repair cost (whichever is lower) when renting from a registered company, vehicle has comprehensive insurance, and you are a nominated driver. No cover for liability from use of vehicle, administration or loss-of-use fees, or events not covered by the rental's comprehensive insurance.",
+        "luggage_conditions": "Unattended property exclusions apply; valuables (PCs, smartphones, cameras, jewellery, electronic equipment, watches) not covered if left in any motor vehicle/motorhome/caravan; items must be with you unless stored securely with proof of forced entry; no cover for items in a tent; checked-in valuables excluded; depreciation applies per schedule; proof of ownership/value required; report theft/misdelivery promptly.",
+        "depreciation_rules": [
+          {
+            "category": "Camping/sporting/leisure equipment, musical instruments",
+            "rate_percent_per_year": 10
+          },
+          {
+            "category": "Clothing/footwear/personal effects/luggage/prescription glasses/sunglasses/costume jewellery/books",
+            "rate_percent_per_year": 15
+          },
+          {
+            "category": "Personal computer/communication/photographic/electronic equipment/mobile/smart phones/CDs/DVDs",
+            "rate_percent_per_year": 20
+          },
+          {
+            "category": "Toiletries, makeup, perfume, medication",
+            "rate_percent_per_year": 50
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": null,
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel to/remaining in regions with Australian Government 'Do not travel' advice; sanctions restrictions apply; certain government intervention/prohibition risks excluded; insolvency of providers excluded; pandemic exclusion applies except to specified medical sections and Coronavirus travel costs per policy wording.",
+        "claims_process_summary": "Prevent further loss; notify authorities (police/carrier/hotel) as soon as possible; contact nib International Assistance in emergencies; submit claim as soon as you can with required documents (medical certificates, receipts, reports). Claims paid in AUD; decision target within 10 working days of complete claim.",
+        "emergency_assistance_details": "nib International Assistance 24/7: +61 3 8523 2800 or 1300 555 019 (within Australia); travelassist@nib.com.au",
+        "premium_factors": "Destination region (Worldwide vs Worldwide excl. USA & Nepal); trip-by-trip duration (max 45 days); number of travellers; traveller ages; chosen cancellation limit; snow sports option; rental vehicle excess increase; specified items; variable excess; specified medical conditions.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-international-screen.pdf",
+        "source_pdf_hash": "68c40cd8d9be56738476a42360dea2d826c0a8ca405b42fa98a4af13ea89af43",
+        "source_evidence": [
+          {
+            "field_names": [
+              "plan_name",
+              "annual_unlimited_trips",
+              "maximum_trip_duration_days"
+            ],
+            "page": 14,
+            "quote": "For an Annual Multi Trip Plan, cover is available for any trip to be taken during the period of insurance, for up to 45 continuous days each trip."
+          },
+          {
+            "field_names": [
+              "geographic_scope"
+            ],
+            "page": 25,
+            "quote": "Region selection for Annual Multi Trip Plan: Worldwide; or Worldwide excluding USA and Nepal."
+          },
+          {
+            "field_names": [
+              "minimum_distance_from_home_km"
+            ],
+            "page": 25,
+            "quote": "This plan provides cover for any trip overseas or within Australia a minimum of 200km from your home."
+          },
+          {
+            "field_names": [
+              "emergency_medical_limit",
+              "cancellation_cover_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 23,
+            "table_id": "p23-t1",
+            "quote": "Overseas medical expenses | Unlimited^ ; Cancellation... | Chosen limit* ; Coronavirus travel costs | $7,500"
+          }
+        ],
+        "claim_notification_deadline_days": null,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": null,
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Excluded / Not covered",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Per-trip limits reinstate for each journey within the annual period; no cover between trips other than cancellation-related sections. COVID-19 medical cover is provided under standard medical sections due to the pandemic exclusion carve-out; a separate Coronavirus travel costs limit applies.",
+        "_unfilled": []
+      }
+    ],
+    "_document_notes": "COVID-19 medical cover for Essentials and Bare Essentials is not separately itemised in tables but is implied via the pandemic exclusion carve-out for medical/evacuation/funeral sections; we have reflected this as covid_cover_available=true with covid_medical_limit referenced to the general medical limit. Child age is defined as 'under 25'; we have recorded 24 as the dependent child age limit and noted the definition. Limits are per adult unless noted; Cancellation and Rental vehicle excess are per policy."
+  },
+  "evidences": {},
+  "normalized_names": [],
+  "warnings": []
+}

@@ -4,7 +4,7 @@ __pycache__/
 .env
 .venv/
 .DS_Store
-outputs/
+.claude
 
 # Local agent instructions and working notes
 /AGENTS.md

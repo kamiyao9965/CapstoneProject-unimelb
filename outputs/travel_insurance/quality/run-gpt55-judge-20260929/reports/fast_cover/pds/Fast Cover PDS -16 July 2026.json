@@ -1,0 +1,106 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:52:31.147721Z",
+  "provenance": {
+    "run_id": "8d8d12243fb84fd88126c8b6265bf214",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/fast_cover/pds/Fast Cover PDS -16 July 2026.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "7cf1f4ce83bd77de51a57ea7332ae91c94b0a68ae667157f3c7a4de588b75ea2",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "6e3b543a78a43ccc76e0e0da8185ef4f1caf9c73145bb5b53aab95571a149a60",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "low",
+    "summary": "Most extracted plan attribution and limits are supported by the PDS, but several fields omit printed “No cover” values where the canonical definitions call for not-covered limits to be captured, and Basics appears to overstate natural-disaster cover for the relevant cancellation/disruption/travel-delay benefit areas.",
+    "findings": [
+      {
+        "product_index": 1,
+        "field_name": "travel_delay_limit",
+        "issue_type": "potential_omission",
+        "reason": "Standard Saver has Travel Delay Expenses printed as No cover, but the extraction leaves the limit null. The field definition expects not-covered limits/status to be captured as printed.",
+        "source_page": 67,
+        "source_quote": "Benefit limit allages | $2,000 | $2,000 | $2,000 | $2,000 | No cover | No cover",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "luggage_delay_limit",
+        "issue_type": "potential_omission",
+        "reason": "Standard Saver has Delay of Luggage and Personal Effects printed as No cover, but the extraction leaves the limit null.",
+        "source_page": 66,
+        "source_quote": "Benefit limit allages | $750 | No cover | No cover | $750 | Nocover | $750",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "money_limit",
+        "issue_type": "potential_omission",
+        "reason": "Standard Saver has Theft of Cash printed as No cover, but the extraction leaves the money limit null.",
+        "source_page": 60,
+        "source_quote": "Benefit limit allages | $250 | No cover | No cover | $250 | Nocover | $250",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "natural_disaster_cover_status",
+        "issue_type": "wrong_value",
+        "reason": "Basics is marked as included for natural-disaster cover, but the relevant cancellation/trip disruption/travel delay benefits are shown as No Cover for Basics. For this field’s cancellation/additional-expenses/travel-delay scope, included is not supported.",
+        "source_page": 22,
+        "source_quote": "Trip DisruptionExpensesRefer to page 47. | $50,000* | $30,000* | No Cover",
+        "citation_verified": true,
+        "extracted_value": "included"
+      },
+      {
+        "product_index": 4,
+        "field_name": "emergency_medical_limit",
+        "issue_type": "potential_omission",
+        "reason": "Domestic Plus has overseas emergency medical and hospital expenses printed as No cover, but the extraction leaves the emergency medical limit null. The canonical field says to preserve not-covered values where printed.",
+        "source_page": 41,
+        "source_quote": "Benefit limit69 years ofage & under | Unlimited | Unlimited | Unlimited | Unlimited | Unlimited | No cover",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 4,
+        "field_name": "emergency_dental_limit",
+        "issue_type": "potential_omission",
+        "reason": "Domestic Plus has overseas emergency dental printed as No cover, but the extraction leaves the emergency dental limit null.",
+        "source_page": 43,
+        "source_quote": "Benefit limits | $1,000 | $750 | $500 | $1,000 | $1,000 | No cover",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 4,
+        "field_name": "covid_medical_limit",
+        "issue_type": "potential_omission",
+        "reason": "Domestic Plus has COVID-19 overseas emergency medical cover printed as No cover, but the extraction leaves the COVID medical limit null.",
+        "source_page": 87,
+        "source_quote": "Benefitlimits | Unlimited | Unlimited | Unlimited | Unlimited | Unlimited | No cover",
+        "citation_verified": true,
+        "extracted_value": null
+      }
+    ]
+  },
+  "error": null
+}

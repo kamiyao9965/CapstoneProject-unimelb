@@ -1,0 +1,617 @@
+{
+  "artifact_type": "candidate_patch_set",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-15T03:46:30.396677Z",
+  "provenance": {
+    "run_id": "consensus-002",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "patches": [
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.93,
+        "type": "string",
+        "values": [],
+        "rationale": "Multiple PDSs distinguish policyholder/traveller configurations such as Single/Duo/Family or Individual/Couple/Family, and these affect who is covered and how limits apply. The baseline has limit_basis_notes but no stable field to record available traveller cover types.",
+        "description": "Traveller or party cover types available for the plan, preserving PDS wording such as Single, Duo, Family, Individual, Couple, or Family. Use where the PDS offers selectable traveller configurations separate from plan tier.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "available_traveller_cover_types",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p14-t1 Cover Types table lists Single, Duo and Family and describes who is covered under each."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9: Policy types: Individual, Couple, Family."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p3: Policy Types: Individual, Couple, Family."
+          }
+        ],
+        "canonical_name": "available_traveller_cover_types"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.9,
+        "type": "list[object]",
+        "values": [],
+        "rationale": "Benefit limits often vary by traveller cover type, with different per-person/per-policy/family-doubled rules. This is more structured than a single free-text limit_basis_notes field and is important for cross-insurer comparison.",
+        "description": "Structured rules for how benefit limits apply by traveller cover type. Each object should include cover type, benefits or sections affected, whether limits are per person/per policy/combined, whether family limits are doubled, dependant treatment, exceptions, and table/text evidence.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "cover_type_limit_rules",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p14-t1 and p22: Single limits apply to combined claims including Dependants; Duo has Single benefit limits per insured person except Rental Vehicle Excess; Family limits are double Single limits except listed benefits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5: Single, Duo, Family, Non-Medical and Multi-Trip cover types; Multi-Trip limits per person per journey and reinstated except Personal Liability. Tables p9-p12 show single/duo/family benefit limits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4 states sums insured are maximum amounts payable per insured person per trip and apply to individual, couple and family cover."
+          }
+        ],
+        "canonical_name": "cover_type_limit_rules"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.88,
+        "type": "string",
+        "values": [],
+        "rationale": "All supplied PDSs contain material rules about when cancellation cover starts, when other benefits start/end, and special rules for already-travelling or annual journeys. These are not well captured by waiting_period fields alone.",
+        "description": "Summary of when cover starts and ends by benefit group and trip type, including cancellation cover starting at issue, other benefits starting on departure/start date, annual journey end rules, suspension/resumption rules, and already-travelling/no-cover period interactions.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "cover_start_and_end_rules",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p11: cancellation cover begins from policy issue for several policies; all other benefits begin on departure; already overseas policies have 48-hour no-cover period and 72 hours for COVID benefits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p10: Section A and M1 start when premium paid and certificate issued; other sections begin when leaving home/place of business or departure date; cover ends at certificate end date or return home."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p8-p9: Section A starts at policy issue and ends when leaving home; other sections start when leaving home/start date and end on return/end date; one-way trip rule."
+          }
+        ],
+        "canonical_name": "cover_start_and_end_rules"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.86,
+        "type": "string",
+        "values": [],
+        "rationale": "Policy extension terms recur across insurers and affect duration/eligibility but are not explicitly represented except indirectly in refund terms or maximum duration fields.",
+        "description": "Rules for extending cover or automatic/free extension where a trip is necessarily extended, including whether voluntary extensions require a new policy, approval requirements, maximum extension duration, exclusions for already-travelling or annual policies, and contact requirements.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "policy_extension_terms",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p12: extension can be applied for before expiry; free extension for unforeseeable circumstances until able to travel home or six months; combined period cannot exceed 24 months."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p20: necessary extension due to unforeseeable circumstances extends cover for up to 12 months or until able to travel home; voluntary extension requires contact before end date."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p14 and p48: extending journey requires purchase of a new policy before expiry; free extension where journey necessarily extended due to unforeseeable circumstance until physically able to travel home."
+          }
+        ],
+        "canonical_name": "policy_extension_terms"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.78,
+        "type": "string",
+        "values": [],
+        "rationale": "Several documents contain non-date version or document identifiers useful for traceability. The baseline has dates and source hash/path but no field for the printed PDS/version code.",
+        "description": "Printed PDS version code, product code, document reference or form identifier where stated, excluding dates already captured in pds_effective_date or pds_prepared_or_version_date.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "pds_version_identifier",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p55: Version IG_AMT_PDS_0426_02."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p2: Prepared on 19 December 2025; POL849 / IMP3748."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p2: TK_EAA_PW_CRS_0426."
+          }
+        ],
+        "canonical_name": "pds_version_identifier"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.84,
+        "type": "number",
+        "values": [],
+        "rationale": "Travel delay threshold is a high-value comparison attribute and varies materially across insurers (6, 12, 24 hours). Current travel_delay_limit may preserve it only if manually included, and waiting_period_hours is too generic.",
+        "description": "Initial delay threshold in hours before the travel delay benefit becomes payable where a single threshold applies to the extracted record. If thresholds vary by plan, benefit or transport mode, capture details in coverage_benefits or sub_limits.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "travel_delay_waiting_period_hours",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p68: Travel Delay reimburses after Carrier delay/rescheduled departure for at least 6 hours and subsequent full 24-hour periods."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p36: Travel delay expenses apply if an individual leg is delayed for more than 12 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p26: Travel Delay Expenses apply after an unexpected delay of at least 6 consecutive hours."
+          }
+        ],
+        "canonical_name": "travel_delay_waiting_period_hours"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.83,
+        "type": "number",
+        "values": [],
+        "rationale": "Delayed baggage waiting periods differ materially and are prominent in benefit wording/tables. Current luggage_delay_limit does not separately normalise the trigger threshold.",
+        "description": "Initial delay threshold in hours before delayed luggage/baggage benefit becomes payable where a single threshold applies. If thresholds vary by journey leg, plan or before-boarding/on-trip benefit, capture details in coverage_benefits or sub_limits.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "luggage_delay_waiting_period_hours",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p66: Delay of Luggage and Personal Effects applies where items are delayed, misdirected or misplaced by the Carrier for more than 12 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p38: Delayed baggage benefit applies if baggage is delayed by an airline or transport company for more than 8 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p28: luggage delayed, misdirected or misplaced by carrier for more than 10 consecutive hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p35-p36: delayed baggage and baggage delay before boarding benefits apply for delays of more than 24 hours."
+          }
+        ],
+        "canonical_name": "luggage_delay_waiting_period_hours"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.88,
+        "type": "enum",
+        "values": [
+          "included",
+          "optional_add_on",
+          "separate_plan_or_tier",
+          "excluded",
+          "not_applicable",
+          "unknown"
+        ],
+        "rationale": "Winter/snow sports cover is handled as a plan tier by some insurers and an add-on by others. A status field analogous to cruise_cover_status would improve stable comparison while detailed benefits remain in coverage_benefits/optional_add_ons.",
+        "description": "Winter sports or snow sports cover status for the plan: included, optional add-on, separate plan/tier, excluded, not applicable, or unknown. Use detailed benefit limits and activity rules in coverage_benefits, optional_activity_cover and optional_add_ons.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "winter_sports_cover_status",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p13: Snow Sports Plus Policy includes cover; p27 says if you do not purchase the Snow Sports Plus Policy and participate in listed snow sports you will not have cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p19: Snow Pack optional pack; must be aged under 75; benefits 7.8-7.13."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p6: Winter Sports Cover upgrade; no cover if upgrade not purchased."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p22: Snow Sports and Snow Sports+ are options to vary cover, not available on Cancellation Only or Non-Medical."
+          }
+        ],
+        "canonical_name": "winter_sports_cover_status"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.8,
+        "type": "enum",
+        "values": [
+          "included",
+          "optional_add_on",
+          "excluded",
+          "not_applicable",
+          "unknown"
+        ],
+        "rationale": "Natural disaster cover is frequently called out as either included for some benefits or purchasable as an upgrade. The baseline optional_add_ons can store details, but a status field supports cross-insurer filtering and comparison.",
+        "description": "Natural disaster cover status for cancellation, additional expenses or delay benefits at plan level. Use included where the relevant plan covers natural disaster without extra premium, optional_add_on where a natural-disaster upgrade must be purchased, excluded, not applicable or unknown. Capture section-specific differences in coverage_benefits or optional_add_ons.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "natural_disaster_cover_status",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p7-t3: Natural Disaster Cover upgrade extends sections A, C and D depending on Bare Essentials/Silver/Gold."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p17-t2: Natural Disaster Cover table shows upgrade availability by Basic/Budget/Standard/Top for Sections A, C1, C2 and C3."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p55: Benefit 6 Additional Expenses – Other includes natural disaster as an unforeseeable circumstance."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p25: Additional travel and accommodation expenses due to specified events include natural disaster."
+          }
+        ],
+        "canonical_name": "natural_disaster_cover_status"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.87,
+        "type": "string",
+        "values": [],
+        "rationale": "Cabin confinement is a recurring cruise-specific benefit across cruise products and cruise add-ons, and it is called out in the baseline cruise taxonomy but not as a top-level comparable limit field.",
+        "description": "Cruise cabin confinement benefit limit as printed, including per-day/per-24-hour sub-limits, initial waiting period and maximum total where concise.",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "cruise_cabin_confinement_limit",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 Cruise Pack table: 7.3 Cabin Confinement $500 ($50 after initial 48 hours, then each consecutive 24-hour period)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p71-t1: Cabin Confinement $1,500 ($100 per 24 hour period) for Comprehensive/Essentials/Medical Only/Inbound."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1: B3 Cabin Confinement $75 per completed 24 hours up to $1,500 on Standard/Top; p27 describes confinement by ship's medical officer."
+          }
+        ],
+        "canonical_name": "cruise_cabin_confinement_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.86,
+        "type": "string",
+        "values": [],
+        "rationale": "Missed port is a common cruise-specific benefit in cruise add-ons/products. A top-level field enables direct comparison while full detail can remain in cruise_benefits.",
+        "description": "Cruise missed port benefit limit as printed, including per-port amounts, maximum total, and relevant waiting/itinerary conditions where concise.",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "cruise_missed_port_limit",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p71-p72: Missed Port pays reasonable costs to catch up on itinerary; p72-t1 limit $1,000 for listed plans."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1: D3 Missed port $50 per missed port up to $300/$400; p33 explains cover where cruise docks at fewer ports than scheduled."
+          }
+        ],
+        "canonical_name": "cruise_missed_port_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.84,
+        "type": "string",
+        "values": [],
+        "rationale": "Pre-paid or missed shore excursion is a recurring cruise-specific benefit across cruise products and add-ons.",
+        "description": "Cruise missed or pre-paid shore excursion cancellation benefit limit as printed, including whether it covers non-refundable unused ticket/pass costs or cancellation due to cabin/medical confinement.",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "cruise_missed_shore_excursion_limit",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 and p31: 7.4 Pre-paid Shore Excursion Cancellation limit $1,000 if cabin/medical confinement prevents participation."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p72-t2: Missed Shore Excursion limit $1,000 for listed plans; wording pays non-refundable unused ticket cost."
+          }
+        ],
+        "canonical_name": "cruise_missed_shore_excursion_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.85,
+        "type": "string",
+        "values": [],
+        "rationale": "Formal wear damaged/lost/stolen and delayed formal wear recur in cruise add-on/product tables. A comparable field is warranted for cruise-specific extraction.",
+        "description": "Cruise formal wear benefit limit as printed, including damaged/lost/stolen formal wear and delayed formal wear replacement/hire limits if concise; otherwise use cruise_benefits for separate sub-benefits.",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "cruise_formal_wear_limit",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1: 7.5 Formal Wear - Cruise limit $1,000; 7.6 Formal Wear Delay Expenses $250 (minimum delay 12 hours)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p73-t1 and p73-t2: Formal Wear Damaged, Lost or Stolen $1,000/$500 depending plan; Delayed Formal Wear $500/$250."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p72-p73: formal wear pairs/sets treated as one item; delayed formal wear applies after over 12 hours from boarding."
+          }
+        ],
+        "canonical_name": "cruise_formal_wear_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.84,
+        "type": "string",
+        "values": [],
+        "rationale": "Marine rescue diversion is a distinctive but recurring cruise-specific benefit across Allianz and Cover-More/CBA cruise cover and appears in the baseline cruise taxonomy.",
+        "description": "Marine rescue diversion benefit limit as printed, including per-day/per-24-hour amounts and maximum duration or total limit.",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "cruise_marine_rescue_diversion_limit",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 and p32: Marine Rescue Diversion $500 ($100 per day) and pays $100 for each day diverted up to 5 consecutive days."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p74: Marine Rescue Diversion gives $100 for each 24 hour period up to maximum 5 days; p74-t1 shows limits $1,000/$500 depending plan."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p8-t1 Cruise Cover Benefits summary includes Marine Rescue Diversion as a cruise cover benefit."
+          }
+        ],
+        "canonical_name": "cruise_marine_rescue_diversion_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.82,
+        "type": "string",
+        "values": [],
+        "rationale": "Ship-to-shore evacuation or cruise medical evacuation is a high-value recurring cruise-specific benefit and often has separate limits from ordinary overseas medical expenses.",
+        "description": "Cruise ship-to-shore evacuation or cruise medical evacuation limit as printed, including onboard medical/evacuation/repatriation combined wording where the PDS does not separate them.",
+        "applies_to": [
+          "cruise",
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "cruise_ship_to_shore_evacuation_limit",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 Cruise Pack table: 7.2 Evacuation Cover - Ship to Shore $20 million ($60,000 for overseas funeral expenses or return of remains)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p70-t2: Ship to Shore Medical Cover limit $Unlimited for Comprehensive/Essentials/Medical Only/Inbound."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p21: domestic cruise cover extends to evacuation to a location where Australian emergency services can pick up and transfer to an Australian medical facility."
+          }
+        ],
+        "canonical_name": "cruise_ship_to_shore_evacuation_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.79,
+        "type": "string",
+        "values": [],
+        "rationale": "Selectable maximum trip duration options are not limited to annual/multi-trip policies. Cruise and single-trip products also show maximum duration choices that vary by age, destination and tier. This is an explicit applies_to/description broadening for review.",
+        "description": "Available maximum duration options for a journey/trip, expressed as a readable string when multiple options exist, e.g. 15/30/45 days, 30/45/60 days, 42/90/365 days by age or destination. Use for annual multi-trip per-journey duration choices and for single-trip/cruise products where the PDS states selectable or plan-dependent maximum trip durations. If a single value applies to the extracted record, use maximum_trip_duration_days instead.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "maximum_trip_duration_options",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p13: Frequent Traveller Saver lets customers choose 15, 25, 40 or 63 days for each trip."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9: multiple trips up to selected maximum duration 30, 45 or 60 days for International policies; Bare Essentials no trips longer than 30 days and Silver no longer than 45 days."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4-t1: Maximum trip duration varies by age and destination, including 42 days, 90 days and 365 days."
+          }
+        ],
+        "canonical_name": "maximum_trip_duration_options"
+      },
+      {
+        "required": false,
+        "patch_type": "reject_field",
+        "confidence": 0.74,
+        "type": "string",
+        "values": [],
+        "rationale": "Privacy marketing consent and overseas disclosure wording appears in PDS/FSG documents but is legal/privacy boilerplate rather than a stable travel-insurance product comparison attribute. Existing source_evidence and issuer fields are sufficient if a task specifically needs privacy text.",
+        "description": "Rejected proposed field for privacy/marketing consent details or overseas privacy disclosure recipients.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "privacy_marketing_consent_details",
+        "target_group": "fields",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p22-p23 contains Privacy Consent and Disclosure, purposes of collection and overseas disclosure countries."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p81-p82 contains privacy notice, disclosure to service providers and overseas recipients."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p11-p12 contains privacy consent and disclosure wording."
+          }
+        ],
+        "canonical_name": "privacy_marketing_consent_details"
+      }
+    ]
+  },
+  "error": null
+}

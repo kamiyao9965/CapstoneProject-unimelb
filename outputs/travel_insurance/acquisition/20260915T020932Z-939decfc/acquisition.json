@@ -1,0 +1,494 @@
+{
+  "artifact_type": "travel_insurance_acquisition_run",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-15T02:09:54.517493Z",
+  "provenance": {
+    "run_id": "20260915T020932Z-939decfc",
+    "provider": null,
+    "model": null,
+    "document_input": "public_https_pdf",
+    "source_documents": [
+      "https://www.allianz.com.au/my-allianz/policy-information/policy-documents.html",
+      "https://www.allianz.com.au/my-allianz/policy-information/tmds.html",
+      "https://www.1cover.com.au/policy/pds"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/configs/travel_insurance/sources.json"
+    ]
+  },
+  "data": {
+    "vertical": "travel_insurance",
+    "run_id": "20260915T020932Z-939decfc",
+    "source_config": "/Users/yangyajing/proj/CapstoneProject-unimelb/configs/travel_insurance/sources.json",
+    "documents": [
+      {
+        "document_id": "sha256:f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c",
+        "insurer_code": "allianz",
+        "brand_code": "allianz",
+        "issuer": "Allianz Australia Insurance Limited",
+        "underwriter": "Allianz Australia Insurance Limited",
+        "document_type": "pds",
+        "title": "Allianz Travel Insurance Product Disclosure Statement",
+        "source_page": "https://travel.allianz.com.au/pds",
+        "discovered_url": "https://cft-onex-api.agaassistance.com.au/api/document/pds/allianz-travel",
+        "final_url": "https://cft-onex-api.agaassistance.com.au/api/document/pds/allianz-travel",
+        "section_heading": "Travel Insurance",
+        "anchor_text": "Allianz Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "annual_multi_trip"
+        ],
+        "plan_tiers": [
+          "comprehensive",
+          "basic"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c",
+        "content_type": "application/pdf",
+        "size_bytes": 15765551,
+        "error_code": null,
+        "evidence": [
+          "configured official document: Allianz Travel Insurance Product Disclosure Statement",
+          "source page: https://travel.allianz.com.au/pds"
+        ]
+      },
+      {
+        "document_id": "sha256:659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3",
+        "insurer_code": "insureandgo",
+        "brand_code": "insureandgo",
+        "issuer": "Europ Assistance Australia Pty Ltd",
+        "underwriter": "Europ Assistance Australia Pty Ltd",
+        "document_type": "pds",
+        "title": "InsureandGo Single-Trip Travel Insurance Product Disclosure Statement",
+        "source_page": "https://www.insureandgo.com.au/policy-wordings/",
+        "discovered_url": "https://insureandgo.com.au/sites/default/files/2026-07/2026_07_IGO_ST_PDS.pdf",
+        "final_url": "https://insureandgo.com.au/sites/default/files/2026-07/2026_07_IGO_ST_PDS.pdf",
+        "section_heading": "Current Product Disclosure Statements",
+        "anchor_text": "InsureandGo Single-Trip Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "essentials"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3",
+        "content_type": "application/pdf",
+        "size_bytes": 1323686,
+        "error_code": null,
+        "evidence": [
+          "configured official document: InsureandGo Single-Trip Travel Insurance Product Disclosure Statement",
+          "source page: https://www.insureandgo.com.au/policy-wordings/"
+        ]
+      },
+      {
+        "document_id": "sha256:abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0",
+        "insurer_code": "insureandgo",
+        "brand_code": "insureandgo",
+        "issuer": "Europ Assistance Australia Pty Ltd",
+        "underwriter": "Europ Assistance Australia Pty Ltd",
+        "document_type": "pds",
+        "title": "InsureandGo Cruise Travel Insurance Product Disclosure Statement",
+        "source_page": "https://www.insureandgo.com.au/policy-wordings/",
+        "discovered_url": "https://insureandgo.com.au/sites/default/files/2026-07/2026_07_IGO_CRS_PDS.pdf",
+        "final_url": "https://insureandgo.com.au/sites/default/files/2026-07/2026_07_IGO_CRS_PDS.pdf",
+        "section_heading": "Current Product Disclosure Statements",
+        "anchor_text": "InsureandGo Cruise Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "international"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "essentials"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0",
+        "content_type": "application/pdf",
+        "size_bytes": 1368320,
+        "error_code": null,
+        "evidence": [
+          "configured official document: InsureandGo Cruise Travel Insurance Product Disclosure Statement",
+          "source page: https://www.insureandgo.com.au/policy-wordings/"
+        ]
+      },
+      {
+        "document_id": "sha256:83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+        "insurer_code": "insureandgo",
+        "brand_code": "insureandgo",
+        "issuer": "Europ Assistance Australia Pty Ltd",
+        "underwriter": "Europ Assistance Australia Pty Ltd",
+        "document_type": "pds",
+        "title": "InsureandGo Annual Multi-Trip Travel Insurance Product Disclosure Statement",
+        "source_page": "https://www.insureandgo.com.au/policy-wordings/",
+        "discovered_url": "https://insureandgo.com.au/sites/default/files/2026-03/IGO_AMT_PDS_20260401.pdf",
+        "final_url": "https://insureandgo.com.au/sites/default/files/2026-03/IGO_AMT_PDS_20260401.pdf",
+        "section_heading": "Current Product Disclosure Statements",
+        "anchor_text": "InsureandGo Annual Multi-Trip Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "international"
+        ],
+        "trip_frequencies": [
+          "annual_multi_trip"
+        ],
+        "plan_tiers": [
+          "essentials"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+        "content_type": "application/pdf",
+        "size_bytes": 950892,
+        "error_code": null,
+        "evidence": [
+          "configured official document: InsureandGo Annual Multi-Trip Travel Insurance Product Disclosure Statement",
+          "source page: https://www.insureandgo.com.au/policy-wordings/"
+        ]
+      },
+      {
+        "document_id": "sha256:5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760",
+        "insurer_code": "tick",
+        "brand_code": "tick",
+        "issuer": "Europ Assistance Australia Pty Ltd",
+        "underwriter": "Europ Assistance Australia Pty Ltd",
+        "document_type": "pds",
+        "title": "Tick Single-Trip Travel Insurance Product Disclosure Statement",
+        "source_page": "https://www.tickinsurance.com.au/policy-wordings/",
+        "discovered_url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_ST_PDS_20260401.pdf",
+        "final_url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_ST_PDS_20260401.pdf",
+        "section_heading": "Current PDS valid from 1 April 2026",
+        "anchor_text": "Tick Single-Trip Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "basic"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760",
+        "content_type": "application/pdf",
+        "size_bytes": 1923049,
+        "error_code": null,
+        "evidence": [
+          "configured official document: Tick Single-Trip Travel Insurance Product Disclosure Statement",
+          "source page: https://www.tickinsurance.com.au/policy-wordings/"
+        ]
+      },
+      {
+        "document_id": "sha256:e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6",
+        "insurer_code": "tick",
+        "brand_code": "tick",
+        "issuer": "Europ Assistance Australia Pty Ltd",
+        "underwriter": "Europ Assistance Australia Pty Ltd",
+        "document_type": "pds",
+        "title": "Tick Domestic Travel Insurance Product Disclosure Statement",
+        "source_page": "https://www.tickinsurance.com.au/policy-wordings/",
+        "discovered_url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_DOM_PDS_20260401.pdf",
+        "final_url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_DOM_PDS_20260401.pdf",
+        "section_heading": "Current PDS valid from 1 April 2026",
+        "anchor_text": "Tick Domestic Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "basic"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6",
+        "content_type": "application/pdf",
+        "size_bytes": 2207315,
+        "error_code": null,
+        "evidence": [
+          "configured official document: Tick Domestic Travel Insurance Product Disclosure Statement",
+          "source page: https://www.tickinsurance.com.au/policy-wordings/"
+        ]
+      },
+      {
+        "document_id": "sha256:d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44",
+        "insurer_code": "tick",
+        "brand_code": "tick",
+        "issuer": "Europ Assistance Australia Pty Ltd",
+        "underwriter": "Europ Assistance Australia Pty Ltd",
+        "document_type": "pds",
+        "title": "Tick Cruise Travel Insurance Product Disclosure Statement",
+        "source_page": "https://www.tickinsurance.com.au/policy-wordings/",
+        "discovered_url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_CR_PDS_20260401.pdf",
+        "final_url": "https://www.tickinsurance.com.au/sites/default/files/2026-04/TK_CR_PDS_20260401.pdf",
+        "section_heading": "Current PDS valid from 1 April 2026",
+        "anchor_text": "Tick Cruise Travel Insurance Product Disclosure Statement",
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "basic"
+        ],
+        "effective_from": null,
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+        "sha256": "d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44",
+        "content_type": "application/pdf",
+        "size_bytes": 2773650,
+        "error_code": null,
+        "evidence": [
+          "configured official document: Tick Cruise Travel Insurance Product Disclosure Statement",
+          "source page: https://www.tickinsurance.com.au/policy-wordings/"
+        ]
+      },
+      {
+        "document_id": "sha256:e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010",
+        "insurer_code": "onecover",
+        "brand_code": "onecover",
+        "issuer": null,
+        "underwriter": "HDI Global Specialty SE",
+        "document_type": "pds",
+        "title": "Download PDS",
+        "source_page": "https://www.1cover.com.au/ssg/policy-wording/20260304",
+        "discovered_url": "https://1cover.com.au/assets/pdf/1Cover-AU-Standard-PDS_20260304.pdf",
+        "final_url": "https://www.1cover.com.au/assets/pdf/1Cover-AU-Standard-PDS_20260304.pdf",
+        "section_heading": null,
+        "anchor_text": "Download PDS",
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "unknown"
+        ],
+        "plan_tiers": [
+          "unknown"
+        ],
+        "effective_from": "2026-03-04",
+        "version_status": "current",
+        "retrieval_status": "downloaded",
+        "validation_status": "valid_pdf",
+        "parse_status": "parsed",
+        "local_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+        "sha256": "e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010",
+        "content_type": "application/pdf",
+        "size_bytes": 1854778,
+        "error_code": null,
+        "evidence": [
+          "anchor: Download PDS"
+        ]
+      }
+    ],
+    "relationships": [],
+    "product_releases": [
+      {
+        "release_id": "allianz:unknown:f916d035a318",
+        "insurer_code": "allianz",
+        "pds_document_id": "sha256:f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "annual_multi_trip"
+        ],
+        "plan_tiers": [
+          "comprehensive",
+          "basic"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "insureandgo:unknown:659d5083b0ac",
+        "insurer_code": "insureandgo",
+        "pds_document_id": "sha256:659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "essentials"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "insureandgo:unknown:abf5e61ca4f1",
+        "insurer_code": "insureandgo",
+        "pds_document_id": "sha256:abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "essentials"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "insureandgo:unknown:83d8427d34a9",
+        "insurer_code": "insureandgo",
+        "pds_document_id": "sha256:83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international"
+        ],
+        "trip_frequencies": [
+          "annual_multi_trip"
+        ],
+        "plan_tiers": [
+          "essentials"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "tick:unknown:5f2419bc8b54",
+        "insurer_code": "tick",
+        "pds_document_id": "sha256:5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "basic"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "tick:unknown:e077e4744ea2",
+        "insurer_code": "tick",
+        "pds_document_id": "sha256:e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "basic"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "tick:unknown:d63e3e109908",
+        "insurer_code": "tick",
+        "pds_document_id": "sha256:d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "single_trip"
+        ],
+        "plan_tiers": [
+          "basic"
+        ],
+        "effective_from": null,
+        "completeness_status": "pds_only"
+      },
+      {
+        "release_id": "onecover:2026-03-04:e7c6327e2f0f",
+        "insurer_code": "onecover",
+        "pds_document_id": "sha256:e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010",
+        "related_document_ids": [],
+        "geographic_scopes": [
+          "international",
+          "domestic"
+        ],
+        "trip_frequencies": [
+          "unknown"
+        ],
+        "plan_tiers": [
+          "unknown"
+        ],
+        "effective_from": "2026-03-04",
+        "completeness_status": "pds_only"
+      }
+    ],
+    "review_items": [],
+    "errors": [
+      {
+        "insurer_code": "allianz",
+        "stage": "discovery",
+        "url": "https://www.allianz.com.au/my-allianz/policy-information/tmds.html",
+        "code": "source_page_fetch_failed",
+        "message": "HTTP 403 while fetching https://www.allianz.com.au/my-allianz/policy-information/tmds.html"
+      }
+    ],
+    "summary": {
+      "providers_attempted": 4,
+      "providers_succeeded": 4,
+      "documents_discovered": 8,
+      "documents_downloaded": 8,
+      "valid_pdfs": 8,
+      "failed_documents": 0,
+      "relationships": 0,
+      "review_items": 0
+    }
+  },
+  "error": null
+}

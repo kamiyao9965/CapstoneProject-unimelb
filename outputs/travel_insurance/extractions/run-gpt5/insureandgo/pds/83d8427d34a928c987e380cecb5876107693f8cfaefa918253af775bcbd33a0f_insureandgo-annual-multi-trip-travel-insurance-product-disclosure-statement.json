@@ -1,0 +1,2100 @@
+{
+  "vertical": "travel_insurance",
+  "schema_version": "1.0.0-canonical-candidate",
+  "source_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+  "extracted_at": "2026-09-15T23:16:54+00:00",
+  "provider": "openai",
+  "model": "gpt-5",
+  "document_parser": "mineru",
+  "data": {
+    "products": [
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Insure&Go",
+        "insurer_name": "Europ Assistance Australia Pty Ltd trading as Insure&Go (ABN 71 140 219 594, AFSL 552106)",
+        "issuer_or_agent_name": "Europ Assistance Australia Pty Ltd trading as Insure&Go",
+        "product_name": "Insure&Go Annual Multi-Trip Bare Essentials",
+        "plan_name": "Bare Essentials",
+        "cover_level": null,
+        "pds_title": "Annual Multi-Trip Travel Insurance – Product Disclosure Statement",
+        "pds_effective_date": "1 April 2026",
+        "pds_prepared_or_version_date": "1/04/2026",
+        "geographic_scope": "International multi-trip to destinations outside Australia. Select region by destination; choose Worldwide Including if >48 hours in North or South America. No cover for DFAT ‘Do Not Travel’ destinations; Antarctica only covered if on a commercial cruise.",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": "30 days only (Bare Essentials)",
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": 100,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available only to Australian citizens or Permanent residents, or non‑Permanent residents with valid Medicare, Private Health Fund or Overseas Student Health Insurance in Australia. Applicants must be 18+ to purchase; dependants under 18 can be covered when named. Age limit depends on cover level; Bare Essentials available to travellers 79 years and under at application. Trips must begin/end at home or place of business in Australia and be >100 km from home.",
+        "minimum_age_years": 18,
+        "maximum_age_years": 79,
+        "dependent_child_age_limit_years": 18,
+        "age_eligibility_notes": "Overall maximum age at application is 100, but Bare Essentials is limited to age 79; Silver and Gold up to age 100. Maximum trip duration also depends on tier and destination.",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "benefit_or_section": "All cover when policy purchased after departure",
+            "waiting_period_hours": 72,
+            "trigger": "Policy purchased after leaving home to start travelling",
+            "exceptions": "No waiting period for injury claims under Sections B1/C1; no waiting period when buying a consecutive continuation policy with no gap",
+            "evidence_page": 10
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21 days if no claim and trip has not commenced. After 21 days, pro‑rata refund of the outstanding period less non‑recoverable government charges/taxes, provided no claim has been made and no rights exercised.",
+        "excess_options": "Excess can be varied at purchase (higher premium for lower excess or lower premium for higher excess). Your chosen excess is shown on the Insurance certificate. Excess applies per insured person, per event.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "Chosen policy excess (not printed in PDS)",
+            "basis": "Per insured person, per event",
+            "evidence_page": 4
+          },
+          {
+            "section": "Benefits table flags",
+            "excess_applies_by_section": "See table ‘Excess*’ Yes/No per section",
+            "evidence_page": 4
+          }
+        ],
+        "emergency_medical_limit": "Unlimited (outside Australia)",
+        "emergency_dental_limit": "$500 (emergency dental for immediate pain relief)",
+        "cancellation_cover_limit": "$10,000",
+        "cancellation_cover_selectable": false,
+        "additional_expenses_or_trip_disruption_limit": "$5,000 (Section C1)",
+        "travel_delay_limit": "Nil (no cover under Section D)",
+        "luggage_limit": "$5,000 (Section E1)",
+        "luggage_single_item_limit": "$500 per item/pair or set (general items)",
+        "electronics_or_valuables_limit": "No cover for personal electronics or valuables on Bare Essentials; items stolen from motor vehicle limited to $500 per item",
+        "luggage_delay_limit": "Nil",
+        "travel_documents_limit": "Nil",
+        "money_limit": "Nil",
+        "rental_vehicle_excess_limit": "Nil",
+        "personal_liability_limit": "$1,500,000",
+        "personal_accident_limit": "Nil",
+        "loss_of_income_limit": "Nil",
+        "covid_cover_available": false,
+        "covid_medical_limit": "Nil",
+        "covid_cancellation_or_disruption_limit": "Nil",
+        "covid_cover_summary": "No COVID-19 benefits on Bare Essentials. General pandemic exclusions apply; only Sections M1–M2 provide COVID cover on higher tiers and exclude government bans/border closures/quarantine without diagnosis.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Winter Sports Cover (Section N)",
+            "availability": "Optional upgrade",
+            "limits_summary": "N1 equipment $1,250 (single article $600); N2 hire $50 per 24h up to $500; N3 lift pass $500; N4 ski pack $150 per 24h up to $600; N5 piste closure $50 per 24h up to $500; N6 avalanche $600",
+            "excess_notes": "Excess applies to N1, N3, N6; No excess for N2, N4, N5",
+            "evidence_page": 6
+          },
+          {
+            "name": "Business Cover (Section O)",
+            "availability": "Optional upgrade",
+            "limits_summary": "O1 business equipment $2,500 (single article $1,000) + samples $1,000; O2 emergency courier $500; O3 equipment hire $100 per 24h up to $1,000; O4 business money $1,000 (cash $500); O5 replacing staff $5,000 (international only)",
+            "evidence_page": 7
+          },
+          {
+            "name": "Additional Specified Items Cover (E2)",
+            "availability": "Optional on Silver/Gold only (not available on Bare Essentials)",
+            "limits_summary": "Specify items up to $4,000 per item, combined up to $8,000; excess applies",
+            "evidence_page": 7
+          },
+          {
+            "name": "Natural Disaster Cover",
+            "availability": "Optional upgrade",
+            "limits_summary": "Extends cover for Sections A (all tiers), C (international only), and D (Silver/Gold only). For Bare Essentials: A Yes; C Yes (international only); D No.",
+            "evidence_page": 7
+          },
+          {
+            "name": "Activities Plus option",
+            "availability": "Optional upgrade for listed higher‑risk activities",
+            "limits_summary": "Required for activities including endurance cycling, >500cc motorcycling, multi‑day high‑altitude trekking (over 5000m up to 5500m), certain tandem aerial activities, deeper scuba diving (30–50m with conditions)",
+            "evidence_page": 8
+          },
+          {
+            "name": "Pre‑existing medical conditions cover",
+            "availability": "Subject to medical screening and approval; additional premium may apply",
+            "limits_summary": "Cover only if accepted and shown on Insurance certificate",
+            "evidence_page": 8
+          },
+          {
+            "name": "Choose your excess",
+            "availability": "Policy amendment at purchase",
+            "limits_summary": "Select higher/lower excess in exchange for premium change",
+            "evidence_page": 8
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Cancellation and trip amendment",
+            "section": "A",
+            "included": true,
+            "limit": "$10,000",
+            "excess_applies": true,
+            "notes": "Includes travel agent’s cancellation fee up to 10%; option to reschedule if cheaper than cancel.",
+            "evidence_page": 4
+          },
+          {
+            "category": "Medical expenses outside Australia",
+            "section": "B1",
+            "included": true,
+            "limit": "Unlimited",
+            "excess_applies": true,
+            "notes": "Dental $500; repatriation of remains $50,000 or €30,000 (Schengen); funeral outside Australia $10,000.",
+            "evidence_page": 4
+          },
+          {
+            "category": "Hospital cash allowance",
+            "section": "B2",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "notes": "Not available on Bare Essentials.",
+            "evidence_page": 4
+          },
+          {
+            "category": "Additional emergency expenses",
+            "section": "C1",
+            "included": true,
+            "limit": "$5,000",
+            "excess_applies": true,
+            "notes": "Return/catch‑up conditions apply; Natural disaster only if optional upgrade purchased.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Resumption of journey",
+            "section": "C2",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": true,
+            "notes": "Gold only benefit.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Travel delay expenses",
+            "section": "D",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "notes": "Silver/Gold only; 12‑hour minimum delay.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Baggage and personal effects",
+            "section": "E1",
+            "included": true,
+            "limit": "$5,000",
+            "excess_applies": true,
+            "notes": "No cover for personal electronics/valuables; general single item/pair set $500; items stolen from motor vehicle $500 per item.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Delayed baggage",
+            "section": "E3",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "notes": "Silver/Gold only.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Passport and travel documents",
+            "section": "E4",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Money",
+            "section": "E5",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Accidental death and permanent disability",
+            "section": "F",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Personal liability",
+            "section": "G",
+            "included": true,
+            "limit": "$1,500,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Legal expenses",
+            "section": "H",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Airline hijack",
+            "section": "I",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Pet care",
+            "section": "J",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Rental car excess waiver",
+            "section": "K",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Loss of income",
+            "section": "L",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "COVID‑19 cancellation/disruption",
+            "section": "M1",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "COVID‑19 medical expenses (outside Australia)",
+            "section": "M2",
+            "included": false,
+            "limit": "Nil",
+            "excess_applies": true,
+            "evidence_page": 5
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Emergency dental",
+            "amount": "$500",
+            "basis": "Per insured person per trip",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Return of body or ashes to Australia",
+            "amount": "$50,000 or €30,000 (Schengen)",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Funeral/burial outside Australia",
+            "amount": "$10,000",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "General single item/pair or set limit",
+            "amount": "$500",
+            "basis": "Per item/pair/set",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Items stolen from a motor vehicle",
+            "amount": "$500",
+            "basis": "Per item",
+            "evidence_page": 37
+          }
+        ],
+        "limit_basis_notes": "Unless stated otherwise, sums insured are per insured person per trip. Excess is applied per insured person, per event.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "covered_if_screened_and_approved",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "Pre‑existing conditions are not covered unless you complete medical screening, we accept the risk and any additional premium is paid and shown on the Insurance certificate. No cover for undiagnosed conditions awaiting tests/treatment, travel against medical advice, or terminal prognosis expected before policy end.",
+        "pregnancy_cover_summary": "Cover only for complications of pregnancy and childbirth occurring before the 31st week. No cover for routine pregnancy/childbirth or for a child born after the policy issue date. Section A also covers cancellation if you become pregnant after purchase and will be more than 30 weeks at start/during trip (20 weeks if multiple).",
+        "pregnancy_single_week_limit": 31,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "No Section A or C1 cover for events arising from a non‑travelling relative’s or companion’s pre‑existing medical condition known before policy issue. COVID‑19 cancellation only where close relative’s infection is life‑threatening (Silver/Gold per Section M1).",
+        "included_activities": [
+          {
+            "category": "Team Sports",
+            "examples": "Baseball, basketball, beach volleyball, cricket, hockey, netball, soccer, squash, volleyball, water polo (some codes like rugby/football marked ~ exclude Sections F and G)",
+            "evidence_page": 12
+          },
+          {
+            "category": "Water Sports",
+            "examples": "Swimming, surfing (not big wave), canoeing/rafting grades 1‑4 with conditions, kayaking, parasailing, rowing, sailing within territorial waters (day tour only), windsurfing; jet skiing marked ~",
+            "evidence_page": 12
+          },
+          {
+            "category": "Fitness & Exercise",
+            "examples": "Gym classes, jogging, athletics, yoga, trampolining, trekking/hiking under 3000m",
+            "evidence_page": 13
+          },
+          {
+            "category": "Leisure & Recreation",
+            "examples": "Archery (recreational), bowling, camel riding, cycle touring, gondola rides, helicopter scenic flight with licensed pilot, hot‑air ballooning, segway tours, zip lining (conditions apply)",
+            "evidence_page": 15
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity_or_group": "Activities Plus required",
+            "details": "Endurance cycling; >500cc motorcycling; multi‑day trekking >8 days; trekking over 5000m but under 5500m; tandem sky/para/hang gliding; scuba diving 30–50m (conditions); kiteboarding, hydro foiling, roller derby, lacrosse",
+            "benefit_exclusions": "Sections F and G do not apply to activities marked ~; activities marked # must be with a commercial operator and not extreme risk",
+            "evidence_page": 8
+          },
+          {
+            "activity_or_group": "Winter sports (upgrade)",
+            "details": "Recreational skiing/snowboarding and listed winter activities when Winter Sports Cover is purchased",
+            "benefit_exclusions": "Subject to Section N terms; some winter activities excluded (e.g., against local advice, freestyle, fun parks)",
+            "evidence_page": 29
+          }
+        ],
+        "excluded_activities": [
+          {
+            "category": "Adventure/Extreme examples",
+            "examples": "Expeditions to isolated regions; mountaineering with climbing/ice equipment; cliff diving/jumping; micro‑lighting; motocross; sky diving (alone); via ferrata; running with the bulls; ski/snowboard fun parks; backcountry/off‑piste against local advice",
+            "evidence_page": 14
+          }
+        ],
+        "rental_vehicle_excess_conditions": "Covers the rental company’s excess only; not a substitute for rental insurance. Vehicle types covered include campervans/motorhomes <6t, typical passenger vehicles, motorcycles/mopeds with <9 seats. Excludes commercial vehicles/buses/trucks/limousines; no cover for off‑road use, unauthorised drivers, violations of rental agreement, wear/tear, mechanical or tyre damage except as specified.",
+        "luggage_conditions": "You must take reasonable care, carry valuables/electronics as hand luggage, obtain police/transport reports within 72 hours, and provide proof of ownership. No cover for valuables/electronics in checked baggage unless mandated by regulation. Unattended property/public place exclusions apply. Items stolen from motor vehicles limited to $500 per item; no cover if left in unattended motor vehicle between sunset and sunrise. IMEI must be supplied and blocked for phone/device claims.",
+        "depreciation_rules": [
+          {
+            "item_category": "Phones/electronics/computers/photographic equipment/clothing",
+            "depreciation_per_year_percent": 20,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "Jewellery",
+            "depreciation_per_year_percent": 5,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "All other items",
+            "depreciation_per_year_percent": 10,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "Winter sports equipment (age‑based)",
+            "depreciation_schedule": "<=12m 90%; <=24m 70%; <=36m 50%; <=48m 30%; <=60m 20%; >60m 0%",
+            "evidence_page": 48
+          }
+        ],
+        "business_cover_details": "Optional Business Cover adds: business equipment $2,500 (single article $1,000) and samples $1,000; emergency courier $500; equipment hire $100 per 24h up to $1,000; business money $1,000 (cash $500); replacing staff $5,000 (international only). Business items subject to depreciation and airline first‑resort claims.",
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "heading": "Pre‑existing medical conditions",
+            "description": "No cover unless screened and accepted; no cover for undiagnosed symptoms, travel against medical advice, or terminal prognosis expected before policy end.",
+            "evidence_page": 52
+          },
+          {
+            "heading": "COVID‑19/pandemics",
+            "description": "General COVID‑19 and epidemic/pandemic claims excluded except specific cover under Section M. No cover for government bans, border closures, general quarantine without diagnosis.",
+            "evidence_page": 55
+          },
+          {
+            "heading": "Travel advisories and sanctions",
+            "description": "No cover for travel to/from/through DFAT ‘Do Not Travel’ areas or where sanctions apply; insurer will not provide cover where doing so breaches sanctions.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Alcohol/drugs",
+            "description": "Claims arising from high blood alcohol levels or non‑prescribed drug use excluded.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Motorcycling/mopeds",
+            "description": "Exclusion unless helmet worn; appropriate licences held; >500cc requires Activities Plus.",
+            "evidence_page": 54
+          },
+          {
+            "heading": "War/civil unrest/industrial action",
+            "description": "War and similar perils excluded; industrial action only if not public knowledge at booking.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Antarctica",
+            "description": "No cover unless on a commercial cruise.",
+            "evidence_page": 54
+          }
+        ],
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel in, to or through destinations subject to DFAT ‘Do Not Travel’ advice or where sanctions prohibit claim payment. General Condition 15 and General Exclusions 11–12 apply.",
+        "claims_process_summary": "Register claims within 30 days after completion of travel. Provide proof of ownership/value and proof of events within requested timeframes. Excess per insured person per event may apply. Claims may be settled by repair, replacement, store credit or cash, allowing for depreciation. Contact +61 2 7201 9532 or email info@insureandgo.com.au; online claim forms available.",
+        "emergency_assistance_details": "24/7 Overseas Emergency Assistance: +61 2 9333 3999. If admitted as an inpatient >24 hours or requiring hospitalisation/evacuation, contact as soon as possible and obtain approval where practicable. Insured person’s name and policy number required.",
+        "premium_factors": "Destination, trip length, level of cover, number of travellers, ages, selected add‑ons and chosen excess; premiums include GST and stamp duty.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+        "source_pdf_hash": "83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+        "source_evidence": [
+          {
+            "fields": [
+              "pds_title",
+              "pds_effective_date"
+            ],
+            "page": 1,
+            "quote": "Annual Multi-Trip Travel Insurance – PRODUCT DISCLOSURE STATEMENT. Effective: 1 April 2026"
+          },
+          {
+            "fields": [
+              "pds_prepared_or_version_date"
+            ],
+            "page": 3,
+            "quote": "Product Disclosure Statement (PDS) Date: 1/04/2026"
+          },
+          {
+            "fields": [
+              "product_type",
+              "trip_frequency",
+              "maximum_trip_duration_options"
+            ],
+            "page": 9,
+            "quote": "Insure&Go provides cover for multiple trips up to a maximum duration that you select (30, 45 or 60 days for International policies). For Bare essentials: No cover for trip lengths longer than 30 days."
+          },
+          {
+            "fields": [
+              "emergency_medical_limit",
+              "cancellation_cover_limit"
+            ],
+            "page": 4,
+            "quote": "B1 Medical and other expenses outside Australia: Unlimited. A Cancelling your trip: $10,000 (Bare Essentials)."
+          },
+          {
+            "fields": [
+              "additional_expenses_or_trip_disruption_limit"
+            ],
+            "page": 5,
+            "quote": "C1 Additional emergency expenses: $5,000 (Bare Essentials)."
+          },
+          {
+            "fields": [
+              "travel_delay_limit"
+            ],
+            "page": 5,
+            "quote": "D Travel delay expenses: Nil (Bare Essentials)."
+          },
+          {
+            "fields": [
+              "luggage_limit",
+              "electronics_or_valuables_limit",
+              "luggage_single_item_limit"
+            ],
+            "page": 5,
+            "quote": "E1 Personal belongings and baggage $5,000; personal electronics sub‑limit Nil; valuables single article limit Nil; pair or set of items limit $500."
+          },
+          {
+            "fields": [
+              "luggage_delay_limit"
+            ],
+            "page": 5,
+            "quote": "E3 Delayed baggage: Nil (Bare Essentials)."
+          },
+          {
+            "fields": [
+              "travel_documents_limit",
+              "money_limit"
+            ],
+            "page": 5,
+            "quote": "E4 Passport and travel documents: Nil. E5 Money: Nil."
+          },
+          {
+            "fields": [
+              "personal_accident_limit",
+              "personal_liability_limit",
+              "legal_expenses_limit"
+            ],
+            "page": 5,
+            "quote": "F Accidental death and permanent disability: Nil. G Personal liability: $1,500,000. H Legal expenses: Nil."
+          },
+          {
+            "fields": [
+              "rental_vehicle_excess_limit",
+              "loss_of_income_limit"
+            ],
+            "page": 5,
+            "quote": "K Rental car excess waiver: Nil. L Loss of income: Nil."
+          },
+          {
+            "fields": [
+              "covid_medical_limit",
+              "covid_cancellation_or_disruption_limit",
+              "covid_cover_available"
+            ],
+            "page": 5,
+            "quote": "M1 COVID-19 expenses: Cancellation or trip disruption: Nil. M2 COVID-19 expenses: Medical expenses outside Australia: Nil (Bare Essentials)."
+          },
+          {
+            "fields": [
+              "excess_rules"
+            ],
+            "page": 4,
+            "quote": "*Excess – If your claim is paid, this excess is deducted... applied per insured person and for each event per insured person."
+          },
+          {
+            "fields": [
+              "geographic_scope",
+              "travel_warning_and_sanctions_rules"
+            ],
+            "page": 9,
+            "quote": "International Multi-Trip policies... No cover for ‘Do Not Travel’ advice... No cover for Antarctica unless on a commercial cruise."
+          },
+          {
+            "fields": [
+              "already_travelling_or_overseas_available",
+              "waiting_period_hours",
+              "waiting_period_rules"
+            ],
+            "page": 10,
+            "quote": "Waiting Period – If you buy your policy after you have left your home... 72‑hour waiting period. Not applied for injury claims under B or C1; not applied if continuation of cover."
+          },
+          {
+            "fields": [
+              "eligibility_rules",
+              "maximum_age_years",
+              "dependent_child_age_limit_years",
+              "minimum_age_years"
+            ],
+            "page": 17,
+            "quote": "Eligibility – Australian citizens or Permanent residents, or non‑Permanent residents with valid Medicare/PHI/OSHC. Applicants must be 18+ to apply. Dependent children under 18. Bare Essentials available to travellers 79 years or under; Silver and Gold to 100."
+          },
+          {
+            "fields": [
+              "cooling_off_period_days",
+              "policy_cancellation_refund_terms"
+            ],
+            "page": 20,
+            "quote": "Cooling Off period – 21 days... Cancelling after the cooling off period – pro‑rata refund less government charges if no claim."
+          },
+          {
+            "fields": [
+              "claims_process_summary",
+              "claim_notification_deadline_days"
+            ],
+            "page": 21,
+            "quote": "You must register any claim within 30 days after completion of your travel... proof of ownership/value... settlement methods."
+          },
+          {
+            "fields": [
+              "emergency_assistance_details"
+            ],
+            "page": 20,
+            "quote": "Overseas Emergency Assistance Helpline +61 2 9333 3999 (24/7)."
+          },
+          {
+            "fields": [
+              "pregnancy_cover_summary",
+              "pregnancy_single_week_limit"
+            ],
+            "page": 19,
+            "quote": "Cover under Sections A, B1, B2 only for complications of pregnancy and childbirth that occur before the 31st week of pregnancy. Cancellation if you will be more than 30 weeks (or 20 weeks for multiples)."
+          },
+          {
+            "fields": [
+              "natural_disaster_cover_status",
+              "optional_add_ons"
+            ],
+            "page": 7,
+            "quote": "Natural Disaster Cover upgrade extends Sections A (Yes), C (Yes^ int’l), D (No for Bare)."
+          },
+          {
+            "fields": [
+              "cruise_cover_status"
+            ],
+            "page": 7,
+            "quote": "Commercial cruising is automatically included with your Annual Multi-Trip policy."
+          },
+          {
+            "fields": [
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 32,
+            "quote": "We will not pay any expenses incurred more than 12 months from the time you first received treatment for the injury or illness."
+          },
+          {
+            "fields": [
+              "repatriation_of_remains_limit"
+            ],
+            "page": 4,
+            "quote": "Return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; Funeral or burial expenses outside of Australia $10,000."
+          }
+        ],
+        "claim_notification_deadline_days": 30,
+        "legal_expenses_limit": "Nil",
+        "natural_disaster_cover_status": "optional_add_on",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Return of body or ashes to Australia up to $50,000 (or €30,000 for Schengen); funeral/burial outside Australia up to $10,000",
+        "travel_delay_minimum_delay_hours": null,
+        "travel_services_provider_insolvency_limit": "Excluded (general exclusion for financial default of providers)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Bare Essentials does not include travel delay, hospital cash allowance, legal expenses, rental car excess, money, passport/documents, personal accident, or COVID-19 benefits. Electronics/valuables are not covered. Natural Disaster cover is only available if the optional upgrade is purchased. Cruise cover is automatically included when on a commercial cruise.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "paid_accommodation_exception",
+          "standard_excess_aud",
+          "pregnancy_multiple_week_limit",
+          "inbound_cover_details",
+          "benefit_exclusions",
+          "travel_services_provider_insolvency_limit"
+        ]
+      },
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Insure&Go",
+        "insurer_name": "Europ Assistance Australia Pty Ltd trading as Insure&Go (ABN 71 140 219 594, AFSL 552106)",
+        "issuer_or_agent_name": "Europ Assistance Australia Pty Ltd trading as Insure&Go",
+        "product_name": "Insure&Go Annual Multi-Trip Silver",
+        "plan_name": "Silver",
+        "cover_level": null,
+        "pds_title": "Annual Multi-Trip Travel Insurance – Product Disclosure Statement",
+        "pds_effective_date": "1 April 2026",
+        "pds_prepared_or_version_date": "1/04/2026",
+        "geographic_scope": "International multi-trip to destinations outside Australia. Select region by destination; choose Worldwide Including if >48 hours in North or South America. No cover for DFAT ‘Do Not Travel’ destinations; Antarctica only covered if on a commercial cruise.",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": "30 or 45 days (Silver)",
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": 100,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available only to Australian citizens or Permanent residents, or non‑Permanent residents with valid Medicare, Private Health Fund or Overseas Student Health Insurance in Australia. Applicants must be 18+ to purchase; dependants under 18 can be covered when named. Silver available to travellers 100 years and under at application. Trips must begin/end at home or place of business in Australia and be >100 km from home.",
+        "minimum_age_years": 18,
+        "maximum_age_years": 100,
+        "dependent_child_age_limit_years": 18,
+        "age_eligibility_notes": "Overall maximum age at application is 100; Silver/Gold available to 100 years; Bare Essentials limited to 79. Maximum trip duration also depends on tier and destination.",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "benefit_or_section": "All cover when policy purchased after departure",
+            "waiting_period_hours": 72,
+            "trigger": "Policy purchased after leaving home to start travelling",
+            "exceptions": "No waiting period for injury claims under Sections B1/C1; no waiting period when buying a consecutive continuation policy with no gap",
+            "evidence_page": 10
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21 days if no claim and trip has not commenced. After 21 days, pro‑rata refund of the outstanding period less non‑recoverable government charges/taxes, provided no claim has been made and no rights exercised.",
+        "excess_options": "Excess can be varied at purchase (higher premium for lower excess or lower premium for higher excess). Your chosen excess is shown on the Insurance certificate. Excess applies per insured person, per event.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "Chosen policy excess (not printed in PDS)",
+            "basis": "Per insured person, per event",
+            "evidence_page": 4
+          },
+          {
+            "section": "Benefits table flags",
+            "excess_applies_by_section": "See table ‘Excess*’ Yes/No per section",
+            "evidence_page": 4
+          }
+        ],
+        "emergency_medical_limit": "Unlimited (outside Australia)",
+        "emergency_dental_limit": "$500 (emergency dental for immediate pain relief)",
+        "cancellation_cover_limit": "$15,000",
+        "cancellation_cover_selectable": false,
+        "additional_expenses_or_trip_disruption_limit": "$15,000 (Section C1)",
+        "travel_delay_limit": "Up to $50 per completed 12 hours, up to $1,000",
+        "luggage_limit": "$7,500 (Section E1)",
+        "luggage_single_item_limit": "$500 per item/pair or set (general items)",
+        "electronics_or_valuables_limit": "Personal electronics sub‑limit $2,000; valuables single article limit $500; items stolen from motor vehicle limited to $500 per item",
+        "luggage_delay_limit": "Up to $500 (8–24h Nil; after 24h $500)",
+        "travel_documents_limit": "$2,500",
+        "money_limit": "$250",
+        "rental_vehicle_excess_limit": "$4,000",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "$37,500",
+        "loss_of_income_limit": "$5,200 (75% of average monthly net income, up to 6 months; first 28 days after return excluded)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "Unlimited (outside Australia)",
+        "covid_cancellation_or_disruption_limit": "$2,500",
+        "covid_cover_summary": "COVID‑19 cover is limited to: (1) your COVID‑19 diagnosis after purchase; (2) travelling companion’s diagnosis after purchase; (3) close relative in AU/NZ diagnosed and life‑threatening (cancellation/disruption only). Excludes government bans/border closures and quarantine without diagnosis. Medical cover outside Australia only.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Winter Sports Cover (Section N)",
+            "availability": "Optional upgrade",
+            "limits_summary": "N1 equipment $1,250 (single article $600); N2 hire $50 per 24h up to $500; N3 lift pass $500; N4 ski pack $150 per 24h up to $600; N5 piste closure $50 per 24h up to $500; N6 avalanche $600",
+            "excess_notes": "Excess applies to N1, N3, N6; No excess for N2, N4, N5",
+            "evidence_page": 6
+          },
+          {
+            "name": "Business Cover (Section O)",
+            "availability": "Optional upgrade",
+            "limits_summary": "O1 business equipment $2,500 (single article $1,000) + samples $1,000; O2 emergency courier $500; O3 equipment hire $100 per 24h up to $1,000; O4 business money $1,000 (cash $500); O5 replacing staff $5,000 (international only)",
+            "evidence_page": 7
+          },
+          {
+            "name": "Additional Specified Items Cover (E2)",
+            "availability": "Optional on Silver/Gold",
+            "limits_summary": "Specify items up to $4,000 per item, combined up to $8,000; excess applies",
+            "evidence_page": 7
+          },
+          {
+            "name": "Natural Disaster Cover",
+            "availability": "Optional upgrade",
+            "limits_summary": "Extends cover for Sections A, C (international only), and D (Silver/Gold); see table.",
+            "evidence_page": 7
+          },
+          {
+            "name": "Activities Plus option",
+            "availability": "Optional upgrade for listed higher‑risk activities",
+            "limits_summary": "Required for activities including endurance cycling, >500cc motorcycling, multi‑day high‑altitude trekking (over 5000m up to 5500m), certain tandem aerial activities, deeper scuba diving (30–50m with conditions)",
+            "evidence_page": 8
+          },
+          {
+            "name": "Pre‑existing medical conditions cover",
+            "availability": "Subject to medical screening and approval; additional premium may apply",
+            "limits_summary": "Cover only if accepted and shown on Insurance certificate",
+            "evidence_page": 8
+          },
+          {
+            "name": "Choose your excess",
+            "availability": "Policy amendment at purchase",
+            "limits_summary": "Select higher/lower excess in exchange for premium change",
+            "evidence_page": 8
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Cancellation and trip amendment",
+            "section": "A",
+            "included": true,
+            "limit": "$15,000",
+            "excess_applies": true,
+            "evidence_page": 4
+          },
+          {
+            "category": "Medical expenses outside Australia",
+            "section": "B1",
+            "included": true,
+            "limit": "Unlimited",
+            "excess_applies": true,
+            "notes": "Dental $500; repatriation of remains $50,000/€30,000; funeral $10,000.",
+            "evidence_page": 4
+          },
+          {
+            "category": "Hospital cash allowance",
+            "section": "B2",
+            "included": true,
+            "limit": "$75 per completed 24 hours up to $2,500",
+            "excess_applies": false,
+            "evidence_page": 4
+          },
+          {
+            "category": "Additional emergency expenses",
+            "section": "C1",
+            "included": true,
+            "limit": "$15,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Resumption of journey",
+            "section": "C2",
+            "included": false,
+            "limit": "Nil (Gold only)",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Travel delay expenses",
+            "section": "D",
+            "included": true,
+            "limit": "Up to $50 per 12 hours, up to $1,000",
+            "excess_applies": false,
+            "notes": "12‑hour minimum delay; receipts and carrier confirmation required.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Baggage and personal effects",
+            "section": "E1",
+            "included": true,
+            "limit": "$7,500",
+            "excess_applies": true,
+            "notes": "Electronics sub‑limit $2,000; valuables single article $500; general single item/pair set $500; items stolen from motor vehicle $500 per item.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Additional specified items",
+            "section": "E2",
+            "included": true,
+            "limit": "Optional upgrade available",
+            "excess_applies": true,
+            "evidence_page": 7
+          },
+          {
+            "category": "Delayed baggage",
+            "section": "E3",
+            "included": true,
+            "limit": "Up to $500 (8–24h Nil; after 24h $500)",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Passport and travel documents",
+            "section": "E4",
+            "included": true,
+            "limit": "$2,500",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Money",
+            "section": "E5",
+            "included": true,
+            "limit": "$250",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Accidental death and permanent disability",
+            "section": "F",
+            "included": true,
+            "limit": "$37,500",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Personal liability",
+            "section": "G",
+            "included": true,
+            "limit": "$2,500,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Legal expenses",
+            "section": "H",
+            "included": true,
+            "limit": "$10,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Rental car excess waiver",
+            "section": "K",
+            "included": true,
+            "limit": "$4,000",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Loss of income",
+            "section": "L",
+            "included": true,
+            "limit": "$5,200 (75% monthly, up to 6 months)",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "COVID‑19 cancellation/disruption",
+            "section": "M1",
+            "included": true,
+            "limit": "$2,500",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "COVID‑19 medical expenses (outside Australia)",
+            "section": "M2",
+            "included": true,
+            "limit": "Unlimited",
+            "excess_applies": true,
+            "notes": "Includes repatriation of remains $50,000/€30,000; funeral $10,000.",
+            "evidence_page": 5
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Emergency dental",
+            "amount": "$500",
+            "basis": "Per insured person per trip",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Return of body or ashes to Australia",
+            "amount": "$50,000 or €30,000 (Schengen)",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Funeral/burial outside Australia",
+            "amount": "$10,000",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B2 Hospital cash",
+            "name": "Daily and maximum",
+            "amount": "$75 per 24 hours, up to $2,500",
+            "basis": "Per insured person per trip",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "D Travel delay",
+            "name": "Per 12 hours sub‑limit",
+            "amount": "$50 per 12h; maximum $1,000",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Personal electronics sub‑limit",
+            "amount": "$2,000",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Valuables single article limit",
+            "amount": "$500",
+            "basis": "Per item",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "General single item/pair or set limit",
+            "amount": "$500",
+            "basis": "Per item/pair/set",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Items stolen from a motor vehicle",
+            "amount": "$500",
+            "basis": "Per item",
+            "evidence_page": 37
+          },
+          {
+            "parent_benefit": "E3 Delayed baggage",
+            "name": "8–24 hours",
+            "amount": "Nil",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E3 Delayed baggage",
+            "name": "After 24 hours",
+            "amount": "$500",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "L Loss of income",
+            "name": "Benefit rate and period",
+            "amount": "75% of average monthly net income, up to 6 months (first 28 days excluded)",
+            "basis": "Per insured person",
+            "evidence_page": 46
+          }
+        ],
+        "limit_basis_notes": "Unless stated otherwise, sums insured are per insured person per trip. Excess is applied per insured person, per event.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "covered_if_screened_and_approved",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "Pre‑existing conditions are not covered unless you complete medical screening, we accept the risk and any additional premium is paid and shown on the Insurance certificate. No cover for undiagnosed conditions awaiting tests/treatment, travel against medical advice, or terminal prognosis expected before policy end.",
+        "pregnancy_cover_summary": "Cover only for complications of pregnancy and childbirth occurring before the 31st week. No cover for routine pregnancy/childbirth or for a child born after the policy issue date. Section A also covers cancellation if you become pregnant after purchase and will be more than 30 weeks at start/during trip (20 weeks if multiple).",
+        "pregnancy_single_week_limit": 31,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "No Section A or C1 cover for events arising from a non‑travelling relative’s or companion’s pre‑existing medical condition known before policy issue. COVID‑19 cancellation only where close relative’s infection is life‑threatening (Section M1).",
+        "included_activities": [
+          {
+            "category": "Team Sports",
+            "examples": "Baseball, basketball, beach volleyball, cricket, hockey, netball, soccer, squash, volleyball, water polo (some codes like rugby/football marked ~ exclude Sections F and G)",
+            "evidence_page": 12
+          },
+          {
+            "category": "Water Sports",
+            "examples": "Swimming, surfing (not big wave), canoeing/rafting grades 1‑4 with conditions, kayaking, parasailing, rowing, sailing within territorial waters (day tour only), windsurfing; jet skiing marked ~",
+            "evidence_page": 12
+          },
+          {
+            "category": "Fitness & Exercise",
+            "examples": "Gym classes, jogging, athletics, yoga, trampolining, trekking/hiking under 3000m",
+            "evidence_page": 13
+          },
+          {
+            "category": "Leisure & Recreation",
+            "examples": "Archery (recreational), bowling, camel riding, cycle touring, gondola rides, helicopter scenic flight with licensed pilot, hot‑air ballooning, segway tours, zip lining (conditions apply)",
+            "evidence_page": 15
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity_or_group": "Activities Plus required",
+            "details": "Endurance cycling; >500cc motorcycling; multi‑day trekking >8 days; trekking over 5000m but under 5500m; tandem sky/para/hang gliding; scuba diving 30–50m (conditions); kiteboarding, hydro foiling, roller derby, lacrosse",
+            "benefit_exclusions": "Sections F and G do not apply to activities marked ~; activities marked # must be with a commercial operator and not extreme risk",
+            "evidence_page": 8
+          },
+          {
+            "activity_or_group": "Winter sports (upgrade)",
+            "details": "Recreational skiing/snowboarding and listed winter activities when Winter Sports Cover is purchased",
+            "benefit_exclusions": "Subject to Section N terms; some winter activities excluded (e.g., against local advice, freestyle, fun parks)",
+            "evidence_page": 29
+          }
+        ],
+        "excluded_activities": [
+          {
+            "category": "Adventure/Extreme examples",
+            "examples": "Expeditions to isolated regions; mountaineering with climbing/ice equipment; cliff diving/jumping; micro‑lighting; motocross; sky diving (alone); via ferrata; running with the bulls; ski/snowboard fun parks; backcountry/off‑piste against local advice",
+            "evidence_page": 14
+          }
+        ],
+        "rental_vehicle_excess_conditions": "Covers the rental company’s excess only; not a substitute for rental insurance. Vehicle types covered include campervans/motorhomes <6t, typical passenger vehicles, motorcycles/mopeds with <9 seats. Excludes commercial vehicles/buses/trucks/limousines; no cover for off‑road use, unauthorised drivers, violations of rental agreement, wear/tear, mechanical or tyre damage except as specified.",
+        "luggage_conditions": "You must take reasonable care, carry valuables/electronics as hand luggage, obtain police/transport reports within 72 hours, and provide proof of ownership. No cover for valuables/electronics in checked baggage unless mandated by regulation. Unattended property/public place exclusions apply. Items stolen from motor vehicles limited to $500 per item; no cover if left in unattended motor vehicle between sunset and sunrise. IMEI must be supplied and blocked for phone/device claims.",
+        "depreciation_rules": [
+          {
+            "item_category": "Phones/electronics/computers/photographic equipment/clothing",
+            "depreciation_per_year_percent": 20,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "Jewellery",
+            "depreciation_per_year_percent": 5,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "All other items",
+            "depreciation_per_year_percent": 10,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "Winter sports equipment (age‑based)",
+            "depreciation_schedule": "<=12m 90%; <=24m 70%; <=36m 50%; <=48m 30%; <=60m 20%; >60m 0%",
+            "evidence_page": 48
+          }
+        ],
+        "business_cover_details": "Optional Business Cover adds: business equipment $2,500 (single article $1,000) and samples $1,000; emergency courier $500; equipment hire $100 per 24h up to $1,000; business money $1,000 (cash $500); replacing staff $5,000 (international only). Business items subject to depreciation and airline first‑resort claims.",
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "heading": "Pre‑existing medical conditions",
+            "description": "No cover unless screened and accepted; no cover for undiagnosed symptoms, travel against medical advice, or terminal prognosis expected before policy end.",
+            "evidence_page": 52
+          },
+          {
+            "heading": "COVID‑19/pandemics",
+            "description": "General COVID‑19 and epidemic/pandemic claims excluded except specific cover under Section M. No cover for government bans, border closures, general quarantine without diagnosis.",
+            "evidence_page": 55
+          },
+          {
+            "heading": "Travel advisories and sanctions",
+            "description": "No cover for travel to/from/through DFAT ‘Do Not Travel’ areas or where sanctions apply; insurer will not provide cover where doing so breaches sanctions.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Alcohol/drugs",
+            "description": "Claims arising from high blood alcohol levels or non‑prescribed drug use excluded.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Motorcycling/mopeds",
+            "description": "Exclusion unless helmet worn; appropriate licences held; >500cc requires Activities Plus.",
+            "evidence_page": 54
+          },
+          {
+            "heading": "War/civil unrest/industrial action",
+            "description": "War and similar perils excluded; industrial action only if not public knowledge at booking.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Antarctica",
+            "description": "No cover unless on a commercial cruise.",
+            "evidence_page": 54
+          }
+        ],
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel in, to or through destinations subject to DFAT ‘Do Not Travel’ advice or where sanctions prohibit claim payment. General Condition 15 and General Exclusions 11–12 apply.",
+        "claims_process_summary": "Register claims within 30 days after completion of travel. Provide proof of ownership/value and proof of events within requested timeframes. Excess per insured person per event may apply. Claims may be settled by repair, replacement, store credit or cash, allowing for depreciation. Contact +61 2 7201 9532 or email info@insureandgo.com.au; online claim forms available.",
+        "emergency_assistance_details": "24/7 Overseas Emergency Assistance: +61 2 9333 3999. If admitted as an inpatient >24 hours or requiring hospitalisation/evacuation, contact as soon as possible and obtain approval where practicable. Insured person’s name and policy number required.",
+        "premium_factors": "Destination, trip length, level of cover, number of travellers, ages, selected add‑ons and chosen excess; premiums include GST and stamp duty.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+        "source_pdf_hash": "83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+        "source_evidence": [
+          {
+            "fields": [
+              "pds_title",
+              "pds_effective_date"
+            ],
+            "page": 1,
+            "quote": "Annual Multi-Trip Travel Insurance – PRODUCT DISCLOSURE STATEMENT. Effective: 1 April 2026"
+          },
+          {
+            "fields": [
+              "pds_prepared_or_version_date"
+            ],
+            "page": 3,
+            "quote": "Product Disclosure Statement (PDS) Date: 1/04/2026"
+          },
+          {
+            "fields": [
+              "product_type",
+              "trip_frequency",
+              "maximum_trip_duration_options"
+            ],
+            "page": 9,
+            "quote": "Insure&Go provides cover for multiple trips up to a maximum duration that you select (30, 45 or 60 days for International policies). For Silver level of cover there is no cover for trip lengths longer than 45 days."
+          },
+          {
+            "fields": [
+              "emergency_medical_limit",
+              "cancellation_cover_limit"
+            ],
+            "page": 4,
+            "quote": "B1 Medical and other expenses outside Australia: Unlimited. A Cancelling your trip: $15,000 (Silver)."
+          },
+          {
+            "fields": [
+              "additional_expenses_or_trip_disruption_limit"
+            ],
+            "page": 5,
+            "quote": "C1 Additional emergency expenses: $15,000 (Silver)."
+          },
+          {
+            "fields": [
+              "travel_delay_limit",
+              "travel_delay_minimum_delay_hours"
+            ],
+            "page": 5,
+            "quote": "D Travel delay expenses: Up to $50 per completed 12 hours up to $1,000 (Silver)."
+          },
+          {
+            "fields": [
+              "luggage_limit",
+              "electronics_or_valuables_limit",
+              "luggage_single_item_limit"
+            ],
+            "page": 5,
+            "quote": "E1 Personal belongings and baggage $7,500; personal electronics sub‑limit $2,000; valuables single article limit $500; pair or set of items limit $500."
+          },
+          {
+            "fields": [
+              "luggage_delay_limit"
+            ],
+            "page": 5,
+            "quote": "E3 Delayed baggage: $500; sub‑limit for delays after 24 hours $500; 8–24 hours Nil (Silver)."
+          },
+          {
+            "fields": [
+              "travel_documents_limit",
+              "money_limit"
+            ],
+            "page": 5,
+            "quote": "E4 Passport and travel documents: $2,500. E5 Money: $250."
+          },
+          {
+            "fields": [
+              "personal_accident_limit",
+              "personal_liability_limit",
+              "legal_expenses_limit"
+            ],
+            "page": 5,
+            "quote": "F Accidental death and permanent disability: $37,500. G Personal liability: $2,500,000. H Legal expenses: $10,000."
+          },
+          {
+            "fields": [
+              "rental_vehicle_excess_limit",
+              "loss_of_income_limit"
+            ],
+            "page": 5,
+            "quote": "K Rental car excess waiver: $4,000. L Loss of income: $5,200."
+          },
+          {
+            "fields": [
+              "covid_medical_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 5,
+            "quote": "M1 COVID-19: Cancellation or trip disruption $2,500. M2 COVID-19: Medical expenses outside Australia: Unlimited (Silver)."
+          },
+          {
+            "fields": [
+              "excess_rules"
+            ],
+            "page": 4,
+            "quote": "*Excess – If your claim is paid, this excess is deducted... applied per insured person and for each event per insured person."
+          },
+          {
+            "fields": [
+              "geographic_scope",
+              "travel_warning_and_sanctions_rules"
+            ],
+            "page": 9,
+            "quote": "International Multi-Trip policies... No cover for ‘Do Not Travel’ advice... No cover for Antarctica unless on a commercial cruise."
+          },
+          {
+            "fields": [
+              "already_travelling_or_overseas_available",
+              "waiting_period_hours",
+              "waiting_period_rules"
+            ],
+            "page": 10,
+            "quote": "Waiting Period – If you buy your policy after you have left your home... 72‑hour waiting period. Not applied for injury claims under B or C1; not applied if continuation of cover."
+          },
+          {
+            "fields": [
+              "eligibility_rules",
+              "maximum_age_years",
+              "dependent_child_age_limit_years",
+              "minimum_age_years"
+            ],
+            "page": 17,
+            "quote": "Eligibility – Australian citizens or Permanent residents, or non‑Permanent residents with valid Medicare/PHI/OSHC. Applicants must be 18+ to apply. Dependent children under 18. Silver and Gold policies are available to travellers who are 100 years of age or under."
+          },
+          {
+            "fields": [
+              "cooling_off_period_days",
+              "policy_cancellation_refund_terms"
+            ],
+            "page": 20,
+            "quote": "Cooling Off period – 21 days... Cancelling after the cooling off period – pro‑rata refund less government charges if no claim."
+          },
+          {
+            "fields": [
+              "claims_process_summary",
+              "claim_notification_deadline_days"
+            ],
+            "page": 21,
+            "quote": "You must register any claim within 30 days after completion of your travel... proof of ownership/value... settlement methods."
+          },
+          {
+            "fields": [
+              "emergency_assistance_details"
+            ],
+            "page": 20,
+            "quote": "Overseas Emergency Assistance Helpline +61 2 9333 3999 (24/7)."
+          },
+          {
+            "fields": [
+              "pregnancy_cover_summary",
+              "pregnancy_single_week_limit"
+            ],
+            "page": 19,
+            "quote": "Cover under Sections A, B1, B2 only for complications of pregnancy and childbirth that occur before the 31st week of pregnancy. Cancellation if you will be more than 30 weeks (or 20 weeks for multiples)."
+          },
+          {
+            "fields": [
+              "natural_disaster_cover_status",
+              "optional_add_ons"
+            ],
+            "page": 7,
+            "quote": "Natural Disaster Cover upgrade extends Sections A, C (Yes^ int’l), D (Yes for Silver/Gold)."
+          },
+          {
+            "fields": [
+              "cruise_cover_status"
+            ],
+            "page": 7,
+            "quote": "Commercial cruising is automatically included with your Annual Multi-Trip policy."
+          },
+          {
+            "fields": [
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 32,
+            "quote": "We will not pay any expenses incurred more than 12 months from the time you first received treatment for the injury or illness."
+          },
+          {
+            "fields": [
+              "repatriation_of_remains_limit"
+            ],
+            "page": 4,
+            "quote": "Return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; Funeral or burial expenses outside of Australia $10,000."
+          }
+        ],
+        "claim_notification_deadline_days": 30,
+        "legal_expenses_limit": "$10,000",
+        "natural_disaster_cover_status": "optional_add_on",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Return of body or ashes to Australia up to $50,000 (or €30,000 for Schengen); funeral/burial outside Australia up to $10,000",
+        "travel_delay_minimum_delay_hours": 12,
+        "travel_services_provider_insolvency_limit": "Excluded (general exclusion for financial default of providers)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Silver includes travel delay, hospital cash allowance, legal expenses, rental car excess, money, passport/documents, personal accident benefits and COVID‑19 sections M1–M2. Natural Disaster cover requires upgrade. Cruise cover is automatically included when on a commercial cruise.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "paid_accommodation_exception",
+          "standard_excess_aud",
+          "pregnancy_multiple_week_limit",
+          "inbound_cover_details",
+          "benefit_exclusions"
+        ]
+      },
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Insure&Go",
+        "insurer_name": "Europ Assistance Australia Pty Ltd trading as Insure&Go (ABN 71 140 219 594, AFSL 552106)",
+        "issuer_or_agent_name": "Europ Assistance Australia Pty Ltd trading as Insure&Go",
+        "product_name": "Insure&Go Annual Multi-Trip Gold",
+        "plan_name": "Gold",
+        "cover_level": null,
+        "pds_title": "Annual Multi-Trip Travel Insurance – Product Disclosure Statement",
+        "pds_effective_date": "1 April 2026",
+        "pds_prepared_or_version_date": "1/04/2026",
+        "geographic_scope": "International multi-trip to destinations outside Australia. Select region by destination; choose Worldwide Including if >48 hours in North or South America. No cover for DFAT ‘Do Not Travel’ destinations; Antarctica only covered if on a commercial cruise.",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": "30, 45 or 60 days (Gold)",
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": 100,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Available only to Australian citizens or Permanent residents, or non‑Permanent residents with valid Medicare, Private Health Fund or Overseas Student Health Insurance in Australia. Applicants must be 18+ to purchase; dependants under 18 can be covered when named. Gold available to travellers 100 years and under at application. Trips must begin/end at home or place of business in Australia and be >100 km from home.",
+        "minimum_age_years": 18,
+        "maximum_age_years": 100,
+        "dependent_child_age_limit_years": 18,
+        "age_eligibility_notes": "Overall maximum age at application is 100; Silver/Gold available to 100 years; Bare Essentials limited to 79. Maximum trip duration also depends on tier and destination.",
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "benefit_or_section": "All cover when policy purchased after departure",
+            "waiting_period_hours": 72,
+            "trigger": "Policy purchased after leaving home to start travelling",
+            "exceptions": "No waiting period for injury claims under Sections B1/C1; no waiting period when buying a consecutive continuation policy with no gap",
+            "evidence_page": 10
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21 days if no claim and trip has not commenced. After 21 days, pro‑rata refund of the outstanding period less non‑recoverable government charges/taxes, provided no claim has been made and no rights exercised.",
+        "excess_options": "Excess can be varied at purchase (higher premium for lower excess or lower premium for higher excess). Your chosen excess is shown on the Insurance certificate. Excess applies per insured person, per event.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "Chosen policy excess (not printed in PDS)",
+            "basis": "Per insured person, per event",
+            "evidence_page": 4
+          },
+          {
+            "section": "Benefits table flags",
+            "excess_applies_by_section": "See table ‘Excess*’ Yes/No per section",
+            "evidence_page": 4
+          }
+        ],
+        "emergency_medical_limit": "Unlimited (outside Australia)",
+        "emergency_dental_limit": "$500 (emergency dental for immediate pain relief)",
+        "cancellation_cover_limit": "Unlimited",
+        "cancellation_cover_selectable": false,
+        "additional_expenses_or_trip_disruption_limit": "$50,000 (Section C1)",
+        "travel_delay_limit": "Up to $100 per completed 12 hours, up to $2,000",
+        "luggage_limit": "$8,000 (Section E1)",
+        "luggage_single_item_limit": "$750 per item/pair or set (general items)",
+        "electronics_or_valuables_limit": "Personal electronics sub‑limit $3,000; valuables single article limit $750; items stolen from motor vehicle limited to $500 per item",
+        "luggage_delay_limit": "Up to $750 (8–24h $200; after 24h $500)",
+        "travel_documents_limit": "$5,000",
+        "money_limit": "$500",
+        "rental_vehicle_excess_limit": "$4,000",
+        "personal_liability_limit": "$5,000,000",
+        "personal_accident_limit": "$50,000",
+        "loss_of_income_limit": "$10,400 (75% of average monthly net income, up to 6 months; first 28 days after return excluded)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "Unlimited (outside Australia)",
+        "covid_cancellation_or_disruption_limit": "$5,000",
+        "covid_cover_summary": "COVID‑19 cover is limited to: (1) your COVID‑19 diagnosis after purchase; (2) travelling companion’s diagnosis after purchase; (3) close relative in AU/NZ diagnosed and life‑threatening (cancellation/disruption only). Excludes government bans/border closures and quarantine without diagnosis. Medical cover outside Australia only.",
+        "cruise_cover_status": "included",
+        "cruise_cover_required_for_cruises": false,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Winter Sports Cover (Section N)",
+            "availability": "Optional upgrade",
+            "limits_summary": "N1 equipment $1,250 (single article $600); N2 hire $50 per 24h up to $500; N3 lift pass $500; N4 ski pack $150 per 24h up to $600; N5 piste closure $50 per 24h up to $500; N6 avalanche $600",
+            "excess_notes": "Excess applies to N1, N3, N6; No excess for N2, N4, N5",
+            "evidence_page": 6
+          },
+          {
+            "name": "Business Cover (Section O)",
+            "availability": "Optional upgrade",
+            "limits_summary": "O1 business equipment $2,500 (single article $1,000) + samples $1,000; O2 emergency courier $500; O3 equipment hire $100 per 24h up to $1,000; O4 business money $1,000 (cash $500); O5 replacing staff $5,000 (international only)",
+            "evidence_page": 7
+          },
+          {
+            "name": "Additional Specified Items Cover (E2)",
+            "availability": "Optional on Silver/Gold",
+            "limits_summary": "Specify items up to $4,000 per item, combined up to $8,000; excess applies",
+            "evidence_page": 7
+          },
+          {
+            "name": "Natural Disaster Cover",
+            "availability": "Optional upgrade",
+            "limits_summary": "Extends cover for Sections A, C (international only), and D (Silver/Gold); see table.",
+            "evidence_page": 7
+          },
+          {
+            "name": "Activities Plus option",
+            "availability": "Optional upgrade for listed higher‑risk activities",
+            "limits_summary": "Required for activities including endurance cycling, >500cc motorcycling, multi‑day high‑altitude trekking (over 5000m up to 5500m), certain tandem aerial activities, deeper scuba diving (30–50m with conditions)",
+            "evidence_page": 8
+          },
+          {
+            "name": "Pre‑existing medical conditions cover",
+            "availability": "Subject to medical screening and approval; additional premium may apply",
+            "limits_summary": "Cover only if accepted and shown on Insurance certificate",
+            "evidence_page": 8
+          },
+          {
+            "name": "Choose your excess",
+            "availability": "Policy amendment at purchase",
+            "limits_summary": "Select higher/lower excess in exchange for premium change",
+            "evidence_page": 8
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Cancellation and trip amendment",
+            "section": "A",
+            "included": true,
+            "limit": "Unlimited",
+            "excess_applies": true,
+            "evidence_page": 4
+          },
+          {
+            "category": "Medical expenses outside Australia",
+            "section": "B1",
+            "included": true,
+            "limit": "Unlimited",
+            "excess_applies": true,
+            "notes": "Dental $500; repatriation of remains $50,000/€30,000; funeral $10,000; Gold lump sum $3,000 on medical repatriation.",
+            "evidence_page": 4
+          },
+          {
+            "category": "Hospital cash allowance",
+            "section": "B2",
+            "included": true,
+            "limit": "$75 per completed 24 hours up to $5,000",
+            "excess_applies": false,
+            "evidence_page": 4
+          },
+          {
+            "category": "Additional emergency expenses",
+            "section": "C1",
+            "included": true,
+            "limit": "$50,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Resumption of journey",
+            "section": "C2",
+            "included": true,
+            "limit": "$3,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Travel delay expenses",
+            "section": "D",
+            "included": true,
+            "limit": "Up to $100 per 12 hours, up to $2,000",
+            "excess_applies": false,
+            "notes": "12‑hour minimum delay; receipts and carrier confirmation required.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Baggage and personal effects",
+            "section": "E1",
+            "included": true,
+            "limit": "$8,000",
+            "excess_applies": true,
+            "notes": "Electronics sub‑limit $3,000; valuables single article $750; general single item/pair set $750; items stolen from motor vehicle $500 per item.",
+            "evidence_page": 5
+          },
+          {
+            "category": "Additional specified items",
+            "section": "E2",
+            "included": true,
+            "limit": "Optional upgrade available",
+            "excess_applies": true,
+            "evidence_page": 7
+          },
+          {
+            "category": "Delayed baggage",
+            "section": "E3",
+            "included": true,
+            "limit": "Up to $750 (8–24h $200; after 24h $500)",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Passport and travel documents",
+            "section": "E4",
+            "included": true,
+            "limit": "$5,000",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Money",
+            "section": "E5",
+            "included": true,
+            "limit": "$500",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Accidental death and permanent disability",
+            "section": "F",
+            "included": true,
+            "limit": "$50,000",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Personal liability",
+            "section": "G",
+            "included": true,
+            "limit": "$5,000,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Legal expenses",
+            "section": "H",
+            "included": true,
+            "limit": "$25,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "Airline hijack",
+            "section": "I",
+            "included": true,
+            "limit": "$2,500",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Pet care",
+            "section": "J",
+            "included": true,
+            "limit": "$600",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Rental car excess waiver",
+            "section": "K",
+            "included": true,
+            "limit": "$4,000",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "Loss of income",
+            "section": "L",
+            "included": true,
+            "limit": "$10,400 (75% monthly, up to 6 months)",
+            "excess_applies": false,
+            "evidence_page": 5
+          },
+          {
+            "category": "COVID‑19 cancellation/disruption",
+            "section": "M1",
+            "included": true,
+            "limit": "$5,000",
+            "excess_applies": true,
+            "evidence_page": 5
+          },
+          {
+            "category": "COVID‑19 medical expenses (outside Australia)",
+            "section": "M2",
+            "included": true,
+            "limit": "Unlimited",
+            "excess_applies": true,
+            "notes": "Includes repatriation of remains $50,000/€30,000; funeral $10,000.",
+            "evidence_page": 5
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Emergency dental",
+            "amount": "$500",
+            "basis": "Per insured person per trip",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Return of body or ashes to Australia",
+            "amount": "$50,000 or €30,000 (Schengen)",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Funeral/burial outside Australia",
+            "amount": "$10,000",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B1 Medical",
+            "name": "Gold lump sum on medical repatriation",
+            "amount": "$3,000",
+            "basis": "Per insured person",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "B2 Hospital cash",
+            "name": "Daily and maximum",
+            "amount": "$75 per 24 hours, up to $5,000",
+            "basis": "Per insured person per trip",
+            "evidence_page": 4
+          },
+          {
+            "parent_benefit": "C2 Resumption of journey",
+            "name": "Maximum",
+            "amount": "$3,000",
+            "basis": "Per insured person per policy period",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "D Travel delay",
+            "name": "Per 12 hours sub‑limit",
+            "amount": "$100 per 12h; maximum $2,000",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Personal electronics sub‑limit",
+            "amount": "$3,000",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Valuables single article limit",
+            "amount": "$750",
+            "basis": "Per item",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "General single item/pair or set limit",
+            "amount": "$750",
+            "basis": "Per item/pair/set",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E1 Baggage",
+            "name": "Items stolen from a motor vehicle",
+            "amount": "$500",
+            "basis": "Per item",
+            "evidence_page": 37
+          },
+          {
+            "parent_benefit": "E3 Delayed baggage",
+            "name": "8–24 hours",
+            "amount": "$200",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "E3 Delayed baggage",
+            "name": "After 24 hours",
+            "amount": "$500",
+            "basis": "Per insured person per trip",
+            "evidence_page": 5
+          },
+          {
+            "parent_benefit": "L Loss of income",
+            "name": "Benefit rate and period",
+            "amount": "75% of average monthly net income, up to 6 months (first 28 days excluded)",
+            "basis": "Per insured person",
+            "evidence_page": 46
+          }
+        ],
+        "limit_basis_notes": "Unless stated otherwise, sums insured are per insured person per trip. Excess is applied per insured person, per event.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "covered_if_screened_and_approved",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "Pre‑existing conditions are not covered unless you complete medical screening, we accept the risk and any additional premium is paid and shown on the Insurance certificate. No cover for undiagnosed conditions awaiting tests/treatment, travel against medical advice, or terminal prognosis expected before policy end.",
+        "pregnancy_cover_summary": "Cover only for complications of pregnancy and childbirth occurring before the 31st week. No cover for routine pregnancy/childbirth or for a child born after the policy issue date. Section A also covers cancellation if you become pregnant after purchase and will be more than 30 weeks at start/during trip (20 weeks if multiple).",
+        "pregnancy_single_week_limit": 31,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "No Section A or C1 cover for events arising from a non‑travelling relative’s or companion’s pre‑existing medical condition known before policy issue. COVID‑19 cancellation only where close relative’s infection is life‑threatening (Section M1).",
+        "included_activities": [
+          {
+            "category": "Team Sports",
+            "examples": "Baseball, basketball, beach volleyball, cricket, hockey, netball, soccer, squash, volleyball, water polo (some codes like rugby/football marked ~ exclude Sections F and G)",
+            "evidence_page": 12
+          },
+          {
+            "category": "Water Sports",
+            "examples": "Swimming, surfing (not big wave), canoeing/rafting grades 1‑4 with conditions, kayaking, parasailing, rowing, sailing within territorial waters (day tour only), windsurfing; jet skiing marked ~",
+            "evidence_page": 12
+          },
+          {
+            "category": "Fitness & Exercise",
+            "examples": "Gym classes, jogging, athletics, yoga, trampolining, trekking/hiking under 3000m",
+            "evidence_page": 13
+          },
+          {
+            "category": "Leisure & Recreation",
+            "examples": "Archery (recreational), bowling, camel riding, cycle touring, gondola rides, helicopter scenic flight with licensed pilot, hot‑air ballooning, segway tours, zip lining (conditions apply)",
+            "evidence_page": 15
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity_or_group": "Activities Plus required",
+            "details": "Endurance cycling; >500cc motorcycling; multi‑day trekking >8 days; trekking over 5000m but under 5500m; tandem sky/para/hang gliding; scuba diving 30–50m (conditions); kiteboarding, hydro foiling, roller derby, lacrosse",
+            "benefit_exclusions": "Sections F and G do not apply to activities marked ~; activities marked # must be with a commercial operator and not extreme risk",
+            "evidence_page": 8
+          },
+          {
+            "activity_or_group": "Winter sports (upgrade)",
+            "details": "Recreational skiing/snowboarding and listed winter activities when Winter Sports Cover is purchased",
+            "benefit_exclusions": "Subject to Section N terms; some winter activities excluded (e.g., against local advice, freestyle, fun parks)",
+            "evidence_page": 29
+          }
+        ],
+        "excluded_activities": [
+          {
+            "category": "Adventure/Extreme examples",
+            "examples": "Expeditions to isolated regions; mountaineering with climbing/ice equipment; cliff diving/jumping; micro‑lighting; motocross; sky diving (alone); via ferrata; running with the bulls; ski/snowboard fun parks; backcountry/off‑piste against local advice",
+            "evidence_page": 14
+          }
+        ],
+        "rental_vehicle_excess_conditions": "Covers the rental company’s excess only; not a substitute for rental insurance. Vehicle types covered include campervans/motorhomes <6t, typical passenger vehicles, motorcycles/mopeds with <9 seats. Excludes commercial vehicles/buses/trucks/limousines; no cover for off‑road use, unauthorised drivers, violations of rental agreement, wear/tear, mechanical or tyre damage except as specified.",
+        "luggage_conditions": "You must take reasonable care, carry valuables/electronics as hand luggage, obtain police/transport reports within 72 hours, and provide proof of ownership. No cover for valuables/electronics in checked baggage unless mandated by regulation. Unattended property/public place exclusions apply. Items stolen from motor vehicles limited to $500 per item; no cover if left in unattended motor vehicle between sunset and sunrise. IMEI must be supplied and blocked for phone/device claims.",
+        "depreciation_rules": [
+          {
+            "item_category": "Phones/electronics/computers/photographic equipment/clothing",
+            "depreciation_per_year_percent": 20,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "Jewellery",
+            "depreciation_per_year_percent": 5,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "All other items",
+            "depreciation_per_year_percent": 10,
+            "maximum_total_depreciation_percent": 90,
+            "evidence_page": 38
+          },
+          {
+            "item_category": "Winter sports equipment (age‑based)",
+            "depreciation_schedule": "<=12m 90%; <=24m 70%; <=36m 50%; <=48m 30%; <=60m 20%; >60m 0%",
+            "evidence_page": 48
+          }
+        ],
+        "business_cover_details": "Optional Business Cover adds: business equipment $2,500 (single article $1,000) and samples $1,000; emergency courier $500; equipment hire $100 per 24h up to $1,000; business money $1,000 (cash $500); replacing staff $5,000 (international only). Business items subject to depreciation and airline first‑resort claims.",
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "heading": "Pre‑existing medical conditions",
+            "description": "No cover unless screened and accepted; no cover for undiagnosed symptoms, travel against medical advice, or terminal prognosis expected before policy end.",
+            "evidence_page": 52
+          },
+          {
+            "heading": "COVID‑19/pandemics",
+            "description": "General COVID‑19 and epidemic/pandemic claims excluded except specific cover under Section M. No cover for government bans, border closures, general quarantine without diagnosis.",
+            "evidence_page": 55
+          },
+          {
+            "heading": "Travel advisories and sanctions",
+            "description": "No cover for travel to/from/through DFAT ‘Do Not Travel’ areas or where sanctions apply; insurer will not provide cover where doing so breaches sanctions.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Alcohol/drugs",
+            "description": "Claims arising from high blood alcohol levels or non‑prescribed drug use excluded.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Motorcycling/mopeds",
+            "description": "Exclusion unless helmet worn; appropriate licences held; >500cc requires Activities Plus.",
+            "evidence_page": 54
+          },
+          {
+            "heading": "War/civil unrest/industrial action",
+            "description": "War and similar perils excluded; industrial action only if not public knowledge at booking.",
+            "evidence_page": 53
+          },
+          {
+            "heading": "Antarctica",
+            "description": "No cover unless on a commercial cruise.",
+            "evidence_page": 54
+          }
+        ],
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "No cover for travel in, to or through destinations subject to DFAT ‘Do Not Travel’ advice or where sanctions prohibit claim payment. General Condition 15 and General Exclusions 11–12 apply.",
+        "claims_process_summary": "Register claims within 30 days after completion of travel. Provide proof of ownership/value and proof of events within requested timeframes. Excess per insured person per event may apply. Claims may be settled by repair, replacement, store credit or cash, allowing for depreciation. Contact +61 2 7201 9532 or email info@insureandgo.com.au; online claim forms available.",
+        "emergency_assistance_details": "24/7 Overseas Emergency Assistance: +61 2 9333 3999. If admitted as an inpatient >24 hours or requiring hospitalisation/evacuation, contact as soon as possible and obtain approval where practicable. Insured person’s name and policy number required.",
+        "premium_factors": "Destination, trip length, level of cover, number of travellers, ages, selected add‑ons and chosen excess; premiums include GST and stamp duty.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+        "source_pdf_hash": "83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+        "source_evidence": [
+          {
+            "fields": [
+              "pds_title",
+              "pds_effective_date"
+            ],
+            "page": 1,
+            "quote": "Annual Multi-Trip Travel Insurance – PRODUCT DISCLOSURE STATEMENT. Effective: 1 April 2026"
+          },
+          {
+            "fields": [
+              "pds_prepared_or_version_date"
+            ],
+            "page": 3,
+            "quote": "Product Disclosure Statement (PDS) Date: 1/04/2026"
+          },
+          {
+            "fields": [
+              "product_type",
+              "trip_frequency",
+              "maximum_trip_duration_options"
+            ],
+            "page": 9,
+            "quote": "Insure&Go provides cover for multiple trips up to a maximum duration that you select (30, 45 or 60 days for International policies)."
+          },
+          {
+            "fields": [
+              "emergency_medical_limit",
+              "cancellation_cover_limit"
+            ],
+            "page": 4,
+            "quote": "B1 Medical and other expenses outside Australia: Unlimited. A Cancelling your trip: Unlimited (Gold)."
+          },
+          {
+            "fields": [
+              "additional_expenses_or_trip_disruption_limit"
+            ],
+            "page": 5,
+            "quote": "C1 Additional emergency expenses: $50,000 (Gold)."
+          },
+          {
+            "fields": [
+              "travel_delay_limit",
+              "travel_delay_minimum_delay_hours"
+            ],
+            "page": 5,
+            "quote": "D Travel delay expenses: Up to $100 per completed 12 hours up to $2,000 (Gold)."
+          },
+          {
+            "fields": [
+              "luggage_limit",
+              "electronics_or_valuables_limit",
+              "luggage_single_item_limit"
+            ],
+            "page": 5,
+            "quote": "E1 Personal belongings and baggage $8,000; personal electronics sub‑limit $3,000; valuables single article limit $750; pair or set of items limit $750."
+          },
+          {
+            "fields": [
+              "luggage_delay_limit"
+            ],
+            "page": 5,
+            "quote": "E3 Delayed baggage: $750; sub‑limit for delays between 8–24 hours $200; after 24 hours $500 (Gold)."
+          },
+          {
+            "fields": [
+              "travel_documents_limit",
+              "money_limit"
+            ],
+            "page": 5,
+            "quote": "E4 Passport and travel documents: $5,000. E5 Money: $500."
+          },
+          {
+            "fields": [
+              "personal_accident_limit",
+              "personal_liability_limit",
+              "legal_expenses_limit"
+            ],
+            "page": 5,
+            "quote": "F Accidental death and permanent disability: $50,000. G Personal liability: $5,000,000. H Legal expenses: $25,000."
+          },
+          {
+            "fields": [
+              "rental_vehicle_excess_limit",
+              "loss_of_income_limit"
+            ],
+            "page": 5,
+            "quote": "K Rental car excess waiver: $4,000. L Loss of income: $10,400."
+          },
+          {
+            "fields": [
+              "covid_medical_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 5,
+            "quote": "M1 COVID-19: Cancellation or trip disruption $5,000. M2 COVID-19: Medical expenses outside Australia: Unlimited (Gold)."
+          },
+          {
+            "fields": [
+              "B1 sublimit gold lump sum"
+            ],
+            "page": 4,
+            "quote": "Lump sum on medical repatriation: $3,000 (Gold)."
+          },
+          {
+            "fields": [
+              "excess_rules"
+            ],
+            "page": 4,
+            "quote": "*Excess – If your claim is paid, this excess is deducted... applied per insured person and for each event per insured person."
+          },
+          {
+            "fields": [
+              "geographic_scope",
+              "travel_warning_and_sanctions_rules"
+            ],
+            "page": 9,
+            "quote": "International Multi-Trip policies... No cover for ‘Do Not Travel’ advice... No cover for Antarctica unless on a commercial cruise."
+          },
+          {
+            "fields": [
+              "already_travelling_or_overseas_available",
+              "waiting_period_hours",
+              "waiting_period_rules"
+            ],
+            "page": 10,
+            "quote": "Waiting Period – If you buy your policy after you have left your home... 72‑hour waiting period. Not applied for injury claims under B or C1; not applied if continuation of cover."
+          },
+          {
+            "fields": [
+              "eligibility_rules",
+              "maximum_age_years",
+              "dependent_child_age_limit_years",
+              "minimum_age_years"
+            ],
+            "page": 17,
+            "quote": "Eligibility – Australian citizens or Permanent residents, or non‑Permanent residents with valid Medicare/PHI/OSHC. Applicants must be 18+ to apply. Dependent children under 18. Silver and Gold policies are available to travellers who are 100 years of age or under."
+          },
+          {
+            "fields": [
+              "cooling_off_period_days",
+              "policy_cancellation_refund_terms"
+            ],
+            "page": 20,
+            "quote": "Cooling Off period – 21 days... Cancelling after the cooling off period – pro‑rata refund less government charges if no claim."
+          },
+          {
+            "fields": [
+              "claims_process_summary",
+              "claim_notification_deadline_days"
+            ],
+            "page": 21,
+            "quote": "You must register any claim within 30 days after completion of your travel... proof of ownership/value... settlement methods."
+          },
+          {
+            "fields": [
+              "emergency_assistance_details"
+            ],
+            "page": 20,
+            "quote": "Overseas Emergency Assistance Helpline +61 2 9333 3999 (24/7)."
+          },
+          {
+            "fields": [
+              "pregnancy_cover_summary",
+              "pregnancy_single_week_limit"
+            ],
+            "page": 19,
+            "quote": "Cover under Sections A, B1, B2 only for complications of pregnancy and childbirth that occur before the 31st week of pregnancy. Cancellation if you will be more than 30 weeks (or 20 weeks for multiples)."
+          },
+          {
+            "fields": [
+              "natural_disaster_cover_status",
+              "optional_add_ons"
+            ],
+            "page": 7,
+            "quote": "Natural Disaster Cover upgrade extends Sections A, C (Yes^ int’l), D (Yes for Silver/Gold)."
+          },
+          {
+            "fields": [
+              "cruise_cover_status"
+            ],
+            "page": 7,
+            "quote": "Commercial cruising is automatically included with your Annual Multi-Trip policy."
+          },
+          {
+            "fields": [
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 32,
+            "quote": "We will not pay any expenses incurred more than 12 months from the time you first received treatment for the injury or illness."
+          },
+          {
+            "fields": [
+              "repatriation_of_remains_limit"
+            ],
+            "page": 4,
+            "quote": "Return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; Funeral or burial expenses outside of Australia $10,000."
+          }
+        ],
+        "claim_notification_deadline_days": 30,
+        "legal_expenses_limit": "$25,000",
+        "natural_disaster_cover_status": "optional_add_on",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Return of body or ashes to Australia up to $50,000 (or €30,000 for Schengen); funeral/burial outside Australia up to $10,000",
+        "travel_delay_minimum_delay_hours": 12,
+        "travel_services_provider_insolvency_limit": "Excluded (general exclusion for financial default of providers)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Gold includes higher limits, Gold‑only benefits such as Resumption of journey ($3,000), airline hijack ($2,500), pet care ($600), and B1 lump sum on medical repatriation ($3,000). Natural Disaster cover requires upgrade. Cruise cover is automatically included when on a commercial cruise.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "paid_accommodation_exception",
+          "standard_excess_aud",
+          "pregnancy_multiple_week_limit",
+          "inbound_cover_details",
+          "benefit_exclusions"
+        ]
+      }
+    ],
+    "_document_notes": "Benefits table line‑wrap creates two adjacent rows under Section E1: we interpret “valuables single article limit” as Nil/$500/$750 (Bare/Silver/Gold) and the next row “pair or set of items limit” as $500/$500/$750. Policy period months for the annual multi‑trip policy is not explicitly printed; trip frequency and multiple trips are evidenced. The PDS does not print a single excess amount; it is chosen at purchase and shown on the certificate."
+  },
+  "evidences": {},
+  "normalized_names": [],
+  "warnings": []
+}

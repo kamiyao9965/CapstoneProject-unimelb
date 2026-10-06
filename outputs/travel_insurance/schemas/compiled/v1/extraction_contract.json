@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "products",
+    "_document_notes"
+  ],
+  "properties": {
+    "products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "product_name",
+          "product_type",
+          "insurer_name",
+          "plan_tier",
+          "_unfilled",
+          "_notes"
+        ],
+        "properties": {
+          "product_name": {
+            "type": "string"
+          },
+          "product_type": {
+            "enum": [
+              "international_single_trip",
+              "international_multi_trip",
+              "domestic",
+              "inbound",
+              "business",
+              "cruise"
+            ]
+          },
+          "insurer_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "insurer_licence_ids": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "brand_or_trading_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plan_tier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pds_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pds_effective_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "document_source_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trip_frequency": {
+            "enum": [
+              "single_trip",
+              "annual_multi_trip",
+              null
+            ]
+          },
+          "annual_multi_trip_max_duration_days": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "area_of_travel_options": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "cruise_add_on_required": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "eligibility_summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "age_limits": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dependent_children_policy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pre_existing_medical_cover": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "excess_options_aud": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "special_excesses": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "cancellation_cover_limit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overseas_medical_limit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergency_dental_limit_aud": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "baggage_limit_aud": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "baggage_sublimits": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "specified_items_rules": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rental_vehicle_excess_limit_aud": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "rental_vehicle_comprehensive_cover": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "personal_liability_limit_aud": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "personal_accident_benefits": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "covid19_cover_summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "waiting_periods": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "general_exclusions_summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "optional_add_ons": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "emergency_assistance_details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "claim_requirements": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "benefits": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "source_evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            ]
+          },
+          "_unfilled": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "product_name",
+                "product_type",
+                "insurer_name",
+                "insurer_licence_ids",
+                "brand_or_trading_name",
+                "plan_tier",
+                "pds_title",
+                "pds_effective_date",
+                "document_source_id",
+                "trip_frequency",
+                "annual_multi_trip_max_duration_days",
+                "area_of_travel_options",
+                "cruise_add_on_required",
+                "eligibility_summary",
+                "age_limits",
+                "dependent_children_policy",
+                "pre_existing_medical_cover",
+                "excess_options_aud",
+                "special_excesses",
+                "cancellation_cover_limit",
+                "overseas_medical_limit",
+                "emergency_dental_limit_aud",
+                "baggage_limit_aud",
+                "baggage_sublimits",
+                "specified_items_rules",
+                "rental_vehicle_excess_limit_aud",
+                "rental_vehicle_comprehensive_cover",
+                "personal_liability_limit_aud",
+                "personal_accident_benefits",
+                "covid19_cover_summary",
+                "waiting_periods",
+                "general_exclusions_summary",
+                "optional_add_ons",
+                "emergency_assistance_details",
+                "claim_requirements",
+                "benefits",
+                "source_evidence"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "_notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "_document_notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "artifact_type": "candidate_patch_set",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:18:48.430932Z",
+  "provenance": {
+    "run_id": "consensus-004",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "markdown",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/refine/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "patches": [
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.83,
+        "type": "number",
+        "values": [],
+        "rationale": "Cover-More’s Annual Multi-Trip requires trips to be >250 km from home (or include at least one paid night). This distance rule is a common AU insurer criterion and supports cross‑insurer comparison without relying on narrative text.",
+        "description": "Minimum one-way distance from home (km) for a journey to qualify under Annual Multi-Trip. If the policy instead allows a shorter distance when at least one paid night is included, capture the distance threshold here and note the alternate night rule in eligibility_summary or benefits.conditions.",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic"
+        ],
+        "field_name": "annual_multi_trip_min_distance_km",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "With Our Annual Multi-Trip policy You can select ... For Your Journey to be covered by the Annual Multi-Trip policy, Your destination must be more than 250 kilometres from Home or, if less than that, Your trip must include at least one night paid accommodation... (p10)."
+          }
+        ],
+        "canonical_name": "annual_multi_trip_min_distance_km"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.78,
+        "type": "number",
+        "values": [],
+        "rationale": "Several AU PDSs specify a no-cover waiting period when buying after departure. Cover-More applies a 3‑day no‑cover period; capturing this as a discrete field improves comparison and automation.",
+        "description": "Number of days of no cover if the policy is purchased after the journey has already commenced (already travelling waiting period). Enter 0 if not applicable or not stated.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "already_travelling_waiting_period_days",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Already travelling: If You purchase this policy on Your trip after leaving Home, this cover is subject to a 3 day no-cover period... The 3 day no-cover period applies to all policy benefits. (p28, cl. 15)."
+          }
+        ],
+        "canonical_name": "already_travelling_waiting_period_days"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.86,
+        "type": "number",
+        "values": [],
+        "rationale": "Both SCTI and Cover‑More require a minimum 12‑hour delay before delayed baggage benefits apply. A numeric field makes this comparable without parsing free text.",
+        "description": "Minimum checked baggage delay (hours) required before delayed luggage/baggage allowance benefits apply.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "baggage_delay_min_hours",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "We cover you if your scheduled transport provider delays your checked-in baggage for more than 12 hours... (p63, D.4.3)."
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "If all Your luggage is delayed by a Transport Provider during the Journey for more than 12 hours We will reimburse You... (p34, Section 6)."
+          }
+        ],
+        "canonical_name": "baggage_delay_min_hours"
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.74,
+        "type": "string",
+        "values": [],
+        "rationale": "Inbound plans commonly frame the medical headline limit as ‘Medical and Dental Expenses in Australia’. Updating the description clarifies that this field is also used for inbound in‑Australia medical limits across insurers, improving consistency.",
+        "description": "Overseas medical cover headline limit (e.g., Unlimited). For inbound products, use this field to store the Medical (and Dental) Expenses in Australia limit. Include time caps if stated (e.g., up to 12 months from onset).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "cruise"
+        ],
+        "field_name": "overseas_medical_limit",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Inbound benefits: Medical and Dental Expenses in Australia – Medical Expenses in Australia $1,000,000; Emergency Dental Expenses $2,000 (p9, p41, p48 Section 19)."
+          }
+        ],
+        "canonical_name": "overseas_medical_limit"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.7,
+        "type": "enum",
+        "values": [
+          "provider_insolvency"
+        ],
+        "rationale": "Cover‑More includes ‘Travel Services Provider Insolvency’ with defined limits. Many AU insurers offer a similar benefit. Adding a normalised coverage category improves cross‑insurer mapping in benefits.",
+        "description": "New coverage category to capture cover for losses due to the insolvency of a service provider (e.g., airline, tour operator, accommodation provider), including rearrangement costs, cancellations, and necessary additional expenses.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "coverage_categories",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Section 3 Travel Services Provider Insolvency with limits (e.g., $5,000 Comprehensive; $10,000 Comprehensive+) and details of rearrangement/cancellation coverage (pp. 3–4 tables; p31)."
+          }
+        ],
+        "canonical_name": "travel_provider_insolvency"
+      }
+    ]
+  },
+  "error": null
+}

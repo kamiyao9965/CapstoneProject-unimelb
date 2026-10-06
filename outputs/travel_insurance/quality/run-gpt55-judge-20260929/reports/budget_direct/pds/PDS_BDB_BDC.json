@@ -1,0 +1,171 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T10:37:49.354957Z",
+  "provenance": {
+    "run_id": "96e82322bdd04e4aad0a39847cae098a",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/budget_direct/pds/PDS_BDB_BDC.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "a57c320af3334554a058b8e253f160d1ab3b891d56e578f9e42a567ab48e02c4",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "Most core limits and entity details are supported, but there are actionable issues around an apparently unavailable International Basic Annual Multi-Trip record, Basic travel-delay applicability, Domestic medical-duration applicability, a COVID-19 summary understatement for Basic, and one cancellation limit basis error.",
+    "findings": [
+      {
+        "product_index": 5,
+        "field_name": "trip_frequency",
+        "issue_type": "wrong_plan",
+        "reason": "The extraction creates an International Basic Annual Multi-Trip record, but the International benefits table appears to identify Basic as Single Trip only, unlike Comprehensive/Essential which are shown as Single Trip or Annual Multi-Trip.",
+        "source_page": 4,
+        "source_quote": "Basic | Single Trip",
+        "citation_verified": false,
+        "extracted_value": "annual_multi_trip"
+      },
+      {
+        "product_index": 4,
+        "field_name": "travel_delay_minimum_delay_hours",
+        "issue_type": "wrong_value",
+        "reason": "The Basic plan has no Travel Delay benefit, so a 6-hour claim threshold should not be stated as applying to this plan.",
+        "source_page": 39,
+        "source_quote": "International Basic | $Nil",
+        "citation_verified": true,
+        "extracted_value": 6
+      },
+      {
+        "product_index": 6,
+        "field_name": "medical_expenses_max_months_from_onset",
+        "issue_type": "wrong_value",
+        "reason": "Domestic has no overseas medical or dental expenses cover, so the 12-month maximum medical-expenses continuation period is not applicable to this Domestic record.",
+        "source_page": 31,
+        "source_quote": "Domestic | $Nil | $Nil",
+        "citation_verified": true,
+        "extracted_value": 12
+      },
+      {
+        "product_index": 7,
+        "field_name": "medical_expenses_max_months_from_onset",
+        "issue_type": "wrong_value",
+        "reason": "Domestic has no overseas medical or dental expenses cover, so the 12-month maximum medical-expenses continuation period is not applicable to this Domestic Annual Multi-Trip record.",
+        "source_page": 31,
+        "source_quote": "Domestic | $Nil | $Nil",
+        "citation_verified": true,
+        "extracted_value": 12
+      },
+      {
+        "product_index": 4,
+        "field_name": "covid_cover_summary",
+        "issue_type": "wrong_value",
+        "reason": "The Basic COVID-19 summary says Additional Expenses cover is up to $5,000, but the PDS also provides an Unlimited COVID-19 Additional Expenses limit for International Basic where the traveller is diagnosed with COVID-19 and hospitalised.",
+        "source_page": 43,
+        "source_quote": "International Basic | $Unlimited",
+        "citation_verified": true,
+        "extracted_value": "COVID-19 overseas medical included; Additional Expenses cover for COVID-19 up to $5,000 (see PDS); no COVID-19 Amendment/Cancellation option."
+      },
+      {
+        "product_index": 0,
+        "field_name": "coverage_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The cancellation benefit entry states '$10,000 per person or cover chosen per policy', but the PDS footnote says the included cancellation limit applies per policy, not per person.",
+        "source_page": 4,
+        "source_quote": "This limit applies per policy",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses (incl. emergency repatriation/evacuation)",
+            "included": true,
+            "limit": "$Unlimited (12 months max from onset)",
+            "excess_applies": true,
+            "evidence": "p4 International table row 1; p31 Section 1."
+          },
+          {
+            "category": "Dental",
+            "section": "1",
+            "name": "Overseas Dental Expenses",
+            "included": true,
+            "limit": "$2,000",
+            "excess_applies": true,
+            "evidence": "p4 International table row 1; p31 Section 1."
+          },
+          {
+            "category": "Trip disruption",
+            "section": "2",
+            "name": "Additional Expenses",
+            "included": true,
+            "limit": "$Unlimited (sub-limits apply)",
+            "excess_applies": true,
+            "evidence": "p4 row 2; p32-33 Section 2."
+          },
+          {
+            "category": "Cancellation",
+            "section": "3",
+            "name": "Amendment or Cancellation Costs",
+            "included": true,
+            "limit": "$10,000 per person or cover chosen per policy",
+            "excess_applies": true,
+            "basis": "Per policy for selected cover",
+            "evidence": "p4 row 3; p33 table."
+          },
+          {
+            "category": "Baggage",
+            "section": "4",
+            "name": "Luggage and Personal Effects",
+            "included": true,
+            "limit": "$10,000 total; per-item sub-limits apply",
+            "excess_applies": true,
+            "evidence": "p4 row 4; p36 table."
+          },
+          {
+            "category": "Delay",
+            "section": "8",
+            "name": "Travel Delay",
+            "included": true,
+            "limit": "$2,000",
+            "conditions": "6+ hour delay threshold",
+            "excess_applies": false,
+            "evidence": "p4 row 8; p39 Section 8."
+          },
+          {
+            "category": "Rental vehicle",
+            "section": "7",
+            "name": "Rental Vehicle Insurance Excess",
+            "included": true,
+            "limit": "$10,000",
+            "excess_applies": false,
+            "evidence": "p4 row 7; p38 Section 7."
+          },
+          {
+            "category": "Liability",
+            "section": "17",
+            "name": "Personal Liability",
+            "included": true,
+            "limit": "$5,000,000",
+            "excess_applies": false,
+            "evidence": "p4 row 17; p42 Section 17."
+          }
+        ]
+      }
+    ]
+  },
+  "error": null
+}

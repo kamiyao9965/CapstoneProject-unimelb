@@ -1,0 +1,389 @@
+{
+  "artifact_type": "review_decisions",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-15T05:58:01.518079Z",
+  "provenance": {
+    "run_id": null,
+    "provider": null,
+    "model": null,
+    "document_input": null,
+    "source_documents": [],
+    "source_artifacts": []
+  },
+  "data": {
+    "metadata": {
+      "reviewed_at": "2026-09-15T05:58:01.512811+00:00",
+      "reviewer": "",
+      "queue_id": "291f512016c806cd4c4facbb9b957510c39c32d937b6b12fb508ff57e5cdf6ea",
+      "vertical": "travel_insurance",
+      "schema_version": "1.0.0"
+    },
+    "decisions": [
+      {
+        "id": "field:emergency_assistance_approval_threshold_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:natural_disaster_cover_status",
+        "action": "edit",
+        "reviewer_notes": "",
+        "edited_update": {
+          "name": "natural_disaster_cover_status",
+          "type": "enum",
+          "description": "Natural disaster cover status for cancellation, additional expenses or travel delay benefits at plan level. Use included where the plan covers natural disaster events without extra premium, optional_add_on where a natural-disaster upgrade must be purchased, conditionally_included where only some sections or specified circumstances are covered, excluded where natural disasters are not covered, not_applicable where the plan has no relevant benefits, or unknown. Capture section-specific differences in coverage_benefits or optional_add_ons.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": [
+            "included",
+            "optional_add_on",
+            "conditionally_included",
+            "excluded",
+            "not_applicable",
+            "unknown"
+          ]
+        }
+      },
+      {
+        "id": "field:emergency_medical_limit",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:hospital_cash_or_incidentals_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:inbound_medical_in_australia_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:pets_childcare_and_domestic_services_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:resumption_of_journey_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:specified_items_cover_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:travel_agent_cancellation_fee_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:alternative_or_replacement_staff_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:available_traveller_cover_types",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:childcare_or_dependent_care_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cover_start_and_end_rules",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cover_type_limit_rules",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cover_types_available",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_cabin_confinement_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_cover_minimum_nights_trigger",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_formal_wear_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_marine_rescue_diversion_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_missed_port_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_missed_shore_excursion_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_ship_to_shore_evacuation_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:emergency_medical_preapproval_threshold_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:extra_territorial_workers_compensation_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:funeral_or_repatriation_of_remains_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:hijack_kidnap_and_ransom_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:hijack_or_hijacking_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:hijacking_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:identity_theft_protection_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:inbound_emergency_dental_in_australia_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:kidnap_ransom_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:loss_theft_report_deadline",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:luggage_delay_minimum_delay_hours",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:luggage_delay_waiting_period_hours",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:maximum_trip_duration_options",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:medical_assistance_approval_threshold_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:medical_expenses_continuation_limit_months",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:medical_expenses_max_months_from_onset",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:medical_treatment_maximum_period_months",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:missed_connections_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:pds_version_identifier",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:personal_vehicle_excess_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:personal_vehicle_excess_or_repair_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:pet_care_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:pets_childcare_domestic_services_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:policy_extension_terms",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:repatriation_of_remains_limit",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:return_rental_vehicle_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:schengen_repatriation_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:special_events_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:specified_item_max_per_item_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:specified_items_or_high_value_items_cover_options",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:travel_delay_minimum_delay_hours",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:travel_delay_waiting_period_hours",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:travel_services_provider_insolvency_limit",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:traveller_party_options",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:winter_sports_cover_status",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      }
+    ]
+  },
+  "error": null
+}

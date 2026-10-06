@@ -1,0 +1,377 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T14:00:50.235469Z",
+  "provenance": {
+    "run_id": "1c59aa12f04d4d54976050469d3962bb",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/1a52730b0ff2b2431c4291114718ab6907fa5d3410a0124deb9fb8488700d123_download-domestic-product-disclosure-statement-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/scti/pds/1a52730b0ff2b2431c4291114718ab6907fa5d3410a0124deb9fb8488700d123_download-domestic-product-disclosure-statement-pds.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "985fcbea3b517b5e33d68e5817f15f05d9cdb3c62854f45fdd6ec2fe34968ed8",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "1a52730b0ff2b2431c4291114718ab6907fa5d3410a0124deb9fb8488700d123",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "supported",
+    "uncertainty": "low",
+    "summary": "Most extracted values are supported by the parsed PDS and plan attribution is generally correct for the SCTI Domestic single-trip product. However, there are actionable omissions in benefit and exclusion lists, null values where the PDS expressly says cash/travel documents are not covered, and the effective date is not normalised as the schema requests.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "coverage_benefits",
+        "issue_type": "potential_omission",
+        "reason": "The benefits list omits D.2.4 Pet services and D.2.5 Childcare expenses, which are plan benefits with stated limits in the PDS. The overall D.2 entry does not separately capture these sub-benefits or their limits/conditions.",
+        "source_page": 41,
+        "source_quote": "We pay up to $50 for each day and up to $500 for each person.",
+        "citation_verified": false,
+        "extracted_value": [
+          {
+            "category": "cancellation_amendment",
+            "section": "D.1",
+            "benefit": "Cancelling or changing your journey before you leave",
+            "included": true,
+            "limit": "Unlimited (per person)",
+            "sub_limits": [
+              "Frequent flyer points: up to $5,000 per person",
+              "Existing condition of a relevant person: up to $2,500 per person",
+              "Delayed journey to a special event (D.1.2): up to $3,000 per person"
+            ],
+            "excess_applies": true,
+            "evidence": [
+              {
+                "page": 9,
+                "quote": "D.1 Cancelling or changing your journey before you leave — Maximum cover Unlimited"
+              },
+              {
+                "page": 34,
+                "quote": "We don’t limit the amount we pay under this section, except... frequent flyer points up to $5,000... existing condition of a relevant person up to $2,500... D.1.2 up to an extra $3,000."
+              }
+            ]
+          },
+          {
+            "category": "trip_disruption",
+            "section": "D.2",
+            "benefit": "Changes to your journey once you have left (overall)",
+            "included": true,
+            "limit": "$50,000 per person (overall section limit)",
+            "sub_limits": [
+              "Frequent flyer points: up to $5,000 per person",
+              "Existing condition of a relevant person: up to $2,500 per person",
+              "D.2.3 Delayed journey to a special event: up to $3,000 per person"
+            ],
+            "excess_applies": true,
+            "evidence": [
+              {
+                "page": 9,
+                "quote": "D.2 Changes to your journey once you have left — Maximum cover $50,000 for each person"
+              },
+              {
+                "page": 38,
+                "quote": "The maximum amount we pay for all claims under this section is $50,000 for each person..."
+              }
+            ]
+          },
+          {
+            "category": "trip_disruption",
+            "section": "D.2.1",
+            "benefit": "Travel interruption",
+            "included": true,
+            "limit": "Up to $30,000 per person",
+            "conditions": "Interruption exceeds 12 hours; only first 30 days of delay covered",
+            "excess_applies": true,
+            "evidence": [
+              {
+                "page": 9,
+                "quote": "D.2.1 Travel interruption — $30,000 for each person"
+              },
+              {
+                "page": 38,
+                "quote": "...interrupts your journey for more than 12 hours..."
+              },
+              {
+                "page": 39,
+                "quote": "We only cover claims relating to the first 30 days you are delayed..."
+              }
+            ]
+          },
+          {
+            "category": "trip_disruption",
+            "section": "D.2.2",
+            "benefit": "Cutting your journey short (return home)",
+            "included": true,
+            "limit": "Up to $50,000 per person",
+            "excess_applies": true,
+            "evidence": [
+              {
+                "page": 9,
+                "quote": "D.2.2 Cutting your journey short — $50,000 for each person"
+              },
+              {
+                "page": 39,
+                "quote": "We pay you the higher of... up to $50,000 for each person."
+              }
+            ]
+          },
+          {
+            "category": "special_event",
+            "section": "D.1.2 / D.2.3",
+            "benefit": "Delayed journey to a special event",
+            "included": true,
+            "limit": "Up to $3,000 per person (before or after departure, per respective section)",
+            "excess_applies": true,
+            "evidence": [
+              {
+                "page": 9,
+                "quote": "D.1.2 Delayed journey to a special event — $3,000 for each person"
+              },
+              {
+                "page": 9,
+                "quote": "D.2.3 Delayed journey to a special event — $3,000 for each person"
+              }
+            ]
+          },
+          {
+            "category": "baggage",
+            "section": "D.3",
+            "benefit": "Baggage and personal items",
+            "included": true,
+            "limit": "$15,000 per person",
+            "sub_limits": [
+              "Unspecified jewellery/traditional watches: $1,500 per item; $2,500 total per person",
+              "Unspecified phones/laptops/PCs/tablets/cameras: $3,000 per item; $10,000 total per person",
+              "Other unspecified items and smart watches: $1,500 per item",
+              "Specified items: up to $10,000 per item; $15,000 total per person",
+              "Baggage delay: $1,000 per person after 12 hours"
+            ],
+            "excess_applies": true,
+            "evidence": [
+              {
+                "page": 10,
+                "quote": "D.3 Baggage and personal items — Maximum cover $15,000 for each person"
+              },
+              {
+                "page": 46,
+                "quote": "Unspecified... jewellery... $1,500 each item; up to $2,500 for all items for each person; ... phones/laptops... $3,000 each item; up to $10,000 for each person; Other unspecified items... $1,500 each item"
+              },
+              {
+                "page": 48,
+                "quote": "Specified items... up to $15,000 for all items for each person"
+              },
+              {
+                "page": 49,
+                "quote": "Baggage delay... up to $1,000 for each person (after 12 hours)"
+              }
+            ]
+          },
+          {
+            "category": "personal_accident",
+            "section": "D.4",
+            "benefit": "Personal accident",
+            "included": true,
+            "limit": "$25,000 per person",
+            "sub_limits": [
+              "D.4.1 Total permanent disablement: $25,000 per person",
+              "D.4.2 Loss of life: $25,000 per deceased person; only if aged 16–80 at policy start"
+            ],
+            "excess_applies": false,
+            "evidence": [
+              {
+                "page": 10,
+                "quote": "D.4 Personal accident — $25,000 for each injured person"
+              },
+              {
+                "page": 52,
+                "quote": "D.4.1 Total permanent disablement — $25,000 for each person"
+              },
+              {
+                "page": 53,
+                "quote": "D.4.2 Loss of life — $25,000... You can only claim this if you're aged between 16 and 80 years at the date your insurance starts"
+              }
+            ]
+          },
+          {
+            "category": "personal_liability",
+            "section": "D.5",
+            "benefit": "Personal liability",
+            "included": true,
+            "limit": "$2,500,000 per person (damages, compensation and legal expenses)",
+            "excess_applies": false,
+            "evidence": [
+              {
+                "page": 10,
+                "quote": "D.5 Personal liability — $2,500,000 for each person"
+              },
+              {
+                "page": 54,
+                "quote": "We cover you for damages, compensation, and legal expenses up to $2,500,000 for each person."
+              }
+            ]
+          },
+          {
+            "category": "rental_vehicle",
+            "section": "D.6",
+            "benefit": "Rental vehicle excess",
+            "included": true,
+            "limit": "$6,000 per person",
+            "excess_applies": false,
+            "evidence": [
+              {
+                "page": 10,
+                "quote": "D.6 Rental vehicle excess — Maximum cover $6,000 for each person"
+              },
+              {
+                "page": 56,
+                "quote": "You can claim up to $6,000 for each person."
+              }
+            ]
+          },
+          {
+            "category": "cruise",
+            "section": "D.7",
+            "benefit": "Optional: Cruise cover",
+            "included": false,
+            "limit": "Adds cruise cover to relevant benefits; no medical or evacuation cover",
+            "excess_applies": null,
+            "evidence": [
+              {
+                "page": 10,
+                "quote": "D.7 Cruise cover — See 'D.7 Optional: Cruise cover', page 58."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "benefit_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The extracted benefit_exclusions list only captures D.1 and D.2 exclusions. The PDS contains benefit-specific exclusions for other sections such as D.3 Baggage and personal items, which are not captured in this field.",
+        "source_page": 50,
+        "source_quote": "D.3.4 Other losses we won’t cover",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "D.1",
+            "exclusion_text": "Other losses we won’t cover if you need to change your plans before you leave (e.g., change of mind; scheduled/wait‑listed procedures; late notification; no documents; no confirmed booking; financial circumstances; errors/default/financial collapse of a service provider; ceremonies/receptions; epidemic/pandemic; acts of terrorism)",
+            "evidence": {
+              "page": 37,
+              "quote": "D.1.4 Other losses we won’t cover..."
+            }
+          },
+          {
+            "benefit": "D.2",
+            "exclusion_text": "Other losses we won’t cover if you need to change your plans after you’ve left (e.g., decide not to continue; scheduled/wait‑listed procedures; late notification; no documents; no confirmed booking; did not return before insurance ended; financial circumstances; errors/default/financial collapse of a service provider; ceremonies/receptions; epidemic/pandemic; acts of terrorism)",
+            "evidence": {
+              "page": 44,
+              "quote": "D.2.7 Other losses we won’t cover..."
+            }
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "general_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The general_exclusions field contains only selected exclusions and omits multiple general exclusions stated in Section E, such as hitchhiking/non-fare-paying travel and other E-series exclusions. The schema definition expects general exclusions applicable to all benefits to be captured.",
+        "source_page": 62,
+        "source_quote": "E.8 Hitchhiking",
+        "citation_verified": false,
+        "extracted_value": [
+          {
+            "heading": "Government directives/quarantine/detention",
+            "description": "Losses arising from government or official authority directives, restrictions, prohibitions, quarantine or detention (e.g., border closures, lockdowns)",
+            "evidence": {
+              "page": 60,
+              "quote": "E.2 Governmental or official... directive, restriction, prohibition, quarantine; detention."
+            }
+          },
+          {
+            "heading": "Natural events timing",
+            "description": "Natural events that begin before cover starts (before purchase for D.1; before journey start for other sections)",
+            "evidence": {
+              "page": 61,
+              "quote": "E.3 Natural event — For D.1... begin before date your insurance starts; for all other sections, before the date your journey starts."
+            }
+          },
+          {
+            "heading": "War/riot/nuclear/biological/chemical",
+            "description": "Excludes war, invasion, civil war, military operations; foreseeable violence; nuclear/biological/chemical events. Limited exception for riot/civil commotion if already away and you try to avoid it.",
+            "evidence": {
+              "page": 61,
+              "quote": "E.5 War and violence..."
+            }
+          },
+          {
+            "heading": "Work and professional activities",
+            "description": "No cover for work (except non‑manual office/training/conference/trade fair); professional/competitive sport for money excluded",
+            "evidence": {
+              "page": 63,
+              "quote": "E.10 Work... Exceptions: non‑manual work..."
+            }
+          },
+          {
+            "heading": "Medical treatment and evacuation",
+            "description": "No cover for medical or dental treatment or evacuation under this domestic policy",
+            "evidence": {
+              "page": 22,
+              "quote": "we won’t cover medical treatment or evacuation costs under this policy."
+            }
+          },
+          {
+            "heading": "Acts/omissions and illegal activity",
+            "description": "Alcohol/drug influence; illegal acts; intentional/reckless endangerment; self‑harm; scams/fraud; prostitution",
+            "evidence": {
+              "page": 66,
+              "quote": "E.25 Alcohol...; E.26 Illegal activities; E.27 Personal safety; E.16 Self‑harm; E.29 Scams and fraud; E.28 Prostitution"
+            }
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "money_limit",
+        "issue_type": "potential_omission",
+        "reason": "The field is null, but the PDS expressly states cash is not covered. Under the schema, a money/cash limit or status should reflect the printed exclusion rather than be left blank.",
+        "source_page": 51,
+        "source_quote": "cash, passports, identification, bank cards, or travel documents",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "travel_documents_limit",
+        "issue_type": "potential_omission",
+        "reason": "The field is null, but the PDS expressly states passports, identification, bank cards and travel documents are not covered. Under the schema, the limit/status should reflect the printed exclusion rather than be left blank.",
+        "source_page": 51,
+        "source_quote": "cash, passports, identification, bank cards, or travel documents",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "pds_effective_date",
+        "issue_type": "wrong_value",
+        "reason": "The extracted value is factually supported but is not normalised as an ISO date as requested by the field definition when possible.",
+        "source_page": 1,
+        "source_quote": "Efective from 12 July 2025",
+        "citation_verified": true,
+        "extracted_value": "Effective from 12 July 2025"
+      }
+    ]
+  },
+  "error": null
+}

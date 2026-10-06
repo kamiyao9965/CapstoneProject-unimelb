@@ -1,0 +1,1435 @@
+{
+  "artifact_type": "field_frequency",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:20:07.400044Z",
+  "provenance": {
+    "run_id": null,
+    "provider": null,
+    "model": null,
+    "document_input": null,
+    "source_documents": [],
+    "source_artifacts": []
+  },
+  "data": {
+    "fields": [
+      {
+        "field": "annual_multi_trip_max_duration_days",
+        "group": "",
+        "type": "number",
+        "frequency": "3/5",
+        "decision": "conditional",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001",
+          "run_003",
+          "run_005"
+        ],
+        "average_confidence": 0.767,
+        "description": "Maximum journey duration allowed per trip for Annual Multi‑Trip (days).",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business annual multi‑trip plans have a selectable per‑trip duration; retaining the existing max field but extending scope to business enables recording the chosen cap when only a single selected value is available.",
+          "Cover-More Business is an annual multi-trip plan with selectable per-trip maximum durations. The existing field should also apply to business annual plans.",
+          "Corporate annual multi‑trip policies often specify a per‑journey cap. Cover‑More Corporate sets a 6‑month maximum per journey. Extending applies_to to business improves reuse for corporate AMT products."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "…choice of 30, 60 or 90 days for the maximum duration of any one trip. (p2)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“The business policy offers annual cover… gives You the choice of 30, 60 or 90 days for the maximum duration of any one trip.” (p2)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“covers an unlimited number of trips throughout the year” (p2)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "“period of insurance… ceasing at… the completion of 6 months from the commencement of each journey, whichever occurs first.” (p18)."
+          }
+        ]
+      },
+      {
+        "field": "annual_multi_trip_duration_options_days",
+        "group": "",
+        "type": "list[object]",
+        "frequency": "2/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001",
+          "run_003"
+        ],
+        "average_confidence": 0.76,
+        "description": "Selectable per‑trip maximum duration options (days) for Annual Multi‑Trip policies. Represent each option as objects: {value_days, notes}.",
+        "applies_to": [
+          "international_multi_trip",
+          "business",
+          "domestic"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": true,
+        "rationale_samples": [
+          "Business annual policies commonly allow customers to choose a per‑trip maximum duration (e.g., 30/60/90 days). Capturing discrete options improves comparability versus a single max value.",
+          "Many annual plans (including business) offer selectable per-trip duration options (e.g., 30/60/90 days). Capturing the option set improves cross-insurer comparison beyond just a single selected value."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Who should take this policy? … gives You the choice of 30, 60 or 90 days for the maximum duration of any one trip. (p2)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“gives You the choice of 30, 60 or 90 days for the maximum duration of any one trip.” (p2)"
+          }
+        ]
+      },
+      {
+        "field": "business_benefits",
+        "group": "",
+        "type": "enum",
+        "frequency": "2/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_alias"
+        ],
+        "aliases": [
+          "coverage_categories_business_benefits"
+        ],
+        "source_runs": [
+          "run_001",
+          "run_003"
+        ],
+        "average_confidence": 0.71,
+        "description": "Add alias to capture ‘Alternative staff’ under business‑specific benefits.",
+        "applies_to": [
+          "business"
+        ],
+        "required": false,
+        "values": [
+          "alternative_staff"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plans often include an ‘Alternative staff’ benefit. Adding this alias will help normalise mapping to the existing business_benefits category.",
+          "The Cover-More Business PDS lists an ‘Alternative staff’ benefit that is business-specific. Mapping this term into the existing business_benefits category via an alias improves benefit normalisation."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Benefits table: 9 Alternative staff – $15,000. (pp4–5)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Benefits table includes “Alternative staff – Cover for the cost of a replacement employee…” (pp4-6)"
+          }
+        ]
+      },
+      {
+        "field": "overseas_medical_limit",
+        "group": "",
+        "type": "string",
+        "frequency": "2/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001",
+          "run_004"
+        ],
+        "average_confidence": 0.79,
+        "description": "Overseas medical cover headline limit (e.g., Unlimited). Include time caps if stated (e.g., up to 12 months from onset).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "cruise"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business cover includes overseas medical; extend applies_to so headline medical limit can be captured for business plans.",
+          "Inbound plans commonly frame the medical headline limit as ‘Medical and Dental Expenses in Australia’. Updating the description clarifies that this field is also used for inbound in‑Australia medical limits across insurers, improving consistency."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Overseas medical expenses – $Unlimited (cover will not exceed 12 months from onset). (p4)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Inbound benefits: Medical and Dental Expenses in Australia – Medical Expenses in Australia $1,000,000; Emergency Dental Expenses $2,000 (p9, p41, p48 Section 19)."
+          }
+        ]
+      },
+      {
+        "field": "specified_items_rules",
+        "group": "",
+        "type": "string",
+        "frequency": "2/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001",
+          "run_002"
+        ],
+        "average_confidence": 0.8,
+        "description": "Whether customers can increase item limits or specify items and the total/ per-item caps for specified items.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan supports specifying items/raising limits with valuation rules; extend scope so these rules are captured for business.",
+          "Both PDSs give concrete rules for specifying items, including per-item eligibility ranges, valuation recency, and per-person aggregate caps. Making the description explicit improves consistent capture."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Increase luggage item limits by specifying items; receipt/valuation <2 years; up to $4,500 per item and overall increase up to $15,000. (pp6, 26)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Increase Luggage Item Limit ... For multiple items, the overall increase in limits cannot exceed $15,000. Receipts or valuations (less than 24 months old) must be available if requested. (p34)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.4.2 Specified items – You can list certain items as a specified item if it has a value of $1,500 to $10,000 for each item; up to $15,000 for all specified items for each person; valuation less than 24 months (specific jeweller valuer requirements). (pp61–62)"
+          }
+        ]
+      },
+      {
+        "field": "trip_frequency",
+        "group": "",
+        "type": "enum",
+        "frequency": "2/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001",
+          "run_003"
+        ],
+        "average_confidence": 0.78,
+        "description": "Trip frequency classification as marketed.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "required": false,
+        "values": [
+          "single_trip",
+          "annual_multi_trip"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business travel policies are inherently annual multi‑trip. Extend applies_to so the classifier can be emitted for business products.",
+          "Cover-More Business is explicitly an annual multi-trip product; including business in applies_to ensures consistency when classifying trip frequency for business plans."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "The business policy offers annual cover designed for business travellers who go away multiple times during the year. (p2)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“The business policy offers annual cover designed for business travellers who go away multiple times during the year.” (p2)"
+          }
+        ]
+      },
+      {
+        "field": "already_travelling_waiting_period_days",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_004"
+        ],
+        "average_confidence": 0.78,
+        "description": "Number of days of no cover if the policy is purchased after the journey has already commenced (already travelling waiting period). Enter 0 if not applicable or not stated.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Several AU PDSs specify a no-cover waiting period when buying after departure. Cover-More applies a 3‑day no‑cover period; capturing this as a discrete field improves comparison and automation."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Already travelling: If You purchase this policy on Your trip after leaving Home, this cover is subject to a 3 day no-cover period... The 3 day no-cover period applies to all policy benefits. (p28, cl. 15)."
+          }
+        ]
+      },
+      {
+        "field": "annual_multi_trip_min_distance_km",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_004"
+        ],
+        "average_confidence": 0.83,
+        "description": "Minimum one-way distance from home (km) for a journey to qualify under Annual Multi-Trip. If the policy instead allows a shorter distance when at least one paid night is included, capture the distance threshold here and note the alternate night rule in eligibility_summary or benefits.conditions.",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Cover-More’s Annual Multi-Trip requires trips to be >250 km from home (or include at least one paid night). This distance rule is a common AU insurer criterion and supports cross‑insurer comparison without relying on narrative text."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "With Our Annual Multi-Trip policy You can select ... For Your Journey to be covered by the Annual Multi-Trip policy, Your destination must be more than 250 kilometres from Home or, if less than that, Your trip must include at least one night paid accommodation... (p10)."
+          }
+        ]
+      },
+      {
+        "field": "annual_multi_trip_unlimited_trips",
+        "group": "",
+        "type": "boolean",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_003"
+        ],
+        "average_confidence": 0.78,
+        "description": "Indicates whether the policy allows an unlimited number of trips during the policy year (true/false).",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Annual multi-trip policies commonly state whether the number of trips per policy year is unlimited. Cover-More Business explicitly states unlimited trips, so a normalised boolean aids comparison."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“covers an unlimited number of trips throughout the year.” (p2)"
+          }
+        ]
+      },
+      {
+        "field": "area_of_travel_options",
+        "group": "",
+        "type": "list[object]",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.82,
+        "description": "Geographic scope/areas of travel selection options as described (e.g., Worldwide, All of Europe, All of Asia, Australia).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "cruise",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business products also require selecting areas/regions of travel; extend scope accordingly."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Policy inclusions and options – Areas of travel. Guidance on selecting countries/regions; Worldwide option. (p5)"
+          }
+        ]
+      },
+      {
+        "field": "baggage_delay_min_hours",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_004"
+        ],
+        "average_confidence": 0.86,
+        "description": "Minimum checked baggage delay (hours) required before delayed luggage/baggage allowance benefits apply.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Both SCTI and Cover‑More require a minimum 12‑hour delay before delayed baggage benefits apply. A numeric field makes this comparable without parsing free text."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "We cover you if your scheduled transport provider delays your checked-in baggage for more than 12 hours... (p63, D.4.3)."
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "If all Your luggage is delayed by a Transport Provider during the Journey for more than 12 hours We will reimburse You... (p34, Section 6)."
+          }
+        ]
+      },
+      {
+        "field": "baggage_delay_threshold_hours",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_002"
+        ],
+        "average_confidence": 0.86,
+        "description": "Minimum checked baggage delay (in hours) before the baggage delay/essential items allowance becomes payable.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Both insurers specify a minimum delay period before baggage delay benefits are payable. Capturing this threshold supports cross-insurer comparison and avoids burying it only in free text/benefits."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "SECTION 6: Delayed Luggage Allowance ... up to $300 per item ... after a 12 hour delay and before the luggage was returned to You. (p34)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.4.3 Baggage delay during your journey – We cover you if your scheduled transport provider delays your checked-in baggage for more than 12 hours ... up to $1,000 for each person. (p63)"
+          }
+        ]
+      },
+      {
+        "field": "baggage_limit_aud",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.86,
+        "description": "Baggage/personal effects overall limit per person.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan defines a baggage/personal effects overall limit; extend scope to business."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Luggage and travel documents – $25,000. (p4)"
+          }
+        ]
+      },
+      {
+        "field": "baggage_sublimits",
+        "group": "",
+        "type": "list[object]",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.86,
+        "description": "Baggage common sub-limits (e.g., phones, cameras, laptops, jewellery). Represent as objects: {item_category, per_item_limit_aud, aggregate_cap_aud_if_any}.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Per‑item limits (e.g., phone, laptop, camera) are provided for the business plan; extend to capture sub‑limits for business type."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Luggage item limits table (e.g., Phone $2,500; Camera/Video camera $6,000; Laptop $5,000; Tablet $3,000; Jewellery/Watch $1,500). (p6)"
+          }
+        ]
+      },
+      {
+        "field": "business_leisure_allowance",
+        "group": "",
+        "type": "string",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_005"
+        ],
+        "average_confidence": 0.66,
+        "description": "Leisure/holiday travel allowance under a corporate policy, including who qualifies and maximum duration (e.g., ‘Employees: up to 4 weeks when combined with a business trip; Directors/CEO/CFO/COO: up to 6 weeks combined plus up to 6 weeks independent leisure’).",
+        "applies_to": [
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Corporate travel policies frequently allow limited personal/leisure travel in conjunction with business trips; limits and eligibility (e.g., executives) vary by insurer. Capturing this allowance aids corporate comparisons."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Employees: ‘includes up to 4 weeks of leisure/holiday travel incorporated in the same business trip.’ Executives (CEO/CFO/COO/Director): ‘includes up to 6 weeks… incorporated in the same business trip… Also… up to 6 weeks of leisure/holiday travel independent of a business trip.’ (pp3,16)."
+          }
+        ]
+      },
+      {
+        "field": "cancellation_cover_limit",
+        "group": "",
+        "type": "string",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.83,
+        "description": "Cancellation cover amount. For products where the customer chooses an amount, store 'selected_amount' with any min/max/steps; otherwise store the fixed/maximum limit.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan has Amendment or cancellation costs with specified limits; enabling capture aligns comparisons."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Benefits table: Amendment or cancellation costs – $Unlimited (sub‑limits apply). (pp4–5)"
+          }
+        ]
+      },
+      {
+        "field": "claim_requirements",
+        "group": "",
+        "type": "string",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.82,
+        "description": "Claim reporting requirements (e.g., report theft to police within 7 days, PIR required, provide receipts, lodge within 60 days).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Claims evidence/notification rules are defined for the business plan; extend scope so they can be captured for business products."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Claims – online or form; need receipts/support. Report theft/loss within 7 days to police/transport/accommodation; PIR needed where applicable. (pp14, 26–27)"
+          }
+        ]
+      },
+      {
+        "field": "covid19_cover_summary",
+        "group": "",
+        "type": "string",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.83,
+        "description": "COVID-19 coverage summary: which sections are covered (medical, cancellation before/after departure, additional expenses), notable sub-limits and compulsory special excesses.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "COVID‑19 benefits are explicitly defined for the business plan (medical, additional expenses, cancellation sub‑limits); include business so summary can be captured consistently."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "SECTION 18: COVID‑19 benefits – coverage for medical ($Unlimited), Additional expenses (with conditions), and Amendment or cancellation costs up to $10,000 per policy; exclusions noted. (pp31–32)"
+          }
+        ]
+      },
+      {
+        "field": "cruise_add_on_required",
+        "group": "",
+        "type": "boolean",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_002"
+        ],
+        "average_confidence": 0.8,
+        "description": "Whether cruise-related claims require purchasing an add-on. true if the policy requires selecting and paying for a cruise option to enable cruise-related benefits (typically for ocean/sea cruises with overnight stays). Note common exceptions (e.g., river cruises, single-night cruises, ferries, certain Australian coastal/inland waters) when stated by the insurer.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Both PDSs explicitly require purchasing a cruise option for ocean/sea cruises with overnight stays, and note situations where it is not required (e.g., river cruises, certain short or domestic waters). Clarifying this improves extraction consistency."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "If Your cruise is on an ocean or sea ... You must tell Us You are doing a cruise and pay an extra premium ... Not needed for a river cruise, one-night cruise, ferries, certain Australian coastal/inland waters. (p11)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.10 Optional: Cruise cover – add the cruise option (overnight in a cabin) and pay extra premium; cover then extends to cruises. (p82)"
+          }
+        ]
+      },
+      {
+        "field": "emergency_assistance_details",
+        "group": "",
+        "type": "string",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.82,
+        "description": "24/7 emergency assistance contact details and any triage/approval thresholds (e.g., call if admitted, surgery, or costs over $2,000).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan specifies 24/7 assistance and thresholds; include business so these can be recorded."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "24 hour emergency assistance … You, or someone on Your behalf, should phone … if Your medical expenses will exceed $2,000 or if You want to return early. (p14)"
+          }
+        ]
+      },
+      {
+        "field": "emergency_dental_limit_aud",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.84,
+        "description": "Emergency dental limit per person.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "cruise",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Emergency dental limits are specified in the business plan; enable capture for business type."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Overseas dental expenses – $2,000. (p4)"
+          }
+        ]
+      },
+      {
+        "field": "identity_theft",
+        "group": "",
+        "type": "enum",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [
+          "coverage_categories"
+        ],
+        "source_runs": [
+          "run_005"
+        ],
+        "average_confidence": 0.82,
+        "description": "Add a new coverage category for identity theft related legal and remediation costs.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": [
+          "identity_theft"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Identity theft appears as a distinct, named benefit in corporate and some retail policies. Adding a dedicated coverage category improves normalisation for benefits mapping."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits table item 19: ‘Identity theft protection’ ($10,000–$15,000). Section 19 details scope (p34)."
+          }
+        ]
+      },
+      {
+        "field": "leisure_travel_allowance_weeks",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_003"
+        ],
+        "average_confidence": 0.73,
+        "description": "Leisure/non-business travel allowance included under a business annual plan (weeks per policy year).",
+        "applies_to": [
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business annual plans can include a defined allowance for personal/leisure travel within the year. Capturing the allowance in weeks enables like-for-like comparison across business policies."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“includes up to 6 weeks of leisure travel during the year” (p2)"
+          }
+        ]
+      },
+      {
+        "field": "leisure_travel_included_weeks",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.72,
+        "description": "Weeks of leisure/personal travel included within the Business annual policy year, if offered.",
+        "applies_to": [
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Cover‑More Business explicitly includes leisure travel weeks within the annual policy. This is a frequent differentiator for business policies and useful for comparisons."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "The policy … includes up to 6 weeks of leisure travel during the year. (p2)"
+          }
+        ]
+      },
+      {
+        "field": "medical_and_evacuation",
+        "group": "",
+        "type": "enum",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_alias"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_002"
+        ],
+        "average_confidence": 0.74,
+        "description": "Add alias used in cruise benefit tables.",
+        "applies_to": [],
+        "required": false,
+        "values": [
+          "on_board_medical_and_dental"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Cruise on‑board medical/dental benefits are essentially medical and evacuation. Adding this alias aids consistent mapping of cruise medical lines to the medical_and_evacuation category."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Cruise Cover (ii) On-board Medical and Dental Cover – Unlimited. (pp11, 42–45)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.10 Optional: Cruise cover – extends existing medical cover to cruises. (p82)"
+          }
+        ]
+      },
+      {
+        "field": "medical_treatment_in_australia_excluded",
+        "group": "",
+        "type": "boolean",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_005"
+        ],
+        "average_confidence": 0.78,
+        "description": "True if the policy explicitly excludes medical treatment and evacuation costs incurred in Australia (e.g., due to Medicare/PHI legislation). Capture supporting wording in general_exclusions_summary.",
+        "applies_to": [
+          "domestic",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Australian domestic policies generally exclude medical treatment/evacuation in Australia due to Medicare legislation; corporate policies also state this. A simple boolean enables consistent flagging across domestic and business products."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/1a52730b0ff2b2431c4291114718ab6907fa5d3410a0124deb9fb8488700d123_download-domestic-product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "“We don’t cover medical treatment or evacuation costs under this policy… These expenses are covered in Australia from Medicare or your private health insurer.” (p22, p28)."
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "“Medical and hospital cover in Australia – We will not pay any benefit… if… would result in us contravening the Health Insurance Act… Private Health Insurance Act… National Health Act.” (p4)."
+          }
+        ]
+      },
+      {
+        "field": "optional_add_ons",
+        "group": "",
+        "type": "list[object]",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.8,
+        "description": "Optional add-ons available for the plan (e.g., cruise cover, skiing/snowboarding, motorcycle/moped, adventure activities packs, business pack, cancellation plus, specified items).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan offers optional cover (e.g., motorcycle/moped, snow sports). Extend scope so add‑ons can be captured for business products."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Motorcycle/moped riding – ‘If You wish to be covered … You must pay an extra premium.’ (p7) Snow skiing/snowboarding/snowmobiling – ‘… must pay an extra premium.’ (p7)"
+          }
+        ]
+      },
+      {
+        "field": "personal_accident_benefits",
+        "group": "",
+        "type": "list[object]",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.85,
+        "description": "Personal accident benefits: include components such as loss_of_income (weekly cap, max weeks), total_permanent_disablement, accidental_death. Represent as objects with fields {component, amount_aud, per_week_aud_if_applicable, max_weeks, age_applicability}.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan provides Loss of income, Disability and Accidental death amounts and waiting periods; extend scope to business to normalise capture."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Loss of income – up to $45,000 (max liability collectively for Sections 14–16 $45,000); Disability $30,000; Accidental death $30,000. (p4) Waiting period 15 days applies. (p29)"
+          }
+        ]
+      },
+      {
+        "field": "personal_accident_combined_limit_aud",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_003"
+        ],
+        "average_confidence": 0.69,
+        "description": "Combined maximum liability across personal accident components (e.g., loss of income, total permanent disablement, accidental death), in AUD.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Some insurers state a combined cap for personal accident components (loss of income, disablement, accidental death). Capturing a normalised combined limit supports direct comparison."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“+ Maximum liability collectively for Sections 14, 15 and 16 is $45,000.” (Benefits table footnote, p6)"
+          }
+        ]
+      },
+      {
+        "field": "personal_liability_limit_aud",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.86,
+        "description": "Personal liability maximum cover per person.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan states a personal liability limit; extend scope accordingly."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Personal liability – $5,000,000. (p4)"
+          }
+        ]
+      },
+      {
+        "field": "rental_vehicle",
+        "group": "",
+        "type": "enum",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_alias"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_002"
+        ],
+        "average_confidence": 0.77,
+        "description": "Add aliases to the rental_vehicle coverage category to capture own-vehicle excess style benefits.",
+        "applies_to": [],
+        "required": false,
+        "values": [
+          "personal_vehicle_excess",
+          "own_vehicle_excess"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Some insurers cover the insurance excess on the traveller’s own vehicle under driving holidays. Mapping these to the rental_vehicle category via aliases enables consistent benefit normalisation without introducing a new category."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Domestic Plans – Driving Holidays: Cover for the Insurance Excess on Your Personal Vehicle – $2,500 (Comprehensive/Comprehensive+). (p6 table and p35)"
+          }
+        ]
+      },
+      {
+        "field": "rental_vehicle_excess_limit_aud",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.86,
+        "description": "Rental vehicle insurance excess benefit limit per person.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan includes a defined Rental Car insurance excess limit; include business in scope."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Rental Car insurance excess – $10,000. (p4); Section 7 confirms $10,000. (p27)"
+          }
+        ]
+      },
+      {
+        "field": "security_and_political_evacuation",
+        "group": "",
+        "type": "enum",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [
+          "coverage_categories"
+        ],
+        "source_runs": [
+          "run_005"
+        ],
+        "average_confidence": 0.73,
+        "description": "Add a coverage category for security, political unrest and disaster evacuation (costs to evacuate to safety or home when advised due to unrest or declared disasters).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "business"
+        ],
+        "required": false,
+        "values": [
+          "security_and_political_evacuation"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Security/political evacuation and disaster evacuation benefits are present in corporate policies and sometimes as retail add‑ons. A distinct category improves comparability and avoids overloading ‘additional expenses’."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Extras Section 26: ‘Political unrest and disaster evacuation’ ($25,000–$50,000). (p36)."
+          }
+        ]
+      },
+      {
+        "field": "standard_excess_per_event_aud",
+        "group": "",
+        "type": "number",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_005"
+        ],
+        "average_confidence": 0.74,
+        "description": "Standard base policy excess per claim/event (AUD) where a fixed default excess applies. Do not include optional buy‑down/buy‑up variants here; capture those in excess_options_aud. Note any age or section-specific overrides under special_excesses.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Many PDSs state a single default excess per claim/event even when optional excesses also exist. The Cover‑More Corporate PDS specifies a fixed $60 per event excess (with age-based variations). Capturing a standard/base excess improves cross‑insurer comparison beyond free‑text excess notes."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "“The excess applies per event… the claimant is required to pay the first $60 arising from any one event on each journey in respect of Sections 1, 4, 6, 7, 8, 9 and 10… (Policy conditions, p15; section 1 on p19).”"
+          }
+        ]
+      },
+      {
+        "field": "travel_provider_insolvency",
+        "group": "",
+        "type": "enum",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [
+          "coverage_categories"
+        ],
+        "source_runs": [
+          "run_004"
+        ],
+        "average_confidence": 0.7,
+        "description": "New coverage category to capture cover for losses due to the insolvency of a service provider (e.g., airline, tour operator, accommodation provider), including rearrangement costs, cancellations, and necessary additional expenses.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "required": false,
+        "values": [
+          "provider_insolvency"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Cover‑More includes ‘Travel Services Provider Insolvency’ with defined limits. Many AU insurers offer a similar benefit. Adding a normalised coverage category improves cross‑insurer mapping in benefits."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Section 3 Travel Services Provider Insolvency with limits (e.g., $5,000 Comprehensive; $10,000 Comprehensive+) and details of rearrangement/cancellation coverage (pp. 3–4 tables; p31)."
+          }
+        ]
+      },
+      {
+        "field": "waiting_periods",
+        "group": "",
+        "type": "string",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "update_description"
+        ],
+        "aliases": [],
+        "source_runs": [
+          "run_001"
+        ],
+        "average_confidence": 0.8,
+        "description": "Key waiting periods or deferrals (e.g., loss of income waiting days; already travelling 3-day no-cover period if applicable).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business"
+        ],
+        "required": false,
+        "values": [],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Business plan defines waiting periods (e.g., loss of income). Extend scope so such deferrals can be recorded for business products."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Section 14 Loss of income – ‘not in respect of the first 15 days after You originally planned to resume Your work’. (p29)"
+          }
+        ]
+      },
+      {
+        "field": "workers_compensation_extension",
+        "group": "",
+        "type": "enum",
+        "frequency": "1/5",
+        "decision": "candidate",
+        "patch_types": [
+          "add_field"
+        ],
+        "aliases": [
+          "coverage_categories"
+        ],
+        "source_runs": [
+          "run_005"
+        ],
+        "average_confidence": 0.77,
+        "description": "Add a coverage category for extra‑territorial workers’ compensation extensions (top‑ups to statutory workers’ comp while on business travel).",
+        "applies_to": [
+          "business"
+        ],
+        "required": false,
+        "values": [
+          "workers_compensation_extension"
+        ],
+        "has_conflict": false,
+        "rationale_samples": [
+          "Corporate policies commonly include an extra‑territorial workers’ compensation extension. A dedicated category improves clarity over placing it generically under business benefits."
+        ],
+        "reject_votes": "0/5",
+        "reject_rationale_samples": [],
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits table item 18: ‘Extra territorial workers compensation’ ($500,000–$1,000,000). Section 18 outlines terms (p34)."
+          }
+        ]
+      }
+    ]
+  },
+  "error": null
+}

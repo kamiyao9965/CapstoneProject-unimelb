@@ -1,0 +1,153 @@
+{
+  "artifact_type": "candidate_patch_set",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:15:32.775901Z",
+  "provenance": {
+    "run_id": "consensus-002",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "markdown",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/refine/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "patches": [
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.86,
+        "type": "number",
+        "values": [],
+        "rationale": "Both insurers specify a minimum delay period before baggage delay benefits are payable. Capturing this threshold supports cross-insurer comparison and avoids burying it only in free text/benefits.",
+        "description": "Minimum checked baggage delay (in hours) before the baggage delay/essential items allowance becomes payable.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "field_name": "baggage_delay_threshold_hours",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "SECTION 6: Delayed Luggage Allowance ... up to $300 per item ... after a 12 hour delay and before the luggage was returned to You. (p34)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.4.3 Baggage delay during your journey – We cover you if your scheduled transport provider delays your checked-in baggage for more than 12 hours ... up to $1,000 for each person. (p63)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.78,
+        "type": "string",
+        "values": [],
+        "rationale": "Both PDSs give concrete rules for specifying items, including per-item eligibility ranges, valuation recency, and per-person aggregate caps. Making the description explicit improves consistent capture.",
+        "description": "Whether customers can increase item limits or specify items and the total/per-item caps for specified items. Capture any insurer rules such as: eligible per-item value ranges for specifying, valuation requirements (e.g., jewellery/watch valuation from recognised valuers, valuation dated within 24 months), documentation required (original receipts/proof of ownership), and any aggregate cap for all specified items per person (e.g., up to $15,000 total).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "field_name": "specified_items_rules",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Increase Luggage Item Limit ... For multiple items, the overall increase in limits cannot exceed $15,000. Receipts or valuations (less than 24 months old) must be available if requested. (p34)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.4.2 Specified items – You can list certain items as a specified item if it has a value of $1,500 to $10,000 for each item; up to $15,000 for all specified items for each person; valuation less than 24 months (specific jeweller valuer requirements). (pp61–62)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_alias",
+        "confidence": 0.77,
+        "type": "enum",
+        "values": [
+          "personal_vehicle_excess",
+          "own_vehicle_excess"
+        ],
+        "rationale": "Some insurers cover the insurance excess on the traveller’s own vehicle under driving holidays. Mapping these to the rental_vehicle category via aliases enables consistent benefit normalisation without introducing a new category.",
+        "description": "Add aliases to the rental_vehicle coverage category to capture own-vehicle excess style benefits.",
+        "applies_to": [],
+        "field_name": "",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Domestic Plans – Driving Holidays: Cover for the Insurance Excess on Your Personal Vehicle – $2,500 (Comprehensive/Comprehensive+). (p6 table and p35)"
+          }
+        ],
+        "canonical_name": "rental_vehicle"
+      },
+      {
+        "required": false,
+        "patch_type": "add_alias",
+        "confidence": 0.74,
+        "type": "enum",
+        "values": [
+          "on_board_medical_and_dental"
+        ],
+        "rationale": "Cruise on‑board medical/dental benefits are essentially medical and evacuation. Adding this alias aids consistent mapping of cruise medical lines to the medical_and_evacuation category.",
+        "description": "Add alias used in cruise benefit tables.",
+        "applies_to": [],
+        "field_name": "",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "Cruise Cover (ii) On-board Medical and Dental Cover – Unlimited. (pp11, 42–45)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.10 Optional: Cruise cover – extends existing medical cover to cruises. (p82)"
+          }
+        ],
+        "canonical_name": "medical_and_evacuation"
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.8,
+        "type": "boolean",
+        "values": [],
+        "rationale": "Both PDSs explicitly require purchasing a cruise option for ocean/sea cruises with overnight stays, and note situations where it is not required (e.g., river cruises, certain short or domestic waters). Clarifying this improves extraction consistency.",
+        "description": "Whether cruise-related claims require purchasing an add-on. true if the policy requires selecting and paying for a cruise option to enable cruise-related benefits (typically for ocean/sea cruises with overnight stays). Note common exceptions (e.g., river cruises, single-night cruises, ferries, certain Australian coastal/inland waters) when stated by the insurer.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "field_name": "cruise_add_on_required",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "If Your cruise is on an ocean or sea ... You must tell Us You are doing a cruise and pay an extra premium ... Not needed for a river cruise, one-night cruise, ferries, certain Australian coastal/inland waters. (p11)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "D.10 Optional: Cruise cover – add the cruise option (overnight in a cabin) and pay extra premium; cover then extends to cruises. (p82)"
+          }
+        ],
+        "canonical_name": ""
+      }
+    ]
+  },
+  "error": null
+}

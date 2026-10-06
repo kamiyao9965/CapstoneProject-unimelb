@@ -1,0 +1,26 @@
+{
+  "artifact_type": "schema_discovery_error",
+  "contract_version": "1.0.0",
+  "status": "failed",
+  "created_at": "2026-08-25T11:33:25.593051Z",
+  "provenance": {
+    "run_id": "a52f81573b8149e29e84b31049fdb4aa",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "markdown",
+    "source_documents": [
+      "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+      "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+      "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+      "data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+      "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf"
+    ],
+    "source_artifacts": []
+  },
+  "data": null,
+  "error": {
+    "code": "schema_discovery_failed",
+    "message": "Response resp_01fefd5cfd0f090f006a8d7d7f848487d0b377823ffcb4a8db ended with status=failed: ResponseError(code='context_length_exceeded', message='Your input exceeds the context window of this model. Please adjust your input and try again.')",
+    "details": []
+  }
+}

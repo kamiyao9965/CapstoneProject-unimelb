@@ -1,0 +1,196 @@
+{
+  "artifact_type": "candidate_patch_set",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:20:07.383107Z",
+  "provenance": {
+    "run_id": "consensus-005",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "markdown",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/1a52730b0ff2b2431c4291114718ab6907fa5d3410a0124deb9fb8488700d123_download-domestic-product-disclosure-statement-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/refine/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "patches": [
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.74,
+        "type": "number",
+        "values": [],
+        "rationale": "Many PDSs state a single default excess per claim/event even when optional excesses also exist. The Cover‑More Corporate PDS specifies a fixed $60 per event excess (with age-based variations). Capturing a standard/base excess improves cross‑insurer comparison beyond free‑text excess notes.",
+        "description": "Standard base policy excess per claim/event (AUD) where a fixed default excess applies. Do not include optional buy‑down/buy‑up variants here; capture those in excess_options_aud. Note any age or section-specific overrides under special_excesses.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "standard_excess_per_event_aud",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "“The excess applies per event… the claimant is required to pay the first $60 arising from any one event on each journey in respect of Sections 1, 4, 6, 7, 8, 9 and 10… (Policy conditions, p15; section 1 on p19).”"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.78,
+        "type": "boolean",
+        "values": [],
+        "rationale": "Australian domestic policies generally exclude medical treatment/evacuation in Australia due to Medicare legislation; corporate policies also state this. A simple boolean enables consistent flagging across domestic and business products.",
+        "description": "True if the policy explicitly excludes medical treatment and evacuation costs incurred in Australia (e.g., due to Medicare/PHI legislation). Capture supporting wording in general_exclusions_summary.",
+        "applies_to": [
+          "domestic",
+          "business"
+        ],
+        "field_name": "medical_treatment_in_australia_excluded",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/1a52730b0ff2b2431c4291114718ab6907fa5d3410a0124deb9fb8488700d123_download-domestic-product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "“We don’t cover medical treatment or evacuation costs under this policy… These expenses are covered in Australia from Medicare or your private health insurer.” (p22, p28)."
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "“Medical and hospital cover in Australia – We will not pay any benefit… if… would result in us contravening the Health Insurance Act… Private Health Insurance Act… National Health Act.” (p4)."
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.7,
+        "type": "number",
+        "values": [],
+        "rationale": "Corporate annual multi‑trip policies often specify a per‑journey cap. Cover‑More Corporate sets a 6‑month maximum per journey. Extending applies_to to business improves reuse for corporate AMT products.",
+        "description": "Maximum journey duration allowed per trip for Annual Multi-Trip (days).",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "field_name": "annual_multi_trip_max_duration_days",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "“period of insurance… ceasing at… the completion of 6 months from the commencement of each journey, whichever occurs first.” (p18)."
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.66,
+        "type": "string",
+        "values": [],
+        "rationale": "Corporate travel policies frequently allow limited personal/leisure travel in conjunction with business trips; limits and eligibility (e.g., executives) vary by insurer. Capturing this allowance aids corporate comparisons.",
+        "description": "Leisure/holiday travel allowance under a corporate policy, including who qualifies and maximum duration (e.g., ‘Employees: up to 4 weeks when combined with a business trip; Directors/CEO/CFO/COO: up to 6 weeks combined plus up to 6 weeks independent leisure’).",
+        "applies_to": [
+          "business"
+        ],
+        "field_name": "business_leisure_allowance",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Employees: ‘includes up to 4 weeks of leisure/holiday travel incorporated in the same business trip.’ Executives (CEO/CFO/COO/Director): ‘includes up to 6 weeks… incorporated in the same business trip… Also… up to 6 weeks of leisure/holiday travel independent of a business trip.’ (pp3,16)."
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.82,
+        "type": "enum",
+        "values": [
+          "identity_theft"
+        ],
+        "rationale": "Identity theft appears as a distinct, named benefit in corporate and some retail policies. Adding a dedicated coverage category improves normalisation for benefits mapping.",
+        "description": "Add a new coverage category for identity theft related legal and remediation costs.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "coverage_categories",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits table item 19: ‘Identity theft protection’ ($10,000–$15,000). Section 19 details scope (p34)."
+          }
+        ],
+        "canonical_name": "identity_theft"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.77,
+        "type": "enum",
+        "values": [
+          "workers_compensation_extension"
+        ],
+        "rationale": "Corporate policies commonly include an extra‑territorial workers’ compensation extension. A dedicated category improves clarity over placing it generically under business benefits.",
+        "description": "Add a coverage category for extra‑territorial workers’ compensation extensions (top‑ups to statutory workers’ comp while on business travel).",
+        "applies_to": [
+          "business"
+        ],
+        "field_name": "coverage_categories",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits table item 18: ‘Extra territorial workers compensation’ ($500,000–$1,000,000). Section 18 outlines terms (p34)."
+          }
+        ],
+        "canonical_name": "workers_compensation_extension"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.73,
+        "type": "enum",
+        "values": [
+          "security_and_political_evacuation"
+        ],
+        "rationale": "Security/political evacuation and disaster evacuation benefits are present in corporate policies and sometimes as retail add‑ons. A distinct category improves comparability and avoids overloading ‘additional expenses’.",
+        "description": "Add a coverage category for security, political unrest and disaster evacuation (costs to evacuate to safety or home when advised due to unrest or declared disasters).",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "business"
+        ],
+        "field_name": "coverage_categories",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Extras Section 26: ‘Political unrest and disaster evacuation’ ($25,000–$50,000). (p36)."
+          }
+        ],
+        "canonical_name": "security_and_political_evacuation"
+      }
+    ]
+  },
+  "error": null
+}

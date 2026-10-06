@@ -1,0 +1,913 @@
+{
+  "artifact_type": "discovered_schema",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:09:03.864117Z",
+  "provenance": {
+    "run_id": "c38dccce5d3c473c887f6ee02cadd920",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "markdown",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf"
+    ],
+    "source_artifacts": []
+  },
+  "data": {
+    "vertical": "travel_insurance",
+    "description": "Reusable extraction schema for Australian travel insurance PDSs supporting comparison across insurers and plan tiers. Designed to emit one product record per distinct plan/variant described in a PDS. Tables are first-class evidence sources.",
+    "product_type_field": {
+      "required": true,
+      "description": "Classifier indicating the plan’s core product category derived from geographic scope and trip frequency. Use international_single_trip for one-off international trips; international_multi_trip for annual multi-trip; domestic for Australia-only trip cover; inbound for non-residents travelling to/within Australia; business when a distinct business pack/plan is marketed; cruise when a distinct cruise-only plan is marketed (not just an optional add-on).",
+      "name": "product_type",
+      "type": "enum",
+      "applies_to": [
+        "international_single_trip",
+        "international_multi_trip",
+        "domestic",
+        "inbound",
+        "business",
+        "cruise"
+      ],
+      "aliases": [
+        "plan_category",
+        "policy_type",
+        "cover_type",
+        "trip_type"
+      ],
+      "values": [
+        "international_single_trip",
+        "international_multi_trip",
+        "domestic",
+        "inbound",
+        "business",
+        "cruise"
+      ]
+    },
+    "product_types": [
+      "international_single_trip",
+      "international_multi_trip",
+      "domestic",
+      "inbound",
+      "business",
+      "cruise"
+    ],
+    "fields": [
+      {
+        "required": true,
+        "description": "Insurer legal entity name on the PDS (issuer/underwriter).",
+        "name": "insurer_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "issuer",
+          "underwriter",
+          "insurer"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Issuer identifiers and licensing: ABN, AFSL, company number as printed.",
+        "name": "insurer_licence_ids",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "abn_afsl",
+          "licence_numbers"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Trading/brand name used to market the policy (e.g., Southern Cross Travel Insurance, Cover-More).",
+        "name": "brand_or_trading_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "brand",
+          "trading_as",
+          "distribution_brand"
+        ],
+        "values": []
+      },
+      {
+        "required": true,
+        "description": "The marketing product/series name on the PDS (e.g., International Comprehensive; International Plans).",
+        "name": "product_name",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "series_name",
+          "range_name"
+        ],
+        "values": []
+      },
+      {
+        "required": true,
+        "description": "Plan or tier label as sold (e.g., Basic, Comprehensive, Comprehensive+).",
+        "name": "plan_tier",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "tier",
+          "level",
+          "plan_name"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Exact PDS document title as printed.",
+        "name": "pds_title",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "document_title"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "PDS effective or issue date printed on the document.",
+        "name": "pds_effective_date",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "effective_date",
+          "issue_date",
+          "version_date"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Source document locator (file path, URL, hash) used during extraction.",
+        "name": "document_source_id",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "document_id",
+          "pdf_hash",
+          "source_path",
+          "url"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Trip frequency classification as marketed.",
+        "name": "trip_frequency",
+        "type": "enum",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "policy_term",
+          "journey_type"
+        ],
+        "values": [
+          "single_trip",
+          "annual_multi_trip"
+        ]
+      },
+      {
+        "required": false,
+        "description": "Maximum journey duration allowed per trip for Annual Multi-Trip (days).",
+        "name": "annual_multi_trip_max_duration_days",
+        "type": "number",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "max_trip_length_days",
+          "journey_duration_limit_days"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Geographic scope/areas of travel selection options as described (e.g., Worldwide, All of Europe, All of Asia, Australia).",
+        "name": "area_of_travel_options",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "cruise"
+        ],
+        "aliases": [
+          "regions",
+          "destinations_selection",
+          "areas_of_travel"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether cruise-related claims require purchasing an add-on. true if multi-night cruise cover is an optional add-on that must be selected and paid for to enable cruise-related benefits.",
+        "name": "cruise_add_on_required",
+        "type": "boolean",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "cruise_cover_required",
+          "must_add_cruise"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Eligibility and residency criteria summary (e.g., live in Australia permanently; Medicare eligible; return to Australia; inbound non-resident conditions).",
+        "name": "eligibility_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "who_can_buy",
+          "residency_requirements",
+          "eligibility_rules"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Minimum and maximum age or age rules for cover and any age-banded benefits (e.g., personal accident payable ages 16–80).",
+        "name": "age_limits",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "age_eligibility"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Dependent children covered without extra premium; qualifying criteria.",
+        "name": "dependent_children_policy",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "kids_travel_free",
+          "dependent_children_included"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Pre-existing medical conditions: whether automatic conditions are included, assessment required, exclusions for undiagnosed symptoms, pregnancy weeks covered and restrictions.",
+        "name": "pre_existing_medical_cover",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "pemc",
+          "medical_assessment_rules",
+          "pregnancy_cover"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Excess options a customer can select (AUD). Include notes on when excess applies once per event and any zero-excess option if stated.",
+        "name": "excess_options_aud",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "policy_excess",
+          "deductible_options"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Special excesses that override the standard excess (e.g., COVID-19 special excess by section). Represent as objects: {section, amount_aud, when_applies}.",
+        "name": "special_excesses",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "additional_excess",
+          "covid_special_excess"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Cancellation cover amount. For products where the customer chooses an amount, store 'selected_amount' with any min/max/steps; otherwise store the fixed/maximum limit.",
+        "name": "cancellation_cover_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise"
+        ],
+        "aliases": [
+          "amendment_or_cancellation_costs",
+          "trip_cancellation_limit"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Overseas medical cover headline limit (e.g., Unlimited). Include time caps if stated (e.g., up to 12 months from onset).",
+        "name": "overseas_medical_limit",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "cruise"
+        ],
+        "aliases": [
+          "medical_and_hospital_limit",
+          "medical_and_evacuation"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Emergency dental limit per person.",
+        "name": "emergency_dental_limit_aud",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "inbound",
+          "cruise"
+        ],
+        "aliases": [
+          "dental_emergency_limit"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Baggage/personal effects overall limit per person.",
+        "name": "baggage_limit_aud",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "luggage_limit",
+          "baggage_and_personal_items_limit"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Baggage common sub-limits (e.g., phones, cameras, laptops, jewellery). Represent as objects: {item_category, per_item_limit_aud, aggregate_cap_aud_if_any}.",
+        "name": "baggage_sublimits",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "item_limits",
+          "per_item_limits"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether customers can increase item limits or specify items and the total/ per-item caps for specified items.",
+        "name": "specified_items_rules",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "increase_item_limit",
+          "specified_items"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Rental vehicle insurance excess benefit limit per person.",
+        "name": "rental_vehicle_excess_limit_aud",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "rental_car_excess_cover",
+          "rental_vehicle_excess"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Whether a comprehensive rental vehicle cover extension is included (beyond excess) and any key caps (e.g., CDW for USA/Canada, vehicle value limits).",
+        "name": "rental_vehicle_comprehensive_cover",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "rental_vehicle_full_cover",
+          "collision_damage_waiver_extension"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Personal liability maximum cover per person.",
+        "name": "personal_liability_limit_aud",
+        "type": "number",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "third_party_liability_limit"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Personal accident benefits: include components such as loss_of_income (weekly cap, max weeks), total_permanent_disablement, accidental_death. Represent as objects with fields {component, amount_aud, per_week_aud_if_applicable, max_weeks, age_applicability}.",
+        "name": "personal_accident_benefits",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "accidental_injury_benefits",
+          "death_and_disablement"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "COVID-19 coverage summary: which sections are covered (medical, cancellation before/after departure, additional expenses), notable sub-limits and compulsory special excesses.",
+        "name": "covid19_cover_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise"
+        ],
+        "aliases": [
+          "covid_cover",
+          "pandemic_cover"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Key waiting periods or deferrals (e.g., loss of income waiting days; already travelling 3-day no-cover period if applicable).",
+        "name": "waiting_periods",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "deferral_periods"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "General exclusions headline list or section references (e.g., terrorism limits, travel advisories, private treatment, activities).",
+        "name": "general_exclusions_summary",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise",
+          "business"
+        ],
+        "aliases": [
+          "major_exclusions",
+          "exclusions_section_refs"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Optional add-ons available for the plan (e.g., cruise cover, skiing/snowboarding, motorcycle/moped, adventure activities packs, business pack, cancellation plus, specified items).",
+        "name": "optional_add_ons",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic"
+        ],
+        "aliases": [
+          "options_to_vary_cover",
+          "add_ons"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "24/7 emergency assistance contact details and any triage/approval thresholds (e.g., call if admitted, surgery, or costs over $2,000).",
+        "name": "emergency_assistance_details",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "cruise"
+        ],
+        "aliases": [
+          "assistance_contact",
+          "medical_assistance"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Claim reporting requirements (e.g., report theft to police within 7 days, PIR required, provide receipts, lodge within 60 days).",
+        "name": "claim_requirements",
+        "type": "string",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound"
+        ],
+        "aliases": [
+          "claims_process",
+          "claims_evidence_requirements"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Consolidated benefit entries normalised across insurers. Each object should include {category (use coverage_categories.canonical_name), benefit_name, limit_per_person, limit_per_policy, sub_limits[], per_day_amount_if_any, excess_applicable (yes/no/notes), conditions, page_or_table_ref}.",
+        "name": "benefits",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "benefits_table",
+          "cover_summary"
+        ],
+        "values": []
+      },
+      {
+        "required": false,
+        "description": "Structured evidence links used for extraction. Each object should include {field_name, source_type (text/table), page, table_id, evidence_excerpt}.",
+        "name": "source_evidence",
+        "type": "list[object]",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "aliases": [
+          "evidence",
+          "citations"
+        ],
+        "values": []
+      }
+    ],
+    "version": "v0.5-2026-08-25",
+    "notes": [
+      "Do not emit product_type as a regular field; it is provided by product_type_field.",
+      "Emit one record per distinct plan/tier and trip frequency (e.g., International Comprehensive Single Trip; International Comprehensive Annual Multi-Trip; Domestic Comprehensive+; Inbound Single Trip).",
+      "For Cover-More, cancellation cover is customer-selected (store as 'selected_amount' and include max sub-limits in benefits and covid19_cover_summary).",
+      "For SCTI International Comprehensive Single Trip, optional add-ons (Moped & Motorbike, Skiing & Snowboarding, Cruise) should be listed under optional_add_ons with conditions (e.g., helmet required, engine capacity limits, cruise required for cruise-related claims).",
+      "Where a benefit is 'Unlimited', store the string 'Unlimited' and capture any time qualification (e.g., ~12 months from onset) in benefits.conditions.",
+      "Baggage per-item sub-limits are important for comparison; capture as baggage_sublimits and also as benefits sub_limits.",
+      "COVID-19 special excesses must be captured in special_excesses with section labels and amounts (e.g., $500 for cancellation on-trip; $250 for additional expenses).",
+      "Use coverage_categories to normalise benefits; map insurer-specific labels (e.g., 'Additional Expenses', 'Travel Interruption', 'Cutting your journey short') to the same canonical categories.",
+      "Tables are first-class evidence; include table_id and page for each mapped benefit line where possible."
+    ],
+    "coverage_categories": [
+      {
+        "aliases": [
+          "medical_and_hospital",
+          "overseas_medical",
+          "medical_and_evacuation",
+          "ship_to_shore_medical"
+        ],
+        "description": "Emergency medical treatment overseas and medical evacuation/repatriation.",
+        "canonical_name": "medical_and_evacuation"
+      },
+      {
+        "aliases": [
+          "emergency_dental"
+        ],
+        "description": "Emergency dental treatment to relieve pain or repair damage.",
+        "canonical_name": "emergency_dental"
+      },
+      {
+        "aliases": [
+          "additional_expenses",
+          "travel_interruption",
+          "cutting_your_journey_short",
+          "resumption_of_journey"
+        ],
+        "description": "Unforeseen additional transport/accommodation costs during the trip, including cutting trip short or resuming journey.",
+        "canonical_name": "additional_expenses_and_interruption"
+      },
+      {
+        "aliases": [
+          "amendment_or_cancellation_costs",
+          "trip_cancellation"
+        ],
+        "description": "Cancellation or amendment costs before departure.",
+        "canonical_name": "cancellation_before_departure"
+      },
+      {
+        "aliases": [
+          "special_events",
+          "delayed_journey_to_special_event"
+        ],
+        "description": "Extra costs to make a specific event (e.g., wedding, conference) if delayed.",
+        "canonical_name": "special_events"
+      },
+      {
+        "aliases": [
+          "luggage",
+          "baggage_and_personal_items",
+          "personal_effects"
+        ],
+        "description": "Loss, theft, or damage of baggage and personal effects, including travel documents and money where applicable.",
+        "canonical_name": "baggage_and_personal_effects"
+      },
+      {
+        "aliases": [
+          "baggage_delay",
+          "delayed_luggage_allowance"
+        ],
+        "description": "Allowance for essential items when checked baggage is delayed.",
+        "canonical_name": "baggage_delay"
+      },
+      {
+        "aliases": [
+          "travel_documents_and_passports"
+        ],
+        "description": "Replacement of passports, travel documents, bank cards.",
+        "canonical_name": "documents_and_passports"
+      },
+      {
+        "aliases": [
+          "money",
+          "cash"
+        ],
+        "description": "Loss or theft of money.",
+        "canonical_name": "cash_money"
+      },
+      {
+        "aliases": [
+          "rental_vehicle_excess",
+          "rental_car_excess",
+          "driving_holidays",
+          "collision_loss_damage_waiver"
+        ],
+        "description": "Cover for the rental vehicle insurance excess and, where offered, comprehensive rental vehicle cover extensions.",
+        "canonical_name": "rental_vehicle"
+      },
+      {
+        "aliases": [
+          "personal_liability",
+          "third_party_liability"
+        ],
+        "description": "Legal liability for injury to others or damage to their property.",
+        "canonical_name": "personal_liability"
+      },
+      {
+        "aliases": [
+          "personal_accident",
+          "accidental_death",
+          "total_permanent_disablement",
+          "loss_of_income"
+        ],
+        "description": "Injury-related lump sums or income protection following an accident.",
+        "canonical_name": "personal_accident"
+      },
+      {
+        "aliases": [
+          "hospital_incidentals",
+          "cash_allowance_while_in_hospital"
+        ],
+        "description": "Daily hospital cash or incidentals while hospitalised.",
+        "canonical_name": "hospital_cash_or_incidentals"
+      },
+      {
+        "aliases": [
+          "funeral_expenses",
+          "return_of_mortal_remains"
+        ],
+        "description": "Overseas funeral/cremation or return of remains.",
+        "canonical_name": "funeral_or_repatriation"
+      },
+      {
+        "aliases": [
+          "travel_delay",
+          "missed_connections"
+        ],
+        "description": "Allowances for travel delays and missed connections during the journey.",
+        "canonical_name": "travel_delay_and_missed_connections"
+      },
+      {
+        "aliases": [
+          "cruise_cover",
+          "cabin_confinement",
+          "missed_port",
+          "missed_shore_excursions",
+          "sea_sickness"
+        ],
+        "description": "Cruise-specific benefits when cruise cover/add-on applies.",
+        "canonical_name": "cruise_benefits"
+      },
+      {
+        "aliases": [
+          "motorcycle_moped_cover",
+          "moped_and_motorbike"
+        ],
+        "description": "Optional cover for riding mopeds/motorbikes, including conditions such as engine capacity and helmet use.",
+        "canonical_name": "motorcycle_and_moped"
+      },
+      {
+        "aliases": [
+          "snow_sports",
+          "skiing_and_snowboarding"
+        ],
+        "description": "Optional snow sports cover with on-piste/off-piste and heli-skiing conditions.",
+        "canonical_name": "snow_sports"
+      },
+      {
+        "aliases": [
+          "adventure_activities",
+          "adventure_packs",
+          "sports_activities"
+        ],
+        "description": "Optional activities packs and covered lists of activities with/without add-ons.",
+        "canonical_name": "adventure_activities"
+      },
+      {
+        "aliases": [
+          "business_pack",
+          "business_equipment",
+          "kidnap_and_ransom"
+        ],
+        "description": "Business-specific benefits where offered (equipment, hire, alternative staff, kidnap & ransom).",
+        "canonical_name": "business_benefits"
+      },
+      {
+        "aliases": [
+          "covid_19_benefits",
+          "pandemic_benefits"
+        ],
+        "description": "COVID-19 related benefits including medical, cancellation (pre and on-trip), additional expenses, and special excesses.",
+        "canonical_name": "covid19"
+      },
+      {
+        "aliases": [
+          "pet_boarding",
+          "pet_services"
+        ],
+        "description": "Kennel/cattery boarding fee cover if trip is extended or delayed.",
+        "canonical_name": "pet_boarding"
+      },
+      {
+        "aliases": [
+          "childcare_expenses"
+        ],
+        "description": "Childcare costs due to trip delays/interruption.",
+        "canonical_name": "childcare"
+      },
+      {
+        "aliases": [
+          "hijacking"
+        ],
+        "description": "Benefit for being hijacked during travel.",
+        "canonical_name": "hijacking"
+      }
+    ]
+  },
+  "error": null
+}

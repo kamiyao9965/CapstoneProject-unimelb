@@ -1,0 +1,305 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:50:28.465314Z",
+  "provenance": {
+    "run_id": "86fb040900b049b9b0569d633514ec53",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "1fc8d67b691c8a45478a79eb692310f74052f7972edcc182128c1889d8530712",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "The extraction is broadly aligned with the plan tiers and many major benefit limits, but there are actionable issues: some schema-required fields are left null despite clear PDS content, some extracted fields omit important conditions, product names include tier names contrary to the field definition, and several source evidence entries are summaries rather than exact quotes/table cells. Some issues are affected by inconsistencies in the PDS parse, especially COVID and travel-delay wording.",
+    "findings": [
+      {
+        "product_index": 2,
+        "field_name": "legal_expenses_limit",
+        "issue_type": "potential_omission",
+        "reason": "The Ultimate plan has a specific legal-cost benefit for detention, but legal_expenses_limit is null. The field definition explicitly includes wrongful detention/arrest or similar legal-cost cover separate from liability defence.",
+        "source_page": 35,
+        "source_quote": "Personal legal costs as a result of being detained",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 3,
+        "field_name": "legal_expenses_limit",
+        "issue_type": "potential_omission",
+        "reason": "The Ultimate Plus plan has the same specific detention legal-cost benefit, but legal_expenses_limit is null.",
+        "source_page": 35,
+        "source_quote": "Personal legal costs as a result of being detained",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "optional_add_ons",
+        "issue_type": "potential_omission",
+        "reason": "The PDS states that luggage item limits can be increased by paying an additional premium. This optional high-value item cover appears available generally, but optional_add_ons is null for this record; the same omission appears in other records except for a different Ultimate package.",
+        "source_page": 8,
+        "source_quote": "may increase the item limit by paying an extra amount",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "optional_add_ons",
+        "issue_type": "potential_omission",
+        "reason": "The record includes the Optional Extra Benefits Package but omits the separate optional increase to luggage item limits, which the PDS says can be purchased by paying an additional premium.",
+        "source_page": 8,
+        "source_quote": "A single item limit may be increased to $10,000",
+        "citation_verified": false,
+        "extracted_value": [
+          {
+            "name": "Optional Extra Benefits Package (Sections 29–38)",
+            "availability": "Available on Corporate Ultimate/Ultimate Plus for additional premium",
+            "changes_or_limits": "Court attendance benefit $100/day to $1,000; Independent financial advice $5,000; Spouse/partner accidental death $25,000; Dependent child assistance – Education fund $5,000 per child (max $15,000/family), Orphaned benefit $10,000 per child (max $30,000/family); Partner retraining $10,000; Corporate image protection $15,000; Home/motor vehicle modification $10,000; Unexpired membership $500; Keys and locks $1,000; Home burglary $1,000",
+            "evidence_page": "p7, p37–38"
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "excess_options",
+        "issue_type": "missing_condition",
+        "reason": "The extracted standard excess description omits Section 5 Travel delay. Page 19 states the $60 excess applies to Sections 4, 5, 6, 7, 8, 9 and 10, and Section 39 where relevant. This omission appears repeated across plan records.",
+        "source_page": 19,
+        "source_quote": "Section 4, 5, 6, 7, 8, 9 and 10",
+        "citation_verified": true,
+        "extracted_value": "Standard excess: $60 per event on Sections 1, 4, 6, 7, 8, 9, 10 and Section 39 where relevant. Age 75+ excess: $5,000 per claim for Sections 1 and 4. Additional excesses may apply for approved existing medical condition cover and will be advised in writing."
+      },
+      {
+        "product_index": 0,
+        "field_name": "travel_delay_limit",
+        "issue_type": "other",
+        "reason": "The extracted travel delay sub-limit says up to $200 after 6 hours and $200 each further 24 hours, matching the benefits table, but the policy wording states up to $300. This inconsistency is material and is not flagged in the extraction; it affects all plan records' travel_delay_limit wording.",
+        "source_page": 25,
+        "source_quote": "up to $300 for reasonable additional hotel accommodation",
+        "citation_verified": false,
+        "extracted_value": "$1,000 (includes up to $200 after 6 hours and $200 each further 24 hours)"
+      },
+      {
+        "product_index": 0,
+        "field_name": "general_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "general_exclusions is null despite the PDS containing a dedicated general exclusions section with exclusions applicable to all sections. This omission appears across all product records.",
+        "source_page": 41,
+        "source_quote": "Unless otherwise indicated these exclusions on pages 41-42 apply to all Sections",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "benefit_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "benefit_exclusions is null despite multiple benefit sections containing section-specific 'We will not pay for' exclusions. This omission appears across all product records.",
+        "source_page": 22,
+        "source_quote": "We will not pay for:",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The product_name includes the plan tier 'Essentials'. The canonical definition says product_name should be the product or PDS family excluding the individual plan tier where possible; the tier is already captured in plan_name. The same pattern appears for the other plan records.",
+        "source_page": 2,
+        "source_quote": "The Cover-More Corporate Travel Insurance policy",
+        "citation_verified": true,
+        "extracted_value": "Cover-More Corporate Essentials"
+      },
+      {
+        "product_index": 0,
+        "field_name": "source_evidence",
+        "issue_type": "other",
+        "reason": "Several source_evidence entries are not exact quotes or table cells but constructed summaries such as benefit-table descriptions. The canonical definition requires exact quotes or table cells, treating tables as first-class evidence.",
+        "source_page": 5,
+        "source_quote": "Benefits table – Corporate Essentials and Essentials Plus",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "fields": [
+              "pds_effective_date",
+              "pds_title"
+            ],
+            "page": 1,
+            "quote": "Corporate Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement. Effective 22 April 2026"
+          },
+          {
+            "fields": [
+              "trip_frequency",
+              "annual_unlimited_trips",
+              "policy_period_months"
+            ],
+            "page": 3,
+            "quote": "...multiple employees on the move throughout the world, for multiple trips throughout the year... We will give you a quote for a full year’s worth of cover."
+          },
+          {
+            "fields": [
+              "minimum_distance_from_home_km"
+            ],
+            "page": 3,
+            "quote": "The insured person’s journey will include ... more than 100 kilometres from home or the insured person’s business."
+          },
+          {
+            "fields": [
+              "emergency_medical_limit",
+              "emergency_dental_limit",
+              "additional_expenses_or_trip_disruption_limit",
+              "travel_delay_limit",
+              "cancellation_cover_limit",
+              "luggage_limit",
+              "luggage_delay_limit",
+              "money_limit",
+              "rental_vehicle_excess_limit",
+              "personal_liability_limit",
+              "personal_accident_limit",
+              "loss_of_income_limit"
+            ],
+            "page": 5,
+            "quote": "Benefits table – Corporate Essentials and Essentials Plus (Essentials column). Overseas medical expenses $10,000,000~; Overseas dental expenses $2,500; Additional expenses $10,000,000; Travel delay $1,000; Amendment or cancellation costs $10,000; Luggage and travel documents $7,500; Delayed luggage allowance up to $1,000 after 12 hours; Money $Nil; Rental car insurance excess $4,000; Personal liability $1,000,000; Sections 14–16 cumulative $Nil; Loss of income (injury) $Nil."
+          },
+          {
+            "fields": [
+              "medical_expenses_max_months_from_onset"
+            ],
+            "page": 5,
+            "quote": "~ Cover will not exceed 18 months from onset of the illness, condition or injury."
+          },
+          {
+            "fields": [
+              "luggage_single_item_limit",
+              "electronics_or_valuables_limit",
+              "sub_limits"
+            ],
+            "page": 8,
+            "quote": "Luggage item limits automatically included... Phone $1,000; Camera $4,000; Laptop $4,000; Any other item $1,000."
+          },
+          {
+            "fields": [
+              "excess_options",
+              "standard_excess_aud"
+            ],
+            "page": 15,
+            "quote": "Unless specified otherwise ... the claimant is required to pay the first $60 arising from any one event... in respect of Sections 1, 4, 6, 7, 8, 9 and 10 ... and for Section 39 where relevant."
+          },
+          {
+            "fields": [
+              "excess_rules"
+            ],
+            "page": 19,
+            "quote": "Policy conditions 1. Excess ... $60 if under 75 ... $5,000 if aged 75 and over (Section 1). Section 4–10 and 39: $60 per event."
+          },
+          {
+            "fields": [
+              "maximum_trip_duration_days"
+            ],
+            "page": 18,
+            "quote": "period of insurance ... to the completion of 6 months from the commencement of each journey, whichever occurs first."
+          },
+          {
+            "fields": [
+              "dependent_child_age_limit_years"
+            ],
+            "page": 16,
+            "quote": "accompanied children ... not in full-time employment ... under the age of 21 years."
+          },
+          {
+            "fields": [
+              "pregnancy_cover_summary",
+              "pregnancy_single_week_limit"
+            ],
+            "page": 13,
+            "quote": "Cover is only provided for serious, unexpected pregnancy complications that occur up until the 24th week of pregnancy i.e. up to 23 weeks, 6 days. Childbirth is not covered. Costs relating to the health or care of a newborn child are not covered."
+          },
+          {
+            "fields": [
+              "covid_cover_available",
+              "covid_medical_limit"
+            ],
+            "page": 39,
+            "quote": "SECTION 39: COVID-19 benefits ... Section 1: Overseas medical and dental expenses ... Essentials $10,000,000~ (cover will not exceed 12 months from onset)."
+          },
+          {
+            "fields": [
+              "cooling_off_period_days"
+            ],
+            "page": 9,
+            "quote": "Cooling-off period ... within 21 days of the date of purchase, we will refund The Company its money."
+          },
+          {
+            "fields": [
+              "claims_process_summary",
+              "claim_notification_deadline_days"
+            ],
+            "page": 4,
+            "quote": "How to make a claim ... hear back within 10 working days ...",
+            "note": "Notification deadline 60 days is at Policy condition 4e."
+          },
+          {
+            "fields": [
+              "claim_notification_deadline_days"
+            ],
+            "page": 19,
+            "quote": "Policy conditions, 4.e ... advise us of any claim ... as soon as possible and within 60 days of the insured person returning home."
+          },
+          {
+            "fields": [
+              "rental_vehicle_excess_conditions"
+            ],
+            "page": 30,
+            "quote": "Section 11 Rental car insurance excess – conditions (must be nominated driver, comprehensive insurance purchased). Exclusions for violation of rental terms, unsealed surfaces, admin/loss-of-use."
+          },
+          {
+            "fields": [
+              "luggage_conditions"
+            ],
+            "page": 28,
+            "quote": "We will not pay for ... valuables placed in the care of a transport provider (unless forced) ... items left unattended in any motor vehicle overnight ... daylight motor vehicle limits $1,000 per item/$2,000 total ... report within 7 days ... IMEI blocking required."
+          },
+          {
+            "fields": [
+              "travel_warning_and_sanctions_rules"
+            ],
+            "page": 21,
+            "quote": "Sanctions clause – we shall not provide coverage ... to the extent that such cover ... would expose us to any sanction ..."
+          },
+          {
+            "fields": [
+              "travel_warning_and_sanctions_rules"
+            ],
+            "page": 42,
+            "quote": "General exclusion 32: claims directly arising from not following ‘Do not travel’ advice (Smartraveller) when related to the nature of the claim."
+          },
+          {
+            "fields": [
+              "repatriation_of_remains_limit"
+            ],
+            "page": 24,
+            "quote": "Section 4.2 If the insured person dies ... maximum ... $20,000; or if Schengen Visa holder and death in Schengen member state ... 30,000 EUR."
+          }
+        ]
+      }
+    ]
+  },
+  "error": null
+}

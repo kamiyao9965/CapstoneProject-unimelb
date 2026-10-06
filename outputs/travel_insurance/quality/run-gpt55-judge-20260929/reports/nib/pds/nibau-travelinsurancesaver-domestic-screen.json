@@ -1,0 +1,328 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:58:21.266585Z",
+  "provenance": {
+    "run_id": "fd9433ed13cd4ff29391d6f02409d7ad",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/nib/pds/nibau-travelinsurancesaver-domestic-screen.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "49fb047590095bc7c6af26506351a2aa462926d30034a1edf2b49265a41f8aff",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "89314a4c65c02b144356d38fbbb4b1457f2a7633f39d60d53a6819736d67098d",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "low",
+    "summary": "The extraction is broadly supported for the two domestic plans and most limits/conditions match the PDS. However, there are actionable issues: product_name appears to include the plan tier despite a separate plan_name field, the Australian Travel Plan omits a repatriation/remains limit even though repatriation/transporting remains is covered under the $50,000 Medical evacuation and repatriation benefit, and some source_evidence entries are paraphrases rather than exact quotes/table cells as required by the schema.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The schema says product_name should be the product or PDS product family excluding the individual plan tier where possible. This value includes the plan tier 'Australian Travel Plan', which is already captured in plan_name.",
+        "source_page": 1,
+        "source_quote": "Domestic Travel Insurance",
+        "citation_verified": true,
+        "extracted_value": "Travel Insurance Saver Domestic - Australian Travel Plan"
+      },
+      {
+        "product_index": 1,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The schema says product_name should be the product or PDS product family excluding the individual plan tier where possible. This value includes the plan tier 'Cancellation and Additional Expenses Plan', which is already captured in plan_name.",
+        "source_page": 1,
+        "source_quote": "Domestic Travel Insurance",
+        "citation_verified": true,
+        "extracted_value": "Travel Insurance Saver Domestic - Cancellation and Additional Expenses Plan"
+      },
+      {
+        "product_index": 0,
+        "field_name": "repatriation_of_remains_limit",
+        "issue_type": "potential_omission",
+        "reason": "The field is left null, but the PDS states that the Australian Travel Plan includes a Medical evacuation and repatriation benefit with a $50,000 limit, and the wording includes transporting remains to a funeral home in Australia. This appears to be relevant to the repatriation_of_remains_limit field, even if the remains limit is not separately itemised.",
+        "source_page": 31,
+        "source_quote": "We will pay for expenses for transporting your remains to a funeral home in Australia",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "source_evidence",
+        "issue_type": "other",
+        "reason": "Several source_evidence quotes are paraphrased summaries rather than exact quotes/table cells, contrary to the source_evidence field definition. For example, the evidence entry summarising the Australian Travel Plan schedule is not verbatim text from the parsed page/table.",
+        "source_page": 15,
+        "source_quote": "Schedule of benefits",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "fields": [
+              "pds_title",
+              "pds_effective_date"
+            ],
+            "page": 1,
+            "quote": "Domestic Travel Insurance Combined Financial Services Guide and Product Disclosure Statement. Effective Date 15 March 2024"
+          },
+          {
+            "fields": [
+              "pds_prepared_or_version_date"
+            ],
+            "page": 3,
+            "quote": "Date of Preparation: 7 February 2024; Version: NP_DOM_07_07FEB2024"
+          },
+          {
+            "fields": [
+              "insurer_name"
+            ],
+            "page": 5,
+            "quote": "This insurance is underwritten by Pacific International Insurance Pty Ltd ABN 83 169 311 193, AFSL No 523921."
+          },
+          {
+            "fields": [
+              "issuer_or_agent_name",
+              "brand_name"
+            ],
+            "page": 5,
+            "quote": "This policy is distributed and issued by Insurance Saver Pty Ltd ... an authorised representative of nib Travel Services (Australia) Pty Limited ... (nib)."
+          },
+          {
+            "fields": [
+              "excess_options",
+              "standard_excess_aud"
+            ],
+            "page": 13,
+            "table_id": "p13-t1",
+            "quote": "Plan | Policy excess; Australian Travel Plan | $100; Cancellation and Additional Expenses Plan | Nil"
+          },
+          {
+            "fields": [
+              "cancellation_cover_limit",
+              "cancellation_cover_selectable"
+            ],
+            "page": 6,
+            "quote": "For all plans, the policy limit for Cancellation or holiday deferment costs must be chosen at the time of purchase; the limit will then appear on the Certificate of Insurance."
+          },
+          {
+            "fields": [
+              "optional_add_ons"
+            ],
+            "page": 7,
+            "quote": "Snow sports cover option (benefits listed). Additional rental vehicle insurance excess option (up to $5,000 additional). Specified items option (max $4,000 per item; $10,000 total). Specified medical conditions option."
+          },
+          {
+            "fields": [
+              "coverage_benefits",
+              "luggage_limit",
+              "personal_liability_limit",
+              "personal_accident_limit",
+              "rental_vehicle_excess_limit",
+              "travel_delay_limit",
+              "additional_expenses_or_trip_disruption_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 15,
+            "table_id": "p15-t1",
+            "quote": "Schedule of benefits – Australian Travel Plan (all listed limits incl. Luggage $4,000; Personal liability $300,000; Accidental death $10,000; Rental vehicle insurance excess $5,000; Travel delay $500 ($250/24h); Emergency travel arrangements and accommodation $10,000; Coronavirus travel costs $2,500)."
+          },
+          {
+            "fields": [
+              "emergency_medical_limit"
+            ],
+            "page": 31,
+            "quote": "There is no cover for any medical, hospital, dental or ambulance expenses you incur in Australia."
+          },
+          {
+            "fields": [
+              "geographic_scope",
+              "eligibility_rules"
+            ],
+            "page": 16,
+            "quote": "This plan is only available to residents of Australia. There is no cover for cruises in Australian Waters under this plan."
+          },
+          {
+            "fields": [
+              "dependent_child_age_limit_years",
+              "age_eligibility_notes"
+            ],
+            "page": 18,
+            "quote": "Child ... under 25 years of age, and working less than 30 hours per week."
+          },
+          {
+            "fields": [
+              "waiting_period_hours",
+              "waiting_period_rules"
+            ],
+            "page": 14,
+            "quote": "If you’ve already started travelling when your Certificate of Insurance is issued: a 72-hour waiting period applies ... with noted exceptions."
+          },
+          {
+            "fields": [
+              "pregnancy_cover_summary",
+              "pregnancy_single_week_limit"
+            ],
+            "page": 27,
+            "quote": "Cover for pregnancy-related illness up to the end of the 26th week; pregnancy is not an existing medical condition; conditions apply."
+          },
+          {
+            "fields": [
+              "travel_delay_minimum_delay_hours"
+            ],
+            "page": 32,
+            "quote": "We will cover you if ... scheduled public transport is delayed for at least 6 hours."
+          },
+          {
+            "fields": [
+              "rental_vehicle_excess_conditions"
+            ],
+            "page": 35,
+            "quote": "This cover is not in place of rental vehicle insurance and only provides cover for the excess component ... comprehensive insurance required; nominated driver; exclusions."
+          },
+          {
+            "fields": [
+              "depreciation_rules",
+              "luggage_conditions"
+            ],
+            "page": 37,
+            "quote": "Depreciation amounts table (10%/15%/20%/50%). Luggage conditions and exclusions including valuables in vehicles, tents, checked-in valuables."
+          },
+          {
+            "fields": [
+              "covid_cover_summary"
+            ],
+            "page": 41,
+            "quote": "Coronavirus travel costs – listed covered events 1–9 and documentation requirements; exclusions on following pages."
+          },
+          {
+            "fields": [
+              "general_exclusions",
+              "travel_warning_and_sanctions_rules",
+              "travel_services_provider_insolvency_limit"
+            ],
+            "page": 46,
+            "quote": "General exclusions include Do not travel advisories, financial default, government intervention/sanctions."
+          },
+          {
+            "fields": [
+              "emergency_assistance_details"
+            ],
+            "page": 5,
+            "table_id": "p5-t1",
+            "quote": "nib international assistance contact details. Also see Contacts page 53."
+          },
+          {
+            "fields": [
+              "premium_factors"
+            ],
+            "page": 6,
+            "quote": "Main factors that impact your premium include: length of trip, time between purchase and departure, destination, travel plan chosen, your age, and additional options."
+          }
+        ]
+      },
+      {
+        "product_index": 1,
+        "field_name": "source_evidence",
+        "issue_type": "other",
+        "reason": "Several source_evidence quotes are paraphrased summaries rather than exact quotes/table cells, contrary to the source_evidence field definition. For example, the evidence entry summarising the Cancellation and Additional Expenses Plan schedule is not verbatim text from the parsed page/table.",
+        "source_page": 17,
+        "source_quote": "Schedule of benefits",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "fields": [
+              "pds_title",
+              "pds_effective_date"
+            ],
+            "page": 1,
+            "quote": "Domestic Travel Insurance Combined Financial Services Guide and Product Disclosure Statement. Effective Date 15 March 2024"
+          },
+          {
+            "fields": [
+              "pds_prepared_or_version_date"
+            ],
+            "page": 3,
+            "quote": "Date of Preparation: 7 February 2024; Version: NP_DOM_07_07FEB2024"
+          },
+          {
+            "fields": [
+              "insurer_name"
+            ],
+            "page": 5,
+            "quote": "This insurance is underwritten by Pacific International Insurance Pty Ltd ABN 83 169 311 193, AFSL No 523921."
+          },
+          {
+            "fields": [
+              "issuer_or_agent_name",
+              "brand_name"
+            ],
+            "page": 5,
+            "quote": "This policy is distributed and issued by Insurance Saver Pty Ltd ... an authorised representative of nib Travel Services (Australia) Pty Limited ... (nib)."
+          },
+          {
+            "fields": [
+              "excess_options",
+              "standard_excess_aud"
+            ],
+            "page": 13,
+            "table_id": "p13-t1",
+            "quote": "Cancellation and Additional Expenses Plan | Nil (policy excess)."
+          },
+          {
+            "fields": [
+              "coverage_benefits",
+              "additional_expenses_or_trip_disruption_limit"
+            ],
+            "page": 17,
+            "table_id": "p17-t1",
+            "quote": "Schedule of benefits – Cancellation and Additional Expenses Plan (Emergency travel arrangements and accommodation $2,000; Meals $500 [$75/24h]; Internet/telephone $250)."
+          },
+          {
+            "fields": [
+              "cancellation_cover_limit",
+              "cancellation_cover_selectable"
+            ],
+            "page": 6,
+            "quote": "For all plans, the policy limit for Cancellation or holiday deferment costs must be chosen at the time of purchase; the limit will then appear on the Certificate of Insurance."
+          },
+          {
+            "fields": [
+              "eligibility_rules",
+              "maximum_trip_duration_days"
+            ],
+            "page": 17,
+            "quote": "There is no cover under this policy for ... any trip greater than 12 months in duration. This plan cannot be purchased more than 12 months prior to travel."
+          },
+          {
+            "fields": [
+              "dependent_child_age_limit_years",
+              "age_eligibility_notes"
+            ],
+            "page": 18,
+            "quote": "Child ... under 25 years of age, and working less than 30 hours per week."
+          },
+          {
+            "fields": [
+              "waiting_period_hours"
+            ],
+            "page": 14,
+            "quote": "If you’ve already started travelling when your Certificate of Insurance is issued: a 72-hour waiting period applies ..."
+          }
+        ]
+      }
+    ]
+  },
+  "error": null
+}

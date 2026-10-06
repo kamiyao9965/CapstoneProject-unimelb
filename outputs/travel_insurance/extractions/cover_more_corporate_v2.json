@@ -1,0 +1,2035 @@
+{
+  "vertical": "travel_insurance",
+  "schema_version": "v0.5-2026-08-25-canonical-candidate",
+  "source_path": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+  "extracted_at": "2026-08-25T22:54:00+00:00",
+  "provider": "openai",
+  "model": "gpt-5",
+  "data": {
+    "products": [
+      {
+        "product_name": "Cover-More Corporate Travel Insurance - Corporate Essentials",
+        "product_type": "business",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL)",
+        "insurer_licence_ids": "Zurich Australian Insurance Limited ABN 13 000 296 640, AFSL 232507. Cover-More Insurance Services Pty Ltd (agent) ABN 95 003 114 145, AFSL 241713.",
+        "brand_or_trading_name": "Cover-More",
+        "plan_tier": "Corporate Essentials",
+        "pds_title": "Corporate Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "22 April 2026",
+        "document_source_id": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+        "trip_frequency": "annual_multi_trip",
+        "annual_multi_trip_max_duration_days": null,
+        "area_of_travel_options": [
+          {
+            "option_name": "USA, Canada, Central and South America"
+          },
+          {
+            "option_name": "UK/Europe"
+          },
+          {
+            "option_name": "Middle East, China, Japan, Indian Sub-Continent and other destinations"
+          },
+          {
+            "option_name": "Asia (excluding China and Japan)"
+          },
+          {
+            "option_name": "Indonesia, South West Pacific, New Zealand and Domestic cruising"
+          },
+          {
+            "option_name": "Australia and Norfolk Island"
+          }
+        ],
+        "cruise_add_on_required": null,
+        "eligibility_summary": "Corporate annual cover purchased by The Company for business travel of employees (and accompanying spouse/partner and accompanied children) with journeys including international, interstate or intrastate travel more than 100 km from home or business. All insured persons must be Australian residents with a valid Medicare card or currently living in Australia on a visa allowing them to live, work or study, and must be returning to their home at completion of each journey and within 6 months of commencement. Leisure travel included up to 4 weeks when combined with a business trip (or up to 6 weeks for Director/CEO/CFO/COO, and 6 weeks independent leisure for those roles).",
+        "age_limits": "No maximum age. Special conditions apply: age 75+ — Sections 1 & 4 have a $5,000 excess per claim; no benefit under Section 15 Disability; Accidental death max $25,000; no benefit under Sections 14 and 21 (loss of income). Section 6 and 7 benefits limited to $5,000. Under 18 — Section 15 lump sum for injury types 2–19 capped at $50,000; Section 16 Accidental death max $25,000.",
+        "dependent_children_policy": "Accompanying spouse/partner and up to 6 accompanied children are covered when travelling with the employee. Accompanied children are the insured person’s financially dependent children or grandchildren under 21 years, not in full‑time employment.",
+        "pre_existing_medical_cover": "Automatic cover for listed conditions subject to criteria (e.g., stable and no hospitalisation in last 12 months). Other existing medical conditions (including chronic lung disease, cardiovascular disease, reduced immunity) and certain pregnancy situations require health assessment and additional premium for cover to apply. No cover for undiagnosed/awaiting specialist opinion conditions. Pregnancy: cover only for serious unexpected complications up to 23 weeks 6 days; no cover for childbirth or neonatal care.",
+        "excess_options_aud": [
+          {
+            "amount_aud": 60,
+            "applies_to": "Sections 1, 4, 5, 6, 7, 8, 9, 10 and Section 39 where relevant",
+            "notes": "Excess applies per event per journey (Policy condition 1)."
+          },
+          {
+            "amount_aud": 5000,
+            "applies_to": "Sections 1 and 4",
+            "notes": "Special excess for insured persons aged 75 years or over at policy issue."
+          }
+        ],
+        "special_excesses": [
+          {
+            "section": "Sections 1 and 4",
+            "amount_aud": 5000,
+            "when_applies": "Insured person aged 75 years or over at the time the policy was issued to The Company (p.8, Policy condition 1)."
+          },
+          {
+            "section": "Existing medical conditions (varied cover)",
+            "amount_aud": null,
+            "when_applies": "An additional excess may apply if cover for an existing medical condition is approved following assessment (Policy condition 1)."
+          }
+        ],
+        "cancellation_cover_limit": "$10,000",
+        "overseas_medical_limit": "$10,000,000 (cover will not exceed 18 months from onset)",
+        "emergency_dental_limit_aud": 2500,
+        "baggage_limit_aud": 7500,
+        "baggage_sublimits": [
+          {
+            "item_category": "Phone",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Smart watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Video camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Drone (with or without camera)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Laptop computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Tablet computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Artificial limb",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Dentures (full or partial)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Removable dental appliance",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Medical device",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Jewellery",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Any other item",
+            "per_item_limit_aud": 1000
+          }
+        ],
+        "specified_items_rules": "A single luggage item limit can be increased up to $10,000 per specified item for an additional premium. Receipt or valuation (dated within last 2 years) required. Depreciation may apply without current receipt/valuation. Attach to Enrolment Form (pp.8, 28).",
+        "rental_vehicle_excess_limit_aud": 4000,
+        "rental_vehicle_comprehensive_cover": "Benefit reimburses the lower of rental car insurance excess or repair costs if comprehensive insurance for the rental car has been purchased. Excludes breaches of rental agreement, unsealed surfaces, admin/loss of use penalties (p.30).",
+        "personal_liability_limit_aud": 1000000,
+        "personal_accident_benefits": null,
+        "covid19_cover_summary": "Section 1 medical: COVID‑19 medical and evacuation covered overseas (up to the Section 1 medical limit) subject to conditions (no cover if destination had ‘Do not travel’ due to COVID‑19 at entry; Australia/NZ exception). Section 4 additional expenses: covered if hospitalised for COVID‑19; smaller fixed sublimit of $5,000 also applies under Section 39 (p.39). Section 7 cancellation: No COVID‑19 cancellation cover on Essentials. General: Government travel bans/mandatory quarantine related to cross‑border travel are not covered (pp.27, 39–40, 42).",
+        "waiting_periods": "Loss of income benefits: 15 days from planned work resumption (Sections 14/21). Travel delay: first benefit after 6 hours, then each 24 hours. Delayed luggage: after 12 hours. Missed connection: initial leg must arrive ≥90 minutes late.",
+        "general_exclusions_summary": "No cover for: travel against ‘Do not travel’ advice (subject to exceptions), government travel bans or mandatory quarantine related to cross‑border travel, undiagnosed conditions under investigation, elective/cosmetic treatment, childbirth/newborn care, intoxication/drug use, professional sports, certain high‑risk activities, war/civil war in specified countries, motorcycles/mopeds >250cc or without proper licensing/helmets, insolvency of service providers, private treatment in Australia where prohibited by law. COVID‑19 limits per Section 39 (pp.41–42).",
+        "optional_add_ons": [
+          {
+            "name": "Increase luggage item limits (specify items up to $10,000 each)",
+            "notes": "Additional premium applies (pp.8, 28)."
+          },
+          {
+            "name": "Cover for existing medical conditions (health assessment)",
+            "notes": "If approved, additional premium/excess may apply (pp.10–12)."
+          }
+        ],
+        "emergency_assistance_details": "24/7 emergency assistance. Call if hospitalised, medical expenses will exceed $2,000, or to arrange/approve evacuation/early return. Toll‑free: USA 1800 937 9763; Canada 1800 645 8714; UK 0800 892 014; NZ 0800 445 524. Other countries: +61 2 8907 5619 (p.4).",
+        "claim_requirements": "Report theft/loss to police/transport/accommodation provider within 7 days and obtain a report; airline PIR for baggage incidents. Provide receipts/valuation as proof of ownership; IMEI required for phone claims. Notify claims as soon as possible and within 60 days of returning home. Excess is deducted per event. For delays/missed connections, obtain written confirmation from provider (pp.3–4, 19–21, 25, 28–29).",
+        "benefits": [
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas medical expenses",
+            "limit_per_person": "$10,000,000 (to max 18 months from onset)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (standard $60; age 75+ $5,000)",
+            "conditions": "No cover for treatment in Australia; RHA/reciprocal care not covered (pp.22–23).",
+            "page_or_table_ref": "p5 table; p22 tables"
+          },
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas dental (emergency)",
+            "limit_per_person": "$2,500",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Emergency dental to relieve pain/temporarily restore function (p.22).",
+            "page_or_table_ref": "p5 table; p22 table"
+          },
+          {
+            "category": "additional_expenses",
+            "benefit_name": "Additional expenses",
+            "limit_per_person": "$10,000,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Medical necessity and assistance approval; includes funeral/repatriation sub‑limits (pp.23–24).",
+            "page_or_table_ref": "p5 table; p24 table"
+          },
+          {
+            "category": "travel_delay",
+            "benefit_name": "Travel delay",
+            "limit_per_person": "$1,000 (up to $300 per 24 hours after initial 6 hours)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": "$300",
+            "excess_applicable": "Yes",
+            "conditions": "Room‑only costs; provider confirmation required (p.25).",
+            "page_or_table_ref": "p5 table; p25 table"
+          },
+          {
+            "category": "missed_connection",
+            "benefit_name": "Missed transport connection",
+            "limit_per_person": "$0 (not covered)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Not available on Essentials (p.25).",
+            "page_or_table_ref": "p5 table; p25 table"
+          },
+          {
+            "category": "trip_cancellation",
+            "benefit_name": "Amendment or cancellation costs",
+            "limit_per_person": "$10,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Covers rearrangement or cancellation for unforeseeable events per policy (pp.25–26).",
+            "page_or_table_ref": "p5 table; p26 table"
+          },
+          {
+            "category": "baggage",
+            "benefit_name": "Luggage and travel documents",
+            "limit_per_person": "$7,500",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per item limits",
+                "amount": "Phones $1,000; cameras/laptops/tablets $4,000; jewellery/watch $1,000; other $1,000"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Per‑item limits apply; vehicle unattended limits; specified items option (pp.27–28).",
+            "page_or_table_ref": "p5 table; p28 table"
+          },
+          {
+            "category": "delayed_baggage",
+            "benefit_name": "Delayed luggage allowance",
+            "limit_per_person": "Up to $1,000 after 12 hours",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Return‑home leg excluded; provider confirmation and receipts required (p.29).",
+            "page_or_table_ref": "p5 table; p29 table"
+          },
+          {
+            "category": "money",
+            "benefit_name": "Money",
+            "limit_per_person": "$0 (not covered)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Not available on Essentials plan (p.29).",
+            "page_or_table_ref": "p5 table; p29 table"
+          },
+          {
+            "category": "rental_vehicle",
+            "benefit_name": "Rental car insurance excess",
+            "limit_per_person": "$4,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Comprehensive insurance for hire car required; exclusions apply (p.30).",
+            "page_or_table_ref": "p5 table; p30 table"
+          },
+          {
+            "category": "kidnap_and_ransom",
+            "benefit_name": "Kidnap and ransom",
+            "limit_per_person": "$100,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Specified territorial exclusions apply (pp.30–31).",
+            "page_or_table_ref": "p5 table; p30–31 tables"
+          },
+          {
+            "category": "hijacking",
+            "benefit_name": "Hijacking",
+            "limit_per_person": "$0 (not covered)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": "$0",
+            "excess_applicable": "No",
+            "conditions": "Not available on Essentials (p.31).",
+            "page_or_table_ref": "p5 table; p31 table"
+          },
+          {
+            "category": "personal_liability",
+            "benefit_name": "Personal liability",
+            "limit_per_person": "$1,000,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Various exclusions incl. vehicles/watercraft, business activities (p.33).",
+            "page_or_table_ref": "p5 table; p33 table"
+          },
+          {
+            "category": "workers_compensation",
+            "benefit_name": "Extra territorial workers compensation",
+            "limit_per_person": "$0 (not covered)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Not available on Essentials (p.34).",
+            "page_or_table_ref": "p5 table; p34 table"
+          },
+          {
+            "category": "identity_theft",
+            "benefit_name": "Identity theft protection",
+            "limit_per_person": "$0 (not covered)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Not available on Essentials (p.34).",
+            "page_or_table_ref": "p5 table; p34 table"
+          },
+          {
+            "category": "covid19",
+            "benefit_name": "COVID‑19 benefits (medical/additional expenses)",
+            "limit_per_person": "Within Section 1/4 limits; sublimit $5,000 for some additional expenses under Section 39",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Cancellation (COVID‑19)",
+                "amount": "Not covered on Essentials"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (as applicable)",
+            "conditions": "See Section 39; ‘Do not travel’ COVID advisories excluded; gov’t quarantine/ban exclusions apply (pp.39–40).",
+            "page_or_table_ref": "p5, pp.39–40"
+          }
+        ],
+        "source_evidence": [
+          {
+            "field_name": "plan_tier",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Corporate Essentials | Corporate Essentials Plus"
+          },
+          {
+            "field_name": "overseas_medical_limit",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Overseas medical expenses – $10,000,000~"
+          },
+          {
+            "field_name": "cancellation_cover_limit",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Amendment or cancellation costs – $10,000"
+          },
+          {
+            "field_name": "baggage_limit_aud",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Luggage and travel documents – $7,500"
+          },
+          {
+            "field_name": "rental_vehicle_excess_limit_aud",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Rental car insurance excess – $4,000"
+          },
+          {
+            "field_name": "personal_liability_limit_aud",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Personal liability – $1,000,000"
+          },
+          {
+            "field_name": "baggage_sublimits",
+            "source_type": "table",
+            "page": 8,
+            "table_id": "p8_t0",
+            "evidence_excerpt": "Item limits e.g., Phone $1,000; Camera $4,000; Laptop $4,000, etc."
+          },
+          {
+            "field_name": "excess_options_aud",
+            "source_type": "text",
+            "page": 19,
+            "table_id": null,
+            "evidence_excerpt": "Policy condition 1. Excess: $60 per event; age 75+ $5,000 for Sections 1 and 4."
+          },
+          {
+            "field_name": "covid19_cover_summary",
+            "source_type": "table",
+            "page": 40,
+            "table_id": "p40_t0",
+            "evidence_excerpt": "Section 7 COVID-19 cancellation: No cover for Essentials/Essentials Plus/Ultimate; Ultimate Plus limits apply."
+          }
+        ],
+        "_notes": "Annual corporate, multi‑trip policy. Each journey must be completed within 6 months of commencement. Essentials plan excludes Sections 6, 10, 13–16, 18–19 as shown in tables. COVID‑19 cancellation cover does not apply to Essentials.",
+        "_unfilled": []
+      },
+      {
+        "product_name": "Cover-More Corporate Travel Insurance - Corporate Essentials Plus",
+        "product_type": "business",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL)",
+        "insurer_licence_ids": "Zurich Australian Insurance Limited ABN 13 000 296 640, AFSL 232507. Cover-More Insurance Services Pty Ltd (agent) ABN 95 003 114 145, AFSL 241713.",
+        "brand_or_trading_name": "Cover-More",
+        "plan_tier": "Corporate Essentials Plus",
+        "pds_title": "Corporate Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "22 April 2026",
+        "document_source_id": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+        "trip_frequency": "annual_multi_trip",
+        "annual_multi_trip_max_duration_days": null,
+        "area_of_travel_options": [
+          {
+            "option_name": "USA, Canada, Central and South America"
+          },
+          {
+            "option_name": "UK/Europe"
+          },
+          {
+            "option_name": "Middle East, China, Japan, Indian Sub-Continent and other destinations"
+          },
+          {
+            "option_name": "Asia (excluding China and Japan)"
+          },
+          {
+            "option_name": "Indonesia, South West Pacific, New Zealand and Domestic cruising"
+          },
+          {
+            "option_name": "Australia and Norfolk Island"
+          }
+        ],
+        "cruise_add_on_required": null,
+        "eligibility_summary": "Corporate annual cover purchased by The Company for business travel of employees (and accompanying spouse/partner and accompanied children) with journeys including international, interstate or intrastate travel more than 100 km from home or business. All insured persons must be Australian residents with a valid Medicare card or currently living in Australia on a visa allowing them to live, work or study, and must be returning to their home at completion of each journey and within 6 months of commencement. Leisure travel included up to 4 weeks when combined with a business trip (or up to 6 weeks for Director/CEO/CFO/COO, and 6 weeks independent leisure for those roles).",
+        "age_limits": "No maximum age. Special conditions apply: age 75+ — Sections 1 & 4 have a $5,000 excess per claim; no benefit under Section 15 Disability; Accidental death max $25,000; no benefit under Sections 14 and 21 (loss of income). Section 6 and 7 benefits limited to $5,000. Under 18 — Section 15 lump sum for injury types 2–19 capped at $50,000; Section 16 Accidental death max $25,000.",
+        "dependent_children_policy": "Accompanying spouse/partner and up to 6 accompanied children are covered when travelling with the employee. Accompanied children are the insured person’s financially dependent children or grandchildren under 21 years, not in full‑time employment.",
+        "pre_existing_medical_cover": "Automatic cover for listed conditions subject to criteria (e.g., stable and no hospitalisation in last 12 months). Other existing medical conditions (including chronic lung disease, cardiovascular disease, reduced immunity) and certain pregnancy situations require health assessment and additional premium for cover to apply. No cover for undiagnosed/awaiting specialist opinion conditions. Pregnancy: cover only for serious unexpected complications up to 23 weeks 6 days; no cover for childbirth or neonatal care.",
+        "excess_options_aud": [
+          {
+            "amount_aud": 60,
+            "applies_to": "Sections 1, 4, 5, 6, 7, 8, 9, 10 and Section 39 where relevant",
+            "notes": "Excess applies per event per journey (Policy condition 1)."
+          },
+          {
+            "amount_aud": 5000,
+            "applies_to": "Sections 1 and 4",
+            "notes": "Special excess for insured persons aged 75 years or over at policy issue."
+          }
+        ],
+        "special_excesses": [
+          {
+            "section": "Sections 1 and 4",
+            "amount_aud": 5000,
+            "when_applies": "Insured person aged 75 years or over at the time the policy was issued to The Company (p.8, Policy condition 1)."
+          },
+          {
+            "section": "Existing medical conditions (varied cover)",
+            "amount_aud": null,
+            "when_applies": "An additional excess may apply if cover for an existing medical condition is approved following assessment (Policy condition 1)."
+          }
+        ],
+        "cancellation_cover_limit": "$Unlimited",
+        "overseas_medical_limit": "$Unlimited (cover will not exceed 18 months from onset)",
+        "emergency_dental_limit_aud": 2500,
+        "baggage_limit_aud": 15000,
+        "baggage_sublimits": [
+          {
+            "item_category": "Phone",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Smart watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Video camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Drone (with or without camera)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Laptop computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Tablet computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Artificial limb",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Dentures (full or partial)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Removable dental appliance",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Medical device",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Jewellery",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Any other item",
+            "per_item_limit_aud": 1000
+          }
+        ],
+        "specified_items_rules": "A single luggage item limit can be increased up to $10,000 per specified item for an additional premium. Receipt or valuation (dated within last 2 years) required. Depreciation may apply without current receipt/valuation. Attach to Enrolment Form (pp.8, 28).",
+        "rental_vehicle_excess_limit_aud": 8000,
+        "rental_vehicle_comprehensive_cover": "Benefit reimburses the lower of rental car insurance excess or repair costs if comprehensive insurance for the rental car has been purchased. Excludes breaches of rental agreement, unsealed surfaces, admin/loss of use penalties (p.30).",
+        "personal_liability_limit_aud": 5000000,
+        "personal_accident_benefits": [
+          {
+            "component": "loss_of_income_due_to_injury",
+            "amount_aud": 36000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": 52,
+            "age_applicability": "No benefit for insured persons aged 75+; 15‑day waiting period applies (p.31)."
+          },
+          {
+            "component": "total_permanent_disablement (Section 15 schedule)",
+            "amount_aud": 50000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Not payable for insured persons aged 75+; under 18 schedule caps apply (pp.32–33, p.8)."
+          },
+          {
+            "component": "accidental_death",
+            "amount_aud": 50000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Max $25,000 for insured persons aged 75+ or under 18 (pp.8, 33)."
+          },
+          {
+            "component": "cumulative_cap_sections_14_15_16",
+            "amount_aud": 50000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Aggregate cap per insured person (pp.5, 33)."
+          }
+        ],
+        "covid19_cover_summary": "Section 1 medical: COVID‑19 medical and evacuation covered overseas subject to conditions (no cover if destination had ‘Do not travel’ due to COVID‑19 at entry; Australia/NZ exception). Section 4 additional expenses: covered if hospitalised for COVID‑19; smaller fixed sublimit of $5,000 also applies under Section 39 (p.39). Section 7 cancellation: No COVID‑19 cancellation cover on Essentials Plus. General: Government travel bans/mandatory quarantine related to cross‑border travel are not covered (pp.27, 39–40, 42).",
+        "waiting_periods": "Loss of income benefits: 15 days from planned work resumption (Sections 14/21). Travel delay: first benefit after 6 hours, then each 24 hours. Delayed luggage: after 12 hours. Missed connection: initial leg must arrive ≥90 minutes late.",
+        "general_exclusions_summary": "No cover for: travel against ‘Do not travel’ advice (subject to exceptions), government travel bans or mandatory quarantine related to cross‑border travel, undiagnosed conditions under investigation, elective/cosmetic treatment, childbirth/newborn care, intoxication/drug use, professional sports, certain high‑risk activities, war/civil war in specified countries, motorcycles/mopeds >250cc or without proper licensing/helmets, insolvency of service providers, private treatment in Australia where prohibited by law. COVID‑19 limits per Section 39 (pp.41–42).",
+        "optional_add_ons": [
+          {
+            "name": "Increase luggage item limits (specify items up to $10,000 each)",
+            "notes": "Additional premium applies (pp.8, 28)."
+          },
+          {
+            "name": "Cover for existing medical conditions (health assessment)",
+            "notes": "If approved, additional premium/excess may apply (pp.10–12)."
+          }
+        ],
+        "emergency_assistance_details": "24/7 emergency assistance. Call if hospitalised, medical expenses will exceed $2,000, or to arrange/approve evacuation/early return. Toll‑free: USA 1800 937 9763; Canada 1800 645 8714; UK 0800 892 014; NZ 0800 445 524. Other countries: +61 2 8907 5619 (p.4).",
+        "claim_requirements": "Report theft/loss to police/transport/accommodation provider within 7 days and obtain a report; airline PIR for baggage incidents. Provide receipts/valuation as proof of ownership; IMEI required for phone claims. Notify claims as soon as possible and within 60 days of returning home. Excess is deducted per event. For delays/missed connections, obtain written confirmation from provider (pp.3–4, 19–21, 25, 28–29).",
+        "benefits": [
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas medical expenses",
+            "limit_per_person": "Unlimited (to max 18 months from onset)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (standard $60; age 75+ $5,000)",
+            "conditions": "No cover for treatment in Australia; RHA/reciprocal care not covered (pp.22–23).",
+            "page_or_table_ref": "p5 table; p22 tables"
+          },
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas dental (emergency)",
+            "limit_per_person": "$2,500",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Emergency dental to relieve pain/temporarily restore function (p.22).",
+            "page_or_table_ref": "p5 table; p22 table"
+          },
+          {
+            "category": "hospital_cash",
+            "benefit_name": "Hospital incidentals",
+            "limit_per_person": "$5,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours",
+                "amount": "$100"
+              }
+            ],
+            "per_day_amount_if_any": "$100",
+            "excess_applicable": "No",
+            "conditions": "After 48 hours of hospitalisation; receipts required (p.23).",
+            "page_or_table_ref": "p5 table; p23 table"
+          },
+          {
+            "category": "additional_expenses",
+            "benefit_name": "Additional expenses",
+            "limit_per_person": "Unlimited",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Medical necessity and assistance approval; includes funeral/repatriation sub‑limits (pp.23–24).",
+            "page_or_table_ref": "p5 table; p24 table"
+          },
+          {
+            "category": "travel_delay",
+            "benefit_name": "Travel delay",
+            "limit_per_person": "$2,000 (up to $300 per 24 hours after initial 6 hours)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": "$300",
+            "excess_applicable": "Yes",
+            "conditions": "Room‑only costs; provider confirmation required (p.25).",
+            "page_or_table_ref": "p5 table; p25 table"
+          },
+          {
+            "category": "missed_connection",
+            "benefit_name": "Missed transport connection",
+            "limit_per_person": "$0 (not covered)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Not covered on Essentials Plus (p.25).",
+            "page_or_table_ref": "p5 table; p25 table"
+          },
+          {
+            "category": "trip_cancellation",
+            "benefit_name": "Amendment or cancellation costs",
+            "limit_per_person": "Unlimited",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Covers rearrangement or cancellation for unforeseeable events per policy (pp.25–26).",
+            "page_or_table_ref": "p5 table; p26 table"
+          },
+          {
+            "category": "baggage",
+            "benefit_name": "Luggage and travel documents",
+            "limit_per_person": "$15,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per item limits",
+                "amount": "Phones $1,000; cameras/laptops/tablets $4,000; jewellery/watch $1,000; other $1,000"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Per‑item limits apply; vehicle unattended limits; specified items option (pp.27–28).",
+            "page_or_table_ref": "p5 table; p28 table"
+          },
+          {
+            "category": "delayed_baggage",
+            "benefit_name": "Delayed luggage allowance",
+            "limit_per_person": "Up to $2,000 after 12 hours",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Return‑home leg excluded; provider confirmation and receipts required (p.29).",
+            "page_or_table_ref": "p5 table; p29 table"
+          },
+          {
+            "category": "money",
+            "benefit_name": "Money",
+            "limit_per_person": "$1,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Cash, bank notes, money orders lost or stolen; conditions apply (p.29).",
+            "page_or_table_ref": "p5 table; p29 table"
+          },
+          {
+            "category": "rental_vehicle",
+            "benefit_name": "Rental car insurance excess",
+            "limit_per_person": "$8,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Comprehensive insurance for hire car required; exclusions apply (p.30).",
+            "page_or_table_ref": "p5 table; p30 table"
+          },
+          {
+            "category": "kidnap_and_ransom",
+            "benefit_name": "Kidnap and ransom",
+            "limit_per_person": "$250,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Specified territorial exclusions apply (pp.30–31).",
+            "page_or_table_ref": "p5 table; p30–31 tables"
+          },
+          {
+            "category": "hijacking",
+            "benefit_name": "Hijacking",
+            "limit_per_person": "$10,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours detained",
+                "amount": "$1,000"
+              }
+            ],
+            "per_day_amount_if_any": "$1,000",
+            "excess_applicable": "No",
+            "conditions": "Forcible detention on licensed public transport (p.31).",
+            "page_or_table_ref": "p5 table; p31 table"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Loss of income (injury)",
+            "limit_per_person": "$36,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Waiting period",
+                "amount": "15 days"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Up to 75% net wage; max 52 weeks; medical certification required (p.31).",
+            "page_or_table_ref": "p5 table; p31 table"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Disability lump sum (Section 15)",
+            "limit_per_person": "$50,000 (schedule percentages apply)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Surgery due to sickness overseas",
+                "amount": "Up to $5,000 depending on procedure"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "See schedule and notes; under 18/age 75+ limits apply (pp.32–33).",
+            "page_or_table_ref": "p5 table; pp.32–33 tables"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Accidental death",
+            "limit_per_person": "$50,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Death within one year from accident (p.33).",
+            "page_or_table_ref": "p5 table; p33 table"
+          },
+          {
+            "category": "personal_liability",
+            "benefit_name": "Personal liability",
+            "limit_per_person": "$5,000,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Various exclusions incl. vehicles/watercraft, business activities (p.33).",
+            "page_or_table_ref": "p5 table; p33 table"
+          },
+          {
+            "category": "workers_compensation",
+            "benefit_name": "Extra territorial workers compensation",
+            "limit_per_person": "$500,000 (aggregate)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Weekly compensation",
+                "amount": "Up to $500/week"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Conditions and reductions where other cover applies (p.34).",
+            "page_or_table_ref": "p5 table; p34 table"
+          },
+          {
+            "category": "identity_theft",
+            "benefit_name": "Identity theft protection",
+            "limit_per_person": "$10,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Legal expenses to restore identity/records (p.34).",
+            "page_or_table_ref": "p5 table; p34 table"
+          },
+          {
+            "category": "covid19",
+            "benefit_name": "COVID‑19 benefits (medical/additional expenses)",
+            "limit_per_person": "Within Section 1/4 limits; sublimit $5,000 for some additional expenses under Section 39",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Cancellation (COVID‑19)",
+                "amount": "Not covered on Essentials Plus"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (as applicable)",
+            "conditions": "See Section 39; ‘Do not travel’ COVID advisories excluded; gov’t quarantine/ban exclusions apply (pp.39–40).",
+            "page_or_table_ref": "pp.39–40"
+          }
+        ],
+        "source_evidence": [
+          {
+            "field_name": "plan_tier",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Corporate Essentials | Corporate Essentials Plus"
+          },
+          {
+            "field_name": "overseas_medical_limit",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Overseas medical expenses – $Unlimited~"
+          },
+          {
+            "field_name": "cancellation_cover_limit",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Amendment or cancellation costs – $Unlimited"
+          },
+          {
+            "field_name": "baggage_limit_aud",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Luggage and travel documents – $15,000"
+          },
+          {
+            "field_name": "rental_vehicle_excess_limit_aud",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Rental car insurance excess – $8,000"
+          },
+          {
+            "field_name": "personal_liability_limit_aud",
+            "source_type": "table",
+            "page": 5,
+            "table_id": "p5_t0",
+            "evidence_excerpt": "Personal liability – $5,000,000"
+          },
+          {
+            "field_name": "baggage_sublimits",
+            "source_type": "table",
+            "page": 8,
+            "table_id": "p8_t0",
+            "evidence_excerpt": "Item limits e.g., Phone $1,000; Camera $4,000; Laptop $4,000, etc."
+          },
+          {
+            "field_name": "excess_options_aud",
+            "source_type": "text",
+            "page": 19,
+            "table_id": null,
+            "evidence_excerpt": "Policy condition 1. Excess: $60 per event; age 75+ $5,000 for Sections 1 and 4."
+          },
+          {
+            "field_name": "covid19_cover_summary",
+            "source_type": "table",
+            "page": 40,
+            "table_id": "p40_t0",
+            "evidence_excerpt": "Section 7 COVID-19 cancellation: No cover for Essentials/Essentials Plus/Ultimate; Ultimate Plus limits apply."
+          }
+        ],
+        "_notes": "Annual corporate, multi‑trip policy. Each journey must be completed within 6 months of commencement. Essentials Plus plan includes higher limits and Sections 10, 13–16, 18–19 compared to Essentials. COVID‑19 cancellation cover does not apply to Essentials Plus.",
+        "_unfilled": []
+      },
+      {
+        "product_name": "Cover-More Corporate Travel Insurance - Corporate Ultimate",
+        "product_type": "business",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL)",
+        "insurer_licence_ids": "Zurich Australian Insurance Limited ABN 13 000 296 640, AFSL 232507. Cover-More Insurance Services Pty Ltd (agent) ABN 95 003 114 145, AFSL 241713.",
+        "brand_or_trading_name": "Cover-More",
+        "plan_tier": "Corporate Ultimate",
+        "pds_title": "Corporate Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "22 April 2026",
+        "document_source_id": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+        "trip_frequency": "annual_multi_trip",
+        "annual_multi_trip_max_duration_days": null,
+        "area_of_travel_options": [
+          {
+            "option_name": "USA, Canada, Central and South America"
+          },
+          {
+            "option_name": "UK/Europe"
+          },
+          {
+            "option_name": "Middle East, China, Japan, Indian Sub-Continent and other destinations"
+          },
+          {
+            "option_name": "Asia (excluding China and Japan)"
+          },
+          {
+            "option_name": "Indonesia, South West Pacific, New Zealand and Domestic cruising"
+          },
+          {
+            "option_name": "Australia and Norfolk Island"
+          }
+        ],
+        "cruise_add_on_required": null,
+        "eligibility_summary": "Corporate annual cover purchased by The Company for business travel of employees (and accompanying spouse/partner and accompanied children) with journeys including international, interstate or intrastate travel more than 100 km from home or business. All insured persons must be Australian residents with a valid Medicare card or currently living in Australia on a visa allowing them to live, work or study, and must be returning to their home at completion of each journey and within 6 months of commencement. Leisure travel included up to 4 weeks when combined with a business trip (or up to 6 weeks for Director/CEO/CFO/COO, and 6 weeks independent leisure for those roles).",
+        "age_limits": "No maximum age. Special conditions apply: age 75+ — Sections 1 & 4 have a $5,000 excess per claim; no benefit under Section 15 Disability; Accidental death max $25,000; no benefit under Sections 14 and 21 (loss of income). Section 6 and 7 benefits limited to $5,000. Under 18 — Section 15 lump sum for injury types 2–19 capped at $50,000; Section 16 Accidental death max $25,000.",
+        "dependent_children_policy": "Accompanying spouse/partner and up to 6 accompanied children are covered when travelling with the employee. Accompanied children are the insured person’s financially dependent children or grandchildren under 21 years, not in full‑time employment.",
+        "pre_existing_medical_cover": "Automatic cover for listed conditions subject to criteria (e.g., stable and no hospitalisation in last 12 months). Other existing medical conditions (including chronic lung disease, cardiovascular disease, reduced immunity) and certain pregnancy situations require health assessment and additional premium for cover to apply. No cover for undiagnosed/awaiting specialist opinion conditions. Pregnancy: cover only for serious unexpected complications up to 23 weeks 6 days; no cover for childbirth or neonatal care.",
+        "excess_options_aud": [
+          {
+            "amount_aud": 60,
+            "applies_to": "Sections 1, 4, 5, 6, 7, 8, 9, 10 and Section 39 where relevant",
+            "notes": "Excess applies per event per journey (Policy condition 1)."
+          },
+          {
+            "amount_aud": 5000,
+            "applies_to": "Sections 1 and 4",
+            "notes": "Special excess for insured persons aged 75 years or over at policy issue."
+          }
+        ],
+        "special_excesses": [
+          {
+            "section": "Sections 1 and 4",
+            "amount_aud": 5000,
+            "when_applies": "Insured person aged 75 years or over at the time the policy was issued to The Company (p.8, Policy condition 1)."
+          },
+          {
+            "section": "Existing medical conditions (varied cover)",
+            "amount_aud": null,
+            "when_applies": "An additional excess may apply if cover for an existing medical condition is approved following assessment (Policy condition 1)."
+          }
+        ],
+        "cancellation_cover_limit": "$Unlimited",
+        "overseas_medical_limit": "$Unlimited (cover will not exceed 18 months from onset)",
+        "emergency_dental_limit_aud": 2500,
+        "baggage_limit_aud": 20000,
+        "baggage_sublimits": [
+          {
+            "item_category": "Phone",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Smart watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Video camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Drone (with or without camera)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Laptop computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Tablet computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Artificial limb",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Dentures (full or partial)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Removable dental appliance",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Medical device",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Jewellery",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Any other item",
+            "per_item_limit_aud": 1000
+          }
+        ],
+        "specified_items_rules": "A single luggage item limit can be increased up to $10,000 per specified item for an additional premium. Receipt or valuation (dated within last 2 years) required. Depreciation may apply without current receipt/valuation. Attach to Enrolment Form (pp.8, 28).",
+        "rental_vehicle_excess_limit_aud": 10000,
+        "rental_vehicle_comprehensive_cover": "Benefit reimburses the lower of rental car insurance excess or repair costs if comprehensive insurance for the rental car has been purchased. Excludes breaches of rental agreement, unsealed surfaces, admin/loss of use penalties (p.30).",
+        "personal_liability_limit_aud": 5000000,
+        "personal_accident_benefits": [
+          {
+            "component": "loss_of_income_due_to_injury",
+            "amount_aud": 54000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": 52,
+            "age_applicability": "No benefit for insured persons aged 75+; 15‑day waiting period applies (p.31)."
+          },
+          {
+            "component": "total_permanent_disablement (Section 15 schedule)",
+            "amount_aud": 100000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Not payable for insured persons aged 75+; under 18 schedule caps apply (pp.32–33, p.8)."
+          },
+          {
+            "component": "accidental_death",
+            "amount_aud": 100000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Max $25,000 for insured persons aged 75+ or under 18 (pp.8, 33)."
+          },
+          {
+            "component": "cumulative_cap_sections_14_15_16",
+            "amount_aud": 100000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Aggregate cap per insured person (p.6, p.33)."
+          }
+        ],
+        "covid19_cover_summary": "Section 1 medical: COVID‑19 medical and evacuation covered overseas subject to conditions (no cover if destination had ‘Do not travel’ due to COVID‑19 at entry; Australia/NZ exception). Section 4 additional expenses: covered if hospitalised for COVID‑19; smaller fixed sublimit of $5,000 also applies under Section 39 (p.39). Section 7 cancellation: No COVID‑19 cancellation cover on Ultimate. General: Government travel bans/mandatory quarantine related to cross‑border travel are not covered (pp.27, 39–40, 42).",
+        "waiting_periods": "Loss of income benefits: 15 days from planned work resumption (Sections 14/21). Travel delay: first benefit after 6 hours, then each 24 hours. Delayed luggage: after 8 hours for Ultimate. Missed connection: initial leg must arrive ≥90 minutes late.",
+        "general_exclusions_summary": "No cover for: travel against ‘Do not travel’ advice (subject to exceptions), government travel bans or mandatory quarantine related to cross‑border travel, undiagnosed conditions under investigation, elective/cosmetic treatment, childbirth/newborn care, intoxication/drug use, professional sports, certain high‑risk activities, war/civil war in specified countries, motorcycles/mopeds >250cc or without proper licensing/helmets, insolvency of service providers, private treatment in Australia where prohibited by law. COVID‑19 limits per Section 39 (pp.41–42).",
+        "optional_add_ons": [
+          {
+            "name": "Optional Extra Benefits Package (Sections 29–38)",
+            "notes": "Available for Ultimate/Ultimate Plus on payment of additional premium (p.7)."
+          },
+          {
+            "name": "Increase luggage item limits (specify items up to $10,000 each)",
+            "notes": "Additional premium applies (pp.8, 28)."
+          },
+          {
+            "name": "Cover for existing medical conditions (health assessment)",
+            "notes": "If approved, additional premium/excess may apply (pp.10–12)."
+          }
+        ],
+        "emergency_assistance_details": "24/7 emergency assistance. Call if hospitalised, medical expenses will exceed $2,000, or to arrange/approve evacuation/early return. Toll‑free: USA 1800 937 9763; Canada 1800 645 8714; UK 0800 892 014; NZ 0800 445 524. Other countries: +61 2 8907 5619 (p.4).",
+        "claim_requirements": "Report theft/loss to police/transport/accommodation provider within 7 days and obtain a report; airline PIR for baggage incidents. Provide receipts/valuation as proof of ownership; IMEI required for phone claims. Notify claims as soon as possible and within 60 days of returning home. Excess is deducted per event. For delays/missed connections, obtain written confirmation from provider (pp.3–4, 19–21, 25, 28–29).",
+        "benefits": [
+          {
+            "category": "assistance",
+            "benefit_name": "24 hour emergency assistance & medical evacuation",
+            "limit_per_person": "Included (no excess shown for assistance/evacuation)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Contact assistance; approvals required for evacuation (pp.4, 6).",
+            "page_or_table_ref": "p6 table"
+          },
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas medical expenses",
+            "limit_per_person": "Unlimited (to max 18 months from onset)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (standard $60; age 75+ $5,000)",
+            "conditions": "No cover for treatment in Australia; RHA/reciprocal care not covered (pp.22–23).",
+            "page_or_table_ref": "p6 table; p22 tables"
+          },
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas dental (emergency)",
+            "limit_per_person": "$2,500",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Emergency dental to relieve pain/temporarily restore function (p.22).",
+            "page_or_table_ref": "p6 table; p22 table"
+          },
+          {
+            "category": "hospital_cash",
+            "benefit_name": "Hospital incidentals",
+            "limit_per_person": "$5,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours",
+                "amount": "$100"
+              }
+            ],
+            "per_day_amount_if_any": "$100",
+            "excess_applicable": "No",
+            "conditions": "After 48 hours of hospitalisation; receipts required (p.23).",
+            "page_or_table_ref": "p6 table; p23 table"
+          },
+          {
+            "category": "business_travel",
+            "benefit_name": "Alternative staff or resumption of assignment",
+            "limit_per_person": "$15,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Medical approval; airfare class as per original (p.23).",
+            "page_or_table_ref": "p6 table; p23 table"
+          },
+          {
+            "category": "additional_expenses",
+            "benefit_name": "Additional expenses",
+            "limit_per_person": "Unlimited",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Medical necessity and assistance approval; includes funeral/repatriation sub‑limits (pp.23–24).",
+            "page_or_table_ref": "p6 table; p24 table"
+          },
+          {
+            "category": "travel_delay",
+            "benefit_name": "Travel delay",
+            "limit_per_person": "Unlimited (up to $200 after 6 hours and each 24 hours)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours",
+                "amount": "$200"
+              }
+            ],
+            "per_day_amount_if_any": "$200",
+            "excess_applicable": "Yes",
+            "conditions": "Room‑only costs; provider confirmation required (p.25).",
+            "page_or_table_ref": "p6 table"
+          },
+          {
+            "category": "missed_connection",
+            "benefit_name": "Missed transport connection",
+            "limit_per_person": "$10,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per missed meal on cruise",
+                "amount": "$50"
+              },
+              {
+                "name": "Per missed prepaid night",
+                "amount": "Up to $300"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Initial delay ≥90 minutes; exclusions apply (p.25).",
+            "page_or_table_ref": "p6 table; p25 table"
+          },
+          {
+            "category": "trip_cancellation",
+            "benefit_name": "Amendment or cancellation costs",
+            "limit_per_person": "Unlimited",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Covers rearrangement or cancellation for unforeseeable events per policy (pp.25–26).",
+            "page_or_table_ref": "p6 table; p26 table"
+          },
+          {
+            "category": "baggage",
+            "benefit_name": "Luggage and travel documents",
+            "limit_per_person": "$20,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per item limits",
+                "amount": "Phones $1,000; cameras/laptops/tablets $4,000; jewellery/watch $1,000; other $1,000"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Per‑item limits apply; vehicle unattended limits; specified items option (pp.27–28).",
+            "page_or_table_ref": "p6 table; p28 table"
+          },
+          {
+            "category": "delayed_baggage",
+            "benefit_name": "Delayed luggage allowance",
+            "limit_per_person": "Up to $2,000 after 8 hours",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Return‑home leg excluded; provider confirmation and receipts required (p.29).",
+            "page_or_table_ref": "p6 table; p29 table"
+          },
+          {
+            "category": "money",
+            "benefit_name": "Money",
+            "limit_per_person": "$3,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Cash, bank notes, money orders lost or stolen; conditions apply (p.29).",
+            "page_or_table_ref": "p6 table; p29 table"
+          },
+          {
+            "category": "rental_vehicle",
+            "benefit_name": "Rental car insurance excess",
+            "limit_per_person": "$10,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Comprehensive insurance for hire car required; exclusions apply (p.30).",
+            "page_or_table_ref": "p6 table; p30 table"
+          },
+          {
+            "category": "kidnap_and_ransom",
+            "benefit_name": "Kidnap and ransom",
+            "limit_per_person": "$500,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Specified territorial exclusions apply (pp.30–31).",
+            "page_or_table_ref": "p6 table; p30–31 tables"
+          },
+          {
+            "category": "hijacking",
+            "benefit_name": "Hijacking",
+            "limit_per_person": "$30,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours detained",
+                "amount": "$1,000"
+              }
+            ],
+            "per_day_amount_if_any": "$1,000",
+            "excess_applicable": "No",
+            "conditions": "Forcible detention on licensed public transport (p.31).",
+            "page_or_table_ref": "p6 table; p31 table"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Loss of income (injury)",
+            "limit_per_person": "$54,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Waiting period",
+                "amount": "15 days"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Up to 75% net wage; max 52 weeks; medical certification required (p.31).",
+            "page_or_table_ref": "p6 table; p31 table"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Disability lump sum (Section 15)",
+            "limit_per_person": "$100,000 (schedule percentages apply)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Injury resulting in surgery overseas",
+                "amount": "Up to $5,000 depending on procedure"
+              },
+              {
+                "name": "Fractured bones",
+                "amount": "Up to $5,000"
+              },
+              {
+                "name": "Dental injury",
+                "amount": "Up to $5,000 (max $1,000 per event)"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "See schedule and notes; under 18/age 75+ limits apply (pp.32–36).",
+            "page_or_table_ref": "p6 table; pp.32–36 tables"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Accidental death",
+            "limit_per_person": "$100,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Death within one year from accident (p.33).",
+            "page_or_table_ref": "p6 table; p33 table"
+          },
+          {
+            "category": "personal_liability",
+            "benefit_name": "Personal liability",
+            "limit_per_person": "$5,000,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Various exclusions incl. vehicles/watercraft, business activities (p.33).",
+            "page_or_table_ref": "p6 table; p33 table"
+          },
+          {
+            "category": "workers_compensation",
+            "benefit_name": "Extra territorial workers compensation",
+            "limit_per_person": "$1,000,000 (aggregate)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Weekly compensation",
+                "amount": "Up to $500/week"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Conditions and reductions where other cover applies (p.34).",
+            "page_or_table_ref": "p6 table; p34 table"
+          },
+          {
+            "category": "identity_theft",
+            "benefit_name": "Identity theft protection",
+            "limit_per_person": "$15,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Legal expenses to restore identity/records (p.34).",
+            "page_or_table_ref": "p6 table; p34 table"
+          },
+          {
+            "category": "included_extras",
+            "benefit_name": "Included extras (Sections 20–28)",
+            "limit_per_person": "Various: media/image $10,000; trauma counselling $5,000; personal legal costs $30,000; loss of income (sickness) $36,000; tuition $3,000; political unrest/natural disaster evacuation $25,000; personal car excess $2,000; loss of NCB/hire car $2,500",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Varies",
+            "conditions": "Included on Ultimate/Ultimate Plus (p.7; pp.35–38).",
+            "page_or_table_ref": "p7 table (included extras)"
+          },
+          {
+            "category": "covid19",
+            "benefit_name": "COVID‑19 benefits (medical/additional expenses)",
+            "limit_per_person": "Within Section 1/4 limits; sublimit $5,000 for some additional expenses under Section 39",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Cancellation (COVID‑19)",
+                "amount": "Not covered on Ultimate"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (as applicable)",
+            "conditions": "See Section 39; ‘Do not travel’ COVID advisories excluded; gov’t quarantine/ban exclusions apply (pp.39–40).",
+            "page_or_table_ref": "pp.39–40"
+          }
+        ],
+        "source_evidence": [
+          {
+            "field_name": "plan_tier",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Corporate Ultimate | Corporate Ultimate Plus"
+          },
+          {
+            "field_name": "overseas_medical_limit",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Overseas medical expenses – $Unlimited~"
+          },
+          {
+            "field_name": "cancellation_cover_limit",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Amendment or cancellation costs – $Unlimited"
+          },
+          {
+            "field_name": "baggage_limit_aud",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Luggage and travel documents – $20,000"
+          },
+          {
+            "field_name": "rental_vehicle_excess_limit_aud",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Rental car insurance excess – $10,000"
+          },
+          {
+            "field_name": "personal_liability_limit_aud",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Personal liability – $5,000,000"
+          },
+          {
+            "field_name": "included_extras",
+            "source_type": "table",
+            "page": 7,
+            "table_id": "p7_t0",
+            "evidence_excerpt": "Included extras for Ultimate/Ultimate Plus (Sections 20–28)."
+          },
+          {
+            "field_name": "optional_add_ons",
+            "source_type": "table",
+            "page": 7,
+            "table_id": "p7_t1",
+            "evidence_excerpt": "Optional Extra Benefits Package (Sections 29–38) available for additional premium."
+          },
+          {
+            "field_name": "covid19_cover_summary",
+            "source_type": "table",
+            "page": 40,
+            "table_id": "p40_t0",
+            "evidence_excerpt": "Section 7 COVID-19 cancellation: No cover for Essentials/Essentials Plus/Ultimate; Ultimate Plus limits apply."
+          }
+        ],
+        "_notes": "Annual corporate, multi‑trip policy. Each journey must be completed within 6 months of commencement. Ultimate adds higher limits and extra business travel benefits. COVID‑19 cancellation cover does not apply to Ultimate. Optional Extra Benefits Package available for extra premium.",
+        "_unfilled": []
+      },
+      {
+        "product_name": "Cover-More Corporate Travel Insurance - Corporate Ultimate Plus",
+        "product_type": "business",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL)",
+        "insurer_licence_ids": "Zurich Australian Insurance Limited ABN 13 000 296 640, AFSL 232507. Cover-More Insurance Services Pty Ltd (agent) ABN 95 003 114 145, AFSL 241713.",
+        "brand_or_trading_name": "Cover-More",
+        "plan_tier": "Corporate Ultimate Plus",
+        "pds_title": "Corporate Travel Insurance Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "22 April 2026",
+        "document_source_id": "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+        "trip_frequency": "annual_multi_trip",
+        "annual_multi_trip_max_duration_days": null,
+        "area_of_travel_options": [
+          {
+            "option_name": "USA, Canada, Central and South America"
+          },
+          {
+            "option_name": "UK/Europe"
+          },
+          {
+            "option_name": "Middle East, China, Japan, Indian Sub-Continent and other destinations"
+          },
+          {
+            "option_name": "Asia (excluding China and Japan)"
+          },
+          {
+            "option_name": "Indonesia, South West Pacific, New Zealand and Domestic cruising"
+          },
+          {
+            "option_name": "Australia and Norfolk Island"
+          }
+        ],
+        "cruise_add_on_required": null,
+        "eligibility_summary": "Corporate annual cover purchased by The Company for business travel of employees (and accompanying spouse/partner and accompanied children) with journeys including international, interstate or intrastate travel more than 100 km from home or business. All insured persons must be Australian residents with a valid Medicare card or currently living in Australia on a visa allowing them to live, work or study, and must be returning to their home at completion of each journey and within 6 months of commencement. Leisure travel included up to 4 weeks when combined with a business trip (or up to 6 weeks for Director/CEO/CFO/COO, and 6 weeks independent leisure for those roles).",
+        "age_limits": "No maximum age. Special conditions apply: age 75+ — Sections 1 & 4 have a $5,000 excess per claim; no benefit under Section 15 Disability; Accidental death max $25,000; no benefit under Sections 14 and 21 (loss of income). Section 6 and 7 benefits limited to $5,000. Under 18 — Section 15 lump sum for injury types 2–19 capped at $50,000; Section 16 Accidental death max $25,000.",
+        "dependent_children_policy": "Accompanying spouse/partner and up to 6 accompanied children are covered when travelling with the employee. Accompanied children are the insured person’s financially dependent children or grandchildren under 21 years, not in full‑time employment.",
+        "pre_existing_medical_cover": "Automatic cover for listed conditions subject to criteria (e.g., stable and no hospitalisation in last 12 months). Other existing medical conditions (including chronic lung disease, cardiovascular disease, reduced immunity) and certain pregnancy situations require health assessment and additional premium for cover to apply. No cover for undiagnosed/awaiting specialist opinion conditions. Pregnancy: cover only for serious unexpected complications up to 23 weeks 6 days; no cover for childbirth or neonatal care.",
+        "excess_options_aud": [
+          {
+            "amount_aud": 60,
+            "applies_to": "Sections 1, 4, 5, 6, 7, 8, 9, 10 and Section 39 where relevant",
+            "notes": "Excess applies per event per journey (Policy condition 1)."
+          },
+          {
+            "amount_aud": 5000,
+            "applies_to": "Sections 1 and 4",
+            "notes": "Special excess for insured persons aged 75 years or over at policy issue."
+          }
+        ],
+        "special_excesses": [
+          {
+            "section": "Sections 1 and 4",
+            "amount_aud": 5000,
+            "when_applies": "Insured person aged 75 years or over at the time the policy was issued to The Company (p.8, Policy condition 1)."
+          },
+          {
+            "section": "Existing medical conditions (varied cover)",
+            "amount_aud": null,
+            "when_applies": "An additional excess may apply if cover for an existing medical condition is approved following assessment (Policy condition 1)."
+          }
+        ],
+        "cancellation_cover_limit": "$Unlimited (COVID-19 cancellation sub-limits apply—see Section 39)",
+        "overseas_medical_limit": "$Unlimited (cover will not exceed 18 months from onset)",
+        "emergency_dental_limit_aud": 2500,
+        "baggage_limit_aud": 40000,
+        "baggage_sublimits": [
+          {
+            "item_category": "Phone",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Smart watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Video camera",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Drone (with or without camera)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Laptop computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Tablet computer",
+            "per_item_limit_aud": 4000
+          },
+          {
+            "item_category": "Artificial limb",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Dentures (full or partial)",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Removable dental appliance",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Medical device",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Jewellery",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Watch",
+            "per_item_limit_aud": 1000
+          },
+          {
+            "item_category": "Any other item",
+            "per_item_limit_aud": 1000
+          }
+        ],
+        "specified_items_rules": "A single luggage item limit can be increased up to $10,000 per specified item for an additional premium. Receipt or valuation (dated within last 2 years) required. Depreciation may apply without current receipt/valuation. Attach to Enrolment Form (pp.8, 28).",
+        "rental_vehicle_excess_limit_aud": 12000,
+        "rental_vehicle_comprehensive_cover": "Benefit reimburses the lower of rental car insurance excess or repair costs if comprehensive insurance for the rental car has been purchased. Excludes breaches of rental agreement, unsealed surfaces, admin/loss of use penalties (p.30).",
+        "personal_liability_limit_aud": 5000000,
+        "personal_accident_benefits": [
+          {
+            "component": "loss_of_income_due_to_injury",
+            "amount_aud": 144000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": 52,
+            "age_applicability": "No benefit for insured persons aged 75+; 15‑day waiting period applies (p.31)."
+          },
+          {
+            "component": "total_permanent_disablement (Section 15 schedule)",
+            "amount_aud": 250000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Not payable for insured persons aged 75+; under 18 schedule caps apply (pp.32–33, p.8)."
+          },
+          {
+            "component": "accidental_death",
+            "amount_aud": 250000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Max $25,000 for insured persons aged 75+ or under 18 (pp.8, 33)."
+          },
+          {
+            "component": "cumulative_cap_sections_14_15_16",
+            "amount_aud": 250000,
+            "per_week_aud_if_applicable": null,
+            "max_weeks": null,
+            "age_applicability": "Aggregate cap per insured person (p.6, p.33)."
+          }
+        ],
+        "covid19_cover_summary": "Section 1 medical: COVID‑19 medical and evacuation covered overseas subject to conditions (no cover if destination had ‘Do not travel’ due to COVID‑19 at entry; Australia/NZ exception). Section 4 additional expenses: covered if hospitalised for COVID‑19; smaller fixed sublimit of $5,000 also applies under Section 39 (p.39). Section 7 cancellation: COVID‑19 cancellation cover applies with sub‑limits (Overseas trips up to $10,000; Domestic trips up to $5,000), including pre‑departure diagnosis for insured or travelling companion; life‑threatening diagnosis of non‑travelling relative/business partner in AU/NZ; or essential health worker leave revoked, subject to waivers stated (p.40). Government travel bans/mandatory quarantine related to cross‑border travel are not covered (pp.27, 39–40, 42).",
+        "waiting_periods": "Loss of income benefits: 15 days from planned work resumption (Sections 14/21). Travel delay: first benefit after 6 hours, then each 24 hours. Delayed luggage: after 8 hours for Ultimate Plus. Missed connection: initial leg must arrive ≥90 minutes late.",
+        "general_exclusions_summary": "No cover for: travel against ‘Do not travel’ advice (subject to exceptions), government travel bans or mandatory quarantine related to cross‑border travel, undiagnosed conditions under investigation, elective/cosmetic treatment, childbirth/newborn care, intoxication/drug use, professional sports, certain high‑risk activities, war/civil war in specified countries, motorcycles/mopeds >250cc or without proper licensing/helmets, insolvency of service providers, private treatment in Australia where prohibited by law. COVID‑19 limits per Section 39 (pp.41–42).",
+        "optional_add_ons": [
+          {
+            "name": "Optional Extra Benefits Package (Sections 29–38)",
+            "notes": "Available for Ultimate/Ultimate Plus on payment of additional premium (p.7)."
+          },
+          {
+            "name": "Increase luggage item limits (specify items up to $10,000 each)",
+            "notes": "Additional premium applies (pp.8, 28)."
+          },
+          {
+            "name": "Cover for existing medical conditions (health assessment)",
+            "notes": "If approved, additional premium/excess may apply (pp.10–12)."
+          }
+        ],
+        "emergency_assistance_details": "24/7 emergency assistance. Call if hospitalised, medical expenses will exceed $2,000, or to arrange/approve evacuation/early return. Toll‑free: USA 1800 937 9763; Canada 1800 645 8714; UK 0800 892 014; NZ 0800 445 524. Other countries: +61 2 8907 5619 (p.4).",
+        "claim_requirements": "Report theft/loss to police/transport/accommodation provider within 7 days and obtain a report; airline PIR for baggage incidents. Provide receipts/valuation as proof of ownership; IMEI required for phone claims. Notify claims as soon as possible and within 60 days of returning home. Excess is deducted per event. For delays/missed connections, obtain written confirmation from provider (pp.3–4, 19–21, 25, 28–29).",
+        "benefits": [
+          {
+            "category": "assistance",
+            "benefit_name": "24 hour emergency assistance & medical evacuation",
+            "limit_per_person": "Included (no excess shown for assistance/evacuation)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Contact assistance; approvals required for evacuation (pp.4, 6).",
+            "page_or_table_ref": "p6 table"
+          },
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas medical expenses",
+            "limit_per_person": "Unlimited (to max 18 months from onset)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (standard $60; age 75+ $5,000)",
+            "conditions": "No cover for treatment in Australia; RHA/reciprocal care not covered (pp.22–23).",
+            "page_or_table_ref": "p6 table; p22 tables"
+          },
+          {
+            "category": "emergency_medical",
+            "benefit_name": "Overseas dental (emergency)",
+            "limit_per_person": "$2,500",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Emergency dental to relieve pain/temporarily restore function (p.22).",
+            "page_or_table_ref": "p6 table; p22 table"
+          },
+          {
+            "category": "hospital_cash",
+            "benefit_name": "Hospital incidentals",
+            "limit_per_person": "$10,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours",
+                "amount": "$100"
+              }
+            ],
+            "per_day_amount_if_any": "$100",
+            "excess_applicable": "No",
+            "conditions": "After 48 hours of hospitalisation; receipts required (p.23).",
+            "page_or_table_ref": "p6 table; p23 table"
+          },
+          {
+            "category": "business_travel",
+            "benefit_name": "Alternative staff or resumption of assignment",
+            "limit_per_person": "$15,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Medical approval; airfare class as per original (p.23).",
+            "page_or_table_ref": "p6 table; p23 table"
+          },
+          {
+            "category": "additional_expenses",
+            "benefit_name": "Additional expenses",
+            "limit_per_person": "Unlimited",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Medical necessity and assistance approval; includes funeral/repatriation sub‑limits (pp.23–24).",
+            "page_or_table_ref": "p6 table; p24 table"
+          },
+          {
+            "category": "travel_delay",
+            "benefit_name": "Travel delay",
+            "limit_per_person": "Unlimited (up to $200 after 6 hours and each 24 hours)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours",
+                "amount": "$200"
+              }
+            ],
+            "per_day_amount_if_any": "$200",
+            "excess_applicable": "Yes",
+            "conditions": "Room‑only costs; provider confirmation required (p.25).",
+            "page_or_table_ref": "p6 table"
+          },
+          {
+            "category": "missed_connection",
+            "benefit_name": "Missed transport connection",
+            "limit_per_person": "$20,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per missed meal on cruise",
+                "amount": "$50"
+              },
+              {
+                "name": "Per missed prepaid night",
+                "amount": "Up to $300"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Initial delay ≥90 minutes; exclusions apply (p.25).",
+            "page_or_table_ref": "p6 table; p25 table"
+          },
+          {
+            "category": "trip_cancellation",
+            "benefit_name": "Amendment or cancellation costs",
+            "limit_per_person": "Unlimited (COVID‑19 cancellation sub‑limits apply)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "COVID‑19 cancellation",
+                "amount": "Overseas trips up to $10,000; Domestic trips up to $5,000"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "See Section 39 for COVID‑19 cancellation triggers/waivers (p.40).",
+            "page_or_table_ref": "p6 table; p40 tables"
+          },
+          {
+            "category": "baggage",
+            "benefit_name": "Luggage and travel documents",
+            "limit_per_person": "$40,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per item limits",
+                "amount": "Phones $1,000; cameras/laptops/tablets $4,000; jewellery/watch $1,000; other $1,000"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Per‑item limits apply; vehicle unattended limits; specified items option (pp.27–28).",
+            "page_or_table_ref": "p6 table; p28 table"
+          },
+          {
+            "category": "delayed_baggage",
+            "benefit_name": "Delayed luggage allowance",
+            "limit_per_person": "Up to $3,000 after 8 hours",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Return‑home leg excluded; provider confirmation and receipts required (p.29).",
+            "page_or_table_ref": "p6 table; p29 table"
+          },
+          {
+            "category": "money",
+            "benefit_name": "Money",
+            "limit_per_person": "$3,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes",
+            "conditions": "Cash, bank notes, money orders lost or stolen; conditions apply (p.29).",
+            "page_or_table_ref": "p6 table; p29 table"
+          },
+          {
+            "category": "rental_vehicle",
+            "benefit_name": "Rental car insurance excess",
+            "limit_per_person": "$12,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Comprehensive insurance for hire car required; exclusions apply (p.30).",
+            "page_or_table_ref": "p6 table; p30 table"
+          },
+          {
+            "category": "kidnap_and_ransom",
+            "benefit_name": "Kidnap and ransom",
+            "limit_per_person": "$500,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Specified territorial exclusions apply (pp.30–31).",
+            "page_or_table_ref": "p6 table; p30–31 tables"
+          },
+          {
+            "category": "hijacking",
+            "benefit_name": "Hijacking",
+            "limit_per_person": "$30,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Per 24 hours detained",
+                "amount": "$1,000"
+              }
+            ],
+            "per_day_amount_if_any": "$1,000",
+            "excess_applicable": "No",
+            "conditions": "Forcible detention on licensed public transport (p.31).",
+            "page_or_table_ref": "p6 table; p31 table"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Loss of income (injury)",
+            "limit_per_person": "$144,000",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Waiting period",
+                "amount": "15 days"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Up to 75% net wage; max 52 weeks; medical certification required (p.31).",
+            "page_or_table_ref": "p6 table; p31 table"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Disability lump sum (Section 15)",
+            "limit_per_person": "$250,000 (schedule percentages apply)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Injury resulting in surgery overseas",
+                "amount": "Up to $5,000 depending on procedure"
+              },
+              {
+                "name": "Fractured bones",
+                "amount": "Up to $5,000"
+              },
+              {
+                "name": "Dental injury",
+                "amount": "Up to $5,000 (max $1,000 per event)"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "See schedule and notes; under 18/age 75+ limits apply (pp.32–36).",
+            "page_or_table_ref": "p6 table; pp.32–36 tables"
+          },
+          {
+            "category": "personal_accident",
+            "benefit_name": "Accidental death",
+            "limit_per_person": "$250,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Death within one year from accident (p.33).",
+            "page_or_table_ref": "p6 table; p33 table"
+          },
+          {
+            "category": "personal_liability",
+            "benefit_name": "Personal liability",
+            "limit_per_person": "$5,000,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Various exclusions incl. vehicles/watercraft, business activities (p.33).",
+            "page_or_table_ref": "p6 table; p33 table"
+          },
+          {
+            "category": "workers_compensation",
+            "benefit_name": "Extra territorial workers compensation",
+            "limit_per_person": "$1,000,000 (aggregate)",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Weekly compensation",
+                "amount": "Up to $500/week"
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Conditions and reductions where other cover applies (p.34).",
+            "page_or_table_ref": "p6 table; p34 table"
+          },
+          {
+            "category": "identity_theft",
+            "benefit_name": "Identity theft protection",
+            "limit_per_person": "$15,000",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "No",
+            "conditions": "Legal expenses to restore identity/records (p.34).",
+            "page_or_table_ref": "p6 table; p34 table"
+          },
+          {
+            "category": "included_extras",
+            "benefit_name": "Included extras (Sections 20–28)",
+            "limit_per_person": "Various: media/image $10,000; trauma counselling $5,000; personal legal costs $30,000; loss of income (sickness) $144,000; tuition $3,000; political unrest/natural disaster evacuation $50,000; personal car excess $2,000; loss of NCB/hire car $2,500",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Varies",
+            "conditions": "Included on Ultimate/Ultimate Plus (p.7; pp.35–38).",
+            "page_or_table_ref": "p7 table (included extras)"
+          },
+          {
+            "category": "optional_add_on",
+            "benefit_name": "Optional Extra Benefits Package (Sections 29–38)",
+            "limit_per_person": "Various (e.g., court attendance $1,000; independent financial advice $5,000; partner retraining $10,000; corporate image $15,000; home/vehicle modification $15,000; unexpired membership $500; keys & locks $1,000; home burglary $1,000; dependent child assistance, etc.)",
+            "limit_per_policy": null,
+            "sub_limits": [],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Varies",
+            "conditions": "Available for additional premium (p.7; pp.37–38).",
+            "page_or_table_ref": "p7 table (optional)"
+          },
+          {
+            "category": "covid19",
+            "benefit_name": "COVID‑19 benefits (medical/additional expenses and cancellation)",
+            "limit_per_person": "Medical/additional expenses within Section 1/4; additional expenses sublimit $5,000 (Sec.39). Cancellation: Overseas trips up to $10,000; Domestic trips up to $5,000.",
+            "limit_per_policy": null,
+            "sub_limits": [
+              {
+                "name": "Triggers/waivers",
+                "amount": "Pre‑departure diagnosis; life‑threatening diagnosis of AU/NZ non‑travelling relative/partner; essential health worker leave revoked; per Section 39."
+              }
+            ],
+            "per_day_amount_if_any": null,
+            "excess_applicable": "Yes (as applicable)",
+            "conditions": "‘Do not travel’ COVID advisories excluded; gov’t quarantine/ban exclusions apply (pp.39–40).",
+            "page_or_table_ref": "pp.39–40"
+          }
+        ],
+        "source_evidence": [
+          {
+            "field_name": "plan_tier",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Corporate Ultimate | Corporate Ultimate Plus"
+          },
+          {
+            "field_name": "overseas_medical_limit",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Overseas medical expenses – $Unlimited~"
+          },
+          {
+            "field_name": "cancellation_cover_limit",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Amendment or cancellation costs – $Unlimited (base). COVID-19 cancellation sub-limits shown on p.40."
+          },
+          {
+            "field_name": "baggage_limit_aud",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Luggage and travel documents – $40,000"
+          },
+          {
+            "field_name": "rental_vehicle_excess_limit_aud",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Rental car insurance excess – $12,000"
+          },
+          {
+            "field_name": "personal_liability_limit_aud",
+            "source_type": "table",
+            "page": 6,
+            "table_id": "p6_t0",
+            "evidence_excerpt": "Personal liability – $5,000,000"
+          },
+          {
+            "field_name": "included_extras",
+            "source_type": "table",
+            "page": 7,
+            "table_id": "p7_t0",
+            "evidence_excerpt": "Included extras for Ultimate/Ultimate Plus (Sections 20–28)."
+          },
+          {
+            "field_name": "covid19_cover_summary",
+            "source_type": "table",
+            "page": 40,
+            "table_id": "p40_t0",
+            "evidence_excerpt": "Section 7 COVID-19 cancellation: Overseas trips $10,000; Domestic trips $5,000 for Ultimate Plus only."
+          }
+        ],
+        "_notes": "Annual corporate, multi‑trip policy. Each journey must be completed within 6 months of commencement. Ultimate Plus includes highest limits and extras. COVID‑19 cancellation cover available with stated sub‑limits and conditions.",
+        "_unfilled": []
+      }
+    ],
+    "_document_notes": "Annual multi-trip maximum per journey is expressed as 6 months (not days). All four plans are corporate business travel products issued by ZAIL and sold by Cover-More. Benefit tables are the authoritative source for plan differences and limits; COVID-19 cancellation benefits apply only to Ultimate Plus with stated sub-limits."
+  },
+  "evidences": {},
+  "normalized_names": [],
+  "warnings": [
+    "Product identities were repaired from cover_more_example.json using a strict identity-only model request; all non-identity fields were preserved."
+  ]
+}

@@ -1,0 +1,2100 @@
+{
+  "vertical": "travel_insurance",
+  "schema_version": "1.0.0-canonical-candidate",
+  "source_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+  "extracted_at": "2026-09-15T10:24:46+00:00",
+  "provider": "openai",
+  "model": "gpt-5",
+  "document_parser": "mineru",
+  "data": {
+    "products": [
+      {
+        "product_type": "international_single_trip",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct International Comprehensive – Single Trip",
+        "plan_name": "Comprehensive",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "International – worldwide or selected region/country based on destination selection (Areas of travel rules apply)",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Policy valid only if the insured is an Australian resident with a valid Medicare card, or currently living in Australia with a visa allowing them to live, work or study in Australia, and will return Home at the end of the Period of Insurance. Already travelling purchase allowed subject to a 72-hour no-cover period. Sanctions and Do Not Travel rules apply.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "notes": "No cover for any event occurring within the first 3 days after policy issue when already overseas.",
+            "evidence": "p30: Section 14. Already travelling – 3 day no-cover period."
+          },
+          {
+            "section": "Travel Delay (Section 8)",
+            "waiting_period": "6 hours minimum delay",
+            "trigger": "Pre-booked transport delayed",
+            "notes": "Then up to $300, plus $300 per additional 24 hours.",
+            "evidence": "p39: Section 8 Travel Delay."
+          },
+          {
+            "section": "Delayed Luggage (Section 5)",
+            "waiting_period": "12 hours",
+            "trigger": "All luggage delayed by a Transport Provider",
+            "notes": "$300 per item essential items + transport to retrieve up to $100.",
+            "evidence": "p37: Section 5 Delayed Luggage Allowance."
+          },
+          {
+            "section": "Hospital Incidentals (Section 12)",
+            "waiting_period": "48 hours",
+            "trigger": "Overseas hospitalisation",
+            "notes": "$50 per night after 48 hours, up to plan limit.",
+            "evidence": "p41: Section 12 Hospital Incidentals."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund if cancelled within 21 days of purchase, provided no claim has been made and the Journey has not commenced. After 21 days, a pro-rata refund of the unexpired period (less non‑refundable government charges/taxes) if no claim has been made and the Journey has not commenced.",
+        "excess_options": "International plans allow a selectable excess; amount shown on Certificate of Insurance. Excess applies per event to specified sections; additional/higher excess may apply in some circumstances.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on Certificate of Insurance (selectable for international)",
+            "basis": "Per event (one excess if multiple claims arise from one event)",
+            "evidence": "p28: Policy conditions 1. Excess; p8: Excess choices."
+          },
+          {
+            "section": "Sections with excess",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Sections 1, 2, 3, 4, 5, 9, 10, 11 and Additional Cruise Benefits (i)-(iii), and relevant COVID-19 benefits",
+            "evidence": "p28: Policy conditions 1. Excess (final paragraph)."
+          }
+        ],
+        "emergency_medical_limit": "$Unlimited",
+        "emergency_dental_limit": "$2,000",
+        "cancellation_cover_limit": "$10,000 (or cover chosen per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "$Unlimited",
+        "travel_delay_limit": "$2,000",
+        "luggage_limit": "$10,000",
+        "luggage_single_item_limit": "$1,000 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $1,500; Camera/Video $4,000; Laptop $3,000; Tablet $3,000; Drone $1,000; Jewellery/Watch $1,000; Artificial limb/medical device/dentures $1,000",
+        "luggage_delay_limit": "$1,000",
+        "travel_documents_limit": null,
+        "money_limit": "$400",
+        "rental_vehicle_excess_limit": "$10,000",
+        "personal_liability_limit": "$5,000,000",
+        "personal_accident_limit": "Disability $30,000; Accidental Death $30,000; maximum liability collectively for Sections 14, 15, 16 is $45,000",
+        "loss_of_income_limit": "$45,000 (up to 75% net income, max 6 months, 15-day waiting period post-planned return)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Unlimited (overseas medical) – cover will not exceed 12 months from onset",
+        "covid_cancellation_or_disruption_limit": "Optional add-on: up to $10,000 per policy (COVID-19 Amendment or Cancellation Costs)",
+        "covid_cover_summary": "International: COVID-19 overseas medical (Unlimited) included; Additional Expenses if diagnosed (limits apply) including hospitalisation; optional COVID-19 Amendment/Cancellation up to $10,000 per policy if purchased; no cover for government border closures or quarantine orders; Do Not Travel (COVID reason) destinations excluded.",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit": "On-board Medical and Dental Cover",
+            "included": true,
+            "limit": "Medical $Unlimited; Dental $2,000",
+            "excess_applies": true,
+            "conditions": "Applies only if Cruise cover selected and extra premium paid.",
+            "evidence": "p7 Cruise cover table; p46 (i)."
+          },
+          {
+            "benefit": "Ship to Shore Medical Cover",
+            "included": true,
+            "limit": "$Unlimited",
+            "excess_applies": true,
+            "conditions": "Evacuation to nearest onshore facility; Cruise cover required.",
+            "evidence": "p7 table; p46 (ii)."
+          },
+          {
+            "benefit": "Sea Sickness Cover",
+            "included": true,
+            "limit": "$Unlimited",
+            "excess_applies": true,
+            "conditions": "On-board sea sickness; Cruise cover required.",
+            "evidence": "p7 table; p46 (iii)."
+          },
+          {
+            "benefit": "Cabin Confinement",
+            "included": true,
+            "limit": "$1,500 ($100 per day)",
+            "excess_applies": false,
+            "conditions": "Ordered by ship’s doctor; at least 24 hours; COVID-19 cabin confinement specifically excluded.",
+            "evidence": "p7 table; p46 (iv)."
+          },
+          {
+            "benefit": "Missed Port (Embarkation)",
+            "included": true,
+            "limit": "$1,000",
+            "excess_applies": false,
+            "conditions": "Unforeseeable circumstances; alternative transport to catch up; exclusions apply.",
+            "evidence": "p47 (v)."
+          },
+          {
+            "benefit": "Missed Shore Excursions",
+            "included": true,
+            "limit": "$1,000",
+            "excess_applies": false,
+            "conditions": "Non-refundable prepaid shore excursion ticket; exclusions apply.",
+            "evidence": "p47 (vi)."
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Cruise cover (multi-night ocean/sea cruises)",
+            "availability": "International plans only; required for cruise-related claims",
+            "premium": "Additional premium applies",
+            "evidence": "p7 Cruise cover; p29 limits."
+          },
+          {
+            "name": "Increase Cancellation cover",
+            "availability": "International Comprehensive and Essential; Domestic",
+            "limit_changes": "Increase Section 3 per policy limit above included amount",
+            "evidence": "p9 Increase Cancellation cover."
+          },
+          {
+            "name": "COVID-19 Amendment or Cancellation Costs",
+            "availability": "International Comprehensive and Essential; Domestic; not available on Basic",
+            "limit_changes": "Up to $10,000 per policy (Comprehensive); up to $5,000 (Essential/Domestic)",
+            "evidence": "p9-10; p45 table."
+          },
+          {
+            "name": "Increase luggage item limit cover",
+            "availability": "All plans",
+            "limit_changes": "Increase specified item sub-limit; valuation/receipt rules apply",
+            "evidence": "p10 Increase luggage item limit; p28 2(b)."
+          },
+          {
+            "name": "Motorcycle/Moped Riding",
+            "availability": "All plans",
+            "eligibility": "Up to 250cc; licence/helmet and other conditions",
+            "evidence": "p11 Motorcycle/moped riding."
+          },
+          {
+            "name": "Motorcycle/Moped Riding+",
+            "availability": "All plans",
+            "eligibility": "Hired bike; Australian motorcycle licence 5+ years; capacity conditions; no PL cover",
+            "evidence": "p11 Motorcycle/moped riding+."
+          },
+          {
+            "name": "Adventure",
+            "availability": "All plans",
+            "scope": "Adds listed adventure activities (e.g., canyoning grades 1-3, rock climbing <2,000m with ropes)",
+            "evidence": "p13 Adventure."
+          },
+          {
+            "name": "Adventure+",
+            "availability": "All plans",
+            "scope": "Adds higher-risk adventure activities (e.g., rafting grades 4-5, rock climbing 2,000–4,000m)",
+            "evidence": "p13-14 Adventure+."
+          },
+          {
+            "name": "Snow Sports",
+            "availability": "All plans",
+            "scope": "On-piste skiing/boarding/snowmobiling; no racing/professional",
+            "evidence": "p14 Snow sports."
+          },
+          {
+            "name": "Snow Sports+",
+            "availability": "All plans",
+            "scope": "Includes off-piste and heli-ski/board with guide; no PL cover for snowmobile",
+            "evidence": "p14 Snow sports+."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses (incl. emergency repatriation/evacuation)",
+            "included": true,
+            "limit": "$Unlimited (12 months max from onset)",
+            "excess_applies": true,
+            "evidence": "p4 International table row 1; p31 Section 1."
+          },
+          {
+            "category": "Dental",
+            "section": "1",
+            "name": "Overseas Dental Expenses",
+            "included": true,
+            "limit": "$2,000",
+            "excess_applies": true,
+            "evidence": "p4 International table row 1; p31 Section 1."
+          },
+          {
+            "category": "Trip disruption",
+            "section": "2",
+            "name": "Additional Expenses",
+            "included": true,
+            "limit": "$Unlimited (sub-limits apply)",
+            "excess_applies": true,
+            "evidence": "p4 row 2; p32-33 Section 2."
+          },
+          {
+            "category": "Cancellation",
+            "section": "3",
+            "name": "Amendment or Cancellation Costs",
+            "included": true,
+            "limit": "$10,000 per person or cover chosen per policy",
+            "excess_applies": true,
+            "basis": "Per policy for selected cover",
+            "evidence": "p4 row 3; p33 table."
+          },
+          {
+            "category": "Baggage",
+            "section": "4",
+            "name": "Luggage and Personal Effects",
+            "included": true,
+            "limit": "$10,000 total; per-item sub-limits apply",
+            "excess_applies": true,
+            "evidence": "p4 row 4; p36 table."
+          },
+          {
+            "category": "Delay",
+            "section": "8",
+            "name": "Travel Delay",
+            "included": true,
+            "limit": "$2,000",
+            "conditions": "6+ hour delay threshold",
+            "excess_applies": false,
+            "evidence": "p4 row 8; p39 Section 8."
+          },
+          {
+            "category": "Rental vehicle",
+            "section": "7",
+            "name": "Rental Vehicle Insurance Excess",
+            "included": true,
+            "limit": "$10,000",
+            "excess_applies": false,
+            "evidence": "p4 row 7; p38 Section 7."
+          },
+          {
+            "category": "Liability",
+            "section": "17",
+            "name": "Personal Liability",
+            "included": true,
+            "limit": "$5,000,000",
+            "excess_applies": false,
+            "evidence": "p4 row 17; p42 Section 17."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics and valuables item limits",
+            "amount": "Phone/Smart watch $1,500; Camera/Video $4,000; Laptop $3,000; Tablet $3,000; Drone $1,000; Jewellery/Watch $1,000; Medical devices/dentures $1,000; Any other item $1,000",
+            "basis": "Per item or set/pair incl. accessories",
+            "evidence": "p10 and p35 item limit tables."
+          },
+          {
+            "parent_benefit": "COVID-19 Additional Expenses",
+            "name": "Non-hospitalised diagnosis",
+            "amount": "$5,000",
+            "basis": "Per person",
+            "evidence": "p44 COVID-19 Additional Expenses table."
+          }
+        ],
+        "limit_basis_notes": "Benefit limits are per person unless stated otherwise. Cancellation/Amendment limits (selected amounts) apply per policy. Maximum liability collectively for Sections 14, 15 and 16 is $45,000 on this plan.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "Claims relating to Existing Medical Conditions are excluded unless approved. A list of conditions is automatically included if criteria met (e.g., Acne, ADHD, mild Asthma under 60, Hypertension/hypercholesterolaemia with stability criteria). Other conditions require online health assessment and additional premium if accepted. Undiagnosed/under investigation conditions cannot be covered.",
+        "pregnancy_cover_summary": "Limited cover for serious, unexpected complications up to 23 weeks 6 days’ gestation. No cover for childbirth or newborn care. If pregnant at Relevant Time and multiple/assisted conception or prior complications exist, assessment and approval with additional premium required.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "Cover for Relative/business partner health events only if, at Relevant Time, they were not recently hospitalised, not in aged/residential care, living independently without home care, not awaiting tests/surgery, no drug/alcohol addiction, and no terminal illness; otherwise a combined cap of $1,000 applies across the policy.",
+        "included_activities": [
+          {
+            "activity": "Scuba diving up to 30m (with certification or diving school/instructor)",
+            "conditions": "No professional participation; reasonable care and safety equipment required.",
+            "evidence": "p12 Included activities."
+          },
+          {
+            "activity": "Hiking/walking under 3,000m",
+            "conditions": "Non-technical; reasonable care.",
+            "evidence": "p12 Included activities."
+          },
+          {
+            "activity": "Cycling (leisure), kayaking/canoeing/rafting grades 1–3 (inside territorial waters)",
+            "conditions": "Organised tours where applicable.",
+            "evidence": "p12 Included activities."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "Motorcycling/Moped riding (<=250cc)",
+            "required_add_on": "Motorcycle/Moped Riding",
+            "conditions": "Valid licence, helmet, no racing/professional/motocross.",
+            "evidence": "p11 Motorcycle/moped riding."
+          },
+          {
+            "activity": "Rafting grades 4–5, rock climbing up to 4,000m",
+            "required_add_on": "Adventure+",
+            "conditions": "Guides/ropes/bolts as specified.",
+            "evidence": "p13-14 Adventure+."
+          },
+          {
+            "activity": "On-/off‑piste snow sports; heli-ski/board",
+            "required_add_on": "Snow Sports / Snow Sports+",
+            "conditions": "Guided for heli; no racing/professional; no PL cover for snowmobile.",
+            "evidence": "p14 Snow sports."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "Hunting; rodeo; BASE jumping; hang gliding; motocross; freestyle BMX; running with the bulls; professional sports; mountaineering using guides/ropes/oxygen; trekking >6,000m; ice climbing beyond allowed; scuba diving >50m or >30m without certification/instructor",
+            "scope": "Excluded under all circumstances",
+            "evidence": "p14 Activities We do not cover; p49 General exclusions 22."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "Cover applies when you are the nominated driver and comprehensive insurance is in place; excludes damage when driven on unsealed surfaces; excludes administration/loss-of-use fees. Motorcycle/moped rental excess covered only if Motorcycle add-on purchased.",
+        "luggage_conditions": "No cover for valuables checked-in unless forced by security; items unattended in vehicles not covered overnight and limited to $500 per item/$2,000 total during daylight if forced entry to concealed compartment; report theft/loss within 7 days; proof of ownership required; drones not covered while in use; sporting equipment not covered while in use.",
+        "depreciation_rules": [
+          {
+            "category": "Jewellery (not watches/costume)",
+            "age_band": "New–24 months",
+            "depreciation_percent": "0%",
+            "evidence": "p36 Depreciation table."
+          },
+          {
+            "category": "Jewellery (not watches/costume)",
+            "age_band": "25–36 months",
+            "depreciation_percent": "60%",
+            "evidence": "p36."
+          },
+          {
+            "category": "Electronics/phones/cameras/tablets etc.",
+            "age_band": "25–36 months",
+            "depreciation_percent": "36%",
+            "evidence": "p36."
+          },
+          {
+            "category": "Electronics/phones/cameras/tablets etc.",
+            "age_band": ">36 months",
+            "depreciation_percent": "60%",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "War/insurrection; nuclear/radiation; biological/chemical incidents",
+            "evidence": "p47-48 General exclusions 4-6."
+          },
+          {
+            "exclusion": "Known events or circumstances at Relevant Time",
+            "evidence": "p48 General exclusions 10."
+          },
+          {
+            "exclusion": "Do Not Travel advice (related to claim subject)",
+            "evidence": "p49 General exclusions 32."
+          },
+          {
+            "exclusion": "Sanctions and embargoes",
+            "evidence": "p31 Policy condition 15; p49 General exclusions 33."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "3 Cancellation",
+            "exclusion": "Transport Provider cancellations/delays except strikes; insolvency excluded",
+            "evidence": "p34-35 Section 3 We will not pay 1,16."
+          },
+          {
+            "section": "1 Medical",
+            "exclusion": "Treatment in Australia; routine treatment; follow-up/continuation; RHCA unless agreed",
+            "evidence": "p31 Section 1 We will not pay."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "No cover if travelling to a destination with Do Not Travel advice relevant to the claim; sanctions and embargo restrictions apply; restricted countries include Cuba, Iran, Syria, North Korea and specified regions of Ukraine.",
+        "claims_process_summary": "Submit claim online or by post with original supporting documents. Notify police/transport/accommodation within 7 days for theft/loss. Advise insurer and lodge a completed claim within 60 days of return date. Assessment response within 10 working days after receiving the claim or further information.",
+        "emergency_assistance_details": "24/7 assistance. Call +61 2 8907 5246 from anywhere; toll-free numbers available from USA 1833 5444 806, Canada 1833 907 8111, UK 0808 234 9722, NZ 0800 462 640. Contact as soon as possible if hospitalised, medical expenses exceed $2,000, or returning early.",
+        "premium_factors": "Destination/area of travel; departure date and trip duration; age; plan (Comprehensive vs Essential/Basic/Domestic); selected excess; Cruise cover; selected cancellation amount; added cover for Existing Medical Conditions or pregnancy; optional add-ons.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "pds_effective_date",
+              "pds_title",
+              "brand_name"
+            ],
+            "page": 1,
+            "quote": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement … Budget Direct … Effective 25 March 2026"
+          },
+          {
+            "fields": [
+              "emergency_medical_limit",
+              "emergency_dental_limit",
+              "additional_expenses_or_trip_disruption_limit",
+              "cancellation_cover_limit",
+              "luggage_limit",
+              "rental_vehicle_excess_limit",
+              "travel_delay_limit",
+              "personal_liability_limit",
+              "money_limit",
+              "luggage_delay_limit"
+            ],
+            "page": 4,
+            "quote": "Benefits table – International … Comprehensive … Overseas medical expenses $Unlimited … Overseas dental $2,000 … Additional Expenses $Unlimited … Amendment or Cancellation Costs $10,000 (or cover chosen) … Luggage and Personal Effects $10,000 … Money $400 … Rental Vehicle Insurance Excess $10,000 … Travel Delay $2,000 … Personal Liability $5,000,000 … Delayed Luggage Allowance $1,000"
+          },
+          {
+            "fields": [
+              "covid_medical_limit",
+              "covid_cover_summary"
+            ],
+            "page": 6,
+            "quote": "Summary of COVID-19 Benefits … Overseas Medical Expenses $Unlimited~ … Additional Expenses $5,000 … Optional COVID-19 Amendment or Cancellation Costs"
+          },
+          {
+            "fields": [
+              "cruise_cover_status",
+              "cruise_cover_required_for_cruises",
+              "cruise_benefits"
+            ],
+            "page": 7,
+            "quote": "Cruise cover … Available on the International … must tell Us you are doing a cruise and pay an extra premium … On-board Medical and Dental Cover … Ship to Shore Medical Cover … Cabin Confinement $1,500 … Missed Port $1,000 … Missed Shore Excursions $1,000"
+          },
+          {
+            "fields": [
+              "cooling_off_period_days"
+            ],
+            "page": 9,
+            "quote": "Cooling-off period … within 21 days of the date of purchase, We will give You Your money back."
+          },
+          {
+            "fields": [
+              "dependent_child_age_limit_years"
+            ],
+            "page": 25,
+            "quote": "Accompanied Children … under the age of 21 years."
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Up to $20,000; or up to EUR 30,000 in a Schengen member state",
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "International Comprehensive plan details apply to both Single Trip and Annual Multi-Trip variants; this record is for Single Trip. Cruise cover is a mandatory add-on for multi-night ocean/sea cruises.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "minimum_distance_from_home_km",
+          "paid_accommodation_exception",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct International Comprehensive – Annual Multi-Trip",
+        "plan_name": "Comprehensive",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "International – worldwide or selected region/country based on destination selection (Areas of travel rules apply)",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": 12,
+        "minimum_distance_from_home_km": 250,
+        "paid_accommodation_exception": true,
+        "eligibility_rules": "As per Single Trip, and for Annual Multi‑Trip: each Journey must be to a destination more than 250 km from Home or include at least one night of prepaid accommodation if closer; each Journey must not exceed the maximum duration shown on the Certificate.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30: Section 14."
+          },
+          {
+            "section": "Travel Delay (Section 8)",
+            "waiting_period": "6 hours",
+            "trigger": "Pre-booked transport delayed",
+            "evidence": "p39 Section 8."
+          },
+          {
+            "section": "Delayed Luggage (Section 5)",
+            "waiting_period": "12 hours",
+            "trigger": "All luggage delayed",
+            "evidence": "p37 Section 5."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "Full refund within 21 days if no claim and no travel commenced; otherwise pro-rata refund of unexpired period less non‑refundable charges if no claim and no travel commenced.",
+        "excess_options": "International plans allow a selectable excess; amount shown on Certificate of Insurance. Excess applies per event to specified sections; additional/higher excess may apply.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on Certificate of Insurance",
+            "basis": "Per event",
+            "evidence": "p28 Policy conditions 1."
+          }
+        ],
+        "emergency_medical_limit": "$Unlimited",
+        "emergency_dental_limit": "$2,000",
+        "cancellation_cover_limit": "$10,000 (or cover chosen per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "$Unlimited",
+        "travel_delay_limit": "$2,000",
+        "luggage_limit": "$10,000",
+        "luggage_single_item_limit": "$1,000 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $1,500; Camera/Video $4,000; Laptop $3,000; Tablet $3,000; Drone $1,000; Jewellery/Watch $1,000; Artificial limb/medical device/dentures $1,000",
+        "luggage_delay_limit": "$1,000",
+        "travel_documents_limit": null,
+        "money_limit": "$400",
+        "rental_vehicle_excess_limit": "$10,000",
+        "personal_liability_limit": "$5,000,000",
+        "personal_accident_limit": "Disability $30,000; Accidental Death $30,000; maximum liability collectively for Sections 14, 15, 16 is $45,000",
+        "loss_of_income_limit": "$45,000 (up to 75% net income, max 6 months, 15-day waiting period post-planned return)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Unlimited (overseas medical) – cover will not exceed 12 months from onset",
+        "covid_cancellation_or_disruption_limit": "Optional add-on: up to $10,000 per policy (COVID-19 Amendment or Cancellation Costs)",
+        "covid_cover_summary": "International: COVID-19 overseas medical (Unlimited) included; Additional Expenses if diagnosed (limits apply) including hospitalisation; optional COVID-19 Amendment/Cancellation up to $10,000 per policy if purchased; no cover for government border closures or quarantine orders; Do Not Travel (COVID reason) destinations excluded.",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit": "On-board Medical and Dental Cover",
+            "included": true,
+            "limit": "Medical $Unlimited; Dental $2,000",
+            "excess_applies": true,
+            "evidence": "p7; p46 (i)."
+          },
+          {
+            "benefit": "Ship to Shore Medical Cover",
+            "included": true,
+            "limit": "$Unlimited",
+            "excess_applies": true,
+            "evidence": "p7; p46 (ii)."
+          },
+          {
+            "benefit": "Sea Sickness Cover",
+            "included": true,
+            "limit": "$Unlimited",
+            "excess_applies": true,
+            "evidence": "p7; p46 (iii)."
+          },
+          {
+            "benefit": "Cabin Confinement",
+            "included": true,
+            "limit": "$1,500",
+            "excess_applies": false,
+            "evidence": "p7; p46 (iv)."
+          },
+          {
+            "benefit": "Missed Port (Embarkation)",
+            "included": true,
+            "limit": "$1,000",
+            "excess_applies": false,
+            "evidence": "p47 (v)."
+          },
+          {
+            "benefit": "Missed Shore Excursions",
+            "included": true,
+            "limit": "$1,000",
+            "excess_applies": false,
+            "evidence": "p47 (vi)."
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Cruise cover",
+            "availability": "International plans only",
+            "premium": "Additional premium applies",
+            "evidence": "p7."
+          },
+          {
+            "name": "COVID-19 Amendment or Cancellation Costs",
+            "availability": "Optional",
+            "limit_changes": "Up to $10,000 per policy",
+            "evidence": "p45."
+          },
+          {
+            "name": "Increase Cancellation cover",
+            "availability": "Optional",
+            "evidence": "p9."
+          },
+          {
+            "name": "Increase luggage item limit",
+            "availability": "Optional",
+            "evidence": "p10."
+          },
+          {
+            "name": "Motorcycle/Moped Riding (+)",
+            "availability": "Optional",
+            "evidence": "p11."
+          },
+          {
+            "name": "Adventure / Adventure+",
+            "availability": "Optional",
+            "evidence": "p13-14."
+          },
+          {
+            "name": "Snow Sports / Snow Sports+",
+            "availability": "Optional",
+            "evidence": "p14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses",
+            "included": true,
+            "limit": "$Unlimited",
+            "evidence": "p4."
+          },
+          {
+            "category": "Cancellation",
+            "section": "3",
+            "name": "Amendment or Cancellation Costs",
+            "included": true,
+            "limit": "$10,000 or cover chosen (per policy)",
+            "evidence": "p4; p33."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics and valuables",
+            "amount": "As per item limits",
+            "evidence": "p10; p35."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated; selected Cancellation amount applies per policy; collective cap $45,000 for Sections 14–16.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per Single Trip Comprehensive.",
+        "pregnancy_cover_summary": "As per Single Trip Comprehensive.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per Single Trip Comprehensive.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "conditions": "As per PDS",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed (Adventure/Snow/Motorcycle)",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed (e.g., BASE jumping, professional sports)",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Single Trip Comprehensive.",
+        "luggage_conditions": "As per Single Trip Comprehensive.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "age_band": "See PDS",
+            "depreciation_percent": "See PDS",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS General exclusions",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "1,3",
+            "exclusion": "Key exclusions summarised",
+            "evidence": "p31; p34-35."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per Single Trip Comprehensive.",
+        "claims_process_summary": "As per Single Trip Comprehensive.",
+        "emergency_assistance_details": "As per Single Trip Comprehensive.",
+        "premium_factors": "As per Single Trip Comprehensive plus Annual Multi‑Trip selections (max journey duration).",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "annual_unlimited_trips",
+              "policy_period_months",
+              "minimum_distance_from_home_km",
+              "paid_accommodation_exception"
+            ],
+            "page": 8,
+            "quote": "Annual Multi-Trip … be covered for an unlimited number of Journeys … destination must be more than 250 kilometres from Home or… include at least one night paid accommodation"
+          },
+          {
+            "fields": [
+              "annual_limit_reinstatement"
+            ],
+            "page": 30,
+            "quote": "11. Automatic reinstatement of sums insured … Annual Multi-Trip Policy … limits … automatically reinstated on completion of each Journey"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Up to $20,000; or up to EUR 30,000 in a Schengen member state",
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "International Comprehensive plan details for Annual Multi‑Trip variant.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "international_single_trip",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct International Essential – Single Trip",
+        "plan_name": "Essential",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "International – worldwide or selected region/country based on destination selection (Areas of travel rules apply)",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "As per Comprehensive Single Trip.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "As per Comprehensive Single Trip.",
+        "excess_options": "Selectable excess on international plans; applies per event to specified sections.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Per event",
+            "evidence": "p28."
+          }
+        ],
+        "emergency_medical_limit": "$Unlimited",
+        "emergency_dental_limit": "$1,000",
+        "cancellation_cover_limit": "$5,000 (or cover chosen per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "$Unlimited",
+        "travel_delay_limit": "$1,000",
+        "luggage_limit": "$5,000",
+        "luggage_single_item_limit": "$1,000 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $1,000; Camera/Video $2,000; Laptop $2,000; Tablet $2,000; Drone $1,000; Jewellery/Watch $1,000; Artificial limb/medical device/dentures $1,000",
+        "luggage_delay_limit": "$800",
+        "travel_documents_limit": null,
+        "money_limit": "$250",
+        "rental_vehicle_excess_limit": "$4,000",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "Disability $20,000; Accidental Death $20,000; maximum liability collectively for Sections 14, 15, 16 is $25,000",
+        "loss_of_income_limit": "$25,000 (up to 75% net income, max 6 months, 15-day waiting period post-planned return)",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Unlimited (overseas medical) – cover will not exceed 12 months from onset",
+        "covid_cancellation_or_disruption_limit": "Optional add-on: up to $5,000 per policy (COVID-19 Amendment or Cancellation Costs)",
+        "covid_cover_summary": "As per Comprehensive, with optional COVID-19 Amendment/Cancellation up to $5,000 per policy if purchased.",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit": "Cruise-related benefits per PDS",
+            "included": true,
+            "limit": "As listed (Medical/Dental/Ship to Shore/Cabin/Missed Port/Excursions)",
+            "evidence": "p7; p46-47."
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Cruise cover",
+            "availability": "International plans only",
+            "evidence": "p7."
+          },
+          {
+            "name": "COVID-19 Amendment or Cancellation Costs",
+            "availability": "Optional",
+            "limit_changes": "Up to $5,000 per policy",
+            "evidence": "p45."
+          },
+          {
+            "name": "Increase Cancellation cover",
+            "availability": "Optional",
+            "evidence": "p9."
+          },
+          {
+            "name": "Increase luggage item limit; Adventure; Adventure+; Motorcycle/Moped; Snow Sports; Snow Sports+",
+            "availability": "Optional",
+            "evidence": "p10-14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses",
+            "included": true,
+            "limit": "$Unlimited",
+            "evidence": "p4."
+          },
+          {
+            "category": "Cancellation",
+            "section": "3",
+            "name": "Amendment or Cancellation Costs",
+            "included": true,
+            "limit": "$5,000 or cover chosen (per policy)",
+            "evidence": "p4; p33."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics and valuables",
+            "amount": "As per item limits",
+            "evidence": "p10; p35."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated; selected Cancellation amount applies per policy; collective cap $25,000 for Sections 14–16.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per Comprehensive.",
+        "pregnancy_cover_summary": "As per Comprehensive.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per Comprehensive.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Comprehensive.",
+        "luggage_conditions": "As per Comprehensive.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "1,3",
+            "exclusion": "See PDS",
+            "evidence": "p31; p34-35."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per Comprehensive.",
+        "claims_process_summary": "As per Comprehensive.",
+        "emergency_assistance_details": "As per Comprehensive.",
+        "premium_factors": "As per Comprehensive.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "luggage_limit",
+              "rental_vehicle_excess_limit",
+              "cancellation_cover_limit",
+              "personal_liability_limit"
+            ],
+            "page": 4,
+            "quote": "International – Essential: Luggage $5,000; Rental Vehicle Insurance Excess $4,000; Amendment or Cancellation $5,000 (or cover chosen); Personal Liability $2,500,000"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Up to $20,000; or up to EUR 30,000 in a Schengen member state",
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "International Essential plan – Single Trip.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "minimum_distance_from_home_km",
+          "paid_accommodation_exception",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct International Essential – Annual Multi-Trip",
+        "plan_name": "Essential",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "International – worldwide or selected region/country based on destination selection (Areas of travel rules apply)",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": 12,
+        "minimum_distance_from_home_km": 250,
+        "paid_accommodation_exception": true,
+        "eligibility_rules": "As per Essential Single Trip; Annual Multi-Trip min distance or paid accommodation rule applies.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "As per Comprehensive Annual.",
+        "excess_options": "Selectable excess on international plans.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Per event",
+            "evidence": "p28."
+          }
+        ],
+        "emergency_medical_limit": "$Unlimited",
+        "emergency_dental_limit": "$1,000",
+        "cancellation_cover_limit": "$5,000 (or cover chosen per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "$Unlimited",
+        "travel_delay_limit": "$1,000",
+        "luggage_limit": "$5,000",
+        "luggage_single_item_limit": "$1,000 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $1,000; Camera/Video $2,000; Laptop $2,000; Tablet $2,000; Drone $1,000; Jewellery/Watch $1,000; Artificial limb/medical device/dentures $1,000",
+        "luggage_delay_limit": "$800",
+        "travel_documents_limit": null,
+        "money_limit": "$250",
+        "rental_vehicle_excess_limit": "$4,000",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "Disability $20,000; Accidental Death $20,000; maximum liability collectively for Sections 14, 15, 16 is $25,000",
+        "loss_of_income_limit": "$25,000",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Unlimited (overseas medical) – cover will not exceed 12 months from onset",
+        "covid_cancellation_or_disruption_limit": "Optional add-on: up to $5,000 per policy (COVID-19 Amendment or Cancellation Costs)",
+        "covid_cover_summary": "As per Essential Single Trip.",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit": "Cruise-related benefits per PDS",
+            "included": true,
+            "limit": "As listed",
+            "evidence": "p7; p46-47."
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Cruise cover",
+            "availability": "International plans only",
+            "evidence": "p7."
+          },
+          {
+            "name": "COVID-19 Amendment or Cancellation Costs",
+            "availability": "Optional",
+            "limit_changes": "Up to $5,000 per policy",
+            "evidence": "p45."
+          },
+          {
+            "name": "Increase Cancellation; Increase luggage item limit; Adventure; Adventure+; Motorcycle/Moped; Snow Sports",
+            "availability": "Optional",
+            "evidence": "p9-14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses",
+            "included": true,
+            "limit": "$Unlimited",
+            "evidence": "p4."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics and valuables",
+            "amount": "See PDS",
+            "evidence": "p10; p35."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated; selected Cancellation amount per policy; collective cap $25,000 for Sections 14–16.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per Essential Single Trip.",
+        "pregnancy_cover_summary": "As per Essential Single Trip.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per Essential Single Trip.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Comprehensive.",
+        "luggage_conditions": "As per Comprehensive.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "1,3",
+            "exclusion": "See PDS",
+            "evidence": "p31; p34-35."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per Comprehensive.",
+        "claims_process_summary": "As per Comprehensive.",
+        "emergency_assistance_details": "As per Comprehensive.",
+        "premium_factors": "As per Comprehensive.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "luggage_limit",
+              "rental_vehicle_excess_limit",
+              "cancellation_cover_limit",
+              "personal_liability_limit"
+            ],
+            "page": 4,
+            "quote": "International – Essential: Luggage $5,000; Rental Vehicle Insurance Excess $4,000; Amendment or Cancellation $5,000 (or cover chosen); Personal Liability $2,500,000"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Up to $20,000; or up to EUR 30,000 in a Schengen member state",
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "International Essential plan – Annual Multi‑Trip.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "international_single_trip",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct International Basic – Single Trip",
+        "plan_name": "Basic",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "International – worldwide or selected region/country based on destination selection (Areas of travel rules apply)",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "As per Comprehensive Single Trip.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "As per Comprehensive Single Trip.",
+        "excess_options": "Selectable excess on international plans; applies per event to specified sections.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Per event",
+            "evidence": "p28."
+          }
+        ],
+        "emergency_medical_limit": "$Unlimited",
+        "emergency_dental_limit": "$500",
+        "cancellation_cover_limit": "$Nil",
+        "cancellation_cover_selectable": false,
+        "additional_expenses_or_trip_disruption_limit": "$Unlimited",
+        "travel_delay_limit": "$Nil",
+        "luggage_limit": "$2,000",
+        "luggage_single_item_limit": "$750 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $750; Camera/Video $1,000; Laptop $1,000; Tablet $1,000; Drone $750; Jewellery/Watch $750; Artificial limb/medical device/dentures $750",
+        "luggage_delay_limit": "$600",
+        "travel_documents_limit": null,
+        "money_limit": "$Nil",
+        "rental_vehicle_excess_limit": "$Nil",
+        "personal_liability_limit": "$1,000,000",
+        "personal_accident_limit": "No disability or accidental death cover on Basic",
+        "loss_of_income_limit": "$Nil",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Unlimited (overseas medical) – cover will not exceed 12 months from onset",
+        "covid_cancellation_or_disruption_limit": "$Nil (COVID-19 Cancellation option not available on Basic)",
+        "covid_cover_summary": "COVID-19 overseas medical included; Additional Expenses cover for COVID-19 up to $5,000 (see PDS); no COVID-19 Amendment/Cancellation option.",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit": "Cruise-related benefits medical/evacuation/sea sickness and cabin/port/excursions",
+            "included": true,
+            "limit": "As listed",
+            "evidence": "p7; p46-47."
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Cruise cover",
+            "availability": "International plans only",
+            "evidence": "p7."
+          },
+          {
+            "name": "Increase luggage item limit; Adventure; Adventure+; Motorcycle/Moped; Snow Sports",
+            "availability": "Optional",
+            "evidence": "p10-14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses",
+            "included": true,
+            "limit": "$Unlimited",
+            "evidence": "p4."
+          },
+          {
+            "category": "Baggage",
+            "section": "4",
+            "name": "Luggage and Personal Effects",
+            "included": true,
+            "limit": "$2,000",
+            "evidence": "p4."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics/valuables",
+            "amount": "See item table",
+            "evidence": "p10; p35."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated. No Section 3 (Cancellation) cover on Basic plan.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per Comprehensive.",
+        "pregnancy_cover_summary": "As per Comprehensive.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per Comprehensive.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Comprehensive.",
+        "luggage_conditions": "As per Comprehensive.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "1,4",
+            "exclusion": "See PDS",
+            "evidence": "p31; p35-37."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per Comprehensive.",
+        "claims_process_summary": "As per Comprehensive.",
+        "emergency_assistance_details": "As per Comprehensive.",
+        "premium_factors": "As per Comprehensive.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "cancellation_cover_limit",
+              "travel_delay_limit",
+              "luggage_limit",
+              "personal_liability_limit"
+            ],
+            "page": 4,
+            "quote": "International – Basic: Amendment or Cancellation $Nil; Travel Delay $Nil; Luggage $2,000; Personal Liability $1,000,000"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Up to $20,000; or up to EUR 30,000 in a Schengen member state",
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "International Basic plan – Single Trip.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "minimum_distance_from_home_km",
+          "paid_accommodation_exception",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct International Basic – Annual Multi-Trip",
+        "plan_name": "Basic",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "International – worldwide or selected region/country based on destination selection (Areas of travel rules apply)",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": 12,
+        "minimum_distance_from_home_km": 250,
+        "paid_accommodation_exception": true,
+        "eligibility_rules": "As per Basic Single Trip; Annual Multi-Trip min distance or paid accommodation rule applies.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "As per Comprehensive Annual.",
+        "excess_options": "Selectable excess on international plans; applies per event to specified sections.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Per event",
+            "evidence": "p28."
+          }
+        ],
+        "emergency_medical_limit": "$Unlimited",
+        "emergency_dental_limit": "$500",
+        "cancellation_cover_limit": "$Nil",
+        "cancellation_cover_selectable": false,
+        "additional_expenses_or_trip_disruption_limit": "$Unlimited",
+        "travel_delay_limit": "$Nil",
+        "luggage_limit": "$2,000",
+        "luggage_single_item_limit": "$750 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $750; Camera/Video $1,000; Laptop $1,000; Tablet $1,000; Drone $750; Jewellery/Watch $750; Artificial limb/medical device/dentures $750",
+        "luggage_delay_limit": "$600",
+        "travel_documents_limit": null,
+        "money_limit": "$Nil",
+        "rental_vehicle_excess_limit": "$Nil",
+        "personal_liability_limit": "$1,000,000",
+        "personal_accident_limit": "Not covered (Sections 15–16 Nil)",
+        "loss_of_income_limit": "$Nil",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Unlimited (overseas medical) – cover will not exceed 12 months from onset",
+        "covid_cancellation_or_disruption_limit": "$Nil (COVID-19 Cancellation option not available on Basic)",
+        "covid_cover_summary": "As per Basic Single Trip.",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit": "Cruise-related benefits per PDS",
+            "included": true,
+            "limit": "As listed",
+            "evidence": "p7; p46-47."
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Cruise cover",
+            "availability": "International plans only",
+            "evidence": "p7."
+          },
+          {
+            "name": "Increase luggage item limit; Adventure; Adventure+; Motorcycle/Moped; Snow Sports",
+            "availability": "Optional",
+            "evidence": "p10-14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Medical",
+            "section": "1",
+            "name": "Overseas Medical Expenses",
+            "included": true,
+            "limit": "$Unlimited",
+            "evidence": "p4."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics and valuables",
+            "amount": "See PDS",
+            "evidence": "p10; p35."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated. No Section 3 Cancellation cover.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per Basic Single Trip.",
+        "pregnancy_cover_summary": "As per Basic Single Trip.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per Basic Single Trip.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Comprehensive.",
+        "luggage_conditions": "As per Comprehensive.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "1,4",
+            "exclusion": "See PDS",
+            "evidence": "p31; p35-37."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per Comprehensive.",
+        "claims_process_summary": "As per Comprehensive.",
+        "emergency_assistance_details": "As per Comprehensive.",
+        "premium_factors": "As per Comprehensive.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "luggage_limit",
+              "personal_liability_limit"
+            ],
+            "page": 4,
+            "quote": "International – Basic: Luggage $2,000 … Personal Liability $1,000,000"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": "Up to $20,000; or up to EUR 30,000 in a Schengen member state",
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "International Basic plan – Annual Multi‑Trip.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "domestic",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct Domestic – Single Trip",
+        "plan_name": "Domestic",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "Australia (including Domestic Cruising destination selection for cruises between Australian ports with no overseas port stop)",
+        "trip_frequency": "single_trip",
+        "annual_unlimited_trips": null,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": null,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "As per PDS general eligibility; Australian resident/visa and return-home requirement. Already travelling purchase allowed with 72-hour no-cover period.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "As per PDS general terms.",
+        "excess_options": "Excess applies per PDS to specified sections; amount shown on Certificate of Insurance.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Per event to specified sections",
+            "evidence": "p28."
+          }
+        ],
+        "emergency_medical_limit": "$Nil",
+        "emergency_dental_limit": "$Nil",
+        "cancellation_cover_limit": "$5,000 (or cover chosen per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "$10,000",
+        "travel_delay_limit": "$1,000",
+        "luggage_limit": "$5,000",
+        "luggage_single_item_limit": "$1,000 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $1,000; Camera/Video $3,500; Laptop $3,000; Tablet $3,000; Drone $1,000; Jewellery/Watch $1,000; Artificial limb/medical device/dentures $1,000",
+        "luggage_delay_limit": "$800",
+        "travel_documents_limit": null,
+        "money_limit": "$250",
+        "rental_vehicle_excess_limit": "$10,000 (Rental Vehicle Insurance Excess)",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "Disability $25,000; Accidental Death $25,000; maximum liability collectively for Sections 14, 15, 16 is $25,000",
+        "loss_of_income_limit": "$25,000",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Nil (no domestic medical cover)",
+        "covid_cancellation_or_disruption_limit": "Optional add-on: up to $5,000 per policy (COVID-19 Amendment or Cancellation Costs)",
+        "covid_cover_summary": "Domestic: No COVID-19 medical. Additional Expenses up to $5,000 if diagnosed and certified unfit to travel; optional COVID-19 Amendment/Cancellation up to $5,000 per policy if purchased. No cover for government border closures/quarantine orders.",
+        "cruise_cover_status": "not_applicable",
+        "cruise_cover_required_for_cruises": null,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Increase Cancellation cover",
+            "availability": "Domestic plan",
+            "limit_changes": "Increase per policy limit",
+            "evidence": "p9."
+          },
+          {
+            "name": "COVID-19 Amendment or Cancellation Costs",
+            "availability": "Domestic plan",
+            "limit_changes": "Up to $5,000 per policy",
+            "evidence": "p9; p45."
+          },
+          {
+            "name": "Increase luggage item limit; Motorcycle/Moped; Adventure; Adventure+; Snow Sports",
+            "availability": "All plans",
+            "evidence": "p10-14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Trip disruption",
+            "section": "2",
+            "name": "Additional Expenses",
+            "included": true,
+            "limit": "$10,000",
+            "evidence": "p5 Domestic table; p33 Section 2 table."
+          },
+          {
+            "category": "Cancellation",
+            "section": "3",
+            "name": "Amendment or Cancellation Costs",
+            "included": true,
+            "limit": "$5,000 (or cover chosen per policy)",
+            "evidence": "p5; p33."
+          },
+          {
+            "category": "Rental vehicle",
+            "section": "7",
+            "name": "Rental Vehicle Insurance Excess",
+            "included": true,
+            "limit": "$10,000",
+            "evidence": "p5; p38."
+          },
+          {
+            "category": "Rental vehicle (bonus)",
+            "section": "7 (Domestic bonus)",
+            "name": "Personal vehicle insurance excess",
+            "included": true,
+            "limit": "$2,500",
+            "evidence": "p5 Domestic table; p38 Domestic Plan bonus cover."
+          },
+          {
+            "category": "Liability",
+            "section": "17",
+            "name": "Personal Liability",
+            "included": true,
+            "limit": "$2,500,000",
+            "evidence": "p5; p42."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics/valuables",
+            "amount": "See PDS",
+            "evidence": "p10 Domestic column; p36."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated; selected Cancellation amount applies per policy; collective cap $25,000 for Sections 14–16.",
+        "annual_limit_reinstatement": null,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per PDS general rules.",
+        "pregnancy_cover_summary": "As per PDS general rules.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per PDS general rules.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Section 7; excludes unsealed surfaces; excludes admin/loss-of-use; driver must be nominated and comprehensive insurance held.",
+        "luggage_conditions": "As per PDS general rules.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "3; 7",
+            "exclusion": "See PDS",
+            "evidence": "p34-35; p38."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per PDS general rules.",
+        "claims_process_summary": "As per PDS: online or post; notify police/transport provider for theft/loss; lodge within 60 days of return date.",
+        "emergency_assistance_details": "24/7 assistance contact available; note domestic medical benefits are Nil.",
+        "premium_factors": "Destination within Australia, dates/duration, age, excess, selected cancellation amount, add-ons.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "additional_expenses_or_trip_disruption_limit",
+              "cancellation_cover_limit",
+              "luggage_limit",
+              "rental_vehicle_excess_limit",
+              "personal_liability_limit",
+              "luggage_delay_limit",
+              "money_limit"
+            ],
+            "page": 5,
+            "quote": "Domestic … Additional Expenses $10,000 … Amendment or Cancellation $5,000 (or cover chosen) … Luggage and Personal Effects $5,000 … Rental Vehicle Insurance Excess $10,000 … Personal Liability $2,500,000 … Delayed Luggage $800 … Money $250"
+          },
+          {
+            "fields": [
+              "personal_vehicle_excess"
+            ],
+            "page": 38,
+            "quote": "Domestic Plan: Bonus cover for the insurance excess on Your Personal Vehicle … reimburse up to $2,500"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": null,
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Domestic plan – Single Trip. No domestic medical cover; domestic cruising handled via destination selection (Domestic Cruising) rather than Cruise add-on.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "policy_period_months",
+          "minimum_distance_from_home_km",
+          "paid_accommodation_exception",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "repatriation_of_remains_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      },
+      {
+        "product_type": "domestic",
+        "brand_name": "Budget Direct",
+        "insurer_name": "Zurich Australian Insurance Limited (ZAIL), ABN 13 000 296 640, AFSL 232507",
+        "issuer_or_agent_name": "Travel Insurance Partners Pty Limited (ABN 73 144 049 230, AFSL 360138); Auto & General Services Pty Ltd trading as Budget Direct (ABN 61 003 617 909)",
+        "product_name": "Budget Direct Domestic – Annual Multi-Trip",
+        "plan_name": "Domestic",
+        "cover_level": null,
+        "pds_title": "Travel Insurance – Combined Financial Services Guide and Product Disclosure Statement",
+        "pds_effective_date": "Effective 25 March 2026",
+        "pds_prepared_or_version_date": "Prepared 7 December 2025",
+        "geographic_scope": "Australia (including destination selection Domestic Cruising as applicable)",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": null,
+        "maximum_trip_duration_days": null,
+        "policy_period_months": 12,
+        "minimum_distance_from_home_km": 250,
+        "paid_accommodation_exception": true,
+        "eligibility_rules": "As per Domestic Single Trip; Annual Multi-Trip min distance or paid accommodation rule applies.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": null,
+        "already_travelling_or_overseas_available": true,
+        "waiting_period_hours": 72,
+        "waiting_period_rules": [
+          {
+            "section": "Already travelling",
+            "waiting_period": "72 hours",
+            "trigger": "Policy purchased after leaving Home",
+            "evidence": "p30."
+          }
+        ],
+        "cooling_off_period_days": 21,
+        "policy_cancellation_refund_terms": "As per PDS general terms.",
+        "excess_options": "Excess applies per PDS to specified sections; amount shown on Certificate of Insurance.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "section": "General",
+            "excess_applies": true,
+            "amount": "As shown on COI",
+            "basis": "Per event to specified sections",
+            "evidence": "p28."
+          }
+        ],
+        "emergency_medical_limit": "$Nil",
+        "emergency_dental_limit": "$Nil",
+        "cancellation_cover_limit": "$5,000 (or cover chosen per policy)",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "$10,000",
+        "travel_delay_limit": "$1,000",
+        "luggage_limit": "$5,000",
+        "luggage_single_item_limit": "$1,000 per any other item; category limits apply",
+        "electronics_or_valuables_limit": "Per item sub-limits: Phone/Smart watch $1,000; Camera/Video $3,500; Laptop $3,000; Tablet $3,000; Drone $1,000; Jewellery/Watch $1,000; Artificial limb/medical device/dentures $1,000",
+        "luggage_delay_limit": "$800",
+        "travel_documents_limit": null,
+        "money_limit": "$250",
+        "rental_vehicle_excess_limit": "$10,000",
+        "personal_liability_limit": "$2,500,000",
+        "personal_accident_limit": "Disability $25,000; Accidental Death $25,000; maximum liability collectively for Sections 14, 15, 16 is $25,000",
+        "loss_of_income_limit": "$25,000",
+        "covid_cover_available": true,
+        "covid_medical_limit": "$Nil",
+        "covid_cancellation_or_disruption_limit": "Optional add-on: up to $5,000 per policy (COVID-19 Amendment or Cancellation Costs)",
+        "covid_cover_summary": "Domestic: No medical; Additional Expenses benefit applies for COVID-19; optional COVID-19 Amendment/Cancellation available up to $5,000 per policy.",
+        "cruise_cover_status": "not_applicable",
+        "cruise_cover_required_for_cruises": null,
+        "cruise_benefits": null,
+        "optional_add_ons": [
+          {
+            "name": "Increase Cancellation cover",
+            "availability": "Domestic plan",
+            "limit_changes": "Increase per policy limit",
+            "evidence": "p9."
+          },
+          {
+            "name": "COVID-19 Amendment or Cancellation Costs",
+            "availability": "Domestic plan",
+            "limit_changes": "Up to $5,000 per policy",
+            "evidence": "p45."
+          },
+          {
+            "name": "Increase luggage item limit; Motorcycle/Moped; Adventure; Adventure+; Snow Sports",
+            "availability": "All plans",
+            "evidence": "p10-14."
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Trip disruption",
+            "section": "2",
+            "name": "Additional Expenses",
+            "included": true,
+            "limit": "$10,000",
+            "evidence": "p33."
+          },
+          {
+            "category": "Cancellation",
+            "section": "3",
+            "name": "Amendment or Cancellation Costs",
+            "included": true,
+            "limit": "$5,000 (or cover chosen per policy)",
+            "evidence": "p33."
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "Luggage and Personal Effects",
+            "name": "Electronics/valuables",
+            "amount": "See PDS",
+            "evidence": "p10; p36."
+          }
+        ],
+        "limit_basis_notes": "Per person unless stated; selected Cancellation amount per policy; collective cap $25,000 for Sections 14–16.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "some_conditions_automatically_included",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "As per PDS general rules.",
+        "pregnancy_cover_summary": "As per PDS general rules.",
+        "pregnancy_single_week_limit": 23,
+        "pregnancy_multiple_week_limit": null,
+        "non_traveller_health_rules": "As per PDS general rules.",
+        "included_activities": [
+          {
+            "activity": "Included activities list",
+            "evidence": "p12."
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "As listed",
+            "required_add_on": "Relevant add-on",
+            "evidence": "p11-14."
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "As listed",
+            "evidence": "p14; p49."
+          }
+        ],
+        "rental_vehicle_excess_conditions": "As per Section 7; excludes unsealed surfaces; excludes admin/loss-of-use; driver must be nominated and comprehensive insurance held.",
+        "luggage_conditions": "As per PDS general rules.",
+        "depreciation_rules": [
+          {
+            "category": "As per table",
+            "evidence": "p36."
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "exclusion": "See PDS",
+            "evidence": "p47-49."
+          }
+        ],
+        "benefit_exclusions": [
+          {
+            "section": "2; 3; 7",
+            "exclusion": "See PDS",
+            "evidence": "p32-35; p38."
+          }
+        ],
+        "travel_warning_and_sanctions_rules": "As per PDS general rules.",
+        "claims_process_summary": "As per PDS.",
+        "emergency_assistance_details": "24/7 assistance contact available; note domestic medical benefits are Nil.",
+        "premium_factors": "As per Domestic Single Trip with Annual Multi-Trip journey duration selection.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "source_pdf_hash": "f5c301e1910f600c5e9e31fa5c64e26ad50ae6e553b6e32c2369f58df6586b28",
+        "source_evidence": [
+          {
+            "fields": [
+              "annual_unlimited_trips",
+              "policy_period_months",
+              "minimum_distance_from_home_km",
+              "paid_accommodation_exception"
+            ],
+            "page": 8,
+            "quote": "Annual Multi-Trip … unlimited number of Journeys … destination must be more than 250 kilometres from Home or include at least one night paid accommodation"
+          }
+        ],
+        "claim_notification_deadline_days": 60,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "included",
+        "medical_expenses_max_months_from_onset": 12,
+        "repatriation_of_remains_limit": null,
+        "travel_delay_minimum_delay_hours": 6,
+        "travel_services_provider_insolvency_limit": "Not covered (Insolvency excluded)",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Domestic plan – Annual Multi‑Trip. Annual limits reinstated each Journey per policy condition; no domestic medical cover.",
+        "_unfilled": [
+          "cover_level",
+          "maximum_trip_duration_options",
+          "maximum_trip_duration_days",
+          "minimum_age_years",
+          "maximum_age_years",
+          "age_eligibility_notes",
+          "standard_excess_aud",
+          "travel_documents_limit",
+          "repatriation_of_remains_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "legal_expenses_limit"
+        ]
+      }
+    ],
+    "_document_notes": "Benefits and limits are drawn primarily from the Benefits tables (pp.4–6) and corresponding policy sections. The Domestic benefits table text was partially OCR garbled; corroborating limits were taken from the policy wording sections (pp.32–41) where needed. Maximum trip duration options for Annual Multi‑Trip are not specified in the PDS and are left unfilled. Cruise cover is an optional add‑on available only for International plans and is required to cover multi‑night ocean/sea cruises; domestic cruising is handled via destination selection and not a Cruise add‑on. COVID‑19 cover varies by section and optional purchase per PDS Section 18."
+  },
+  "evidences": {},
+  "normalized_names": [],
+  "warnings": []
+}

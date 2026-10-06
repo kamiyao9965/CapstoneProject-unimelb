@@ -1,0 +1,246 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T10:39:40.968750Z",
+  "provenance": {
+    "run_id": "b0d14e87a2d74a8a97d4e05077dc3348",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "b9d1e86f5ff0a26432ffdf3d63f5faae7c552cbf6f8d9489df09aabf752604f2",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "low",
+    "summary": "The extraction is broadly aligned with the Cover-More Business annual multi-trip PDS, but there are actionable issues: some material fields are missing or overstate conditions, COVID-19 quarantine wording is misattributed to the $5,000 additional-expenses benefit, source evidence page references appear to use printed booklet pages rather than parsed page numbers, and some limits/rules are incomplete where the PDS text is conflicting or more detailed.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "source_evidence",
+        "issue_type": "wrong_value",
+        "reason": "Source evidence page references appear to use printed PDS/booklet pages rather than the numbered parsed pages supplied here. For example, the extraction cites the 'Who should take this policy' material as page 3, but it appears on parsed page 2. This reduces traceability for many cited fields.",
+        "source_page": 2,
+        "source_quote": "Who should take this policy?",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "fields": [
+              "pds_title",
+              "pds_effective_date"
+            ],
+            "page": 1,
+            "quote": "Business Travel Insurance — Combined Financial Services Guide and Product Disclosure Statement — Effective 14 January 2026"
+          },
+          {
+            "fields": [
+              "who_should_take_this_policy",
+              "maximum_age_years",
+              "annual_unlimited_trips",
+              "maximum_trip_duration_options",
+              "minimum_distance_from_home_km",
+              "annual_unlimited_trips",
+              "dependent_child_age_limit_years"
+            ],
+            "page": 3,
+            "quote": "The business policy offers annual cover... up to 74 years; covers an unlimited number of trips... choice of 30, 60 or 90 days... covers trips more than 250 kilometres from Home... has a family option... Accompanied Children under 21 years."
+          },
+          {
+            "fields": [
+              "benefits",
+              "emergency_medical_limit",
+              "cancellation_cover_limit",
+              "luggage_limit",
+              "rental_vehicle_excess_limit",
+              "personal_liability_limit"
+            ],
+            "page": 6,
+            "table": "Benefits table",
+            "quote": "Overseas medical expenses — Unlimited; Amendment or cancellation costs — Unlimited; Luggage and travel documents — $25,000; Rental Car insurance excess — $10,000; Personal liability — $5,000,000."
+          },
+          {
+            "fields": [
+              "luggage_single_item_limit",
+              "electronics_or_valuables_limit"
+            ],
+            "page": 10,
+            "quote": "Luggage item limits automatically included... Phone $2,500; Smart watch $2,500; Camera/Video camera $6,000; Laptop $5,000; Tablet $3,000; Drone $1,500; Jewellery/Watch $1,500; Artificial limb/Dentures/Removable dental appliance/Medical device $2,000."
+          },
+          {
+            "fields": [
+              "excess_rules"
+            ],
+            "page": 36,
+            "quote": "The excess... applies to Sections 1, 2, 3, 4, 5, 9 and 10, and for Section 18 where relevant."
+          },
+          {
+            "fields": [
+              "covid_cover_available",
+              "covid_medical_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 60,
+            "quote": "SECTION 18: COVID‑19 benefits... Overseas medical — Unlimited... Additional expenses — Unlimited (hospitalised) / $5,000... Amendment or cancellation — $10,000 per policy."
+          },
+          {
+            "fields": [
+              "annual_limit_reinstatement"
+            ],
+            "page": 39,
+            "quote": "On an Annual Multi‑Trip Policy the limits of liability... are automatically reinstated on completion of each Journey and in respect of Section 4, also once on each Journey."
+          },
+          {
+            "fields": [
+              "cooling_off_period_days",
+              "policy_cancellation_refund_terms"
+            ],
+            "page": 13,
+            "quote": "Cooling‑off period 21 days... refund of the entire premium unless You have already made a claim or departed..."
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "travel_documents_limit",
+        "issue_type": "potential_omission",
+        "reason": "The field is null, but travel document replacement is covered under Section 4, which has a stated combined section limit. The extraction should not leave this limit blank unless deliberately captured elsewhere with the combined basis.",
+        "source_page": 26,
+        "source_quote": "The maximum benefit limit for this section is: $25,000",
+        "citation_verified": false,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "covid_cancellation_or_disruption_limit",
+        "issue_type": "wrong_value",
+        "reason": "The extraction says the $5,000 COVID-19 Additional Expenses benefit applies to specified quarantine scenarios. The parsed wording for the $5,000 Additional Expenses trigger refers to being diagnosed and certified unfit to travel; quarantine direction is described under Section 3 amendment/cancellation, not as a $5,000 additional-expenses trigger.",
+        "source_page": 31,
+        "source_quote": "diagnosed with COVID-19 during the Period of Insurance and certified by a qualified medical practitioner as unfit to travel",
+        "citation_verified": true,
+        "extracted_value": "Amendment/Cancellation: $10,000 per policy (specified COVID-19 events). Additional Expenses: Unlimited when hospitalised; otherwise up to $5,000 for specified quarantine/diagnosis scenarios."
+      },
+      {
+        "product_index": 0,
+        "field_name": "covid_cover_summary",
+        "issue_type": "wrong_value",
+        "reason": "The summary repeats that Additional Expenses up to $5,000 apply if required to quarantine. The evidence supports the $5,000 Additional Expenses benefit for diagnosis plus certification as unfit to travel, while directed quarantine is tied to the Section 3 amendment/cancellation extension.",
+        "source_page": 31,
+        "source_quote": "The maximum benefit limit for this section is: $5,000",
+        "citation_verified": false,
+        "extracted_value": "COVID-19 medical overseas covered (Unlimited) if diagnosed on trip. Additional expenses covered if hospitalised (Unlimited) or up to $5,000 if certified unfit to travel/required quarantine. Cancellation cover up to $10,000 per policy if you/companion diagnosed pre‑trip, on‑trip, certain essential healthcare worker leave revocations, or life‑threatening diagnosis of non‑travelling Relative/business partner in AU/NZ. No cover for government border closures, general quarantine orders related to cross‑border travel, or travel to areas with ‘Do not travel’ due to COVID‑19 at entry (except AU/NZ)."
+      },
+      {
+        "product_index": 0,
+        "field_name": "waiting_period_rules",
+        "issue_type": "potential_omission",
+        "reason": "The field is null, but the PDS states a benefit-specific waiting period for loss of income. Although the extraction mentions this in loss_of_income_limit, the dedicated waiting_period_rules field omits it.",
+        "source_page": 29,
+        "source_quote": "not in respect of the first 15 days",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "depreciation_rules",
+        "issue_type": "potential_omission",
+        "reason": "The depreciation rules are incomplete. The table shows 0% depreciation for all item categories for new-24 months and 0% for jewellery even after 36 months, but the extracted rules only list jewellery for new-24 months and omit some table combinations.",
+        "source_page": 25,
+        "source_quote": "New-24months | 0% | 0% | 0%",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "item_category": "Jewellery (not watches/costume)",
+            "age_band": "New–24 months",
+            "depreciation_percent": "0%",
+            "evidence": {
+              "page": 49,
+              "quote": "New-24 months — Jewellery 0%"
+            }
+          },
+          {
+            "item_category": "Electronics/phones/computers/cameras/smart watches/tablets",
+            "age_band": "25–36 months",
+            "depreciation_percent": "60%",
+            "evidence": {
+              "page": 49,
+              "quote": "25-36 months — Communication devices... 60%"
+            }
+          },
+          {
+            "item_category": "Other items",
+            "age_band": "25–36 months",
+            "depreciation_percent": "36%",
+            "evidence": {
+              "page": 49,
+              "quote": "25-36 months — Any other items 36%"
+            }
+          },
+          {
+            "item_category": "Electronics/phones/computers/cameras/smart watches/tablets",
+            "age_band": ">36 months",
+            "depreciation_percent": "60%",
+            "evidence": {
+              "page": 49,
+              "quote": "More than 36 months — ... 60%"
+            }
+          },
+          {
+            "item_category": "Other items",
+            "age_band": ">36 months",
+            "depreciation_percent": "60%",
+            "evidence": {
+              "page": 49,
+              "quote": "More than 36 months — Any other items 60%"
+            }
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "electronics_or_valuables_limit",
+        "issue_type": "potential_omission",
+        "reason": "The extraction states the drone item limit as $1,500 only. The PDS is internally inconsistent: the benefits table shows a $2,000 drone limit, while later item-limit tables show $1,500. The extracted value should preserve or flag this inconsistency rather than silently choosing one value.",
+        "source_page": 4,
+        "source_quote": "|  | Drone (with or without camera) - limit per item• |  | $2,000 |",
+        "citation_verified": true,
+        "extracted_value": "Per-item sub-limits: Phone/Smart watch $2,500; Camera/Video camera $6,000; Laptop $5,000; Tablet $3,000; Drone $1,500; Jewellery/Watch $1,500; Artificial limb/dentures/removable dental appliance/medical device $2,000"
+      },
+      {
+        "product_index": 0,
+        "field_name": "cruise_cover_status",
+        "issue_type": "unsupported_claim",
+        "reason": "The extraction marks cruise cover as included based on a medical-treatment-on-ship exception. The cited wording supports only a Section 1 medical exception for treatment on ships in Australian waters, not a broader cruise cover status or cruise-specific cover package.",
+        "source_page": 22,
+        "source_quote": "This exclusion does not apply to medical treatment provided while on a ship",
+        "citation_verified": true,
+        "extracted_value": "included"
+      },
+      {
+        "product_index": 0,
+        "field_name": "pds_effective_date",
+        "issue_type": "other",
+        "reason": "The field definition asks for the effective date to be normalised as ISO when possible. The extraction preserves the original wording only, even though the date is readily normalisable.",
+        "source_page": 1,
+        "source_quote": "Effective 14 January 2026",
+        "citation_verified": true,
+        "extracted_value": "Effective 14 January 2026"
+      }
+    ]
+  },
+  "error": null
+}

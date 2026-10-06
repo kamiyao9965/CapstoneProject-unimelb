@@ -1,0 +1,26 @@
+{
+  "artifact_type": "schema_discovery_error",
+  "contract_version": "1.0.0",
+  "status": "failed",
+  "created_at": "2026-08-25T11:29:10.866832Z",
+  "provenance": {
+    "run_id": "bcc507b1d008449dba077e88d7afe12b",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "pdf",
+    "source_documents": [
+      "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+      "data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+      "data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+      "data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+      "data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf"
+    ],
+    "source_artifacts": []
+  },
+  "data": null,
+  "error": {
+    "code": "schema_discovery_failed",
+    "message": "SchemaDiscovery uses PDFingestor's inline text representation; set LLM_DOCUMENT_INPUT=markdown or pass --document-input markdown.",
+    "details": []
+  }
+}

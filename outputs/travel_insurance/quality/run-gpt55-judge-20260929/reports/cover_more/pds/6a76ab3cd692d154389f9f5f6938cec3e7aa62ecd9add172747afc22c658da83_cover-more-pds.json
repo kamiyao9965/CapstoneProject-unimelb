@@ -1,0 +1,151 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:48:43.792128Z",
+  "provenance": {
+    "run_id": "5c85473d8f6e49c98a39fe6303bd26a8",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "27f2a5414ab3bcaa58ad57b8768841a46193817aaa09685f7b96a074263bb45d",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "low",
+    "summary": "The extraction is broadly aligned with the benefits tables and core product structure, but several actionable issues were found: some add-ons are attributed to Basic plans when the PDS limits them to Comprehensive/Comprehensive Plus plans, Domestic Basic COVID cancellation wording is internally and factually inconsistent, Inbound pre-existing condition treatment is overstated, and some cross-product policy conditions are omitted or misstated.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "optional_add_ons",
+        "issue_type": "wrong_plan",
+        "reason": "The International Basic record lists Cancellation Plus Cover as an optional add-on, but the PDS states Cancellation Plus Cover is available only on International and Domestic Comprehensive and Comprehensive Plus plans, not Basic.",
+        "source_page": 13,
+        "source_quote": "available on the International and Domestic Comprehensive and Comprehensive Plus plans",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "name": "Cruise Cover (multi-night ocean/sea)",
+            "availability": "Optional for International plans",
+            "notes": "Required to cover multi-night cruise-related claims",
+            "evidence": "p11-b16 to p11-b25"
+          },
+          {
+            "name": "Cancellation Plus Cover",
+            "availability": "Optional",
+            "limit_changes": "Pays 50% (Comprehensive) or 75% (Comprehensive+) of covered non-refundable costs up to $10,000 per policy",
+            "evidence": "p13-b33 to p13-b41; p32-b40 to p33-b4"
+          },
+          {
+            "name": "Adventure Activities Pack",
+            "availability": "Optional (Adventure / Adventure+)",
+            "notes": "Expands covered activities; bonus packs for Golf, Triathlon, Scuba Diving, Mountain Biking",
+            "evidence": "p15-b7 to p15-b45; p15-b46 to p15-b69; p15-b71 to p15-b78; p43-b33 to p45-b47"
+          },
+          {
+            "name": "Motorcycle/Moped Riding",
+            "availability": "Optional (≤250cc) and Motorcycle/Moped Riding+ (unlimited cc with conditions)",
+            "evidence": "p16-b2 to p16-b26"
+          },
+          {
+            "name": "Snow Sports",
+            "availability": "Optional (Snow Sports / Snow Sports+)",
+            "evidence": "p16-b30 to p16-b50"
+          },
+          {
+            "name": "Increase Luggage Item Limit",
+            "availability": "Optional per item up to aggregate increases of $15,000",
+            "evidence": "p34-b1 to p34-b4"
+          }
+        ]
+      },
+      {
+        "product_index": 5,
+        "field_name": "optional_add_ons",
+        "issue_type": "wrong_plan",
+        "reason": "The Domestic Basic record includes Cancellation Plus Cover in optional_add_ons even though the PDS restricts Cancellation Plus Cover to Comprehensive and Comprehensive Plus plans.",
+        "source_page": 13,
+        "source_quote": "available on the International and Domestic Comprehensive and Comprehensive Plus plans",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "name": "Cancellation Plus Cover",
+            "availability": "Optional when Cancellation Cover is selected (Comprehensive/Comprehensive+)",
+            "evidence": "p13-b5 to p13-b10"
+          },
+          {
+            "name": "Adventure Activities Pack",
+            "availability": "Optional (Adventure / Adventure+)",
+            "evidence": "p15-b7 to p15-b69"
+          },
+          {
+            "name": "Motorcycle/Moped Riding",
+            "availability": "Optional (≤250cc) and Motorcycle/Moped Riding+ (unlimited cc with conditions)",
+            "evidence": "p16-b7 to p16-b27"
+          },
+          {
+            "name": "Snow Sports",
+            "availability": "Optional (Snow Sports / Snow Sports+)",
+            "evidence": "p16-b36 to p16-b48"
+          }
+        ]
+      },
+      {
+        "product_index": 5,
+        "field_name": "covid_cancellation_or_disruption_limit",
+        "issue_type": "wrong_value",
+        "reason": "The Domestic Basic COVID field says on-trip cancellation is not available, but the Domestic Basic benefits table shows on-trip Amendment or Cancellation Costs for COVID-19 are included up to $2,500 per policy. The same extracted value later contradicts itself by also saying on-trip cancellation is up to $2,500.",
+        "source_page": 7,
+        "source_quote": "IncludedUp to $2,500per policy",
+        "citation_verified": true,
+        "extracted_value": "On-trip and pre-departure cancellation (diagnosis) not available on Domestic Basic; Additional Expenses up to $2,500; on-trip cancellation up to $2,500 per policy (with special excess)."
+      },
+      {
+        "product_index": 10,
+        "field_name": "pre_existing_medical_conditions_summary",
+        "issue_type": "unsupported_claim",
+        "reason": "The Inbound summary says other existing medical conditions require assessment and approval, but the PDS says the Inbound plan has no cover for Existing Medical Conditions other than automatically included conditions.",
+        "source_page": 10,
+        "source_quote": "There is no cover for any Existing Medical Conditions other than those conditions We automatically include.",
+        "citation_verified": true,
+        "extracted_value": "Inbound: no cover for Existing Medical Conditions other than those automatically included (see list). Other conditions require assessment and approval and may not be available."
+      },
+      {
+        "product_index": null,
+        "field_name": null,
+        "issue_type": "missing_condition",
+        "reason": "Across products, non_traveller_health_rules state a 12-month hospitalisation lookback, but the Additional Expenses non-traveller exclusion uses a 2-year hospitalisation lookback. The extraction omits this section-specific stricter rule.",
+        "source_page": 30,
+        "source_quote": "in the last 2 years, had not been hospitalised",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": null,
+        "field_name": null,
+        "issue_type": "missing_condition",
+        "reason": "For annual multi-trip records, the extracted policy cancellation refund terms omit the PDS condition that no refund is payable if the traveller has started the Journey.",
+        "source_page": 51,
+        "source_quote": "You are not entitled to a refund if You have started Your Journey",
+        "citation_verified": true,
+        "extracted_value": null
+      }
+    ]
+  },
+  "error": null
+}

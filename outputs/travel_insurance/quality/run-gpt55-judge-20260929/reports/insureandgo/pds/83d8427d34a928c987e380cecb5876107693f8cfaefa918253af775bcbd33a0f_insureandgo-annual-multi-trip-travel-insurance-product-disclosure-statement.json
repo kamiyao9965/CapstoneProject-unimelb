@@ -1,0 +1,106 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:56:08.478211Z",
+  "provenance": {
+    "run_id": "15017280baf74a1d9114ae4d9cbe2063",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "531bbf3ac78d6b00b6eb03cc6c2a82e06ec53c7a5c85a6f03c4f7899b71784ff",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "The extraction is broadly supported for the benefit limits and most plan/tier attribution, but there are actionable concerns. Bare Essentials geographic scope omits an explicit restriction on the Worldwide Including region. The assertion that annual trips are unlimited is not clearly supported by the parsed wording, which says multiple trips but not unlimited trips or a 12-month unlimited-trip period. The product_name values also duplicate the plan tier despite the schema definition preferring the product family name separate from plan_name.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "geographic_scope",
+        "issue_type": "missing_condition",
+        "reason": "Bare Essentials geographic scope says to choose Worldwide Including if spending more than 48 hours in North or South America, but the PDS explicitly says Bare Essentials has no cover for the Worldwide Including region. This is a plan-specific restriction that should be included.",
+        "source_page": 9,
+        "source_quote": "No cover for the Worldwide* Including region.",
+        "citation_verified": false,
+        "extracted_value": "International multi-trip to destinations outside Australia. Select region by destination; choose Worldwide Including if >48 hours in North or South America. No cover for DFAT ‘Do Not Travel’ destinations; Antarctica only covered if on a commercial cruise."
+      },
+      {
+        "product_index": 0,
+        "field_name": "annual_unlimited_trips",
+        "issue_type": "unsupported_claim",
+        "reason": "The value is true, but the cited wording supports multiple trips only; the parsed pages do not clearly state that trips are unlimited during a 12-month/annual period.",
+        "source_page": 9,
+        "source_quote": "provides cover for multiple trips",
+        "citation_verified": true,
+        "extracted_value": true
+      },
+      {
+        "product_index": 1,
+        "field_name": "annual_unlimited_trips",
+        "issue_type": "unsupported_claim",
+        "reason": "The value is true, but the cited wording supports multiple trips only; the parsed pages do not clearly state that trips are unlimited during a 12-month/annual period.",
+        "source_page": 9,
+        "source_quote": "provides cover for multiple trips",
+        "citation_verified": true,
+        "extracted_value": true
+      },
+      {
+        "product_index": 2,
+        "field_name": "annual_unlimited_trips",
+        "issue_type": "unsupported_claim",
+        "reason": "The value is true, but the cited wording supports multiple trips only; the parsed pages do not clearly state that trips are unlimited during a 12-month/annual period.",
+        "source_page": 9,
+        "source_quote": "provides cover for multiple trips",
+        "citation_verified": true,
+        "extracted_value": true
+      },
+      {
+        "product_index": 0,
+        "field_name": "product_name",
+        "issue_type": "other",
+        "reason": "The product_name includes the Bare Essentials tier even though plan_name already captures the tier and the schema asks for the product family name excluding individual plan tier where possible.",
+        "source_page": 1,
+        "source_quote": "Annual Multi-Trip Travel Insurance",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go Annual Multi-Trip Bare Essentials"
+      },
+      {
+        "product_index": 1,
+        "field_name": "product_name",
+        "issue_type": "other",
+        "reason": "The product_name includes the Silver tier even though plan_name already captures the tier and the schema asks for the product family name excluding individual plan tier where possible.",
+        "source_page": 1,
+        "source_quote": "Annual Multi-Trip Travel Insurance",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go Annual Multi-Trip Silver"
+      },
+      {
+        "product_index": 2,
+        "field_name": "product_name",
+        "issue_type": "other",
+        "reason": "The product_name includes the Gold tier even though plan_name already captures the tier and the schema asks for the product family name excluding individual plan tier where possible.",
+        "source_page": 1,
+        "source_quote": "Annual Multi-Trip Travel Insurance",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go Annual Multi-Trip Gold"
+      }
+    ]
+  },
+  "error": null
+}

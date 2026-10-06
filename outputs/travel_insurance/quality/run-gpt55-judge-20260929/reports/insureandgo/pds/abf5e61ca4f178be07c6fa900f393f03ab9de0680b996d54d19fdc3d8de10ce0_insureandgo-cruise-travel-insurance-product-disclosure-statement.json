@@ -1,0 +1,311 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:57:53.086574Z",
+  "provenance": {
+    "run_id": "e159d908b42e4a4db51f39de3754542e",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "8a24a1838f314b7e13ec483179a6c23196aa1b432c7933edeadade4e47bb0066",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "The extraction is broadly supported for the core plan tiers and many headline limits, but there are actionable issues: product_name includes tier names despite a separate plan_name, electronics/valuables limits for Silver and Gold appear to conflate separate sub-limits, and several schema fields that call for activity lists and exclusions are materially incomplete or null despite clear PDF evidence.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The extracted product_name includes the Bare Essentials tier even though plan_name already captures the tier; the PDS product family is the cruise travel insurance PDS rather than a tier-specific product name.",
+        "source_page": 1,
+        "source_quote": "Cruise Travel Insurance PRODUCT DISCLOSURE STATEMENT",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go Cruise Bare Essentials"
+      },
+      {
+        "product_index": 1,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The extracted product_name includes the Silver tier even though plan_name already captures the tier; the PDS product family is the cruise travel insurance PDS rather than a tier-specific product name.",
+        "source_page": 1,
+        "source_quote": "Cruise Travel Insurance PRODUCT DISCLOSURE STATEMENT",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go Cruise Silver"
+      },
+      {
+        "product_index": 2,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The extracted product_name includes the Gold tier even though plan_name already captures the tier; the PDS product family is the cruise travel insurance PDS rather than a tier-specific product name.",
+        "source_page": 1,
+        "source_quote": "Cruise Travel Insurance PRODUCT DISCLOSURE STATEMENT",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go Cruise Gold"
+      },
+      {
+        "product_index": 1,
+        "field_name": "electronics_or_valuables_limit",
+        "issue_type": "unsupported_claim",
+        "reason": "The value says the $500 valuables limit includes personal electronics, but the benefits table has a separate personal electronics sub-limit row; the extraction does not capture that separate electronics sub-limit and may conflate distinct limits.",
+        "source_page": 5,
+        "source_quote": "and baggage personal electronics sub-limit",
+        "citation_verified": true,
+        "extracted_value": "Valuables total limit: $500 (includes personal electronics/valuables unless specified)."
+      },
+      {
+        "product_index": 2,
+        "field_name": "electronics_or_valuables_limit",
+        "issue_type": "unsupported_claim",
+        "reason": "The value says the $750 valuables limit includes personal electronics, but the benefits table has a separate personal electronics sub-limit row; the extraction does not capture that separate electronics sub-limit and may conflate distinct limits.",
+        "source_page": 5,
+        "source_quote": "and baggage personal electronics sub-limit",
+        "citation_verified": true,
+        "extracted_value": "Valuables total limit: $750 (includes personal electronics/valuables unless specified)."
+      },
+      {
+        "product_index": 0,
+        "field_name": "included_activities",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS contains multiple pages of automatically included covered sports and activities that the schema expects to capture.",
+        "source_page": 11,
+        "source_quote": "Covered sports & activities",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "included_activities",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS contains multiple pages of automatically included covered sports and activities that the schema expects to capture.",
+        "source_page": 11,
+        "source_quote": "Covered sports & activities",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "included_activities",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS contains multiple pages of automatically included covered sports and activities that the schema expects to capture.",
+        "source_page": 11,
+        "source_quote": "Covered sports & activities",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "optional_activity_cover",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS lists activities requiring the Activities Plus or Winter Sports upgrade; a high-level Activities Plus add-on summary does not populate this schema field.",
+        "source_page": 8,
+        "source_quote": "you’ll need to select this upgrade",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "optional_activity_cover",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS lists activities requiring the Activities Plus or Winter Sports upgrade; a high-level Activities Plus add-on summary does not populate this schema field.",
+        "source_page": 8,
+        "source_quote": "you’ll need to select this upgrade",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "optional_activity_cover",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS lists activities requiring the Activities Plus or Winter Sports upgrade; a high-level Activities Plus add-on summary does not populate this schema field.",
+        "source_page": 8,
+        "source_quote": "you’ll need to select this upgrade",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "excluded_activities",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS has excluded activity lists and states that activities for which no cover is available are listed as excluded.",
+        "source_page": 11,
+        "source_quote": "Sports and activities for which no cover is available are listed as Excluded.",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "excluded_activities",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS has excluded activity lists and states that activities for which no cover is available are listed as excluded.",
+        "source_page": 11,
+        "source_quote": "Sports and activities for which no cover is available are listed as Excluded.",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "excluded_activities",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though the PDS has excluded activity lists and states that activities for which no cover is available are listed as excluded.",
+        "source_page": 11,
+        "source_quote": "Sports and activities for which no cover is available are listed as Excluded.",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "general_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The extracted general_exclusions list is materially incomplete; the PDS has a long numbered list of general exclusions, while the extraction captures only a few examples.",
+        "source_page": 55,
+        "source_quote": "General exclusions apply to all sections of this policy.",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "exclusion": "Pre‑existing medical conditions",
+            "details": "No cover unless screened and accepted; undiagnosed symptoms; travel for/against medical advice; terminal prognosis before end date.",
+            "evidence_page": "55-56",
+            "evidence_quote": "This policy will not cover any claims under Section A ... or Section C1 ... that result directly or indirectly from any pre‑existing medical condition..."
+          },
+          {
+            "exclusion": "COVID-19 and pandemic",
+            "details": "General pandemic/COVID-19 exclusions except for specific Section M benefits; no cover for government travel bans, border closures, quarantine not due to diagnosis.",
+            "evidence_page": "19, 57",
+            "evidence_quote": "This policy generally excludes cover arising from or relating to COVID‑19... This exclusion does not apply to Section M – COVID‑19 expenses."
+          },
+          {
+            "exclusion": "Do Not Travel / sanctions",
+            "details": "No cover for travel to ‘Do Not Travel’ destinations or sanctioned countries; sanction compliance applies.",
+            "evidence_page": "9, 25, 56",
+            "evidence_quote": "We shall not be deemed to provide coverage ... to the extent that such cover ... would violate ... sanctions... policy will not cover ... travel in, to or through destinations that are subject to ‘Do Not Travel’ advice."
+          },
+          {
+            "exclusion": "Financial default of providers",
+            "details": "No cover for refusal/failure by carriers/tour operators/hotels due to their own or related financial default.",
+            "evidence_page": "57",
+            "evidence_quote": "The refusal, failure or inability of any person, company or organisation... by reason of their own financial default..."
+          }
+        ]
+      },
+      {
+        "product_index": 1,
+        "field_name": "general_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The extracted general_exclusions list is materially incomplete; the PDS has a long numbered list of general exclusions, while the extraction captures only a few examples.",
+        "source_page": 55,
+        "source_quote": "General exclusions apply to all sections of this policy.",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "exclusion": "Pre‑existing medical conditions",
+            "details": "No cover unless screened and accepted; undiagnosed symptoms; travel for/against medical advice; terminal prognosis before end date.",
+            "evidence_page": "55-56",
+            "evidence_quote": "This policy will not cover any claims under Section A ... or Section C1 ... that result directly or indirectly from any pre‑existing medical condition..."
+          },
+          {
+            "exclusion": "COVID-19 and pandemic",
+            "details": "General pandemic/COVID-19 exclusions except for specific Section M benefits; no cover for government travel bans, border closures, quarantine not due to diagnosis.",
+            "evidence_page": "19, 57",
+            "evidence_quote": "This policy generally excludes cover arising from or relating to COVID‑19... This exclusion does not apply to Section M – COVID‑19 expenses."
+          },
+          {
+            "exclusion": "Do Not Travel / sanctions",
+            "details": "No cover for travel to ‘Do Not Travel’ destinations or sanctioned countries; sanction compliance applies.",
+            "evidence_page": "9, 25, 56",
+            "evidence_quote": "We shall not be deemed to provide coverage ... to the extent that such cover ... would violate ... sanctions... policy will not cover ... travel in, to or through destinations that are subject to ‘Do Not Travel’ advice."
+          },
+          {
+            "exclusion": "Financial default of providers",
+            "details": "No cover for refusal/failure by carriers/tour operators/hotels due to their own or related financial default.",
+            "evidence_page": "57",
+            "evidence_quote": "The refusal, failure or inability of any person, company or organisation... by reason of their own financial default..."
+          }
+        ]
+      },
+      {
+        "product_index": 2,
+        "field_name": "general_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The extracted general_exclusions list is materially incomplete; the PDS has a long numbered list of general exclusions, while the extraction captures only a few examples.",
+        "source_page": 55,
+        "source_quote": "General exclusions apply to all sections of this policy.",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "exclusion": "Pre‑existing medical conditions",
+            "details": "No cover unless screened and accepted; undiagnosed symptoms; travel for/against medical advice; terminal prognosis before end date.",
+            "evidence_page": "55-56",
+            "evidence_quote": "This policy will not cover any claims under Section A ... or Section C1 ... that result directly or indirectly from any pre‑existing medical condition..."
+          },
+          {
+            "exclusion": "COVID-19 and pandemic",
+            "details": "General pandemic/COVID-19 exclusions except for specific Section M benefits; no cover for government travel bans, border closures, quarantine not due to diagnosis.",
+            "evidence_page": "19, 57",
+            "evidence_quote": "This policy generally excludes cover arising from or relating to COVID‑19... This exclusion does not apply to Section M – COVID‑19 expenses."
+          },
+          {
+            "exclusion": "Do Not Travel / sanctions",
+            "details": "No cover for travel to ‘Do Not Travel’ destinations or sanctioned countries; sanction compliance applies.",
+            "evidence_page": "9, 25, 56",
+            "evidence_quote": "We shall not be deemed to provide coverage ... to the extent that such cover ... would violate ... sanctions... policy will not cover ... travel in, to or through destinations that are subject to ‘Do Not Travel’ advice."
+          },
+          {
+            "exclusion": "Financial default of providers",
+            "details": "No cover for refusal/failure by carriers/tour operators/hotels due to their own or related financial default.",
+            "evidence_page": "57",
+            "evidence_quote": "The refusal, failure or inability of any person, company or organisation... by reason of their own financial default..."
+          }
+        ]
+      },
+      {
+        "product_index": 0,
+        "field_name": "benefit_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though benefit-specific exclusions are stated throughout the policy wording, including Section A and other benefit sections.",
+        "source_page": 30,
+        "source_quote": "under Section A, you are not covered for:",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "benefit_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though benefit-specific exclusions are stated throughout the policy wording, including Section A and other benefit sections.",
+        "source_page": 30,
+        "source_quote": "under Section A, you are not covered for:",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "benefit_exclusions",
+        "issue_type": "potential_omission",
+        "reason": "The field is null even though benefit-specific exclusions are stated throughout the policy wording, including Section A and other benefit sections.",
+        "source_page": 30,
+        "source_quote": "under Section A, you are not covered for:",
+        "citation_verified": true,
+        "extracted_value": null
+      }
+    ]
+  },
+  "error": null
+}

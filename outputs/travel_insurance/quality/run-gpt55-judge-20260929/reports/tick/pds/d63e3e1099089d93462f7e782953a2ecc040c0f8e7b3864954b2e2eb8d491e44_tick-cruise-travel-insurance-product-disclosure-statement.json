@@ -1,0 +1,102 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T14:05:35.315925Z",
+  "provenance": {
+    "run_id": "4f977869a1274b7e83acfb4a48db1d43",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "a9b892c2753ec37fe50007c27d586130b8f9ec821882b59b2bd4d4409d97bf32",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "Most core plan limits and eligibility details are supported by the parsed PDS, but there are actionable concerns: the product_name values appear to duplicate the tier already captured in plan_name, the Basic record may misstate/omit Section E3 baggage-before-boarding cover, and coverage_benefits is left null despite the PDS containing a detailed benefits table for each level.",
+    "findings": [
+      {
+        "product_index": null,
+        "field_name": null,
+        "issue_type": "wrong_value",
+        "reason": "All four product_name values include the plan tier (Basic/Budget/Standard/Top) even though plan_name separately captures the tier. The schema defines product_name as the product or PDS family name, excluding individual plan tier where possible.",
+        "source_page": 3,
+        "source_quote": "There are four levels of cover available under this Tick Cruise Travel Insurance",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "cruise_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The Basic record says baggage before boarding (E3) is not included/has Nil cover and is only available on Budget/Standard/Top. The PDS states Section E3 is available under any level of cover, although the benefits table OCR is somewhat ambiguous, so this should be reviewed against the original table.",
+        "source_page": 6,
+        "source_quote": "Baggage and personal effects before boarding – Section E3 (available under any level of cover selected)",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "Missed cruise departure (C3)",
+            "included": true,
+            "limit": "$5,000",
+            "conditions": "Economy class only; must claim from transport provider first; written confirmation required.",
+            "evidence": "p14 C3; p29-30 Section C3"
+          },
+          {
+            "benefit": "Cabin confinement (B3)",
+            "included": false,
+            "limit": "Nil",
+            "conditions": "Only available on Standard/Top.",
+            "evidence": "p14 B3; p27 Section B3 notes"
+          },
+          {
+            "benefit": "Cruise delay expenses (D2)",
+            "included": false,
+            "limit": "Nil",
+            "conditions": "Only available on Standard/Top.",
+            "evidence": "p14 D2"
+          },
+          {
+            "benefit": "Missed port (D3)",
+            "included": false,
+            "limit": "Nil",
+            "conditions": "Only available on Standard/Top.",
+            "evidence": "p14 D3"
+          },
+          {
+            "benefit": "Baggage before boarding (E3) and baggage delay before boarding (E5)",
+            "included": false,
+            "limit": "Nil",
+            "conditions": "Only available on Budget/Standard/Top (E3) and Standard/Top (E5).",
+            "evidence": "p14 E1/E3/E5 rows; p35-36"
+          }
+        ]
+      },
+      {
+        "product_index": null,
+        "field_name": null,
+        "issue_type": "potential_omission",
+        "reason": "coverage_benefits is null for all products, but the PDS contains a detailed Table of Benefits by cover level. The schema defines coverage_benefits as all plan benefits from benefits tables and policy wording, so this appears materially incomplete even though many headline fields were populated elsewhere.",
+        "source_page": 14,
+        "source_quote": "TABLE OF BENEFITS APPLICABLE TO INDIVIDUAL, COUPLE AND FAMILY COVER",
+        "citation_verified": true,
+        "extracted_value": null
+      }
+    ]
+  },
+  "error": null
+}

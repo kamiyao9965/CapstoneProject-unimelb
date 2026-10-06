@@ -1,0 +1,245 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T14:00:13.856405Z",
+  "provenance": {
+    "run_id": "5032bb66d50e48b4886b8d374e19a36e",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "689e5002fc38be7f14b164263390531c11803270f37a1fce1af604215de7023b",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "The extraction is broadly consistent with the PDS for plan structure, eligibility, major benefit limits and many exclusions, but there are several actionable issues. The main concerns are a repeated Cruise Pack CP7 limit that conflicts with the detailed Cruise Pack table, inclusion of an inapplicable waiting-period rule for Medical Only, omission of the Bicycle Pack for Domestic Frequent Traveller, and an unsupported/over-simplified Already Overseas cancellation-refund statement.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "cruise_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The extracted CP7 Formal Attire Delay Allowance limit is $500, but the detailed Cruise Pack table shows $250. Another parsed benefits table shows $500, so this conflict should be reviewed rather than treated as settled.",
+        "source_page": 40,
+        "source_quote": "CP7 | $250 Formal Attire Delay Allowance",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "CP1 Onboard Medical Expenses",
+            "limit": "Unlimited",
+            "notes": "Medical treatment onboard a cruise; for domestic waters, evacuation limited ship-to-shore",
+            "evidence_page": "p25, p40, p93-94"
+          },
+          {
+            "benefit": "CP2 Pre-paid Shore Excursions Cancellation",
+            "limit": "$1,000",
+            "evidence_page": "p25, p40, p95"
+          },
+          {
+            "benefit": "CP3 Missed Cruise Departure",
+            "limit": "$2,500",
+            "evidence_page": "p25, p40, p95-96"
+          },
+          {
+            "benefit": "CP4 Cabin Confinement",
+            "limit": "$1,500 ($50 per 24 hours after first 24 hours)",
+            "evidence_page": "p25, p40, p96-97"
+          },
+          {
+            "benefit": "CP5 Missed Port Cover",
+            "limit": "$750 ($250 per missed port)",
+            "evidence_page": "p25, p40, p97"
+          },
+          {
+            "benefit": "CP6 Formal Attire Cover",
+            "limit": "$1,500",
+            "evidence_page": "p25, p40, p98-99"
+          },
+          {
+            "benefit": "CP7 Formal Attire Delay Allowance",
+            "limit": "$500",
+            "evidence_page": "p25, p40, p99-100"
+          }
+        ]
+      },
+      {
+        "product_index": 1,
+        "field_name": "cruise_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The extracted CP7 Formal Attire Delay Allowance limit is $500, but the detailed Cruise Pack table shows $250. Another parsed benefits table shows $500, so this conflict should be reviewed rather than treated as settled.",
+        "source_page": 40,
+        "source_quote": "CP7 | $250 Formal Attire Delay Allowance",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "CP1 Onboard Medical Expenses",
+            "limit": "Unlimited",
+            "evidence_page": "p25, p40, p93-94"
+          },
+          {
+            "benefit": "CP2 Pre-paid Shore Excursions Cancellation",
+            "limit": "$1,000",
+            "evidence_page": "p25, p40, p95"
+          },
+          {
+            "benefit": "CP3 Missed Cruise Departure",
+            "limit": "$2,500",
+            "evidence_page": "p25, p40, p95-96"
+          },
+          {
+            "benefit": "CP4 Cabin Confinement",
+            "limit": "$1,500",
+            "evidence_page": "p25, p40, p96-97"
+          },
+          {
+            "benefit": "CP5 Missed Port Cover",
+            "limit": "$750",
+            "evidence_page": "p25, p40, p97"
+          },
+          {
+            "benefit": "CP6 Formal Attire Cover",
+            "limit": "$1,500",
+            "evidence_page": "p25, p40, p98-99"
+          },
+          {
+            "benefit": "CP7 Formal Attire Delay Allowance",
+            "limit": "$500",
+            "evidence_page": "p25, p40, p99-100"
+          }
+        ]
+      },
+      {
+        "product_index": 3,
+        "field_name": "cruise_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The extracted Cruise Pack summary says CP7 is as per the CP list and elsewhere uses $500, but the detailed Cruise Pack table shows $250 for Formal Attire Delay Allowance. Another parsed benefits table shows $500, so this needs review.",
+        "source_page": 40,
+        "source_quote": "CP7 | $250 Formal Attire Delay Allowance",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "CP1 Onboard Medical Expenses (shipboard only)",
+            "limit": "Unlimited (evacuation limited ship-to-shore only)",
+            "evidence_page": "p25, p40, p93-94"
+          },
+          {
+            "benefit": "CP2–CP7",
+            "limit": "As per Cruise Pack table",
+            "evidence_page": "p25, p40, p95-100"
+          }
+        ]
+      },
+      {
+        "product_index": 4,
+        "field_name": "optional_add_ons",
+        "issue_type": "potential_omission",
+        "reason": "Domestic Frequent Traveller appears eligible for the Bicycle Pack, but the extracted optional_add_ons for this product omit it.",
+        "source_page": 37,
+        "source_quote": "Comprehensive, Overseas Frequent Traveller, Domestic, and Domestic Frequent Traveller plans",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "add_on": "Adventure & Sports Pack",
+            "availability": "Available; age ≤69",
+            "evidence_page": "p34-36"
+          },
+          {
+            "add_on": "Cruise Pack",
+            "availability": "Available; mandatory for cruises",
+            "evidence_page": "p39-40"
+          },
+          {
+            "add_on": "Rental Vehicle Insurance Excess Pack",
+            "availability": "Optional increase to $10,000",
+            "evidence_page": "p41"
+          },
+          {
+            "add_on": "Winter Sports Pack",
+            "availability": "Available; age ≤69",
+            "evidence_page": "p42-43"
+          }
+        ]
+      },
+      {
+        "product_index": 4,
+        "field_name": "cruise_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The extracted Cruise Pack summary refers to CP1–CP7 as per the Cruise Pack table, but if CP7 is represented as $500 elsewhere in the extraction this conflicts with the detailed Cruise Pack table showing $250. Another parsed benefits table shows $500, so this needs review.",
+        "source_page": 40,
+        "source_quote": "CP7 | $250 Formal Attire Delay Allowance",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "CP1–CP7",
+            "limit": "As per Cruise Pack table (CP1 Unlimited shipboard medical; others per CP list)",
+            "evidence_page": "p25, p40, p93-100"
+          }
+        ]
+      },
+      {
+        "product_index": 5,
+        "field_name": "cruise_benefits",
+        "issue_type": "wrong_value",
+        "reason": "The extracted Cruise Pack summary says CP2–CP7 are as per the Cruise Pack table and elsewhere uses $500 for CP7, but the detailed Cruise Pack table shows $250 for Formal Attire Delay Allowance. Another parsed benefits table shows $500, so this needs review.",
+        "source_page": 40,
+        "source_quote": "CP7 | $250 Formal Attire Delay Allowance",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "CP1 Onboard Medical Expenses",
+            "limit": "Unlimited",
+            "evidence_page": "p25, p40, p93-94"
+          },
+          {
+            "benefit": "CP2–CP7",
+            "limit": "As per Cruise Pack table",
+            "evidence_page": "p25, p40, p95-100"
+          }
+        ]
+      },
+      {
+        "product_index": 2,
+        "field_name": "waiting_period_rules",
+        "issue_type": "wrong_plan",
+        "reason": "The Medical Only plan does not include Sections 12 or 13, but the extraction lists a 72-hour waiting period rule for those sections. This is misleading for this plan even though the PDS has that rule for plans where those sections apply.",
+        "source_page": 13,
+        "source_quote": "Medical Only | Sections 1, 2, 3, 5, and 18",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "benefit": "Section 12 Pre-Departure Cancellation & Section 13 Amendments",
+            "waiting_period_hours": 72,
+            "note": "These sections are not included on Medical Only; waiting period provided for consistency with PDS general rule.",
+            "evidence_page": "p47"
+          }
+        ]
+      },
+      {
+        "product_index": 5,
+        "field_name": "policy_cancellation_refund_terms",
+        "issue_type": "unsupported_claim",
+        "reason": "The extraction states cooling-off is available if cover has not commenced within the 72-hour waiting period. The cited PDS cancellation wording instead ties cooling-off to cancelling before the first travel date and before the journey has commenced; the 72-hour waiting period is not stated as the cooling-off condition.",
+        "source_page": 20,
+        "source_quote": "your journey has not commenced",
+        "citation_verified": true,
+        "extracted_value": "Cooling-off 14 days if no claim and cover has not commenced within 72-hour waiting period."
+      }
+    ]
+  },
+  "error": null
+}

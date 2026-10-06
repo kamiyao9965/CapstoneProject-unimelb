@@ -1,0 +1,86 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:58:54.137299Z",
+  "provenance": {
+    "run_id": "05a020ad9db54ee48678167de71e8afe",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-international-screen.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/nib/pds/nibau-travelinsurancesaver-international-screen.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "f57b857918a8c93638d52c8a2134a0c6fa0668814d5c0a6e988d07cae5448247",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "68c40cd8d9be56738476a42360dea2d826c0a8ca405b42fa98a4af13ea89af43",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "low",
+    "summary": "The extraction is broadly supported for plan attribution, key limits, dates, insurer/issuer, eligibility, COVID-19, cruise and annual-trip terms. However, there are actionable schema/field issues: funeral/remains limits are left null in the dedicated repatriation_of_remains_limit field across all products despite printed funeral expenses limits, and Bare Essentials has a travel delay minimum delay value even though travel delay is not insured for that plan.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "repatriation_of_remains_limit",
+        "issue_type": "potential_omission",
+        "reason": "The dedicated field is null, but the schedule prints a funeral expenses overseas limit for this plan; the canonical field covers funeral/burial/cremation/remains limits.",
+        "source_page": 16,
+        "source_quote": "Funeral expenses overseas | $25,000",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 1,
+        "field_name": "repatriation_of_remains_limit",
+        "issue_type": "potential_omission",
+        "reason": "The dedicated field is null, but the schedule prints a funeral expenses overseas limit for this plan; the canonical field covers funeral/burial/cremation/remains limits.",
+        "source_page": 18,
+        "source_quote": "Funeral expenses overseas | $15,000",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "repatriation_of_remains_limit",
+        "issue_type": "potential_omission",
+        "reason": "The dedicated field is null, but the schedule prints a funeral expenses overseas limit for this plan; the canonical field covers funeral/burial/cremation/remains limits.",
+        "source_page": 20,
+        "source_quote": "Funeral expenses overseas | $15,000",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 3,
+        "field_name": "repatriation_of_remains_limit",
+        "issue_type": "potential_omission",
+        "reason": "The dedicated field is null, but the schedule prints a funeral expenses overseas limit for this plan; the canonical field covers funeral/burial/cremation/remains limits.",
+        "source_page": 23,
+        "source_quote": "Funeral expenses overseas | $25,000",
+        "citation_verified": true,
+        "extracted_value": null
+      },
+      {
+        "product_index": 2,
+        "field_name": "travel_delay_minimum_delay_hours",
+        "issue_type": "wrong_value",
+        "reason": "Bare Essentials is not insured for Travel delay, so a 6-hour minimum delay threshold should not be stated as applicable to this plan record.",
+        "source_page": 20,
+        "source_quote": "Travel delay | Not insured",
+        "citation_verified": true,
+        "extracted_value": 6
+      }
+    ]
+  },
+  "error": null
+}

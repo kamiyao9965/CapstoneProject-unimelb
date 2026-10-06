@@ -1,0 +1,192 @@
+{
+  "artifact_type": "candidate_patch_set",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:17:10.768651Z",
+  "provenance": {
+    "run_id": "consensus-003",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "markdown",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/refine/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "patches": [
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.76,
+        "type": "number",
+        "values": [],
+        "rationale": "Cover-More Business is an annual multi-trip plan with selectable per-trip maximum durations. The existing field should also apply to business annual plans.",
+        "description": "Maximum journey duration allowed per trip for Annual Multi-Trip (days). For business annual plans, this is the per-trip cap within the policy year.",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "field_name": "annual_multi_trip_max_duration_days",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“The business policy offers annual cover… gives You the choice of 30, 60 or 90 days for the maximum duration of any one trip.” (p2)"
+          },
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“covers an unlimited number of trips throughout the year” (p2)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.74,
+        "type": "list[object]",
+        "values": [],
+        "rationale": "Many annual plans (including business) offer selectable per-trip duration options (e.g., 30/60/90 days). Capturing the option set improves cross-insurer comparison beyond just a single selected value.",
+        "description": "Selectable per-trip duration options offered for Annual Multi-Trip plans, represented as objects, e.g., {option_days: 30}.",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "field_name": "annual_multi_trip_duration_options_days",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“gives You the choice of 30, 60 or 90 days for the maximum duration of any one trip.” (p2)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "update_description",
+        "confidence": 0.71,
+        "type": "enum",
+        "values": [
+          "single_trip",
+          "annual_multi_trip"
+        ],
+        "rationale": "Cover-More Business is explicitly an annual multi-trip product; including business in applies_to ensures consistency when classifying trip frequency for business plans.",
+        "description": "Trip frequency classification as marketed.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "field_name": "trip_frequency",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“The business policy offers annual cover designed for business travellers who go away multiple times during the year.” (p2)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.78,
+        "type": "boolean",
+        "values": [],
+        "rationale": "Annual multi-trip policies commonly state whether the number of trips per policy year is unlimited. Cover-More Business explicitly states unlimited trips, so a normalised boolean aids comparison.",
+        "description": "Indicates whether the policy allows an unlimited number of trips during the policy year (true/false).",
+        "applies_to": [
+          "international_multi_trip",
+          "domestic",
+          "business"
+        ],
+        "field_name": "annual_multi_trip_unlimited_trips",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“covers an unlimited number of trips throughout the year.” (p2)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.73,
+        "type": "number",
+        "values": [],
+        "rationale": "Business annual plans can include a defined allowance for personal/leisure travel within the year. Capturing the allowance in weeks enables like-for-like comparison across business policies.",
+        "description": "Leisure/non-business travel allowance included under a business annual plan (weeks per policy year).",
+        "applies_to": [
+          "business"
+        ],
+        "field_name": "leisure_travel_allowance_weeks",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“includes up to 6 weeks of leisure travel during the year” (p2)"
+          }
+        ],
+        "canonical_name": ""
+      },
+      {
+        "required": false,
+        "patch_type": "add_alias",
+        "confidence": 0.72,
+        "type": "enum",
+        "values": [],
+        "rationale": "The Cover-More Business PDS lists an ‘Alternative staff’ benefit that is business-specific. Mapping this term into the existing business_benefits category via an alias improves benefit normalisation.",
+        "description": "",
+        "applies_to": [
+          "business"
+        ],
+        "field_name": "coverage_categories.business_benefits",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "Benefits table includes “Alternative staff – Cover for the cost of a replacement employee…” (pp4-6)"
+          }
+        ],
+        "canonical_name": "business_benefits"
+      },
+      {
+        "required": false,
+        "patch_type": "add_field",
+        "confidence": 0.69,
+        "type": "number",
+        "values": [],
+        "rationale": "Some insurers state a combined cap for personal accident components (loss of income, disablement, accidental death). Capturing a normalised combined limit supports direct comparison.",
+        "description": "Combined maximum liability across personal accident components (e.g., loss of income, total permanent disablement, accidental death), in AUD.",
+        "applies_to": [
+          "international_single_trip",
+          "international_multi_trip",
+          "domestic",
+          "inbound",
+          "business",
+          "cruise"
+        ],
+        "field_name": "personal_accident_combined_limit_aud",
+        "target_group": "",
+        "evidence_documents": [
+          {
+            "path": "data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+            "quote_or_summary": "“+ Maximum liability collectively for Sections 14, 15 and 16 is $45,000.” (Benefits table footnote, p6)"
+          }
+        ],
+        "canonical_name": ""
+      }
+    ]
+  },
+  "error": null
+}

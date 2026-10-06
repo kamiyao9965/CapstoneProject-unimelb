@@ -1,0 +1,20 @@
+{
+  "artifact_type": "schema_discovery_error",
+  "contract_version": "1.0.0",
+  "status": "failed",
+  "created_at": "2026-08-25T11:24:33.722041Z",
+  "provenance": {
+    "run_id": "54cee8cc591e4ae99261e905367738db",
+    "provider": "openai",
+    "model": "gpt-5",
+    "document_input": "pdf",
+    "source_documents": [],
+    "source_artifacts": []
+  },
+  "data": null,
+  "error": {
+    "code": "schema_discovery_failed",
+    "message": "Not enough unique PDFs:\n- pds: found 6 unique documents across 2 companies, need 5.",
+    "details": []
+  }
+}

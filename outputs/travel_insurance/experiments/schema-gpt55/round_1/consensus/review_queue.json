@@ -1,0 +1,3059 @@
+{
+  "artifact_type": "review_queue",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-15T04:06:36.698970Z",
+  "provenance": {
+    "run_id": null,
+    "provider": null,
+    "model": null,
+    "document_input": null,
+    "source_documents": [],
+    "source_artifacts": [
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/consensus/field_frequency.json",
+      "outputs/travel_insurance/experiments/schema-gpt55/round_1/schema_draft.json"
+    ]
+  },
+  "data": {
+    "metadata": {
+      "generated_at": "2026-09-15T04:06:36.686772+00:00",
+      "consensus_source": "candidate_schema_patches",
+      "total_runs": 5,
+      "base_schema_path": "outputs/travel_insurance/experiments/schema-gpt55/round_1/consensus/consensus_schema.json",
+      "schema_build_samples": [
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/21d57b70e6fe14b4f692d967a45f8de762234045c45e00c99c852e9ad6bd82ad_view-the-business-pds.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+        "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf"
+      ],
+      "vertical": "travel_insurance",
+      "schema_version": "1.0.0",
+      "base_schema_hash": "326a161ebedd24f901a2aa3319f20033af1391be199c669c73ccf2ef993689cf",
+      "manifest_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/configs/travel_insurance/manifest.json",
+      "schema_contract": "travel_insurance/discovered_schema",
+      "queue_id": "291f512016c806cd4c4facbb9b957510c39c32d937b6b12fb508ff57e5cdf6ea"
+    },
+    "updates": [
+      {
+        "id": "field:natural_disaster_cover_status",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "natural_disaster_cover_status",
+        "field_name": "natural_disaster_cover_status",
+        "type": "enum",
+        "suggested_decision": "conditional",
+        "frequency": "3/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.8,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p7-t3: Natural Disaster Cover upgrade extends sections A, C and D depending on Bare Essentials/Silver/Gold."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p17-t2: Natural Disaster Cover table shows upgrade availability by Basic/Budget/Standard/Top for Sections A, C1, C2 and C3."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p55: Benefit 6 Additional Expenses – Other includes natural disaster as an unforeseeable circumstance."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p25: Additional travel and accommodation expenses due to specified events include natural disaster."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Policy upgrades table 'Natural Disaster Cover' extends A Cancelling your trip, C Additional emergency expenses and D Travel delay depending tier; exclusions state no natural disaster unless upgrade purchased."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Policy Upgrades: Natural disaster cover must be purchased and shown on policy schedule; upgrade can include Sections A, B1 and B2 depending cover level. Table of upgrades shows Basic/Standard/Top section availability."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Section 2 Additional Expenses covers additional accommodation/transport due to 'a Natural Disaster'; Section 3 cancellation excludes some government bans/borders but natural disaster appears as a covered trigger in Additional Expenses."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "General exclusion E.3 excludes travelling to a destination where a natural event occurred before journey starts; benefits D.2/D.3 may cover unexpected events, but known natural events affect cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p7 Natural Disaster Cover: upgrade extends cover to Cancellation, Additional emergency expenses and Travel delay depending on level; p7-t3 shows Yes/No by section and tier."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5 Natural disaster cover: must have purchased option; p17-t2 Natural Disaster Cover table shows sections A, C1, C2, C3 by tier."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p30 Section 2 Additional Expenses covers other circumstances including a Natural Disaster; p25 defines Natural Disaster."
+          }
+        ],
+        "rationale_samples": [
+          "Natural disaster cover is frequently called out as either included for some benefits or purchasable as an upgrade. The baseline optional_add_ons can store details, but a status field supports cross-insurer filtering and comparison.",
+          "Natural disaster cover is often either an optional upgrade or a covered/excluded trigger for cancellation, additional expenses and travel delay. A status field complements optional_add_ons and improves comparison of a common add-on/trigger.",
+          "Natural disaster cover is a common comparison point and may be included for some benefits, optional via upgrade, or excluded unless upgraded. A status enum improves cross-insurer comparability while details remain in optional_add_ons/coverage_benefits."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": true,
+        "proposed_update": {
+          "name": "natural_disaster_cover_status",
+          "type": "enum",
+          "description": "Natural disaster cover status for cancellation, additional expenses or delay benefits at plan level. Use included where the relevant plan covers natural disaster without extra premium, optional_add_on where a natural-disaster upgrade must be purchased, excluded, not applicable or unknown. Capture section-specific differences in coverage_benefits or optional_add_ons.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": [
+            "included",
+            "optional_add_on",
+            "excluded",
+            "conditionally_included",
+            "unknown"
+          ]
+        }
+      },
+      {
+        "id": "field:emergency_assistance_approval_threshold_aud",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "claims",
+        "canonical_name": "emergency_assistance_approval_threshold_aud",
+        "field_name": "emergency_assistance_approval_threshold_aud",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.86,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Page 21: phone emergency assistance as soon as possible if hospitalisation is required, medical expenses will exceed $2,000, or early return is wanted."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Page 4: phone emergency assistance if the insured person requires hospitalisation, medical expenses will exceed $2,000, or they want to return early."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "Page 5 and D.1: prior approval required if admitted to hospital, need surgery, or expect medical and related expenses to be more than $2,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p21: phone emergency assistance as soon as possible if you require hospitalisation, if medical expenses will exceed $2,000 or if you want to return early."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p35: should phone emergency assistance if hospitalisation is required, medical expenses will exceed $2,000 or you want to return early."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p64: if hospitalised or outpatient total cost will exceed $1,000, contact assistance service and obtain prior approval."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p25 General Condition 13: if you require hospitalisation or emergency transportation services and want us to pay, contact as soon as possible and obtain approval where reasonably practicable."
+          }
+        ],
+        "rationale_samples": [
+          "Many PDSs impose a mandatory emergency assistance contact/approval threshold for medical expenses, commonly $2,000. Baseline emergency_assistance_details can store prose but not structured comparison.",
+          "PDSs frequently specify a dollar threshold above which emergency assistance/prior approval must be contacted for medical treatment. It is operationally important and comparable."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": true,
+        "proposed_update": {
+          "name": "emergency_assistance_approval_threshold_aud",
+          "type": "number",
+          "description": "Medical expense amount in AUD above which the traveller/company must contact emergency assistance or obtain prior approval, where a numeric threshold is stated.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:emergency_medical_limit",
+        "patch_types": [
+          "update_description"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "emergency_medical_limit",
+        "field_name": "emergency_medical_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.845,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Benefits table separates overseas medical expenses ($Unlimited~), overseas dental expenses ($2,000/$1,000/$500), and page 32 funeral/repatriation limits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Table B1 groups 'Medical and other expenses outside Australia' but separately lists emergency medical treatment Unlimited, dental treatment $500, return of body/ashes $50,000/€30,000 and funeral/burial $10,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p8-t1 lists Inbound overseas medical expenses separately from p9-t1/p41-t1 Medical Expenses in Australia."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p51-t1 Benefit 1 has Inbound $10,000,000 under Emergency Medical and Dental Expenses Overseas; p69 separately has Benefit 21 Emergency Medical and Dental Expenses in Australia with Inbound $1,000,000."
+          }
+        ],
+        "rationale_samples": [
+          "Evidence shows medical treatment duration footnotes and dental/repatriation sub-limits are often printed in the same medical rows. The existing field should explicitly remain the headline medical/hospital limit only, with duration and remains captured separately if added.",
+          "Adding inbound-specific Australian medical fields requires the existing emergency_medical_limit description to avoid conflating overseas medical limits with inbound Australian treatment limits."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "required": false,
+          "description": "Emergency medical and hospital expenses limit as printed for medical/hospital/ambulance/evacuation expenses, e.g. Unlimited, $10,000,000, Nil, not covered. Do not include separate emergency dental, repatriation/funeral/remains limits or maximum months-from-onset duration where those can be captured in emergency_dental_limit, repatriation_of_remains_limit, or medical_expenses_max_months_from_onset; preserve footnotes in evidence.",
+          "name": "emergency_medical_limit",
+          "type": "string",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "values": []
+        }
+      },
+      {
+        "id": "field:hospital_cash_or_incidentals_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "hospital_cash_or_incidentals_limit",
+        "field_name": "hospital_cash_or_incidentals_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.91,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "p9 table D.1.3: Cash allowance while in hospital after 3 consecutive days, $100 each day, $3,000 each person."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p41 Section 12 Hospital Incidentals: $50 for each night hospitalised overseas, confinement at least 48 hours; limits $5,000 Comprehensive, $2,000 Essential, Nil Basic/Domestic."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4 international table: Hospital cash allowance Nil/Silver up to $75 per completed 24 hours up to $2,500/Gold up to $5,000; p35 confirms $75 each day."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14 table and p26: Hospital cash allowance Standard up to $75 per completed 24 hours up to $1,500; Top up to $3,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Benefits table – International row '12* Hospital Incidentals' shows Comprehensive $5,000, Essential $2,000, Basic $Nil; page 41 states '$50 for each night ... period of confinement is at least 48 hours'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits tables show 'Hospital incidentals' limits: Essentials $Nil, Essentials Plus $5,000, Ultimate $5,000, Ultimate Plus $10,000; section 2 pays up to $100 for each 24 hour period after more than 48 continuous hours overseas."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Cruise Single Trip benefits table includes 'Hospital cash allowance' Nil / up to $75 per completed 24 hours up to $2,500 / up to $5,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "Benefits table row D.1.3 'Cash allowance while in hospital (after 3 consecutive days)' shows '$100 for each day $3,000 for each person'."
+          }
+        ],
+        "rationale_samples": [
+          "Hospital cash/incidentals is a recurring benefit with distinct limits and waiting/confinement thresholds across the evidence, currently only modelled in the taxonomy and coverage_benefits.",
+          "Hospital cash/incidental allowance is a recurring, separately named benefit across consumer, cruise, business and annual products and is currently only representable inside coverage_benefits. A flat limit field improves cross-plan comparison while preserving details in coverage_benefits/sub_limits."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "hospital_cash_or_incidentals_limit",
+          "type": "string",
+          "description": "Hospital cash allowance or hospital incidentals limit as printed, including daily amount, waiting/confinement threshold and overall cap if concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:inbound_medical_in_australia_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "inbound_medical_in_australia_limit",
+        "field_name": "inbound_medical_in_australia_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.945,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p9-t1 Inbound Plan Section 19 Medical and Dental Expenses in Australia: Medical Expenses in Australia limit $1,000,000~; p41-t1: Inbound Emergency Medical Expenses in Australia $1,000,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p69 Benefit 21 Emergency Medical and Dental Expenses in Australia: applies to Inbound Plan; maximum benefit limit Inbound $1,000,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Table p7-t1 lists Travel to Australia Inbound Benefit 21 'Emergency Medical and Dental Expenses in Australia' with limit $1,000,000; pages 69 states this benefit applies to non-Australian residents who are not eligible persons under the Health Insurance Act."
+          }
+        ],
+        "rationale_samples": [
+          "Inbound policies commonly separate medical expenses incurred in Australia from overseas emergency medical cover. The baseline taxonomy includes inbound_medical_in_australia but there is no first-class limit field, making inbound comparison less stable if forced into emergency_medical_limit or inbound_cover_details.",
+          "Inbound travel-to-Australia medical expenses are a distinct comparison benefit from overseas emergency medical cover. The baseline has an inbound taxonomy category and inbound_cover_details, but no prominent limit field for medical/dental expenses incurred in Australia by non-Australian residents."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "inbound_medical_in_australia_limit",
+          "type": "string",
+          "description": "Medical and hospital expenses limit for non-Australian residents travelling to Australia where treatment is provided in Australia, as printed, e.g. $1,000,000, $10,000,000, Unlimited, Nil. Use for inbound-specific medical expenses in Australia rather than overseas emergency medical limits.",
+          "applies_to": [
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:pets_childcare_and_domestic_services_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "pets_childcare_and_domestic_services_limit",
+        "field_name": "pets_childcare_and_domestic_services_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.865,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p3-t1 and p6-t1 list Pet Cat or Dog Boarding: $Nil/No cover, $300, $300; p29 states up to $25 per 24 hour period to maximum $300."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p25-t2 Benefits table: Domestic Pets $500; Domestic Services $500; p92-p93 describe $50 per 24-hour kennel/cattery fees and housekeeping services."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5-t1 Table of Benefits: J Pet care Nil/Nil/$600; p44 Section J covers extra kennel or cattery fees."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1 Table of Benefits: J Pet care Nil/Nil/Nil/$600; p43 Section J covers extra kennel or cattery fees."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "Table/text p10 and p54-p55 list D.3.4 Pet services and D.3.5 Childcare expenses at $100 per day up to $1,000 for each person."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "Benefits table p25-t2 lists Section 20 Domestic Pets $500 and Section 21 Domestic Services $500; p92-p93 describes kennel/cattery fees, vet treatment and housekeeping services."
+          }
+        ],
+        "rationale_samples": [
+          "Pet boarding/pet care and domestic services appear as distinct table benefits across insurers. The baseline has only a broad narrative details field, not a concise limit field for comparison.",
+          "Pet boarding, childcare and domestic services recur as discrete benefits in SCTI and 1Cover and are already represented in the taxonomy, but the baseline lacks a concise limit field."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "pets_childcare_and_domestic_services_limit",
+          "type": "string",
+          "description": "Pet care, kennel/cattery boarding, veterinary, domestic services, housekeeping, childcare or similar domestic-assistance benefit limit as printed, e.g. $300, $500, $600, Nil. Use sub_limits or coverage_benefits for per-day amounts and separate pet/domestic-service components.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:resumption_of_journey_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "resumption_of_journey_limit",
+        "field_name": "resumption_of_journey_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.82,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p4 international benefits table and p39 Section 9: Resumption of Journey $3,000 for International Comprehensive, Nil for other listed plans."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5 international and p6 domestic tables: Resumption of journey Nil/Nil/$3,000; p37 Section C2 only applies to Gold."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14 table: Resumption of journey Nil/Nil/Nil/$3,000; p28 Section C3 only applies to Top cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Table p12-t1 lists 'B3 Resumption of your trip' Nil/Nil/$3,000 for Basic/Standard/Top; p23 says the section only applies to Top cover and requires resumption within 60 days and before original end date."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Benefit 11 'Resumption of Journey' p59-p60; table p60-t1 shows Comprehensive $3,000 and $0 for other listed plans."
+          }
+        ],
+        "rationale_samples": [
+          "Resumption/restart of journey is a named benefit distinct from generic trip interruption in Budget Direct, Insure&Go and Tick, with plan-level limits in benefits tables.",
+          "Resumption of journey after an insured early return is a distinct benefit in multiple products and is not captured by the existing top-level trip disruption limit without losing comparability."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "resumption_of_journey_limit",
+          "type": "string",
+          "description": "Resumption of journey/trip benefit limit as printed, for returning to resume the original trip after an insured early return or interruption.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:specified_items_cover_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_sublimits",
+        "canonical_name": "specified_items_cover_limit",
+        "field_name": "specified_items_cover_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.855,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "p11 table and p61-p62: Specified items $10,000 each item and $15,000 all items; items can be listed if valued $1,500 to $10,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p10: Increase luggage item limit cover available on all plans; p28 condition says increased per item limit is added to the maximum benefit limit."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9 table: Additional Specified Items Cover, Domestic Silver & Gold $3,000 for a single item up to $5,000 combined; International Silver & Gold $4,000 single up to $8,000 combined."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p7 Specified items option: maximum individual specified item limit $4,000; maximum total for all specified items $10,000; depreciation does not apply."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p16 table and p32: Additional Specified Items Cover max $4,000 per item and $6,000 combined; optional only on Top cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Page 20 Increased Item Limits Cover allows increased standard item limits; total selected up to $7,000 single, $7,000 per person duo, $14,000 family, unavailable with Basic."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "Pages 12 and 61-62 describe specified items valued $1,500 to $10,000 each; table p11-t1 shows $10,000 per specified item and $15,000 for all specified items for each person."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Pages 17 and 61 describe Increase Luggage Item Limits requiring receipt or valuation less than two years old, and Electronic Gadgets add-on up to $5,000 overall."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "Pages 40-41 High Value Items can be added under Comprehensive up to a total $5,000; depreciation and standard item limits do not apply and purchase receipts are required."
+          }
+        ],
+        "rationale_samples": [
+          "Specified/high-value item cover is a common optional amendment/add-on with distinct single-item and aggregate limits across SCTI, Budget Direct, Insure&Go, nib and Tick. Existing optional_add_ons can store it, but a top-level comparable limit field would improve stable comparison.",
+          "High-value/specified-item cover is a common add-on or option across the supplied PDSs. Although optional_add_ons can capture it, a concise limit field enables direct comparison of extra item cover capacity and conditions."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "specified_items_cover_limit",
+          "type": "string",
+          "description": "Optional specified item or increased luggage item limit cover as printed, including single-item limit, aggregate specified-items limit, eligibility by tier, and whether it increases or sits outside the standard luggage limit if concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:travel_agent_cancellation_fee_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "travel_agent_cancellation_fee_limit",
+        "field_name": "travel_agent_cancellation_fee_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "2/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.83,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p33 Section 3: travel agent’s commission limited to the lesser of $4,000 or the commission earned on the prepaid refundable amount."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p31 Section A: travel agent’s cancellation fee up to 10% of the amount paid to the travel agent, not more than normal remuneration."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p15 Australian Travel Plan schedule: Agent's cancellation fees sub-limit $2,000; p17 Cancellation and Additional Expenses Plan: Agent's cancellation fees sub-limit Chosen limit."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p22 Section A: travel agent cancellation fee up to 10% or $1,500 individual / $3,000 couple/family, whichever is lesser."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p31 Section 4 Amendment or Cancellation Costs includes travel agent’s commission limited to the lesser of $4,000 or amount of commission earned on prepaid refundable amount."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p56 Benefit 7 includes travel agent’s commission limited to the lesser of $4,000 or earned commission."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p29 Section A covers travel agent’s cancellation fee up to 10% of amount paid to travel agent when full monies or maximum deposit paid."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p23 Section A covers travel agent’s cancellation fee up to 10% of amount paid or $1,500 individual / $3,000 couple/family, whichever lesser."
+          }
+        ],
+        "rationale_samples": [
+          "Travel-agent cancellation fees/commissions are repeatedly specified as sublimits or caps under cancellation cover, and are a stable comparison dimension not currently available except in free-text coverage_benefits/sub_limits.",
+          "Cancellation benefits often include a separate sub-limit or formula for travel-agent cancellation fees/commission and loyalty points. The general cancellation_cover_limit does not capture this comparison point."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "travel_agent_cancellation_fee_limit",
+          "type": "string",
+          "description": "Travel agent cancellation fee, commission or service-fee sub-limit under cancellation cover as printed, including percentage caps and per-policy/person caps.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:alternative_or_replacement_staff_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "alternative_or_replacement_staff_limit",
+        "field_name": "alternative_or_replacement_staff_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.78,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Corporate benefits tables row 'Alternative staff or Resumption of assignment' shows $Nil / $10,000 / $15,000 / $15,000; Section 3 covers costs for replacement employee or returning insured person to recommence an assignment."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Business Cover upgrade table includes 'O5 Replacing staff $5,000'; Section O5 covers replacement business associate travel/accommodation if illness or accident prevents attending a planned business meeting."
+          }
+        ],
+        "rationale_samples": [
+          "Business and corporate travel products commonly include replacement staff or alternative staff benefits. Existing business_cover_details is too broad for comparing limits across business products and business add-ons."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "alternative_or_replacement_staff_limit",
+          "type": "string",
+          "description": "Alternative staff, replacement staff or resumption of assignment benefit limit as printed, including whether it applies to replacement employee travel, resumption of assignment, or replacing staff for a missed business meeting.",
+          "applies_to": [
+            "business",
+            "international_single_trip",
+            "international_multi_trip"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:available_traveller_cover_types",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "available_traveller_cover_types",
+        "field_name": "available_traveller_cover_types",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.93,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p14-t1 Cover Types table lists Single, Duo and Family and describes who is covered under each."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9: Policy types: Individual, Couple, Family."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p3: Policy Types: Individual, Couple, Family."
+          }
+        ],
+        "rationale_samples": [
+          "Multiple PDSs distinguish policyholder/traveller configurations such as Single/Duo/Family or Individual/Couple/Family, and these affect who is covered and how limits apply. The baseline has limit_basis_notes but no stable field to record available traveller cover types."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "available_traveller_cover_types",
+          "type": "string",
+          "description": "Traveller or party cover types available for the plan, preserving PDS wording such as Single, Duo, Family, Individual, Couple, or Family. Use where the PDS offers selectable traveller configurations separate from plan tier.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:childcare_or_dependent_care_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "childcare_or_dependent_care_limit",
+        "field_name": "childcare_or_dependent_care_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.72,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "p10 and p55: D.3.5 Childcare expenses $100 each day up to $1,000 each person for booked childcare that cannot be used if return home is delayed."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p41 Coronavirus travel costs event 8: if diagnosed with coronavirus and unable to take care of dependent children, pays reasonable additional childcare costs for a registered or appropriately qualified childcare worker, subject to Coronavirus travel costs limit."
+          }
+        ],
+        "rationale_samples": [
+          "Childcare/dependent-care benefits are less universal than pet care but recur as separately named benefits in SCTI and as COVID-related childcare in nib. A distinct field helps avoid burying daily caps in unstructured additional-expenses notes."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "childcare_or_dependent_care_limit",
+          "type": "string",
+          "description": "Childcare, dependent-care or domestic-care benefit limit as printed, including daily amount and total cap if concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cover_start_and_end_rules",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cover_start_and_end_rules",
+        "field_name": "cover_start_and_end_rules",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.88,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p11: cancellation cover begins from policy issue for several policies; all other benefits begin on departure; already overseas policies have 48-hour no-cover period and 72 hours for COVID benefits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p10: Section A and M1 start when premium paid and certificate issued; other sections begin when leaving home/place of business or departure date; cover ends at certificate end date or return home."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p8-p9: Section A starts at policy issue and ends when leaving home; other sections start when leaving home/start date and end on return/end date; one-way trip rule."
+          }
+        ],
+        "rationale_samples": [
+          "All supplied PDSs contain material rules about when cancellation cover starts, when other benefits start/end, and special rules for already-travelling or annual journeys. These are not well captured by waiting_period fields alone."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cover_start_and_end_rules",
+          "type": "string",
+          "description": "Summary of when cover starts and ends by benefit group and trip type, including cancellation cover starting at issue, other benefits starting on departure/start date, annual journey end rules, suspension/resumption rules, and already-travelling/no-cover period interactions.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cover_type_limit_rules",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cover_type_limit_rules",
+        "field_name": "cover_type_limit_rules",
+        "type": "list[object]",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.9,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p14-t1 and p22: Single limits apply to combined claims including Dependants; Duo has Single benefit limits per insured person except Rental Vehicle Excess; Family limits are double Single limits except listed benefits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5: Single, Duo, Family, Non-Medical and Multi-Trip cover types; Multi-Trip limits per person per journey and reinstated except Personal Liability. Tables p9-p12 show single/duo/family benefit limits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4 states sums insured are maximum amounts payable per insured person per trip and apply to individual, couple and family cover."
+          }
+        ],
+        "rationale_samples": [
+          "Benefit limits often vary by traveller cover type, with different per-person/per-policy/family-doubled rules. This is more structured than a single free-text limit_basis_notes field and is important for cross-insurer comparison."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cover_type_limit_rules",
+          "type": "list[object]",
+          "description": "Structured rules for how benefit limits apply by traveller cover type. Each object should include cover type, benefits or sections affected, whether limits are per person/per policy/combined, whether family limits are doubled, dependant treatment, exceptions, and table/text evidence.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cover_types_available",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "product_structure",
+        "canonical_name": "cover_types_available",
+        "field_name": "cover_types_available",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.83,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Pages 5 and tables p9-t1/p10-t2 distinguish Single, Duo, Family, Non-Medical and Multi-Trip cover types, with different benefit limits and per-person/per-policy bases."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Page 3 lists Policy Types: Individual, Couple and Family; p12-b4 says benefit sums are applicable to Individual, Couple and Family cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Page 42 defines 'you' including adults and accompanied children; p7-t1 and p11-t1 use limits per adult unless otherwise stated, per policy for selected benefits."
+          }
+        ],
+        "rationale_samples": [
+          "Many PDSs distinguish plan/tier from the policyholder composition selected, and limits often vary by single/duo/family/individual/couple. The baseline has no field for available cover types, despite Allianz, Tick and others using them in benefits tables."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cover_types_available",
+          "type": "string",
+          "description": "Available policyholder or travelling-party cover types for the plan, such as single, duo, family, individual, couple, adult/dependent child or one adult per policy. Capture limit-basis effects in limit_basis_notes or coverage_benefits.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_cabin_confinement_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cruise_cabin_confinement_limit",
+        "field_name": "cruise_cabin_confinement_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.87,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 Cruise Pack table: 7.3 Cabin Confinement $500 ($50 after initial 48 hours, then each consecutive 24-hour period)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p71-t1: Cabin Confinement $1,500 ($100 per 24 hour period) for Comprehensive/Essentials/Medical Only/Inbound."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1: B3 Cabin Confinement $75 per completed 24 hours up to $1,500 on Standard/Top; p27 describes confinement by ship's medical officer."
+          }
+        ],
+        "rationale_samples": [
+          "Cabin confinement is a recurring cruise-specific benefit across cruise products and cruise add-ons, and it is called out in the baseline cruise taxonomy but not as a top-level comparable limit field."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_cabin_confinement_limit",
+          "type": "string",
+          "description": "Cruise cabin confinement benefit limit as printed, including per-day/per-24-hour sub-limits, initial waiting period and maximum total where concise.",
+          "applies_to": [
+            "cruise",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_cover_minimum_nights_trigger",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "cruise_cover",
+        "canonical_name": "cruise_cover_minimum_nights_trigger",
+        "field_name": "cruise_cover_minimum_nights_trigger",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.79,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Page 15 asks 'Will you be travelling for 2 or more nights on a cruise?' and says Cruise Cover must be added for multi-night cruise travel; not needed for one-night cruise, ferry trip or river cruise."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "Page 39 states if going on a cruise for 2 nights or more, the Cruise Pack must be selected and paid for; definition p51 describes a cruise as voyages of 2 nights or more."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "Page 82 defines cruise as travel by ship or boat that involves staying on the vessel overnight in a cabin and requires choosing the cruise option and paying extra premium."
+          }
+        ],
+        "rationale_samples": [
+          "Multiple products define cruise cover obligations by minimum cruise duration. The baseline has cruise_cover_required_for_cruises but not the threshold, making 'multi-night', '2 nights or more' and 'overnight' rules hard to compare."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_cover_minimum_nights_trigger",
+          "type": "number",
+          "description": "Minimum number of cruise nights that triggers mandatory or optional cruise-cover requirements for cruise-related claims, where stated. Use cruise_benefits/optional_add_ons for detailed definitions and exceptions such as river cruises or Australian coastal waters.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_formal_wear_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cruise_formal_wear_limit",
+        "field_name": "cruise_formal_wear_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.85,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1: 7.5 Formal Wear - Cruise limit $1,000; 7.6 Formal Wear Delay Expenses $250 (minimum delay 12 hours)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p73-t1 and p73-t2: Formal Wear Damaged, Lost or Stolen $1,000/$500 depending plan; Delayed Formal Wear $500/$250."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p72-p73: formal wear pairs/sets treated as one item; delayed formal wear applies after over 12 hours from boarding."
+          }
+        ],
+        "rationale_samples": [
+          "Formal wear damaged/lost/stolen and delayed formal wear recur in cruise add-on/product tables. A comparable field is warranted for cruise-specific extraction."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_formal_wear_limit",
+          "type": "string",
+          "description": "Cruise formal wear benefit limit as printed, including damaged/lost/stolen formal wear and delayed formal wear replacement/hire limits if concise; otherwise use cruise_benefits for separate sub-benefits.",
+          "applies_to": [
+            "cruise",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_marine_rescue_diversion_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cruise_marine_rescue_diversion_limit",
+        "field_name": "cruise_marine_rescue_diversion_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.84,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 and p32: Marine Rescue Diversion $500 ($100 per day) and pays $100 for each day diverted up to 5 consecutive days."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p74: Marine Rescue Diversion gives $100 for each 24 hour period up to maximum 5 days; p74-t1 shows limits $1,000/$500 depending plan."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p8-t1 Cruise Cover Benefits summary includes Marine Rescue Diversion as a cruise cover benefit."
+          }
+        ],
+        "rationale_samples": [
+          "Marine rescue diversion is a distinctive but recurring cruise-specific benefit across Allianz and Cover-More/CBA cruise cover and appears in the baseline cruise taxonomy."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_marine_rescue_diversion_limit",
+          "type": "string",
+          "description": "Marine rescue diversion benefit limit as printed, including per-day/per-24-hour amounts and maximum duration or total limit.",
+          "applies_to": [
+            "cruise",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_missed_port_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cruise_missed_port_limit",
+        "field_name": "cruise_missed_port_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.86,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p71-p72: Missed Port pays reasonable costs to catch up on itinerary; p72-t1 limit $1,000 for listed plans."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-t1: D3 Missed port $50 per missed port up to $300/$400; p33 explains cover where cruise docks at fewer ports than scheduled."
+          }
+        ],
+        "rationale_samples": [
+          "Missed port is a common cruise-specific benefit in cruise add-ons/products. A top-level field enables direct comparison while full detail can remain in cruise_benefits."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_missed_port_limit",
+          "type": "string",
+          "description": "Cruise missed port benefit limit as printed, including per-port amounts, maximum total, and relevant waiting/itinerary conditions where concise.",
+          "applies_to": [
+            "cruise",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_missed_shore_excursion_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cruise_missed_shore_excursion_limit",
+        "field_name": "cruise_missed_shore_excursion_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.84,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 and p31: 7.4 Pre-paid Shore Excursion Cancellation limit $1,000 if cabin/medical confinement prevents participation."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p72-t2: Missed Shore Excursion limit $1,000 for listed plans; wording pays non-refundable unused ticket cost."
+          }
+        ],
+        "rationale_samples": [
+          "Pre-paid or missed shore excursion is a recurring cruise-specific benefit across cruise products and add-ons."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_missed_shore_excursion_limit",
+          "type": "string",
+          "description": "Cruise missed or pre-paid shore excursion cancellation benefit limit as printed, including whether it covers non-refundable unused ticket/pass costs or cancellation due to cabin/medical confinement.",
+          "applies_to": [
+            "cruise",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:cruise_ship_to_shore_evacuation_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "cruise_ship_to_shore_evacuation_limit",
+        "field_name": "cruise_ship_to_shore_evacuation_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.82,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p18-t1 Cruise Pack table: 7.2 Evacuation Cover - Ship to Shore $20 million ($60,000 for overseas funeral expenses or return of remains)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p70-t2: Ship to Shore Medical Cover limit $Unlimited for Comprehensive/Essentials/Medical Only/Inbound."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p21: domestic cruise cover extends to evacuation to a location where Australian emergency services can pick up and transfer to an Australian medical facility."
+          }
+        ],
+        "rationale_samples": [
+          "Ship-to-shore evacuation or cruise medical evacuation is a high-value recurring cruise-specific benefit and often has separate limits from ordinary overseas medical expenses."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "cruise_ship_to_shore_evacuation_limit",
+          "type": "string",
+          "description": "Cruise ship-to-shore evacuation or cruise medical evacuation limit as printed, including onboard medical/evacuation/repatriation combined wording where the PDS does not separate them.",
+          "applies_to": [
+            "cruise",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:emergency_medical_preapproval_threshold_aud",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "claims_and_assistance",
+        "canonical_name": "emergency_medical_preapproval_threshold_aud",
+        "field_name": "emergency_medical_preapproval_threshold_aud",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.86,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "p5 and p35: must ask Southern Cross Emergency Assistance for prior approval if admitted to hospital, need surgery, or expect medical and related expenses over $2,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p21: should phone emergency assistance as soon as possible if hospitalisation is required, medical expenses will exceed $2,000, or if wanting to return early."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p30 Emergency travel arrangements: if repatriation/early return requires additional travel or accommodation in excess of $2,000, prior consent is required."
+          }
+        ],
+        "rationale_samples": [
+          "Several PDS documents state a clear dollar threshold for mandatory emergency assistance/pre-approval for hospitalisation, surgery, evacuation or high medical costs. The baseline stores this only in unstructured emergency_assistance_details."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "emergency_medical_preapproval_threshold_aud",
+          "type": "number",
+          "description": "AUD medical-cost threshold above which the insured must contact emergency assistance or obtain prior approval, where a numeric threshold is stated. Use with emergency_assistance_details for hospitalisation/surgery rules and exceptions.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:extra_territorial_workers_compensation_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "extra_territorial_workers_compensation_limit",
+        "field_name": "extra_territorial_workers_compensation_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.66,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Corporate benefits tables row 'Extra territorial workers compensation' shows Essentials $Nil, Essentials Plus $500,000, Ultimate $1,000,000, Ultimate Plus $1,000,000. Section 18 describes indemnity for workers compensation and common law damages."
+          }
+        ],
+        "rationale_samples": [
+          "Extra territorial workers compensation is a specialised but material corporate travel benefit with large limits. It is not currently represented except in unstructured business_cover_details."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "extra_territorial_workers_compensation_limit",
+          "type": "string",
+          "description": "Extra territorial workers compensation or overseas workers compensation indemnity limit as printed, including aggregate, weekly or plan-specific limits where concise.",
+          "applies_to": [
+            "business"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:funeral_or_repatriation_of_remains_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "funeral_or_repatriation_of_remains_limit",
+        "field_name": "funeral_or_repatriation_of_remains_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.93,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "p9 table D.1.5: Funeral expenses or return of mortal remains $50,000 for each deceased person; p40: returning remains to Australia and funeral/burial costs covered."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p8: Schengen visa wording provides up to 30,000EUR for overseas funeral expenses or repatriation of remains; p32: overseas funeral/cremation or return of remains $20,000 or 30,000EUR for Schengen."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4 table and p33: Return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; funeral or burial expenses outside Australia $10,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p14-p15 benefits table and p24: Return of body or ashes to Australia $50,000; funeral or burial expenses outside Australia $10,000."
+          }
+        ],
+        "rationale_samples": [
+          "Return of remains/funeral/repatriation benefits appear as prominent, comparable limits across multiple PDS benefit tables and policy wording, but the baseline only has a coverage category and no top-level limit field."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "funeral_or_repatriation_of_remains_limit",
+          "type": "string",
+          "description": "Funeral, burial, cremation, return of body/ashes/remains or Schengen repatriation limit as printed, including AUD and foreign-currency Schengen amounts where stated.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:hijack_kidnap_and_ransom_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "major_benefit_limits",
+        "canonical_name": "hijack_kidnap_and_ransom_limit",
+        "field_name": "hijack_kidnap_and_ransom_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.72,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Table p7-t1 lists Benefit 16 'Hijacking' with Comprehensive $6,000. Page 66 states it pays $1,000 for each continuous 24 hour period forcibly detained on public transport due to hijacking."
+          }
+        ],
+        "rationale_samples": [
+          "Hijacking/detention benefits are in the baseline taxonomy but lack a top-level field. Evidence is narrower than special events but the category is stable enough across travel insurance comparison schemas to warrant a candidate field with moderate confidence."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "hijack_kidnap_and_ransom_limit",
+          "type": "string",
+          "description": "Hijacking, detention, kidnap/ransom or public-transport detention benefit limit as printed, including per-day rates and maximum payable amounts.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:hijack_or_hijacking_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "hijack_or_hijacking_limit",
+        "field_name": "hijack_or_hijacking_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.89,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p4 international benefits table: Hijacking $5,000 Comprehensive, Nil Essential/Basic; p41 Section 13: $1,000 for each 24 hour period forcibly detained, maximum $5,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5 international table: Airline hijack Nil/Nil/$2,500; p46 Section I applies if aircraft or sea vessel is hijacked for more than 24 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p15 benefits table: Hijack Nil/Nil/Nil/$2,500; p40 Section I applies if the aircraft is hijacked for more than 24 hours."
+          }
+        ],
+        "rationale_samples": [
+          "Hijack/hijacking benefits appear in benefit tables for Budget Direct, Insure&Go and Tick. The baseline has a hijack_kidnap_and_ransom category but lacks a comparable top-level limit."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "hijack_or_hijacking_limit",
+          "type": "string",
+          "description": "Hijack, aircraft hijack, airline hijack or public-transport hijacking benefit limit as printed, including per-24-hour amounts and total cap if concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:hijacking_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "hijacking_limit",
+        "field_name": "hijacking_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.84,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "International benefits table row '13* Hijacking' shows $5,000 for Comprehensive; Section 13 pays $1,000 for each 24-hour period detained, maximum $5,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Corporate benefits tables row 'Hijacking' shows $Nil / $10,000 / $30,000 / $30,000; Section 13 pays $1,000 per continuous 24-hour period."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Cruise benefits table row I 'Airline hijack' shows Nil / Nil / $2,500; Section I covers aircraft or sea vessel hijacked for more than 24 hours."
+          }
+        ],
+        "rationale_samples": [
+          "Hijacking/aircraft hijack is a recurring headline benefit in benefits tables and is not currently available as a major flat limit despite an existing taxonomy category."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "hijacking_limit",
+          "type": "string",
+          "description": "Hijacking, aircraft hijack or public-transport hijack detention benefit limit as printed, including per-24-hour payment and maximum where concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:identity_theft_protection_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "identity_theft_protection_limit",
+        "field_name": "identity_theft_protection_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.7,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Corporate benefits tables row 'Identity theft protection' shows $Nil / $10,000 / $15,000 / $15,000. Section 19 reimburses legal expenses to close disputed accounts, rectify records and defend creditor actions after stolen documents cause identity theft."
+          }
+        ],
+        "rationale_samples": [
+          "Identity theft protection is a named corporate travel benefit with a specific limit and legal/remediation scope; current schema has travel_documents_limit but not identity restoration expenses."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "identity_theft_protection_limit",
+          "type": "string",
+          "description": "Identity theft protection limit as printed, including legal expenses, document replacement, credit-rating restoration or account rectification expenses arising from stolen personal data/documents.",
+          "applies_to": [
+            "business",
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:inbound_emergency_dental_in_australia_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "inbound_emergency_dental_in_australia_limit",
+        "field_name": "inbound_emergency_dental_in_australia_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.93,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p9-t1 Inbound Plan Section 19: Emergency Dental Expenses in Australia $2,000; p41-t1: Emergency Dental Expenses in Australia $2,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p69 Benefit 21 describes Dental expenses: emergency dental treatment provided in Australia by a qualified dentist to relieve pain or temporarily restore function."
+          }
+        ],
+        "rationale_samples": [
+          "Inbound PDS wording often separates emergency dental treatment in Australia from inbound medical expenses and from overseas dental limits. A distinct field improves comparison with inbound medical cover."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "inbound_emergency_dental_in_australia_limit",
+          "type": "string",
+          "description": "Emergency dental expenses limit for non-Australian residents travelling to Australia where treatment is provided in Australia, as printed, e.g. $2,000, $1,000, Nil. Use only for inbound-specific dental expenses in Australia.",
+          "applies_to": [
+            "inbound"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:kidnap_ransom_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "kidnap_ransom_limit",
+        "field_name": "kidnap_ransom_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.72,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Corporate benefits tables row 'Kidnap and ransom' shows $100,000 / $250,000 / $500,000 / $500,000; Section 12 lists reimbursed ransom monies, negotiator fees, reward, loan costs, travel/accommodation and salary costs."
+          }
+        ],
+        "rationale_samples": [
+          "Kidnap and ransom appears as a high-value business travel benefit distinct from hijacking. It is business-specific but important for comparing corporate travel insurance."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "kidnap_ransom_limit",
+          "type": "string",
+          "description": "Kidnap and ransom benefit limit as printed, including reimbursement for ransom monies, negotiator costs, related travel/accommodation, salaries or other kidnap/extortion costs where covered.",
+          "applies_to": [
+            "business"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:loss_theft_report_deadline",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "claims_and_luggage_conditions",
+        "canonical_name": "loss_theft_report_deadline",
+        "field_name": "loss_theft_report_deadline",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.8,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Page 15 requires reporting loss/theft to police or responsible transport provider and obtaining a written report within 72 hours of discovering the loss/theft or as soon as reasonably practicable."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Page 46 requires reporting loss/theft of luggage, personal effects, travel documents or money to police, transport provider or accommodation provider within 7 days of first becoming aware."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Pages 27-28 say Allianz expects loss/theft to be reported to police or transport authority where reasonably practicable and may reduce claims for unreasonable delay or failure."
+          }
+        ],
+        "rationale_samples": [
+          "Loss/theft reporting deadlines and responsible authorities are frequent baggage/document/cash claim conditions. Because some PDSs use hours, days or 'as soon as practicable', a string field is safer than a single numeric days field."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "loss_theft_report_deadline",
+          "type": "string",
+          "description": "Deadline and authority requirements for reporting lost, stolen or damaged luggage, money, travel documents, phones or valuables, preserving wording such as 24 hours, 72 hours, 7 days, as soon as practicable, police, carrier, hotel/security or issuing bank.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:luggage_delay_minimum_delay_hours",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "luggage_delay_minimum_delay_hours",
+        "field_name": "luggage_delay_minimum_delay_hours",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.85,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Section 5 Delayed Luggage Allowance: 'If all Your luggage is delayed ... for more than 12 hours'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits tables and Section 9: Essentials/Essentials Plus after 12 hours; Ultimate/Ultimate Plus after 8 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Section E3 Delayed baggage covers baggage delayed by airline or transport company 'for more than 8 hours'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Section D2 Delayed baggage covers baggage delayed 'for more than 24 hours'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "Section D.4.3 covers checked-in baggage delayed 'for more than 12 hours from the time you arrive at your destination'."
+          }
+        ],
+        "rationale_samples": [
+          "Baggage delay thresholds differ materially across insurers and tiers. The baseline captures the limit but not the waiting trigger as a stable comparable field."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "luggage_delay_minimum_delay_hours",
+          "type": "number",
+          "description": "Minimum checked baggage/luggage delay in hours before delayed baggage or luggage delay benefit can be claimed for this plan/record. If thresholds differ by tier or sub-benefit, record the applicable value for the emitted plan and preserve details in coverage_benefits/sub_limits.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:luggage_delay_waiting_period_hours",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "luggage_delay_waiting_period_hours",
+        "field_name": "luggage_delay_waiting_period_hours",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.83,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p66: Delay of Luggage and Personal Effects applies where items are delayed, misdirected or misplaced by the Carrier for more than 12 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p38: Delayed baggage benefit applies if baggage is delayed by an airline or transport company for more than 8 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p28: luggage delayed, misdirected or misplaced by carrier for more than 10 consecutive hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p35-p36: delayed baggage and baggage delay before boarding benefits apply for delays of more than 24 hours."
+          }
+        ],
+        "rationale_samples": [
+          "Delayed baggage waiting periods differ materially and are prominent in benefit wording/tables. Current luggage_delay_limit does not separately normalise the trigger threshold."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "luggage_delay_waiting_period_hours",
+          "type": "number",
+          "description": "Initial delay threshold in hours before delayed luggage/baggage benefit becomes payable where a single threshold applies. If thresholds vary by journey leg, plan or before-boarding/on-trip benefit, capture details in coverage_benefits or sub_limits.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:maximum_trip_duration_options",
+        "patch_types": [
+          "update_description"
+        ],
+        "target_group": "fields",
+        "canonical_name": "maximum_trip_duration_options",
+        "field_name": "maximum_trip_duration_options",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.79,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p13: Frequent Traveller Saver lets customers choose 15, 25, 40 or 63 days for each trip."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9: multiple trips up to selected maximum duration 30, 45 or 60 days for International policies; Bare Essentials no trips longer than 30 days and Silver no longer than 45 days."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4-t1: Maximum trip duration varies by age and destination, including 42 days, 90 days and 365 days."
+          }
+        ],
+        "rationale_samples": [
+          "Selectable maximum trip duration options are not limited to annual/multi-trip policies. Cruise and single-trip products also show maximum duration choices that vary by age, destination and tier. This is an explicit applies_to/description broadening for review."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "required": false,
+          "description": "Available maximum duration options for a journey/trip, expressed as a readable string when multiple options exist, e.g. 15/30/45 days, 30/45/60 days, 42/90/365 days by age or destination. Use for annual multi-trip per-journey duration choices and for single-trip/cruise products where the PDS states selectable or plan-dependent maximum trip durations. If a single value applies to the extracted record, use maximum_trip_duration_days instead.",
+          "name": "maximum_trip_duration_options",
+          "type": "string",
+          "applies_to": [
+            "international_multi_trip",
+            "domestic",
+            "business"
+          ],
+          "values": []
+        }
+      },
+      {
+        "id": "field:medical_assistance_approval_threshold_aud",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "claims_and_assistance",
+        "canonical_name": "medical_assistance_approval_threshold_aud",
+        "field_name": "medical_assistance_approval_threshold_aud",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.89,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Page 41 states if admitted to hospital or outpatient treatment is likely to exceed $2,000, the traveller should contact Allianz Global Assistance to seek approval."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "Pages 5 and 35 state prior approval is required if admitted to hospital, need surgery, or expect medical and related expenses over $2,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Page 35 states the emergency assistance team should be phoned as soon as possible if hospitalisation is required, medical expenses will exceed $2,000, or early return is wanted."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "Page 64 states if hospitalised or outpatient treatment total cost will exceed $1,000, assistance service prior approval is required."
+          }
+        ],
+        "rationale_samples": [
+          "Many PDSs specify a monetary threshold above which emergency assistance/prior approval must be contacted for medical, hospital or evacuation costs. The baseline emergency_assistance_details can hold this in text, but a numeric AUD field improves stable comparison and compliance extraction."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "medical_assistance_approval_threshold_aud",
+          "type": "number",
+          "description": "AUD threshold above which the insured must contact emergency assistance or obtain prior approval for medical, hospital, outpatient, surgery, evacuation or similar expenses, where a single dominant threshold is stated.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:medical_expenses_continuation_limit_months",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "medical_conditions",
+        "canonical_name": "medical_expenses_continuation_limit_months",
+        "field_name": "medical_expenses_continuation_limit_months",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.9,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p3/p4 footnote: Cover will not exceed 12 months from onset of the illness, condition or injury; p29 says cover applies for a maximum of 12 months from date of suffering."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p64: medical or hospital expenses incurred within 12 months after an illness first showed itself or the injury happened."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p7 footnote: Medical and dental cover and assistance will not exceed 12 months from onset of illness or injury; p51 repeats maximum of 12 months."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p32 exclusion: expenses incurred more than 12 months from the time you first received treatment for the injury or illness."
+          }
+        ],
+        "rationale_samples": [
+          "Several PDSs cap medical, dental, evacuation or COVID medical cover to expenses incurred within 12 months from onset/treatment. This is a stable eligibility/benefit-duration constraint that is hard to compare if embedded only in notes."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "medical_expenses_continuation_limit_months",
+          "type": "number",
+          "description": "Maximum period in months after onset of illness, injury or condition during which emergency medical, dental, evacuation, repatriation or related expenses remain payable, where stated as a general medical benefit duration cap.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:medical_expenses_max_months_from_onset",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "medical_expenses_max_months_from_onset",
+        "field_name": "medical_expenses_max_months_from_onset",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.79,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "International benefits table and Section 1 note: 'Cover will not exceed 12 months from onset of the illness, condition or injury'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Benefits tables footnote: 'Cover will not exceed 18 months from onset of the illness, condition or injury'; Section 1 repeats maximum 18 months."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Section B1 exclusion 8: no cover for expenses incurred more than 12 months from the time first treatment was received for injury or illness."
+          }
+        ],
+        "rationale_samples": [
+          "Overseas medical cover often has a maximum period from illness/injury onset even when the dollar limit is unlimited. This materially affects comparison and is not captured by emergency_medical_limit."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "medical_expenses_max_months_from_onset",
+          "type": "number",
+          "description": "Maximum number of months emergency medical/dental expenses cover may continue from onset of illness, condition or injury, where stated separately from the policy/trip duration.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:medical_treatment_maximum_period_months",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "medical_conditions_and_limits",
+        "canonical_name": "medical_treatment_maximum_period_months",
+        "field_name": "medical_treatment_maximum_period_months",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.74,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Page 21 states Allianz will pay for treatment received and/or hospital accommodation up to a maximum period of 12 months after the sickness first presented or injury occurred."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Page 51 says medical/dental cover applies for a maximum of 12 months from the date of suffering the disabling injury, sickness or disease; p69 repeats this for inbound Australian medical/dental expenses."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "Page 64 states medical or hospital expenses must be incurred within 12 months after an illness first showed itself or the injury happened; p94 repeats this for onboard cruise medical expenses."
+          }
+        ],
+        "rationale_samples": [
+          "Several PDSs impose a maximum period for ongoing medical/dental treatment after the onset of illness or injury, commonly 12 months. This is a structured medical-cover condition not captured by emergency_medical_limit."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "medical_treatment_maximum_period_months",
+          "type": "number",
+          "description": "Maximum period in months for which covered medical, hospital, dental, evacuation or related treatment expenses may be payable from onset of the illness/injury, where stated.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:missed_connections_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "missed_connections_limit",
+        "field_name": "missed_connections_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.84,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p4 and p5 benefits tables list Missed Connections: International Comprehensive $3,000, Domestic $2,000; p40 Section 10 sets conditions and limits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p15 Australian Travel Plan schedule: Missed connection - special events $2,000; Missed connection – flight delay within Australia $2,000; p32-p33 details both benefits."
+          }
+        ],
+        "rationale_samples": [
+          "Missed connection cover is a separate benefit in Budget Direct and nib domestic plans, and is not cleanly represented by travel_delay or special_events alone."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "missed_connections_limit",
+          "type": "string",
+          "description": "Missed connection benefit limit as printed, including general missed connections, missed flight connections, missed cruise/tour connections and special-event missed connection variants where separately stated.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:pds_version_identifier",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "pds_version_identifier",
+        "field_name": "pds_version_identifier",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.78,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p55: Version IG_AMT_PDS_0426_02."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p2: Prepared on 19 December 2025; POL849 / IMP3748."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p2: TK_EAA_PW_CRS_0426."
+          }
+        ],
+        "rationale_samples": [
+          "Several documents contain non-date version or document identifiers useful for traceability. The baseline has dates and source hash/path but no field for the printed PDS/version code."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "pds_version_identifier",
+          "type": "string",
+          "description": "Printed PDS version code, product code, document reference or form identifier where stated, excluding dates already captured in pds_effective_date or pds_prepared_or_version_date.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:personal_vehicle_excess_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "personal_vehicle_excess_limit",
+        "field_name": "personal_vehicle_excess_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "1/5",
+        "average_confidence": 0.67,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p5 domestic benefits table: Cover for self-drive holidays in Australia - Personal vehicle insurance excess $2,500; p38 Domestic Plan bonus cover reimburses up to $2,500 for personal car or motorcycle comprehensive policy excess or repair costs."
+          }
+        ],
+        "rationale_samples": [
+          "Own/personal vehicle insurance excess appears as a domestic self-drive benefit in Budget Direct, but has limited support in the supplied corpus. Candidate should be reviewed before adding as a stable schema field."
+        ],
+        "reject_rationale_samples": [
+          "Commbank's Domestic Plan bonus for excess on the traveller's own personal vehicle is unusual and closer to a domestic motor-vehicle add-on than a standard travel-insurance comparison field. It should be captured in coverage_benefits or optional_add_ons if present, not promoted to a reusable top-level field."
+        ],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "personal_vehicle_excess_limit",
+          "type": "string",
+          "description": "Domestic self-drive personal vehicle insurance excess benefit limit as printed, where the policy reimburses excess or repair costs for the traveller’s own car or motorcycle rather than a rental vehicle.",
+          "applies_to": [
+            "domestic"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:personal_vehicle_excess_or_repair_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "personal_vehicle_excess_or_repair_limit",
+        "field_name": "personal_vehicle_excess_or_repair_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.74,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Domestic benefits table row 'Cover for self-drive holidays in Australia - Personal vehicle insurance excess' shows $2,500; Section 7 Domestic Plan bonus cover reimburses up to $2,500 for excess or repair costs on personal car or motorcycle."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Corporate Ultimate extras table includes 'Personal car excess &/or repairs' $2,000 and 'Personal car loss of no claim bonus and/or $500 per week for a hire car' $2,500; Sections 27 and 28 detail these covers."
+          }
+        ],
+        "rationale_samples": [
+          "Personal car/self-drive vehicle excess benefits appear in domestic and business products and are distinct from rental vehicle excess. The baseline rental_vehicle_excess_limit should not be overloaded for a traveller’s own vehicle."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "personal_vehicle_excess_or_repair_limit",
+          "type": "string",
+          "description": "Personal vehicle, self-drive holiday car/motorcycle excess, personal car repairs, no-claim-bonus or hire-car reimbursement limit as printed, where cover applies to the insured person's own vehicle rather than a rental vehicle.",
+          "applies_to": [
+            "domestic",
+            "business"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:pet_care_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "pet_care_limit",
+        "field_name": "pet_care_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.83,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "p10 and p54: D.3.4 Pet services $100 each day up to $1,000 each person for extra daily costs of keeping pets in a registered boarding facility."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p5 international table: Pet care Nil/Nil/$600; p46 Section J covers extra kennel or cattery fees if final inward aircraft journey is delayed more than 24 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/5f2419bc8b54ea6add4f8be83dbd2d4a173f9625a62dd5e49ff2e71f0ddf5760_tick-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p15 benefits table: Pet care Nil/Nil/Nil/$600; p40 Section J covers extra kennel or cattery fees for delayed final inward journey."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p41 Coronavirus travel costs includes reasonable additional pet care services, including kennel/cattery boarding fees or professional pet sitting services in Australia, subject to the Coronavirus travel costs limit."
+          }
+        ],
+        "rationale_samples": [
+          "Pet care/services benefits are separately listed in SCTI, Insure&Go and Tick and often have their own sublimits rather than being part of general additional expenses."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "pet_care_limit",
+          "type": "string",
+          "description": "Pet care, pet services, kennel, cattery, boarding or professional pet sitting benefit limit as printed, including daily amount and total cap if concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:pets_childcare_domestic_services_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "pets_childcare_domestic_services_limit",
+        "field_name": "pets_childcare_domestic_services_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.73,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Cruise benefits table row J 'Pet care' shows Nil / Nil / $600; Section J covers extra kennel or cattery fees if final inward aircraft journey is delayed more than 24 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "Benefits table and Sections D.3.4-D.3.5 show Pet services and Childcare expenses: '$100 for each day $1,000 for each person'."
+          }
+        ],
+        "rationale_samples": [
+          "Pet boarding/kennel and childcare/domestic services benefits are in the taxonomy but lack flat fields. They are recurring enough to compare when offered, while details can remain in coverage_benefits."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "pets_childcare_domestic_services_limit",
+          "type": "string",
+          "description": "Pet boarding, kennel/cattery, pet services, childcare or domestic services benefit limit as printed, including daily amount and maximum where concise.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:policy_extension_terms",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "policy_extension_terms",
+        "field_name": "policy_extension_terms",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.86,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p12: extension can be applied for before expiry; free extension for unforeseeable circumstances until able to travel home or six months; combined period cannot exceed 24 months."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p20: necessary extension due to unforeseeable circumstances extends cover for up to 12 months or until able to travel home; voluntary extension requires contact before end date."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p14 and p48: extending journey requires purchase of a new policy before expiry; free extension where journey necessarily extended due to unforeseeable circumstance until physically able to travel home."
+          }
+        ],
+        "rationale_samples": [
+          "Policy extension terms recur across insurers and affect duration/eligibility but are not explicitly represented except indirectly in refund terms or maximum duration fields."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "policy_extension_terms",
+          "type": "string",
+          "description": "Rules for extending cover or automatic/free extension where a trip is necessarily extended, including whether voluntary extensions require a new policy, approval requirements, maximum extension duration, exclusions for already-travelling or annual policies, and contact requirements.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:repatriation_of_remains_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "repatriation_of_remains_limit",
+        "field_name": "repatriation_of_remains_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.88,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Page 8 states International plans provide up to 30,000EUR for overseas funeral expenses or repatriation of remains for Schengen; page 32 states funeral/cremation or returning remains to Australia maximum $20,000 or 30,000EUR in Schengen."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Section 4.2 states death expenses maximum $20,000, or 30,000EUR for Schengen Visa death in a Schengen member state."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Table of Benefits B1 and M2 rows state 'Return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; Funeral or burial expenses outside Australia $10,000'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "Section D.1.5 'Funeral expenses or return of mortal remains' pays up to $50,000 to the estate of each deceased person."
+          }
+        ],
+        "rationale_samples": [
+          "Repatriation/funeral remains cover is a core recurring medical-adjacent benefit with materially different sub-limits, including Schengen amounts, and deserves a stable comparison field separate from emergency_medical_limit."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "repatriation_of_remains_limit",
+          "type": "string",
+          "description": "Funeral expenses, burial/cremation, return of body, ashes or mortal remains limit as printed, including Schengen visa EUR amounts and whether the limit is per person or per deceased person.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:return_rental_vehicle_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "return_rental_vehicle_limit",
+        "field_name": "return_rental_vehicle_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.8,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "p32 Section 2 Additional Expenses: pays reasonable expenses incurred in returning a Rental Vehicle to the nearest depot if you are unfit to drive on written medical advice."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p7 domestic table: Return of rental car Nil/Nil/$750; p47: Domestic Gold reimburses up to $750 for return to nearest depot if doctor certifies unfit to drive."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/nib/pds/nibau-travelinsurancesaver-domestic-screen.pdf",
+            "quote_or_summary": "p15 Australian Travel Plan schedule: Return of rental vehicle $750; p35: pays towards return to nearest depot including airport concession charges if unable to do so due to a claimable event."
+          }
+        ],
+        "rationale_samples": [
+          "Return of a rental vehicle to a depot is a recurring ancillary rental-vehicle benefit with its own limit in Insure&Go and nib, and appears under additional expenses/rental vehicle wording in Budget Direct. It is distinct from reimbursement of rental vehicle excess."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "return_rental_vehicle_limit",
+          "type": "string",
+          "description": "Return of rental vehicle, rental car or rental vehicle depot-return benefit limit as printed, including conditions such as medical unfitness to drive.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:schengen_repatriation_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "schengen_repatriation_limit",
+        "field_name": "schengen_repatriation_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.82,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p30: Basic plan if valid Schengen Visa and death in a Schengen member state, pay up to 30,000EUR for expenses incurred in that Schengen member state."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p23-t1 and p67: In event of death in a Schengen member state, €30,000 EUR."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p53: if valid Schengen Visa and death in Schengen member state, maximum 30,000EUR for expenses incurred in that state."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p4-t1/p31: return of body or ashes to Australia $50,000 or up to €30,000 for Schengen countries; funeral or burial expenses outside Australia $10,000."
+          }
+        ],
+        "rationale_samples": [
+          "Schengen visa repatriation amounts are repeatedly disclosed as a distinct sub-limit/alternative to the AUD repatriation limit. A dedicated field helps preserve foreign-currency requirements without overloading the main repatriation limit."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "schengen_repatriation_limit",
+          "type": "string",
+          "description": "Schengen visa repatriation, funeral or return-of-remains limit as printed, including currency and conditions, e.g. €30,000 EUR if death occurs in a Schengen member state while holding a valid Schengen visa.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:special_events_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "major_benefit_limits",
+        "canonical_name": "special_events_limit",
+        "field_name": "special_events_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.9,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Comprehensive table p9-t1 and Multi-Trip table p11-t1 include '3.3 Alternative Transport Expenses' with $5,000 single/per person limits, and p26 describes transport to arrive on time for a wedding, funeral, pre-paid tour/cruise, conference, sporting event or concert/cultural event."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/c9580b4d6c1e326d36d5eafa3f5e49b4ec1d07d5b50a6afcdfb9c919b0f67237_view-international-comprehensive-pds.pdf",
+            "quote_or_summary": "Tables p9-t1 and text p44/p53 list 'Delayed journey to a special event' up to $2,500 for each person before departure and on-trip."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "Tables p7-t1, p59-t1 and p59-t2 list Benefit 9 'Special Events' ($5,000 Comprehensive; $2,000 Domestic) and Benefit 10 'Festivals and Gigs' ($2,000 or $5,000 depending plan)."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "Benefits table p25-t2 lists Section 17 'Special Event Transport Expenses' with $2,000 for Comprehensive/Overseas Frequent Traveller and Already Overseas; p88 covers weddings, funerals, conferences, concerts, music festivals, sporting events or tours over two nights."
+          }
+        ],
+        "rationale_samples": [
+          "Special-event alternative transport is a recurring standalone benefit across the supplied PDSs, but the baseline only includes a taxonomy category and no top-level limit field. A stable string limit supports comparison while detailed rows remain in coverage_benefits."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "special_events_limit",
+          "type": "string",
+          "description": "Special event or alternative transport benefit limit as printed, covering weddings, funerals, conferences, concerts/festivals/gigs, sporting events, tours or other time-critical events where the traveller needs alternative transport to arrive on time.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:specified_item_max_per_item_aud",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "specified_item_max_per_item_aud",
+        "field_name": "specified_item_max_per_item_aud",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.8,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Page 8: 'A single item limit may be increased to $10,000 by paying an additional premium'; Section 8 optional cover says limit can be increased by up to $10,000 per single item."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Additional Specified Items Cover table: 'E2 Specified items $4,000 for a single item; Single article, Pair or Set limit up to $8,000 for combined items'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+            "quote_or_summary": "Section D.4.2: specified item value can be '$1,500 to $10,000 for each item'; benefits table shows '$10,000 for each item' and '$15,000 for all items'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Page 10 and benefits table footnote: item limits may be increased by paying additional premium, with specified receipt/valuation requirements."
+          }
+        ],
+        "rationale_samples": [
+          "Optional specified/high-value item cover is common and highly comparable. Existing optional_add_ons can capture details, but a numeric maximum per item supports stable comparison."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "specified_item_max_per_item_aud",
+          "type": "number",
+          "description": "Maximum additional or specified item limit per single item in AUD where the plan allows purchase of extra cover for specified luggage/personal effects items. Use sub_limits/optional_add_ons for aggregate specified item limits and eligibility proof requirements.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:specified_items_or_high_value_items_cover_options",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "luggage_and_personal_effects",
+        "canonical_name": "specified_items_or_high_value_items_cover_options",
+        "field_name": "specified_items_or_high_value_items_cover_options",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.91,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p12: Increase luggage item limit cover; p34 states multiple-item overall increase cannot exceed $15,000."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p40-p41 High Value Items: additional cover up to total $5,000; cannot be more than 12 months old except medical aids; excludes drones, jewellery, watches and watercraft."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p17 Increase Luggage Item Limits; p18 Electronic Gadgets cover up to maximum $5,000 with item limits."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p6-t2 Additional Specified Items Cover: $4,000 for a single item, up to $8,000 combined items; available on Silver and Gold."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p17-t3 Additional Specified Items Cover: $4,000 for a single item, up to $6,000 combined items; p34 states optional cover available on Top level."
+          }
+        ],
+        "rationale_samples": [
+          "Most reviewed PDSs include an optional high-value/specified-item/increased luggage item-limit feature. It is important for luggage comparison and is better surfaced than burying only in optional_add_ons."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "specified_items_or_high_value_items_cover_options",
+          "type": "string",
+          "description": "Options and limits for specified high-value items or increased luggage item limits, including availability by plan, per-item limit, combined total limit, excluded item types, receipt/valuation age requirements and whether an extra premium is required.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:travel_delay_minimum_delay_hours",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "",
+        "canonical_name": "travel_delay_minimum_delay_hours",
+        "field_name": "travel_delay_minimum_delay_hours",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.83,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/budget_direct/pds/PDS_BDB_BDC.pdf",
+            "quote_or_summary": "Section 8 Travel Delay: 'pre-booked, prepaid transport is temporarily delayed ... for at least 6 hours' and pays up to $300 again for each full 24-hour period."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6b50244d50fd02007a85b29e15fabb558ebfbec2733ee583bc13bf59e138ead6_corporate-pds.pdf",
+            "quote_or_summary": "Section 5 Travel delay: pre-booked transport delayed 'for at least 6 hours'; benefits tables also say 'Includes up to $200 after 6 hours delay'."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Section D Travel delay expenses covers delays 'for more than 12 hours'; table shows $50 or $150 per completed 12 hours depending tier."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "Section C Travel delay expenses covers final internal aircraft departure delayed 'for more than 12 hours'."
+          }
+        ],
+        "rationale_samples": [
+          "Travel delay benefits are frequently compared by both dollar limit and delay threshold. The baseline has travel_delay_limit but no structured trigger threshold, causing important table data to be buried in text."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "travel_delay_minimum_delay_hours",
+          "type": "number",
+          "description": "Minimum transport delay in hours before the travel delay benefit can be claimed for this plan/record. If thresholds differ by sub-benefit, use coverage_benefits or sub_limits for detail.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:travel_delay_waiting_period_hours",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "travel_delay_waiting_period_hours",
+        "field_name": "travel_delay_waiting_period_hours",
+        "type": "number",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.84,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p68: Travel Delay reimburses after Carrier delay/rescheduled departure for at least 6 hours and subsequent full 24-hour periods."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p36: Travel delay expenses apply if an individual leg is delayed for more than 12 hours."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p26: Travel Delay Expenses apply after an unexpected delay of at least 6 consecutive hours."
+          }
+        ],
+        "rationale_samples": [
+          "Travel delay threshold is a high-value comparison attribute and varies materially across insurers (6, 12, 24 hours). Current travel_delay_limit may preserve it only if manually included, and waiting_period_hours is too generic."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "travel_delay_waiting_period_hours",
+          "type": "number",
+          "description": "Initial delay threshold in hours before the travel delay benefit becomes payable where a single threshold applies to the extracted record. If thresholds vary by plan, benefit or transport mode, capture details in coverage_benefits or sub_limits.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:travel_services_provider_insolvency_limit",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "benefit_limits",
+        "canonical_name": "travel_services_provider_insolvency_limit",
+        "field_name": "travel_services_provider_insolvency_limit",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.86,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/cover_more/pds/6a76ab3cd692d154389f9f5f6938cec3e7aa62ecd9add172747afc22c658da83_cover-more-pds.pdf",
+            "quote_or_summary": "p3-t1 International benefits table Section 3 Travel Services Provider Insolvency: $Nil / $5,000 / $10,000; p31-t1 Domestic/International limits table for Section 3."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/onecover/pds/e7c6327e2f0f78cd27677d90ce97e25aa77363b383e94f29b528f213e29b6010_download-pds.pdf",
+            "quote_or_summary": "p109 General Exclusion 7: Financial collapse of any accommodation, tour, transport provider, booking agent, or travel agency is excluded."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p22 General Exclusion 27 excludes refusal/failure to provide services by reason of financial default; p57 defines financial default."
+          }
+        ],
+        "rationale_samples": [
+          "Travel provider insolvency/financial default is handled inconsistently across insurers: some include a benefit, others exclude it. A dedicated limit/status field supports stable cross-insurer comparison beyond generic exclusions."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "travel_services_provider_insolvency_limit",
+          "type": "string",
+          "description": "Travel services provider insolvency, financial default or financial collapse benefit limit/status as printed, e.g. $5,000, $10,000, Nil, excluded/not covered. Capture whether travel agent/tour operator insolvency is excluded in notes or coverage_benefits.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:traveller_party_options",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "eligibility",
+        "canonical_name": "traveller_party_options",
+        "field_name": "traveller_party_options",
+        "type": "string",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.74,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/abf5e61ca4f178be07c6fa900f393f03ab9de0680b996d54d19fdc3d8de10ce0_insureandgo-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p9 Policy types: Individual, Couple, Family; definitions describe one adult plus dependants, two adults in partner relationship, or two adults plus accompanying dependent children."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/d63e3e1099089d93462f7e782953a2ecc040c0f8e7b3864954b2e2eb8d491e44_tick-cruise-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p3 Policy Types: Individual, Couple, Family; p14 table applies to individual, couple and family cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p9-t1 Non-medical Single Trip - One adult per policy; p42 defines you/yourself and accompanied children, and notes Domestic Plan applies per person only."
+          }
+        ],
+        "rationale_samples": [
+          "Some insurers sell or disclose party-cover options such as Individual, Couple and Family, with implications for dependent children and per-policy limits. It is somewhat less universal than benefit limits but useful for product-configuration extraction."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "traveller_party_options",
+          "type": "string",
+          "description": "Available insured-party or policyholder group options for the product, e.g. Individual, Couple, Family, one adult per policy, family cover. Include dependency/supervision rules only if not captured in dependent_child_age_limit_years or eligibility_rules.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": []
+        }
+      },
+      {
+        "id": "field:winter_sports_cover_status",
+        "patch_types": [
+          "add_field"
+        ],
+        "target_group": "fields",
+        "canonical_name": "winter_sports_cover_status",
+        "field_name": "winter_sports_cover_status",
+        "type": "enum",
+        "suggested_decision": "candidate",
+        "frequency": "1/5",
+        "reject_votes": "0/5",
+        "average_confidence": 0.88,
+        "aliases": [],
+        "evidence_documents": [
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/fast_cover/pds/Fast Cover PDS -16 July 2026.pdf",
+            "quote_or_summary": "p13: Snow Sports Plus Policy includes cover; p27 says if you do not purchase the Snow Sports Plus Policy and participate in listed snow sports you will not have cover."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/allianz/pds/f916d035a318156a853561a59f2e40d54d64d411859a025df747c17511be850c_allianz-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p19: Snow Pack optional pack; must be aged under 75; benefits 7.8-7.13."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/83d8427d34a928c987e380cecb5876107693f8cfaefa918253af775bcbd33a0f_insureandgo-annual-multi-trip-travel-insurance-product-disclosure-statement.pdf",
+            "quote_or_summary": "p6: Winter Sports Cover upgrade; no cover if upgrade not purchased."
+          },
+          {
+            "path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/commbank/pds/travel-insurance-pds-fsg.pdf",
+            "quote_or_summary": "p22: Snow Sports and Snow Sports+ are options to vary cover, not available on Cancellation Only or Non-Medical."
+          }
+        ],
+        "rationale_samples": [
+          "Winter/snow sports cover is handled as a plan tier by some insurers and an add-on by others. A status field analogous to cruise_cover_status would improve stable comparison while detailed benefits remain in coverage_benefits/optional_add_ons."
+        ],
+        "reject_rationale_samples": [],
+        "needs_manual_edit": false,
+        "needs_schema_edit": false,
+        "has_conflict": false,
+        "proposed_update": {
+          "name": "winter_sports_cover_status",
+          "type": "enum",
+          "description": "Winter sports or snow sports cover status for the plan: included, optional add-on, separate plan/tier, excluded, not applicable, or unknown. Use detailed benefit limits and activity rules in coverage_benefits, optional_activity_cover and optional_add_ons.",
+          "applies_to": [
+            "international_single_trip",
+            "international_multi_trip",
+            "domestic",
+            "inbound",
+            "business",
+            "cruise"
+          ],
+          "required": false,
+          "values": [
+            "included",
+            "optional_add_on",
+            "separate_plan_or_tier",
+            "excluded",
+            "not_applicable",
+            "unknown"
+          ]
+        }
+      }
+    ]
+  },
+  "error": null
+}

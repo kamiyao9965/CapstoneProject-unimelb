@@ -1,0 +1,245 @@
+{
+  "artifact_type": "review_decisions",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-08-25T12:33:11.496530Z",
+  "provenance": {
+    "run_id": null,
+    "provider": null,
+    "model": null,
+    "document_input": null,
+    "source_documents": [],
+    "source_artifacts": []
+  },
+  "data": {
+    "metadata": {
+      "reviewed_at": "2026-08-25T12:33:11.491693+00:00",
+      "reviewer": ""
+    },
+    "decisions": [
+      {
+        "id": "field:annual_multi_trip_max_duration_days",
+        "action": "accept",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:annual_multi_trip_duration_options_days",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:business_benefits",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:overseas_medical_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:specified_items_rules",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:trip_frequency",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:already_travelling_waiting_period_days",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:annual_multi_trip_min_distance_km",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:annual_multi_trip_unlimited_trips",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:area_of_travel_options",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:baggage_delay_min_hours",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:baggage_delay_threshold_hours",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:baggage_limit_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:baggage_sublimits",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:business_leisure_allowance",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cancellation_cover_limit",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:claim_requirements",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:covid19_cover_summary",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:cruise_add_on_required",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:emergency_assistance_details",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:emergency_dental_limit_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:identity_theft",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:leisure_travel_allowance_weeks",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:leisure_travel_included_weeks",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:medical_and_evacuation",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:medical_treatment_in_australia_excluded",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:optional_add_ons",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:personal_accident_benefits",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:personal_accident_combined_limit_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:personal_liability_limit_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:rental_vehicle",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:rental_vehicle_excess_limit_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:security_and_political_evacuation",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:standard_excess_per_event_aud",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:travel_provider_insolvency",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:waiting_periods",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      },
+      {
+        "id": "field:workers_compensation_extension",
+        "action": "reject",
+        "reviewer_notes": "",
+        "edited_update": null
+      }
+    ]
+  },
+  "error": null
+}

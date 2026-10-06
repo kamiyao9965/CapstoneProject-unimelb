@@ -1,0 +1,335 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T14:06:54.165112Z",
+  "provenance": {
+    "run_id": "90c569dfdf1c4a46891821903b2482fd",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/tick/pds/e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6_tick-domestic-travel-insurance-product-disclosure-statement.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "b99d8a43cf05388334f89b5ff287409f86503bac0147269501cbdc385c91877d",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "e077e4744ea27a0f1fd44bb6dc5b46aa9fe9f10446f441b993626c68210f20a6",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "medium",
+    "summary": "Most core plan attribution, eligibility, excess, cancellation, baggage, liability, COVID and cruise values are supported. Actionable issues remain around schema-compliant product_name values, travel delay limits/sub-limits, Basic travel-delay applicability, non-verbatim source_evidence entries, and incomplete optional winter sports add-on limits.",
+    "findings": [
+      {
+        "product_index": 0,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The product_name includes the plan tier “Basic”, although the schema defines product_name as the product/PDS family excluding individual plan tier where possible; the tier is already captured in plan_name.",
+        "source_page": 3,
+        "source_quote": "Tick Domestic Travel Insurance provides cover",
+        "citation_verified": true,
+        "extracted_value": "Tick Domestic Travel Insurance Basic"
+      },
+      {
+        "product_index": 1,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The product_name includes the plan tier “Standard”, although the schema defines product_name as the product/PDS family excluding individual plan tier where possible; the tier is already captured in plan_name.",
+        "source_page": 3,
+        "source_quote": "Tick Domestic Travel Insurance provides cover",
+        "citation_verified": true,
+        "extracted_value": "Tick Domestic Travel Insurance Standard"
+      },
+      {
+        "product_index": 2,
+        "field_name": "product_name",
+        "issue_type": "wrong_value",
+        "reason": "The product_name includes the plan tier “Top”, although the schema defines product_name as the product/PDS family excluding individual plan tier where possible; the tier is already captured in plan_name.",
+        "source_page": 3,
+        "source_quote": "Tick Domestic Travel Insurance provides cover",
+        "citation_verified": true,
+        "extracted_value": "Tick Domestic Travel Insurance Top"
+      },
+      {
+        "product_index": 0,
+        "field_name": "travel_delay_minimum_delay_hours",
+        "issue_type": "wrong_plan",
+        "reason": "Basic has no Section C travel delay cover, so stating a 12-hour minimum delay for this plan is misleading for a benefit that cannot be claimed under Basic.",
+        "source_page": 25,
+        "source_quote": "This section does not apply if you have Tick Domestic Travel Insurance Basic cover.",
+        "citation_verified": true,
+        "extracted_value": 12
+      },
+      {
+        "product_index": 1,
+        "field_name": "travel_delay_limit",
+        "issue_type": "wrong_value",
+        "reason": "The Standard travel delay value appears to conflate the total cap with the per-period sub-limit. The table indicates a per completed 12-hour amount with an overall cap, not “Up to $250 (each completed 12 hours)”.",
+        "source_page": 12,
+        "source_quote": "Up to $50 per",
+        "citation_verified": true,
+        "extracted_value": "Up to $250 (each completed 12 hours)"
+      },
+      {
+        "product_index": 2,
+        "field_name": "travel_delay_limit",
+        "issue_type": "wrong_value",
+        "reason": "The Top travel delay value appears to conflate the total cap with the per-period sub-limit. The table indicates a per completed 12-hour amount with an overall cap, not “Up to $1,000 (each completed 12 hours)”.",
+        "source_page": 12,
+        "source_quote": "Up to $50 per",
+        "citation_verified": true,
+        "extracted_value": "Up to $1,000 (each completed 12 hours)"
+      },
+      {
+        "product_index": 1,
+        "field_name": "sub_limits",
+        "issue_type": "wrong_value",
+        "reason": "The Standard sub-limit entry says $250 applies for each completed 12-hour period, but the source table indicates $50 per completed 12 hours with a cap up to $250.",
+        "source_page": 12,
+        "source_quote": "Up to $50 per",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Single article/pair/set",
+            "amount": "$500",
+            "basis": "Per item/pair/set",
+            "evidence": "Table of Benefits D1 single article",
+            "page": 12
+          },
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Electronics/phones/cameras",
+            "amount": "$2,000",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits D1 electronics sub-limit",
+            "page": 12
+          },
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Valuables",
+            "amount": "$500",
+            "basis": "In total (unspecified valuables)",
+            "evidence": "Table of Benefits D1 valuables",
+            "page": 12
+          },
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Unattended motor vehicle property",
+            "amount": "$500",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits D1 motor vehicle property",
+            "page": 12
+          },
+          {
+            "parent_benefit": "C – Travel delay",
+            "name": "Per 12 hours",
+            "amount": "$250",
+            "basis": "Each completed 12-hour period",
+            "evidence": "Section C and table note",
+            "page": 24
+          },
+          {
+            "parent_benefit": "E – Accidental death and permanent disability",
+            "name": "Death of dependent child/under 18",
+            "amount": "$5,000",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits E",
+            "page": 12
+          }
+        ]
+      },
+      {
+        "product_index": 2,
+        "field_name": "sub_limits",
+        "issue_type": "wrong_value",
+        "reason": "The Top sub-limit entry says $1,000 applies for each completed 12-hour period, but the source table indicates $50 per completed 12 hours with a cap up to $1,000.",
+        "source_page": 12,
+        "source_quote": "Up to $50 per",
+        "citation_verified": true,
+        "extracted_value": [
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Single article/pair/set",
+            "amount": "$750",
+            "basis": "Per item/pair/set",
+            "evidence": "Table of Benefits D1 single article",
+            "page": 12
+          },
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Electronics/phones/cameras",
+            "amount": "$3,000",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits D1 electronics sub-limit",
+            "page": 12
+          },
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Valuables",
+            "amount": "$750",
+            "basis": "In total (unspecified valuables)",
+            "evidence": "Table of Benefits D1 valuables",
+            "page": 12
+          },
+          {
+            "parent_benefit": "D1 – Baggage",
+            "name": "Unattended motor vehicle property",
+            "amount": "$500",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits D1 motor vehicle property",
+            "page": 12
+          },
+          {
+            "parent_benefit": "C – Travel delay",
+            "name": "Per 12 hours",
+            "amount": "$1,000",
+            "basis": "Each completed 12-hour period",
+            "evidence": "Interpreted from Table of Benefits C and section note re per 12 hours",
+            "page": 12
+          },
+          {
+            "parent_benefit": "B3 – Resumption of trip",
+            "name": "Return airfare to resume trip",
+            "amount": "$3,000",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits B3",
+            "page": 12
+          },
+          {
+            "parent_benefit": "E – Accidental death and permanent disability",
+            "name": "Death of dependent child/under 18",
+            "amount": "$5,000",
+            "basis": "Per insured person",
+            "evidence": "Table of Benefits E",
+            "page": 12
+          }
+        ]
+      },
+      {
+        "product_index": 1,
+        "field_name": "source_evidence",
+        "issue_type": "unsupported_claim",
+        "reason": "Some source_evidence quote strings are paraphrases rather than exact PDF text/table cells, despite the field definition requiring exact quotes or table cells.",
+        "source_page": null,
+        "source_quote": null,
+        "citation_verified": false,
+        "extracted_value": [
+          {
+            "fields": [
+              "cancellation_cover_limit",
+              "additional_expenses_or_trip_disruption_limit",
+              "travel_delay_limit",
+              "luggage_limit",
+              "luggage_single_item_limit",
+              "electronics_or_valuables_limit",
+              "luggage_delay_limit",
+              "money_limit",
+              "personal_liability_limit",
+              "personal_accident_limit",
+              "rental_vehicle_excess_limit",
+              "covid_cancellation_or_disruption_limit",
+              "legal_expenses_limit"
+            ],
+            "page": 12,
+            "table_id": "p12-t1",
+            "quote": "Basic / Standard / Top columns including D1 sub-limits and Section amounts."
+          },
+          {
+            "fields": [
+              "personal_liability_limit",
+              "legal_expenses_limit",
+              "rental_vehicle_excess_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 13,
+            "table_id": "p13-t1",
+            "quote": "F Personal liability $1,500,000 (Std/Top); G Legal expenses Nil/ $25,000; H Rental car excess waiver $2,000/$4,000; I COVID-19 $2,500."
+          },
+          {
+            "fields": [
+              "natural_disaster_cover_status",
+              "optional_add_ons"
+            ],
+            "page": 14,
+            "table_id": "p14-t2",
+            "quote": "Standard: A Yes, B1 Yes, B2 Yes under Natural Disaster Cover upgrade."
+          }
+        ]
+      },
+      {
+        "product_index": 2,
+        "field_name": "source_evidence",
+        "issue_type": "unsupported_claim",
+        "reason": "Some source_evidence quote strings are paraphrases rather than exact PDF text/table cells, despite the field definition requiring exact quotes or table cells.",
+        "source_page": null,
+        "source_quote": null,
+        "citation_verified": false,
+        "extracted_value": [
+          {
+            "fields": [
+              "cancellation_cover_limit",
+              "additional_expenses_or_trip_disruption_limit",
+              "travel_delay_limit",
+              "luggage_limit",
+              "luggage_single_item_limit",
+              "electronics_or_valuables_limit",
+              "luggage_delay_limit",
+              "money_limit",
+              "personal_liability_limit",
+              "personal_accident_limit",
+              "rental_vehicle_excess_limit",
+              "covid_cancellation_or_disruption_limit",
+              "legal_expenses_limit",
+              "sub_limits"
+            ],
+            "page": 12,
+            "table_id": "p12-t1",
+            "quote": "Top column including B3 Resumption $3,000; D1 limits; C Travel delay up to $1,000 per 12h; etc."
+          },
+          {
+            "fields": [
+              "personal_liability_limit",
+              "legal_expenses_limit",
+              "rental_vehicle_excess_limit",
+              "covid_cancellation_or_disruption_limit"
+            ],
+            "page": 13,
+            "table_id": "p13-t1",
+            "quote": "F $1,500,000; G $25,000; H $4,000; I $2,500"
+          },
+          {
+            "fields": [
+              "natural_disaster_cover_status",
+              "optional_add_ons"
+            ],
+            "page": 14,
+            "table_id": "p14-t2",
+            "quote": "Top: A Yes, B1 Yes, B2 Yes under Natural Disaster Cover upgrade."
+          }
+        ]
+      },
+      {
+        "product_index": null,
+        "field_name": null,
+        "issue_type": "potential_omission",
+        "reason": "Across the product records, the Winter sports optional add-on is described only generally and omits the listed J1–J6 benefit limits, although optional_add_ons is expected to capture limit changes where available.",
+        "source_page": 14,
+        "source_quote": "J1 | Winter sports equipment | $1,250",
+        "citation_verified": true,
+        "extracted_value": null
+      }
+    ]
+  },
+  "error": null
+}

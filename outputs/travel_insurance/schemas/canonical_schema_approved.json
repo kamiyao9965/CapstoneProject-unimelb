@@ -1,0 +1,604 @@
+{
+  "contract_version": "1.0.0",
+  "vertical": "travel_insurance",
+  "version": "v0.5-2026-08-25-canonical-candidate",
+  "status": "approved",
+  "description": "Canonical candidate derived from v0.5-2026-08-25: Reusable extraction schema for Australian travel insurance PDSs supporting comparison across insurers and plan tiers. Designed to emit one product record per distinct plan/variant described in a PDS. Tables are first-class evidence sources.",
+  "review": {
+    "reviewed_by": "James",
+    "reviewed_at": "2026-08-25T12:48:33.795648+00:00",
+    "rationale": "Approved as a pilot hybrid Canonical Schema after reviewing product identity,\nfield types and PostgreSQL mappings. Stable identity and comparison fields use\ncore or extension columns. Evolving long-tail insurance attributes remain in\nJSONB pending broader cross-insurer validation. Required nullable fields mean\nthe key must be present while unknown values may remain null."
+  },
+  "output": {
+    "collection": "products",
+    "cardinality": "multiple",
+    "document_notes_field": "_document_notes"
+  },
+  "identity": {
+    "product_name_field": "product_name",
+    "product_type_field": "product_type"
+  },
+  "extension": {
+    "entity": "travel_product_details",
+    "table": "travel_product_details",
+    "attributes_column": "attributes"
+  },
+  "fields": [
+    {
+      "name": "product_name",
+      "type": "string",
+      "description": "The marketing product/series name on the PDS (e.g., International Comprehensive; International Plans).",
+      "required": true,
+      "nullable": false,
+      "values": [],
+      "aliases": [
+        "series_name",
+        "range_name"
+      ],
+      "storage": {
+        "strategy": "core_column",
+        "target": "products.canonical_name"
+      }
+    },
+    {
+      "name": "product_type",
+      "type": "enum",
+      "description": "Classifier indicating the plan’s core product category derived from geographic scope and trip frequency. Use international_single_trip for one-off international trips; international_multi_trip for annual multi-trip; domestic for Australia-only trip cover; inbound for non-residents travelling to/within Australia; business when a distinct business pack/plan is marketed; cruise when a distinct cruise-only plan is marketed (not just an optional add-on).",
+      "required": true,
+      "nullable": false,
+      "values": [
+        "international_single_trip",
+        "international_multi_trip",
+        "domestic",
+        "inbound",
+        "business",
+        "cruise"
+      ],
+      "aliases": [
+        "plan_category",
+        "policy_type",
+        "cover_type",
+        "trip_type"
+      ],
+      "storage": {
+        "strategy": "core_column",
+        "target": "product_releases.source_product_type"
+      }
+    },
+    {
+      "name": "insurer_name",
+      "type": "string",
+      "description": "Insurer legal entity name on the PDS (issuer/underwriter).",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "issuer",
+        "underwriter",
+        "insurer"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "insurer_licence_ids",
+      "type": "string",
+      "description": "Issuer identifiers and licensing: ABN, AFSL, company number as printed.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "abn_afsl",
+        "licence_numbers"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "brand_or_trading_name",
+      "type": "string",
+      "description": "Trading/brand name used to market the policy (e.g., Southern Cross Travel Insurance, Cover-More).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "brand",
+        "trading_as",
+        "distribution_brand"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "plan_tier",
+      "type": "string",
+      "description": "Plan or tier label as sold (e.g., Basic, Comprehensive, Comprehensive+).",
+      "required": true,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "tier",
+        "level",
+        "plan_name"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "pds_title",
+      "type": "string",
+      "description": "Exact PDS document title as printed.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "document_title"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "pds_effective_date",
+      "type": "string",
+      "description": "PDS effective or issue date printed on the document.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "effective_date",
+        "issue_date",
+        "version_date"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "document_source_id",
+      "type": "string",
+      "description": "Source document locator (file path, URL, hash) used during extraction.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "document_id",
+        "pdf_hash",
+        "source_path",
+        "url"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "trip_frequency",
+      "type": "enum",
+      "description": "Trip frequency classification as marketed.",
+      "required": false,
+      "nullable": true,
+      "values": [
+        "single_trip",
+        "annual_multi_trip"
+      ],
+      "aliases": [
+        "policy_term",
+        "journey_type"
+      ],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "trip_frequency"
+      }
+    },
+    {
+      "name": "annual_multi_trip_max_duration_days",
+      "type": "number",
+      "description": "Maximum journey duration allowed per trip for Annual Multi‑Trip (days).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "max_trip_length_days",
+        "journey_duration_limit_days"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "area_of_travel_options",
+      "type": "list[object]",
+      "description": "Geographic scope/areas of travel selection options as described (e.g., Worldwide, All of Europe, All of Asia, Australia).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "regions",
+        "destinations_selection",
+        "areas_of_travel"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "cruise_add_on_required",
+      "type": "boolean",
+      "description": "Whether cruise-related claims require purchasing an add-on. true if multi-night cruise cover is an optional add-on that must be selected and paid for to enable cruise-related benefits.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "cruise_cover_required",
+        "must_add_cruise"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "eligibility_summary",
+      "type": "string",
+      "description": "Eligibility and residency criteria summary (e.g., live in Australia permanently; Medicare eligible; return to Australia; inbound non-resident conditions).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "who_can_buy",
+        "residency_requirements",
+        "eligibility_rules"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "age_limits",
+      "type": "string",
+      "description": "Minimum and maximum age or age rules for cover and any age-banded benefits (e.g., personal accident payable ages 16–80).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "age_eligibility"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "dependent_children_policy",
+      "type": "string",
+      "description": "Dependent children covered without extra premium; qualifying criteria.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "kids_travel_free",
+        "dependent_children_included"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "pre_existing_medical_cover",
+      "type": "string",
+      "description": "Pre-existing medical conditions: whether automatic conditions are included, assessment required, exclusions for undiagnosed symptoms, pregnancy weeks covered and restrictions.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "pemc",
+        "medical_assessment_rules",
+        "pregnancy_cover"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "excess_options_aud",
+      "type": "list[object]",
+      "description": "Excess options a customer can select (AUD). Include notes on when excess applies once per event and any zero-excess option if stated.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "policy_excess",
+        "deductible_options"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "special_excesses",
+      "type": "list[object]",
+      "description": "Special excesses that override the standard excess (e.g., COVID-19 special excess by section). Represent as objects: {section, amount_aud, when_applies}.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "additional_excess",
+        "covid_special_excess"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "cancellation_cover_limit",
+      "type": "string",
+      "description": "Cancellation cover amount. For products where the customer chooses an amount, store 'selected_amount' with any min/max/steps; otherwise store the fixed/maximum limit.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "amendment_or_cancellation_costs",
+        "trip_cancellation_limit"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "overseas_medical_limit",
+      "type": "string",
+      "description": "Overseas medical cover headline limit (e.g., Unlimited). Include time caps if stated (e.g., up to 12 months from onset).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "medical_and_hospital_limit",
+        "medical_and_evacuation"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "emergency_dental_limit_aud",
+      "type": "number",
+      "description": "Emergency dental limit per person.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "dental_emergency_limit"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "baggage_limit_aud",
+      "type": "number",
+      "description": "Baggage/personal effects overall limit per person.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "luggage_limit",
+        "baggage_and_personal_items_limit"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "baggage_sublimits",
+      "type": "list[object]",
+      "description": "Baggage common sub-limits (e.g., phones, cameras, laptops, jewellery). Represent as objects: {item_category, per_item_limit_aud, aggregate_cap_aud_if_any}.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "item_limits",
+        "per_item_limits"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "specified_items_rules",
+      "type": "string",
+      "description": "Whether customers can increase item limits or specify items and the total/ per-item caps for specified items.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "increase_item_limit",
+        "specified_items"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "rental_vehicle_excess_limit_aud",
+      "type": "number",
+      "description": "Rental vehicle insurance excess benefit limit per person.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "rental_car_excess_cover",
+        "rental_vehicle_excess"
+      ],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "rental_vehicle_excess_limit_aud"
+      }
+    },
+    {
+      "name": "rental_vehicle_comprehensive_cover",
+      "type": "string",
+      "description": "Whether a comprehensive rental vehicle cover extension is included (beyond excess) and any key caps (e.g., CDW for USA/Canada, vehicle value limits).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "rental_vehicle_full_cover",
+        "collision_damage_waiver_extension"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "personal_liability_limit_aud",
+      "type": "number",
+      "description": "Personal liability maximum cover per person.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "third_party_liability_limit"
+      ],
+      "storage": {
+        "strategy": "extension_column",
+        "column": "personal_liability_limit_aud"
+      }
+    },
+    {
+      "name": "personal_accident_benefits",
+      "type": "list[object]",
+      "description": "Personal accident benefits: include components such as loss_of_income (weekly cap, max weeks), total_permanent_disablement, accidental_death. Represent as objects with fields {component, amount_aud, per_week_aud_if_applicable, max_weeks, age_applicability}.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "accidental_injury_benefits",
+        "death_and_disablement"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "covid19_cover_summary",
+      "type": "string",
+      "description": "COVID-19 coverage summary: which sections are covered (medical, cancellation before/after departure, additional expenses), notable sub-limits and compulsory special excesses.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "covid_cover",
+        "pandemic_cover"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "waiting_periods",
+      "type": "string",
+      "description": "Key waiting periods or deferrals (e.g., loss of income waiting days; already travelling 3-day no-cover period if applicable).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "deferral_periods"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "general_exclusions_summary",
+      "type": "string",
+      "description": "General exclusions headline list or section references (e.g., terrorism limits, travel advisories, private treatment, activities).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "major_exclusions",
+        "exclusions_section_refs"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "optional_add_ons",
+      "type": "list[object]",
+      "description": "Optional add-ons available for the plan (e.g., cruise cover, skiing/snowboarding, motorcycle/moped, adventure activities packs, business pack, cancellation plus, specified items).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "options_to_vary_cover",
+        "add_ons"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "emergency_assistance_details",
+      "type": "string",
+      "description": "24/7 emergency assistance contact details and any triage/approval thresholds (e.g., call if admitted, surgery, or costs over $2,000).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "assistance_contact",
+        "medical_assistance"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "claim_requirements",
+      "type": "string",
+      "description": "Claim reporting requirements (e.g., report theft to police within 7 days, PIR required, provide receipts, lodge within 60 days).",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "claims_process",
+        "claims_evidence_requirements"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "benefits",
+      "type": "list[object]",
+      "description": "Consolidated benefit entries normalised across insurers. Each object should include {category (use coverage_categories.canonical_name), benefit_name, limit_per_person, limit_per_policy, sub_limits[], per_day_amount_if_any, excess_applicable (yes/no/notes), conditions, page_or_table_ref}.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "benefits_table",
+        "cover_summary"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    },
+    {
+      "name": "source_evidence",
+      "type": "list[object]",
+      "description": "Structured evidence links used for extraction. Each object should include {field_name, source_type (text/table), page, table_id, evidence_excerpt}.",
+      "required": false,
+      "nullable": true,
+      "values": [],
+      "aliases": [
+        "evidence",
+        "citations"
+      ],
+      "storage": {
+        "strategy": "jsonb"
+      }
+    }
+  ]
+}

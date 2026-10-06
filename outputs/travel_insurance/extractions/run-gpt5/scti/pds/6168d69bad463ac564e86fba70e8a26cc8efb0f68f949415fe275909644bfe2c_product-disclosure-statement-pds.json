@@ -1,0 +1,1039 @@
+{
+  "vertical": "travel_insurance",
+  "schema_version": "1.0.0-canonical-candidate",
+  "source_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+  "extracted_at": "2026-09-15T15:59:15+00:00",
+  "provider": "openai",
+  "model": "gpt-5",
+  "document_parser": "mineru",
+  "data": {
+    "products": [
+      {
+        "product_type": "international_multi_trip",
+        "brand_name": "Southern Cross Travel Insurance",
+        "insurer_name": "Southern Cross Benefits Limited (AFS Licence 331058), trading as Southern Cross Travel Insurance (SCTI)",
+        "issuer_or_agent_name": "Southern Cross Benefits Limited trading as Southern Cross Travel Insurance (SCTI)",
+        "product_name": "Southern Cross International Comprehensive Annual Multi-Trip",
+        "plan_name": "International Comprehensive",
+        "cover_level": null,
+        "pds_title": "International Comprehensive – Annual Multi-Trip: Your travel insurance product disclosure statement",
+        "pds_effective_date": "Effective from 12 July 2025",
+        "pds_prepared_or_version_date": null,
+        "geographic_scope": "International journeys to destinations outside Australia. You must select covered destinations (transit stops under 48 hours automatically included). Medical treatment in Australia not covered unless on an international cruise with Cruise add-on. No cover for cruises staying only in Australian waters.",
+        "trip_frequency": "annual_multi_trip",
+        "annual_unlimited_trips": true,
+        "maximum_trip_duration_options": "30/60/90 days per journey (selectable)",
+        "maximum_trip_duration_days": null,
+        "policy_period_months": 12,
+        "minimum_distance_from_home_km": null,
+        "paid_accommodation_exception": null,
+        "eligibility_rules": "Must live in Australia permanently; be eligible for Medicare; travel to a destination outside Australia; return to Australia after each journey; not have been refused cover/claim declined/policy cancelled or voided due to fraud; have access to an email address. You must check Smartraveller advisories before purchase and before travel; cover is affected by ‘Do not travel’/‘Reconsider your need to travel’ advisories.",
+        "minimum_age_years": null,
+        "maximum_age_years": null,
+        "dependent_child_age_limit_years": 21,
+        "age_eligibility_notes": "Personal Accident benefits apply only for ages 16–80 at policy start. Relevant person claims are not available if the relevant person is over 85 before the date insurance was issued. Dependent children covered if under 21 and not in full-time employment. Loss of Income benefit has a 30-day waiting period after planned return and pays for up to 13 weeks.",
+        "already_travelling_or_overseas_available": null,
+        "waiting_period_hours": null,
+        "waiting_period_rules": [
+          {
+            "benefit_section": "D.1.3 Cash allowance while in hospital",
+            "waiting_period": "3 consecutive days inpatient hospital stay",
+            "trigger_start": "From admission; consecutive days threshold before benefit payable",
+            "exceptions": "Must otherwise meet medical cover conditions",
+            "evidence": {
+              "page": 9,
+              "quote": "D.1.3 Cash allowance while in hospital (after 3 consecutive days) — $100 for each day, $3,000 for each person"
+            }
+          }
+        ],
+        "cooling_off_period_days": 14,
+        "policy_cancellation_refund_terms": "Full refund if cancelled within 14 days and travel has not started and no claim made. After 14 days, full refund still available provided the first journey has not started and no claim is made.",
+        "excess_options": "Excess is selectable when you apply (including nil excess option; premium may be higher for nil). One excess applies per unexpected event even if multiple sections are claimed. No excess applies to: D.1.5 Funeral expenses or return of mortal remains; D.5 Personal accident; D.6 Personal liability; D.7 Rental vehicle excess.",
+        "standard_excess_aud": null,
+        "excess_rules": [
+          {
+            "benefit_section": "General (most sections)",
+            "excess_applies": true,
+            "amount": "Chosen excess (per unexpected event)",
+            "basis": "Per unexpected event (not per section)",
+            "evidence": {
+              "page": 14,
+              "quote": "We only subtract one excess for each unexpected event... You won’t pay an excess on the following benefits: D.1.5, D.5, D.6, D.7."
+            }
+          },
+          {
+            "benefit_section": "D.1.5 Funeral expenses or return of mortal remains",
+            "excess_applies": false,
+            "amount": "No excess",
+            "basis": "Per claim",
+            "evidence": {
+              "page": 40,
+              "quote": "We won’t subtract an excess from claims we pay under this section."
+            }
+          },
+          {
+            "benefit_section": "D.5 Personal accident (all sub-benefits)",
+            "excess_applies": false,
+            "amount": "No excess",
+            "basis": "Per claim",
+            "evidence": {
+              "page": 71,
+              "quote": "We won’t subtract an excess from claims we pay under any benefit in this section."
+            }
+          },
+          {
+            "benefit_section": "D.6 Personal liability",
+            "excess_applies": false,
+            "amount": "No excess",
+            "basis": "Per claim",
+            "evidence": {
+              "page": 74,
+              "quote": "We won’t subtract an excess from claims we pay under this section."
+            }
+          },
+          {
+            "benefit_section": "D.7 Rental vehicle excess",
+            "excess_applies": false,
+            "amount": "No excess",
+            "basis": "Per claim",
+            "evidence": {
+              "page": 76,
+              "quote": "We won’t subtract our own excess from claims we pay under this section."
+            }
+          }
+        ],
+        "emergency_medical_limit": "Unlimited",
+        "emergency_dental_limit": "$2,000 per person per journey",
+        "cancellation_cover_limit": "Standard $2,500 per person per journey; optional increase to $5,000, $10,000 or Unlimited",
+        "cancellation_cover_selectable": true,
+        "additional_expenses_or_trip_disruption_limit": "D.3 Changes once you have left: up to $50,000 per person per journey. Sub-limits: D.3.1 Travel interruption $30,000; D.3.2 Cutting your journey short $50,000; D.3.3 Delayed journey to a special event additional $2,500 per person.",
+        "travel_delay_limit": null,
+        "luggage_limit": "$25,000 per person per journey",
+        "luggage_single_item_limit": "$1,500 per item (other unspecified items)",
+        "electronics_or_valuables_limit": "Unspecified mobile phones, laptops, tablets, cameras: $3,000 per item; up to $10,000 total per person",
+        "luggage_delay_limit": "$1,000 per person per journey (checked-in baggage delayed >12 hours)",
+        "travel_documents_limit": "$1,000 per person per journey (bank cards, travel documents and passports)",
+        "money_limit": "$500 per person per journey (lost or stolen cash)",
+        "rental_vehicle_excess_limit": "$10,000 per person per journey",
+        "personal_liability_limit": "$1,000,000 per person per journey",
+        "personal_accident_limit": "$50,000 per injured/deceased person (ages 16–80)",
+        "loss_of_income_limit": "$500 per week up to $6,500 per injured person; 30-day waiting period from planned return; up to 13 weeks",
+        "covid_cover_available": true,
+        "covid_medical_limit": null,
+        "covid_cancellation_or_disruption_limit": null,
+        "covid_cover_summary": "COVID-19 is covered as an unexpected event under applicable benefits, subject to standard conditions and sub-limits. No cover for government restrictions/lockdowns/quarantines or general pandemic exclusions where listed (e.g., certain cancellation/change claims exclude epidemics/pandemics).",
+        "cruise_cover_status": "optional_add_on",
+        "cruise_cover_required_for_cruises": true,
+        "cruise_benefits": [
+          {
+            "benefit_name": "Cruise cover (international)",
+            "included": false,
+            "limit": "Extends existing section limits when purchased",
+            "conditions": "Must be a fare‑paying passenger; cruise operated by a licensed passenger service or tour operator; cruise must travel to an overseas destination or international waters.",
+            "exclusions": "No cover for cruises that stay only in Australian waters; section-specific exclusions still apply.",
+            "evidence": {
+              "page": 82,
+              "quote": "You can add optional cover... when you take a cruise... you must choose the cruise option and pay the extra premium."
+            }
+          }
+        ],
+        "optional_add_ons": [
+          {
+            "name": "Moped and motorbike cover",
+            "availability": "Optional add-on",
+            "limit_changes": "Extends existing section cover while riding a moped/motorbike; rental vehicle excess can apply to mopeds/motorbikes up to 200cc if selected.",
+            "eligibility_rules": "Helmet must be worn; comply with local laws and licence requirements; engine ≤200cc (or ≤15kW for electric).",
+            "exclusions": "No cover for >200cc, racing, competitions, professional use; no Personal Liability cover for motorbike incidents.",
+            "evidence": {
+              "page": 78,
+              "quote": "You can add optional cover... when you’re riding a moped or motorbike... helmet, laws, licence, ≤200cc."
+            }
+          },
+          {
+            "name": "Skiing and snowboarding cover",
+            "availability": "Optional add-on",
+            "limit_changes": "Extends existing section cover while skiing/snowboarding.",
+            "eligibility_rules": "Must wear a helmet; follow rules of a commercial ski area.",
+            "exclusions": "No cover off-piste/outside designated open areas; racing; competitions; professional guiding/instructing.",
+            "evidence": {
+              "page": 80,
+              "quote": "You can add optional cover... skiing or snowboarding... wear a helmet; follow rules of the commercial ski area."
+            }
+          },
+          {
+            "name": "Cruise cover",
+            "availability": "Optional add-on",
+            "limit_changes": "Existing section limits apply to cruise claims (e.g., chosen cancellation amount).",
+            "eligibility_rules": "Fare‑paying passenger; licensed operator; cruise to overseas destination or international waters.",
+            "exclusions": "Cruises only in Australian waters not covered.",
+            "evidence": {
+              "page": 82,
+              "quote": "You can add optional cover... for cruises... only when travelling to an overseas destination (including international waters)."
+            }
+          }
+        ],
+        "coverage_benefits": [
+          {
+            "category": "Emergency medical and evacuation",
+            "section": "D.1 / D.1.1",
+            "included": true,
+            "limit_text": "Unlimited",
+            "excess_applies": true,
+            "conditions": "Must contact Southern Cross Emergency Assistance for hospital admission, surgery or when expenses expected to exceed $2,000.",
+            "exclusions": "No medical treatment in Australia unless on an international cruise with Cruise add-on; other D.1.6 and General Exclusions apply.",
+            "evidence": {
+              "page": 9,
+              "table_id": "p9-t1",
+              "quote": "D.1 Medical and evacuation — Unlimited"
+            }
+          },
+          {
+            "category": "Emergency dental",
+            "section": "D.1.2",
+            "included": true,
+            "limit_text": "$2,000 per person per journey",
+            "excess_applies": true,
+            "conditions": "Emergency dental to relieve sudden and acute pain or to treat teeth/dentures damaged by injury; dentist report required.",
+            "evidence": {
+              "page": 38,
+              "quote": "We pay up to $2,000 for each person for each journey."
+            }
+          },
+          {
+            "category": "Hospital cash",
+            "section": "D.1.3",
+            "included": true,
+            "limit_text": "$100 per day up to $3,000 per person per journey",
+            "excess_applies": true,
+            "conditions": "Inpatient for more than 3 consecutive days; medical treatment otherwise covered or would be covered under policy.",
+            "evidence": {
+              "page": 9,
+              "table_id": "p9-t1",
+              "quote": "Cash allowance while in hospital (after 3 consecutive days) — $100 for each day, $3,000 for each person"
+            }
+          },
+          {
+            "category": "Accompanying person",
+            "section": "D.1.4",
+            "included": true,
+            "limit_text": "Unlimited for each person",
+            "excess_applies": true,
+            "conditions": "Travelling alone and hospitalised for >10 consecutive days; covers accompanying person’s economy return flights, transfers, accommodation and meals.",
+            "evidence": {
+              "page": 9,
+              "table_id": "p9-t1",
+              "quote": "D.1.4 Accompanying person... Unlimited for each person"
+            }
+          },
+          {
+            "category": "Funeral expenses / return of mortal remains",
+            "section": "D.1.5",
+            "included": true,
+            "limit_text": "$50,000 per deceased person",
+            "excess_applies": false,
+            "conditions": "Covers burial/cremation or return of remains; return flights for immediate family member to arrange.",
+            "evidence": {
+              "page": 40,
+              "quote": "We pay up to $50,000 to the estate of each deceased person. We won’t subtract an excess..."
+            }
+          },
+          {
+            "category": "Cancellation (pre-departure)",
+            "section": "D.2",
+            "included": true,
+            "limit_text": "Standard $2,500 per person per journey (selectable to $5,000, $10,000, Unlimited)",
+            "excess_applies": true,
+            "conditions": "Pays higher of unused prepaid costs or additional costs, less refunds/credits; sub-limits apply for relevant person and special event.",
+            "exclusions": "See D.2.4 (e.g., epidemics/pandemics, terrorism, financial collapse).",
+            "evidence": {
+              "page": 41,
+              "quote": "Standard cover is $2,500... you can pay extra for $5,000, $10,000 or unlimited cover."
+            }
+          },
+          {
+            "category": "Trip interruption (on-trip)",
+            "section": "D.3.1",
+            "included": true,
+            "limit_text": "$30,000 per person per journey (overall D.3 max $50,000)",
+            "excess_applies": true,
+            "conditions": "Pays higher of unused prepaid or additional costs; covers first 30 days of delay after the event.",
+            "evidence": {
+              "page": 48,
+              "quote": "We pay you up to $30,000 for each person for each journey."
+            }
+          },
+          {
+            "category": "Cutting journey short",
+            "section": "D.3.2",
+            "included": true,
+            "limit_text": "$50,000 per person per journey",
+            "excess_applies": true,
+            "conditions": "Pays higher of unused prepaid or additional costs; refunds deducted.",
+            "evidence": {
+              "page": 51,
+              "quote": "We pay you up to $50,000 for each person for each journey."
+            }
+          },
+          {
+            "category": "Special event (pre/post departure)",
+            "section": "D.2.2 / D.3.3",
+            "included": true,
+            "limit_text": "Additional $2,500 per person per journey",
+            "excess_applies": true,
+            "conditions": "To arrive for a special event when offered alternative is unreasonable timing only for the event; still subject to refunds deduction.",
+            "evidence": {
+              "page": 41,
+              "quote": "for D.2.2... up to an extra $2,500"
+            },
+            "additional_evidence": {
+              "page": 48,
+              "quote": "for D.3.3... up to an extra $2,500"
+            }
+          },
+          {
+            "category": "Baggage & personal items",
+            "section": "D.4",
+            "included": true,
+            "limit_text": "$25,000 per person per journey",
+            "excess_applies": true,
+            "conditions": "Proof of journey, care, ownership and value required; depreciation may apply to unspecified and some specified without proof; extensive unattended/vehicle/checked-in valuables restrictions.",
+            "evidence": {
+              "page": 58,
+              "quote": "The maximum amount we pay... $25,000 for each person for each journey."
+            }
+          },
+          {
+            "category": "Baggage delay",
+            "section": "D.4.3",
+            "included": true,
+            "limit_text": "$1,000 per person per journey",
+            "excess_applies": true,
+            "conditions": "Checked baggage delayed >12 hours at destination; receipts and delay report required; not on return to Australia.",
+            "evidence": {
+              "page": 63,
+              "quote": "We pay... up to $1,000... baggage delayed for more than 12 hours... not on your return to Australia."
+            }
+          },
+          {
+            "category": "Essential medication",
+            "section": "D.4.4",
+            "included": true,
+            "limit_text": "$500 per person per journey",
+            "excess_applies": true,
+            "conditions": "Prescription medication for covered conditions only; proof of necessity and loss required.",
+            "evidence": {
+              "page": 64,
+              "quote": "We’ll pay up to $500 for each person for each journey."
+            }
+          },
+          {
+            "category": "Travel documents/cards/passports",
+            "section": "D.4.5",
+            "included": true,
+            "limit_text": "$1,000 per person per journey",
+            "excess_applies": true,
+            "conditions": "Proof of ownership and replacement cost; keep damaged items where possible.",
+            "evidence": {
+              "page": 65,
+              "quote": "We’ll pay up to $1,000 for each person for each journey."
+            }
+          },
+          {
+            "category": "Cash",
+            "section": "D.4.6",
+            "included": true,
+            "limit_text": "$500 per person per journey",
+            "excess_applies": true,
+            "conditions": "Proof of withdrawal/exchange; general baggage conditions apply.",
+            "evidence": {
+              "page": 66,
+              "quote": "We’ll pay up to $500 for each person for each journey."
+            }
+          },
+          {
+            "category": "Personal accident – Loss of income",
+            "section": "D.5.1",
+            "included": true,
+            "limit_text": "$500 per week up to $6,500 (16–80 years)",
+            "excess_applies": false,
+            "conditions": "Injury on journey; 30-day waiting period after planned return; max 13 weeks; evidence of full-time employment required.",
+            "evidence": {
+              "page": 71,
+              "quote": "We’ll pay you up to $500 a week, up to $6,500... We won’t subtract an excess..."
+            }
+          },
+          {
+            "category": "Personal accident – TPD",
+            "section": "D.5.2",
+            "included": true,
+            "limit_text": "$50,000 per injured person (16–80 years)",
+            "excess_applies": false,
+            "evidence": {
+              "page": 72,
+              "quote": "We’ll pay you a lump sum amount of $50,000 for each injured person..."
+            }
+          },
+          {
+            "category": "Personal accident – Loss of life",
+            "section": "D.5.3",
+            "included": true,
+            "limit_text": "$50,000 per deceased person (16–80 years)",
+            "excess_applies": false,
+            "evidence": {
+              "page": 73,
+              "quote": "We’ll pay your estate a lump sum amount of $50,000..."
+            }
+          },
+          {
+            "category": "Personal liability",
+            "section": "D.6",
+            "included": true,
+            "limit_text": "$1,000,000 per person per journey",
+            "excess_applies": false,
+            "conditions": "Legal liability for injury/damage caused by your negligence; excludes vehicles/aircraft/watercraft in your control and many other scenarios.",
+            "evidence": {
+              "page": 74,
+              "quote": "We’ll pay up to $1,000,000 for each person for each journey. We won’t subtract an excess..."
+            }
+          },
+          {
+            "category": "Rental vehicle excess",
+            "section": "D.7",
+            "included": true,
+            "limit_text": "$10,000 per person per journey (excess/deductible only)",
+            "excess_applies": false,
+            "conditions": "Licensed rental company; standard motor vehicle/motorhome up to 8 seats, or moped/motorbike ≤200cc if add-on selected; follow laws and rental agreement; on-road use only.",
+            "evidence": {
+              "page": 76,
+              "quote": "You can claim up to $10,000 for each person for each journey. This is not a replacement for rental vehicle insurance."
+            }
+          }
+        ],
+        "sub_limits": [
+          {
+            "parent_benefit": "D.1 Medical and evacuation",
+            "sub_limit_name": "Emergency dental",
+            "amount": "$2,000 per person per journey",
+            "basis": "Per person",
+            "evidence": {
+              "page": 9,
+              "table_id": "p9-t1"
+            }
+          },
+          {
+            "parent_benefit": "D.1 Medical and evacuation",
+            "sub_limit_name": "Hospital cash allowance",
+            "amount": "$100 per day up to $3,000 per person",
+            "basis": "Per person; per day",
+            "evidence": {
+              "page": 9,
+              "table_id": "p9-t1"
+            }
+          },
+          {
+            "parent_benefit": "D.1 Medical and evacuation",
+            "sub_limit_name": "Accompanying person (travelling alone; >10 consecutive days in hospital)",
+            "amount": "Unlimited for each person",
+            "basis": "Per person",
+            "evidence": {
+              "page": 9,
+              "table_id": "p9-t1"
+            }
+          },
+          {
+            "parent_benefit": "D.1 Medical and evacuation",
+            "sub_limit_name": "Funeral expenses or return of mortal remains",
+            "amount": "$50,000 per deceased person",
+            "basis": "Per deceased person",
+            "evidence": {
+              "page": 40,
+              "quote": "We pay up to $50,000..."
+            }
+          },
+          {
+            "parent_benefit": "D.2 Cancellation (pre-departure)",
+            "sub_limit_name": "Existing condition of a relevant person",
+            "amount": "$2,500 per person per journey",
+            "basis": "Per person",
+            "evidence": {
+              "page": 41,
+              "quote": "for any claim... involving the existing condition of a relevant person, we pay up to $2,500..."
+            }
+          },
+          {
+            "parent_benefit": "D.2 Cancellation (pre-departure)",
+            "sub_limit_name": "Special event (additional)",
+            "amount": "Additional $2,500 per person per journey",
+            "basis": "Per person",
+            "evidence": {
+              "page": 41,
+              "quote": "for any claim under D.2.2 ... up to an extra $2,500..."
+            }
+          },
+          {
+            "parent_benefit": "D.3 Changes once you have left",
+            "sub_limit_name": "Overall section maximum",
+            "amount": "$50,000 per person per journey",
+            "basis": "Per person",
+            "evidence": {
+              "page": 48,
+              "quote": "The maximum amount we pay... is $50,000 for each person..."
+            }
+          },
+          {
+            "parent_benefit": "D.3.1 Travel interruption",
+            "sub_limit_name": "Sub-limit within D.3",
+            "amount": "$30,000 per person per journey",
+            "basis": "Per person",
+            "evidence": {
+              "page": 48,
+              "quote": "We pay you up to $30,000..."
+            }
+          },
+          {
+            "parent_benefit": "D.3.3 Special event (on-trip)",
+            "sub_limit_name": "Additional special event cover",
+            "amount": "Additional $2,500 per person per journey",
+            "basis": "Per person",
+            "evidence": {
+              "page": 48,
+              "quote": "we pay up to an extra $2,500..."
+            }
+          },
+          {
+            "parent_benefit": "D.3.4 Pet services",
+            "sub_limit_name": "Daily/overall limits",
+            "amount": "$100 per day up to $1,000 per person",
+            "basis": "Per person; per day",
+            "evidence": {
+              "page": 54,
+              "quote": "We pay up to $100 for each day and up to $1,000 for each person..."
+            }
+          },
+          {
+            "parent_benefit": "D.3.5 Childcare expenses",
+            "sub_limit_name": "Daily/overall limits",
+            "amount": "$100 per day up to $1,000 per person",
+            "basis": "Per person; per day",
+            "evidence": {
+              "page": 55,
+              "quote": "We pay up to $100 for each day and up to $1,000 for each person..."
+            }
+          },
+          {
+            "parent_benefit": "D.4 Baggage and personal items",
+            "sub_limit_name": "Unspecified jewellery & watches",
+            "amount": "$1,500 per item; up to $2,500 for all such items per person",
+            "basis": "Per item; per person aggregate",
+            "evidence": {
+              "page": 10,
+              "quote": "$1,500 for each item for each person; Up to $2,500 for all items for each person (jewellery & watches)"
+            }
+          },
+          {
+            "parent_benefit": "D.4 Baggage and personal items",
+            "sub_limit_name": "Unspecified mobiles, laptops, tablets, cameras (+ accessories)",
+            "amount": "$3,000 per item; up to $10,000 for all such items per person",
+            "basis": "Per item; per person aggregate",
+            "evidence": {
+              "page": 10,
+              "quote": "$3,000 for each item... Up to $10,000 for all items for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.4 Baggage and personal items",
+            "sub_limit_name": "Other unspecified items",
+            "amount": "$1,500 per item per person",
+            "basis": "Per item",
+            "evidence": {
+              "page": 10,
+              "quote": "$1,500 for each item for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.4.2 Specified items",
+            "sub_limit_name": "Per item / total specified",
+            "amount": "$10,000 per item; $15,000 total per person",
+            "basis": "Per item; per person aggregate",
+            "evidence": {
+              "page": 11,
+              "quote": "$10,000 for each item... $15,000 for all items for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.4.3 Baggage delay",
+            "sub_limit_name": "Essential clothing & toiletries",
+            "amount": "$1,000 per person",
+            "basis": "Per person",
+            "evidence": {
+              "page": 11,
+              "quote": "Baggage delay during your journey — $1,000 for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.4.4 Essential medication",
+            "sub_limit_name": "Medication for covered conditions",
+            "amount": "$500 per person",
+            "basis": "Per person",
+            "evidence": {
+              "page": 11,
+              "quote": "Essential medication — $500 for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.4.5 Bank cards, travel documents, passports",
+            "sub_limit_name": "Replacement costs",
+            "amount": "$1,000 per person",
+            "basis": "Per person",
+            "evidence": {
+              "page": 11,
+              "quote": "...passports — $1,000 for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.4.6 Cash",
+            "sub_limit_name": "Lost or stolen cash",
+            "amount": "$500 per person",
+            "basis": "Per person",
+            "evidence": {
+              "page": 11,
+              "quote": "Lost or stolen cash — $500 for each person"
+            }
+          },
+          {
+            "parent_benefit": "D.5 Personal accident",
+            "sub_limit_name": "Loss of income",
+            "amount": "$500 per week up to $6,500",
+            "basis": "Per injured person",
+            "evidence": {
+              "page": 11,
+              "quote": "Loss of income — $6,500 for each injured person ($500 for each week)"
+            }
+          }
+        ],
+        "limit_basis_notes": "Unless stated otherwise: limits apply per person per journey. Many sub-limits apply per item/pair/set and/or have aggregate caps per person. On an annual policy, limits reset for each new journey.",
+        "annual_limit_reinstatement": true,
+        "pre_existing_medical_cover_status": "covered_if_screened_and_approved",
+        "medical_assessment_required": true,
+        "pre_existing_medical_conditions_summary": "No automatic cover for any pre-existing medical conditions. Cover may be offered if you complete a medical assessment, disclose all diagnosed conditions/changes, and pay any extra premium; otherwise those conditions are excluded. Undiagnosed symptoms are not covered. Pregnancy complications in the last 3 years are treated as pre-existing and require assessment for cover.",
+        "pregnancy_cover_summary": "Automatic cover for pregnancy-related claims up to 24 weeks’ gestation (single or multiple, including fertility treatment) if no prior complications before purchase. Covers overseas childbirth up to 23 weeks 6 days and neonatal care until return to Australia. No cover after 24 weeks or for common pregnancy symptoms. Pregnancy complications are treated as pre-existing and require assessment for potential cover.",
+        "pregnancy_single_week_limit": 24,
+        "pregnancy_multiple_week_limit": 24,
+        "non_traveller_health_rules": "Limited cover for ‘relevant person’ events: death; hospital admission for non‑elective treatment (or doctor recommendation); admission to or recommendation for end‑stage palliative care; diagnosis of terminal condition or one requiring radiotherapy/chemotherapy. Relevant person must be under 85 before insurance was issued. Sub-limit $2,500 per person applies in D.2 and D.3.",
+        "included_activities": [
+          {
+            "activity": "Scuba/underwater diving using artificial breathing equipment",
+            "conditions": "Covered when you hold an open‑water diving certificate or are diving with a qualified instructor.",
+            "evidence": {
+              "page": 91,
+              "quote": "Underwater activities... Exceptions: If you hold an open‑water diving certificate, or you’re diving with a qualified instructor."
+            }
+          }
+        ],
+        "optional_activity_cover": [
+          {
+            "activity": "Moped and motorbike riding",
+            "required_add_on": "D.8 Optional: Moped and motorbike cover",
+            "conditions": "Helmet; licence/laws; engine ≤200cc (≤15kW electric); no racing/competition/pro use; no Personal Liability cover for riding incidents.",
+            "evidence": {
+              "page": 78,
+              "quote": "You can add optional cover... riding a moped or motorbike... wear a helmet... licence... ≤200cc."
+            }
+          },
+          {
+            "activity": "Skiing and snowboarding",
+            "required_add_on": "D.9 Optional: Skiing and snowboarding cover",
+            "conditions": "Helmet; commercial ski area; no off‑piste/outside open areas; no racing/competition/pro use.",
+            "evidence": {
+              "page": 80,
+              "quote": "You can add optional cover... skiing or snowboarding... wear a helmet; follow the rules of the commercial ski area."
+            }
+          },
+          {
+            "activity": "Cruise",
+            "required_add_on": "D.10 Optional: Cruise cover",
+            "conditions": "Fare‑paying passenger; licensed operator; cruise to overseas destination/international waters; no cover if cruise stays only in Australian waters.",
+            "evidence": {
+              "page": 82,
+              "quote": "You can add optional cover... cruise... travelling to an overseas destination (including international waters)."
+            }
+          }
+        ],
+        "excluded_activities": [
+          {
+            "exclusion": "Hitchhiking (including picking up hitchhikers)",
+            "scope": "Excluded",
+            "evidence": {
+              "page": 86,
+              "quote": "E.8 Hitchhiking"
+            }
+          },
+          {
+            "exclusion": "Travelling by charter vessel",
+            "scope": "Excluded unless within 12 nautical miles of populated land and crewed",
+            "evidence": {
+              "page": 86,
+              "quote": "E.9 Travelling by charter vessel... Exceptions: within 12 nautical miles... and the vessel is crewed."
+            }
+          },
+          {
+            "exclusion": "Riding a moped/motorbike",
+            "scope": "Excluded unless optional moped/motorbike add‑on is purchased and conditions met",
+            "evidence": {
+              "page": 90,
+              "quote": "E.28 Riding a moped and motorbike... only as set out in D.8 Optional: Moped and motorbike cover."
+            }
+          },
+          {
+            "exclusion": "Skiing and snowboarding",
+            "scope": "Excluded unless optional skiing/snowboarding add‑on is purchased",
+            "evidence": {
+              "page": 91,
+              "quote": "E.29 Skiing and snowboarding... only as set out in D.9 Optional: Skiing and snowboarding cover."
+            }
+          },
+          {
+            "exclusion": "Ocean yachting / remote touring / mountaineering at altitude / extreme sports / racing / professional sport",
+            "scope": "Multiple exclusions; some conditional exceptions (e.g., ocean yachting near shore with access to services)",
+            "evidence": {
+              "page": 89,
+              "quote": "E.22 Extreme activities..."
+            }
+          },
+          {
+            "exclusion": "Underwater diving",
+            "scope": "Excluded unless certified or under qualified instructor",
+            "evidence": {
+              "page": 91,
+              "quote": "Underwater activities... Exceptions: open‑water certificate or qualified instructor."
+            }
+          }
+        ],
+        "rental_vehicle_excess_conditions": "Covers only the rental vehicle excess charged by a licensed rental company. Vehicle must be a standard motor vehicle or motorhome up to 8 seats, or (if add‑on selected) a moped/motorbike ≤200cc (≤15kW electric). Driver must be named on your Certificate of Insurance and rental agreement, comply with licence and road laws; no off‑road driving; not a substitute for rental vehicle insurance; no Personal Liability cover for vehicle use.",
+        "luggage_conditions": "Strict unattended property rules. No cover for items left unattended in public places; in vehicles (varies by item and time of day); or in unlocked premises. Electronics/cameras not covered if in checked baggage or left unattended with transport providers; jewellery/watches must be carried on person on transport and stored in safes/lockers in accommodation. Proof of journey, prompt police/authority reports, service‑provider claims required. IMEI blocking proof required for lost/stolen mobile phones. Depreciation applies to unspecified items and to specified items without full proof.",
+        "depreciation_rules": [
+          {
+            "item_category": "Unspecified items",
+            "payable_basis": "Depreciation applies (indemnity value)",
+            "evidence": {
+              "page": 13,
+              "quote": "Unspecified items — Does depreciation apply? ✓"
+            }
+          },
+          {
+            "item_category": "Specified items without proof of ownership/value",
+            "payable_basis": "Depreciation applies (assessed as unspecified)",
+            "evidence": {
+              "page": 13,
+              "quote": "Specified items where you can't provide proof... ✓"
+            }
+          },
+          {
+            "item_category": "Specified items with full proof and valuation (>12 months old)",
+            "payable_basis": "No depreciation (pay current value per valuation)",
+            "evidence": {
+              "page": 62,
+              "quote": "...pay you the current value of the item per the valuation if the item is more than 12 months old — we won’t apply depreciation."
+            }
+          }
+        ],
+        "business_cover_details": null,
+        "inbound_cover_details": null,
+        "general_exclusions": [
+          {
+            "heading": "Governmental or official actions",
+            "description": "Restrictions/quarantines/border closures/seizure by authorities",
+            "evidence": {
+              "page": 84,
+              "quote": "E.2 Governmental or official..."
+            }
+          },
+          {
+            "heading": "Natural events (known before travel)",
+            "description": "Travelling to a destination where a natural event has already occurred before journey starts",
+            "evidence": {
+              "page": 85,
+              "quote": "E.3 Natural event — Your travelling to a country or destination where a natural event has occurred before the date your journey starts."
+            }
+          },
+          {
+            "heading": "War/riots/acts of violence",
+            "description": "War (declared/undeclared), military operations, riots/civil commotion (limited exception)",
+            "evidence": {
+              "page": 85,
+              "quote": "E.5 War and violence"
+            }
+          },
+          {
+            "heading": "Epidemic/pandemic and government restrictions",
+            "description": "Epidemic/pandemic restrictions (e.g., lockdowns) and broad pandemic exclusions in specified sections",
+            "evidence": {
+              "page": 84,
+              "quote": "E.2 Governmental or official... quarantine; E.1 Biological or chemical; and D.2.4/D.3.7 exclusions list ‘an epidemic or pandemic’."
+            }
+          },
+          {
+            "heading": "Pre-existing medical conditions / changes to health",
+            "description": "No cover unless confirmed as covered conditions; undiagnosed symptoms excluded",
+            "evidence": {
+              "page": 88,
+              "quote": "E.14 Pre-existing medical condition — Exception: a covered condition."
+            }
+          }
+        ],
+        "benefit_exclusions": null,
+        "travel_warning_and_sanctions_rules": "You must check Smartraveller advisories when buying and before travel. If DFAT ‘Do not travel’ or ‘Reconsider your need to travel’ applies to a whole country or a part of it, you won’t be covered for related events in that area. If advisories change after purchase or between journeys, limited cover may apply under D.2/D.3 to avoid the destination with a new advisory.",
+        "claims_process_summary": "Make claims online at www.scti.com.au/claims. Notify as soon as possible. Keep and provide receipts, medical reports and prescriptions. Report theft/loss to police/authority promptly and obtain written report; for phones, provide IMEI blocking proof. Seek refunds/credits from service providers; we pay the difference. For major medical events/hospitalisation/surgery or when costs expected to exceed $2,000, contact Southern Cross Emergency Assistance for prior approval.",
+        "emergency_assistance_details": "Southern Cross Emergency Assistance: +61 2 9191 1180 (24/7). Prior approval required if admitted to hospital, need surgery, or expect medical expenses over $2,000.",
+        "premium_factors": "Premium depends on maximum trip duration selected; number/ages of adults, children and non‑dependent children; destinations; chosen excess; selected cancellation cover amount; specified items; optional covers (ski/snowboard; moped/motorbike; cruise); pre‑existing medical cover; government duties/taxes.",
+        "source_pdf_path": "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/scti/pds/6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c_product-disclosure-statement-pds.pdf",
+        "source_pdf_hash": "6168d69bad463ac564e86fba70e8a26cc8efb0f68f949415fe275909644bfe2c",
+        "source_evidence": [
+          {
+            "fields": [
+              "pds_effective_date",
+              "pds_title",
+              "product_name"
+            ],
+            "page": 1,
+            "quote": "INTERNATIONAL COMPREHENSIVE — ANNUAL MULTI-TRIP — Your travel insurance product disclosure statement — Effective from 12 July 2025"
+          },
+          {
+            "fields": [
+              "brand_name",
+              "insurer_name",
+              "issuer_or_agent_name"
+            ],
+            "page": 3,
+            "quote": "Southern Cross Benefits Limited, AFS License 331058, trading as Southern Cross Travel Insurance (SCTI), is the insurer of this policy."
+          },
+          {
+            "fields": [
+              "trip_frequency",
+              "annual_unlimited_trips",
+              "policy_period_months"
+            ],
+            "page": 16,
+            "quote": "Your 12 months of cover begins on the date you choose... When you return from your journey your full cover stops. Between each journey you only have cover under D.2..."
+          },
+          {
+            "fields": [
+              "maximum_trip_duration_options"
+            ],
+            "page": 16,
+            "quote": "You can choose a maximum trip duration of 30, 60, or 90 days."
+          },
+          {
+            "fields": [
+              "emergency_medical_limit"
+            ],
+            "page": 9,
+            "table_id": "p9-t1",
+            "quote": "D.1 Medical and evacuation — Unlimited"
+          },
+          {
+            "fields": [
+              "emergency_dental_limit"
+            ],
+            "page": 38,
+            "quote": "We pay up to $2,000 for each person for each journey."
+          },
+          {
+            "fields": [
+              "cancellation_cover_limit",
+              "cancellation_cover_selectable"
+            ],
+            "page": 41,
+            "quote": "Standard cover is $2,500 for each person... you can pay extra for $5,000, $10,000 or unlimited cover."
+          },
+          {
+            "fields": [
+              "additional_expenses_or_trip_disruption_limit"
+            ],
+            "page": 48,
+            "quote": "The maximum amount we pay for all claims under this section is $50,000 for each person... D.3.1 Travel interruption... $30,000... D.3.2 Cutting your journey short... $50,000."
+          },
+          {
+            "fields": [
+              "luggage_limit"
+            ],
+            "page": 58,
+            "quote": "The maximum amount we pay for cover under this section is $25,000 for each person for each journey."
+          },
+          {
+            "fields": [
+              "luggage_single_item_limit",
+              "electronics_or_valuables_limit"
+            ],
+            "page": 10,
+            "quote": "$1,500 for each item... Up to $2,500 for all items (jewellery/watches); $3,000 for each item... Up to $10,000 for all items (phones/laptops/tablets/cameras)."
+          },
+          {
+            "fields": [
+              "luggage_delay_limit"
+            ],
+            "page": 63,
+            "quote": "We pay... up to $1,000 for each person... delayed for more than 12 hours."
+          },
+          {
+            "fields": [
+              "travel_documents_limit",
+              "money_limit"
+            ],
+            "page": 11,
+            "quote": "Lost, stolen or damaged bank cards, travel documents and passports — $1,000 for each person; Lost or stolen cash — $500 for each person."
+          },
+          {
+            "fields": [
+              "personal_liability_limit"
+            ],
+            "page": 74,
+            "quote": "We’ll pay up to $1,000,000 for each person for each journey."
+          },
+          {
+            "fields": [
+              "personal_accident_limit",
+              "loss_of_income_limit"
+            ],
+            "page": 11,
+            "quote": "Personal accident — $50,000 (16–80 years) for each person; Loss of income — $6,500 for each injured person ($500 for each week)."
+          },
+          {
+            "fields": [
+              "rental_vehicle_excess_limit"
+            ],
+            "page": 76,
+            "quote": "You can claim up to $10,000 for each person for each journey. This is not a replacement for rental vehicle insurance."
+          },
+          {
+            "fields": [
+              "excess_options",
+              "excess_rules"
+            ],
+            "page": 14,
+            "quote": "When you apply... you can choose whether to have an excess... We only subtract one excess for each unexpected event... You won’t pay an excess on: D.1.5, D.5, D.6, D.7."
+          },
+          {
+            "fields": [
+              "pregnancy_cover_summary",
+              "pregnancy_single_week_limit",
+              "pregnancy_multiple_week_limit"
+            ],
+            "page": 32,
+            "quote": "This policy automatically covers pregnancy up until the 24th week of gestation... We won’t cover any pregnancy after the 24th week."
+          },
+          {
+            "fields": [
+              "pre_existing_medical_cover_status",
+              "medical_assessment_required",
+              "pre_existing_medical_conditions_summary"
+            ],
+            "page": 27,
+            "quote": "We don’t automatically cover any pre-existing medical conditions... if you complete a medical assessment, we may be able to offer you cover..."
+          },
+          {
+            "fields": [
+              "non_traveller_health_rules"
+            ],
+            "page": 31,
+            "quote": "You can make a claim... if the health of a relevant person unexpectedly gets worse... The relevant person must also not be over 85 years old..."
+          },
+          {
+            "fields": [
+              "cooling_off_period_days",
+              "policy_cancellation_refund_terms"
+            ],
+            "page": 18,
+            "quote": "You have a 14-day free look period... If you cancel after the 14-day free look period... full refund if you haven’t started your first journey and haven’t made a claim."
+          },
+          {
+            "fields": [
+              "emergency_assistance_details"
+            ],
+            "page": 5,
+            "quote": "If you are admitted to hospital, need surgery, or need medical treatment you expect to cost over $2,000... must ask Southern Cross Emergency Assistance for prior approval. Phone: +61 2 9191 1180 (24/7)."
+          },
+          {
+            "fields": [
+              "covid_cover_available",
+              "covid_cover_summary"
+            ],
+            "page": 8,
+            "quote": "You’re covered for COVID-19. This policy includes cover for unexpected events relating to COVID-19."
+          },
+          {
+            "fields": [
+              "cruise_cover_status",
+              "cruise_cover_required_for_cruises"
+            ],
+            "page": 13,
+            "quote": "This policy does not automatically cover you for any costs related to cruises. However, you can add cover... (see page 82)."
+          },
+          {
+            "fields": [
+              "optional_add_ons"
+            ],
+            "page": 12,
+            "quote": "D.8 Optional: Moped and motorbike cover; D.9 Optional: Skiing and snowboarding cover; D.10 Optional: Cruise cover."
+          },
+          {
+            "fields": [
+              "travel_services_provider_insolvency_limit"
+            ],
+            "page": 47,
+            "quote": "We won’t cover... the error, default, or financial collapse of a service provider."
+          },
+          {
+            "fields": [
+              "dependent_child_age_limit_years"
+            ],
+            "page": 15,
+            "quote": "A dependent child... under 21 years old at the date your insurance was issued and not in full-time employment."
+          },
+          {
+            "fields": [
+              "geographic_scope"
+            ],
+            "page": 14,
+            "quote": "Choose the destinations you’re travelling to... We won’t cover you for events in any destination that isn’t listed..."
+          }
+        ],
+        "claim_notification_deadline_days": null,
+        "legal_expenses_limit": null,
+        "natural_disaster_cover_status": "conditionally_included",
+        "medical_expenses_max_months_from_onset": null,
+        "repatriation_of_remains_limit": "$50,000 per deceased person",
+        "travel_delay_minimum_delay_hours": null,
+        "travel_services_provider_insolvency_limit": "Excluded / not covered",
+        "winter_sports_cover_status": "optional_add_on",
+        "_notes": "Extraction is based on the International Comprehensive – Annual Multi-Trip PDS. Benefits are per person per journey unless stated. Cancellation amount is selectable. Electronics/jewellery unspecified sub-limits and specified item limits captured per tables.",
+        "_unfilled": [
+          "cover_level",
+          "pds_prepared_or_version_date",
+          "maximum_trip_duration_days",
+          "minimum_distance_from_home_km",
+          "paid_accommodation_exception",
+          "minimum_age_years",
+          "maximum_age_years",
+          "already_travelling_or_overseas_available",
+          "waiting_period_hours",
+          "standard_excess_aud",
+          "travel_delay_limit",
+          "covid_medical_limit",
+          "covid_cancellation_or_disruption_limit",
+          "business_cover_details",
+          "inbound_cover_details",
+          "benefit_exclusions",
+          "claim_notification_deadline_days",
+          "legal_expenses_limit",
+          "medical_expenses_max_months_from_onset",
+          "travel_delay_minimum_delay_hours"
+        ]
+      }
+    ],
+    "_document_notes": null
+  },
+  "evidences": {},
+  "normalized_names": [],
+  "warnings": []
+}

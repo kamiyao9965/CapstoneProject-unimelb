@@ -1,0 +1,106 @@
+{
+  "artifact_type": "quality_audit",
+  "contract_version": "1.0.0",
+  "status": "success",
+  "created_at": "2026-09-29T13:54:26.965282Z",
+  "provenance": {
+    "run_id": "880c1456beed4657b4cf30d0a28adb42",
+    "vertical": "travel_insurance",
+    "schema_version": "1.0.0-canonical-candidate",
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "document_input": "markdown",
+    "document_parser": "mineru",
+    "source_documents": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/data/travel_insurance/raw/PDFs/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.pdf"
+    ],
+    "source_artifacts": [
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/extractions/run-gpt5/insureandgo/pds/659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3_insureandgo-single-trip-travel-insurance-product-disclosure-statement.json",
+      "/Users/yangyajing/proj/CapstoneProject-unimelb/outputs/travel_insurance/experiments/schema-gpt55/canonical_approved.json"
+    ]
+  },
+  "data": {
+    "source_artifact_sha256": "cc49dd40052de2cc57214a36fb938964d85153c507a78391a5ec91b4868dad1e",
+    "schema_sha256": "fe8edc502a5ec68afa616063aa5aead3b1fde19afb2835327093931e6ccfa276",
+    "pdf_sha256": "659d5083b0acc6b9b18911906833da09047381c40080483e27d940feb4bfb2b3",
+    "prompt_sha256": "b27944f336c8e3a641034fd89dabf790c06804058cfacf4ea19c5ddfcf25cca1",
+    "verdict": "review",
+    "correctness": "mixed",
+    "evidence_support": "mixed",
+    "uncertainty": "low",
+    "summary": "Most headline plan limits, eligibility, waiting period, COVID, cruise exclusion and benefit-table values are supported by the parsed PDS. However, there are several actionable issues: one rental vehicle limit over-includes a separate benefit, loss-of-income limits omit required basis/period details, non-traveller pre-existing-condition wording adds an unsupported acceptance exception, some uncaptured Gold-only benefits are omitted because coverage_benefits is null, and product_name values include tier names despite plan_name already carrying the tier.",
+    "findings": [
+      {
+        "product_index": 5,
+        "field_name": "rental_vehicle_excess_limit",
+        "issue_type": "wrong_value",
+        "reason": "The extracted value combines the Domestic Gold rental car excess waiver with the separate 'Return of rental car' benefit. The canonical field is for rental vehicle excess/deductible/damage liability; the $750 return-of-rental-car amount is a separate sub-benefit and is already captured in sub_limits.",
+        "source_page": 7,
+        "source_quote": "Rental car excess waiver | Nil | $6,000 | $7,500",
+        "citation_verified": true,
+        "extracted_value": "$7,500 (plus Return of rental car $750 if unfit to drive)"
+      },
+      {
+        "product_index": 1,
+        "field_name": "loss_of_income_limit",
+        "issue_type": "missing_condition",
+        "reason": "The value '$5,200' is supported by the table, but the field definition asks for the loss-of-income basis, including percentage and duration if concise. The PDS states the benefit is 75% of average monthly net income for up to 6 months, which is missing.",
+        "source_page": 48,
+        "source_quote": "75% of your average monthly net of tax income that you lose for up to a maximum of 6 months",
+        "citation_verified": true,
+        "extracted_value": "$5,200"
+      },
+      {
+        "product_index": 2,
+        "field_name": "loss_of_income_limit",
+        "issue_type": "missing_condition",
+        "reason": "The value '$10,400' is supported by the table, but the field definition asks for the loss-of-income basis, including percentage and duration if concise. The PDS states the benefit is 75% of average monthly net income for up to 6 months, which is missing.",
+        "source_page": 48,
+        "source_quote": "75% of your average monthly net of tax income that you lose for up to a maximum of 6 months",
+        "citation_verified": true,
+        "extracted_value": "$10,400"
+      },
+      {
+        "product_index": 0,
+        "field_name": "non_traveller_health_rules",
+        "issue_type": "unsupported_claim",
+        "reason": "The extraction says pre-existing conditions of a non-travelling relative/companion may be covered if 'specifically accepted'. The cited PDS wording for non-traveller/travelling-companion pre-existing conditions states these claims are not covered; the acceptance/screening pathway is stated for insured persons' own pre-existing conditions. The same wording appears across all product records.",
+        "source_page": 54,
+        "source_quote": "will not cover any claims ... from any pre-existing medical condition ... affects: – a relative who is not travelling with you; – your travelling companion",
+        "citation_verified": false,
+        "extracted_value": "Section A/C pre‑departure cancellation/Additional emergency expenses will not cover pre‑existing conditions of a non‑travelling relative/companion (unless specifically accepted). COVID-19 cancellation for close relatives only if life‑threatening diagnosis after purchase."
+      },
+      {
+        "product_index": 2,
+        "field_name": "coverage_benefits",
+        "issue_type": "potential_omission",
+        "reason": "coverage_benefits is null, but International Gold includes benefits not captured by the major fields, such as Resumption of journey, Airline hijack and Pet care. These should be represented in coverage_benefits or another suitable field to avoid benefit omissions.",
+        "source_page": 5,
+        "source_quote": "C2 Resumption of journey ... $3,000 ... Airline hijack ... $2,500 ... Pet care ... $600",
+        "citation_verified": false,
+        "extracted_value": null
+      },
+      {
+        "product_index": 5,
+        "field_name": "coverage_benefits",
+        "issue_type": "potential_omission",
+        "reason": "coverage_benefits is null, but Domestic Gold includes benefits not fully captured as primary coverage benefits, including Resumption of journey and Special Events. Special Events appears only as a sub_limit and Resumption of journey appears omitted.",
+        "source_page": 6,
+        "source_quote": "C2 Resumption of journey ... $3,000 ... C3 ... Special Events ... $5,000",
+        "citation_verified": false,
+        "extracted_value": null
+      },
+      {
+        "product_index": 0,
+        "field_name": "product_name",
+        "issue_type": "other",
+        "reason": "The product_name includes the plan tier 'Bare Essentials' even though plan_name already identifies the tier and the field definition says to exclude individual plan tier where possible. The same pattern appears across the product records.",
+        "source_page": 11,
+        "source_quote": "a Level of cover i.e. Bare essentials, Silver or Gold",
+        "citation_verified": true,
+        "extracted_value": "Insure&Go International Single Trip Bare Essentials"
+      }
+    ]
+  },
+  "error": null
+}
