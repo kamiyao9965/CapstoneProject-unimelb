@@ -640,6 +640,13 @@ There is no stable universal JSON error protocol; some entry points raise except
 Use Python interfaces for structured integration errors. CLI batch aggregates
 per-file errors, unlike `SchemaExtractor.extract_many`, which stops on failure.
 
+Batch `--output-dir` reuses existing results only after
+`src.schema_application.records.load_cached_extraction` validates their source,
+vertical/version, provider/model, parser route, runtime contract, and business
+rules. Invalid files or directories cause a nonzero exit before provider creation;
+existing bytes are preserved. Native results retain their evaluation metadata,
+and successful envelopes are read through the same extraction boundary.
+
 `batch --evaluate` writes `evaluation/report.json`, `evaluation/report.md`, and
 matching diagnostics when needed. It no longer creates duplicate
 `report_model_only.*` or includes `fallback_documents` in the summary. Historical

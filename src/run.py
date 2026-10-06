@@ -443,12 +443,23 @@ def command_batch(args: argparse.Namespace) -> int:
         return 1
 
     output_dir = Path(args.output_dir) if args.output_dir else None
+    selection = resolve_selection(provider=args.provider, model=args.model)
     skipped_existing = 0
     if output_dir is not None:
+        from src.schema_application.records import load_cached_extraction
+
         pending_paths = []
         for pdf_path in pdf_paths:
             target = output_dir / _extraction_relative_path(pdf_path, input_root)
             if target.exists():
+                try:
+                    load_cached_extraction(
+                        target, pdf_path=pdf_path, schema=schema_data, manifest=manifest,
+                        selection=selection, document_parser=args.document_parser,
+                    )
+                except (OSError, ValueError) as exc:
+                    print(f"Cannot reuse existing extraction {target}: {exc}")
+                    return 1
                 print(f"Skipping {pdf_path.name}: result already exists at {target}")
             else:
                 pending_paths.append(pdf_path)
@@ -458,7 +469,6 @@ def command_batch(args: argparse.Namespace) -> int:
             print(f"Nothing to extract: all {skipped_existing} results already exist in {output_dir}.")
             return 0
 
-    selection = resolve_selection(provider=args.provider, model=args.model)
     extractor = _build_schema_extractor(
         manifest,
         schema_data,

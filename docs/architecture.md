@@ -195,6 +195,9 @@ vertical and schema-version checks. Analysis can read historical envelopes witho
 identity; storage requires explicit matching vertical and schema version. Missing
 storage identity must be regenerated rather than inferred from the selected schema.
 Legacy extraction run IDs retain the hash of the original file bytes.
+Batch resume also uses this boundary to validate cached extraction sources,
+model/parser identity, and the selected runtime contract/business rules before
+creating a provider. Cached artifacts are never modified during validation.
 
 ## Package ownership
 

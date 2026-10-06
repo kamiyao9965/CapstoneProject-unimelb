@@ -265,6 +265,15 @@ every original entry in both cases.
 
 ## Resolved
 
+### 3. Validate batch resume results before provider creation (2026-10-06)
+
+`batch --output-dir` previously treated any existing path as a completed result.
+Resume now validates native/enveloped results through the extraction-record owner,
+including source, vertical/version, provider/model, parser, runtime contract and
+business rules. Invalid or incompatible results stop before provider creation
+without modifying files. Offline regressions cover corrupt JSON, directories,
+identity mismatches, invalid payloads, valid reuse and Canonical identity rules.
+
 ### 1. Logged pre-validation cleanup of structural noise (2026-09-16)
 
 `run_structured_output(..., drop_structural_noise=True)` removes undeclared

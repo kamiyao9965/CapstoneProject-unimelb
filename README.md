@@ -69,6 +69,10 @@ authentication boundary. Use them on a trusted local machine.
 
 ## CLI entry points
 
+Batch `--output-dir` resumes only validated results matching the selected source,
+schema, model and parser. Invalid existing results stop before model calls; use
+a new folder for a different experiment. See the operator guide for recovery.
+
 | Purpose | Entry point | External effects |
 | --- | --- | --- |
 | Discover schema | `src/run.py discover` | Model calls |

@@ -143,7 +143,15 @@ class RunParserTest(unittest.TestCase):
             output_dir = root / "run20"
             existing = output_dir / "scti" / "pds" / "domestic.json"
             existing.parent.mkdir(parents=True)
-            existing.write_text("{}", encoding="utf-8")
+            from src.common.models import ExtractionResult
+
+            ExtractionResult(
+                vertical="travel_insurance", schema_version=str(VALID_TRAVEL_SCHEMA["version"]),
+                source_path=str(input_root / "scti" / "pds" / "domestic.pdf"),
+                provider="openai", model="gpt-5", document_parser="pdfingestor",
+                data=VALID_TRAVEL_EXTRACTION,
+            ).write_json(existing)
+            existing_bytes = existing.read_bytes()
             args = build_parser().parse_args([
                 "batch", "--manifest", "configs/travel_insurance/manifest.json",
                 "--schema", "schema.json", "--input-root", str(input_root),
@@ -152,8 +160,8 @@ class RunParserTest(unittest.TestCase):
             configure_command(args)
             extractor = mock.Mock()
             extractor.extract_one.return_value = VALID_TRAVEL_EXTRACTION
-            with mock.patch.object(run_module, "load_schema_data", return_value={
-                "vertical": "travel_insurance", "version": "1.0.0"}), mock.patch.object(
+            with mock.patch.object(run_module, "load_schema_data", return_value=normalize_schema(
+                VALID_TRAVEL_SCHEMA, args.vertical_manifest)), mock.patch.object(
                     run_module, "_build_schema_extractor", return_value=extractor), \
                  mock.patch("builtins.print"):
                 exit_code = run_module.command_batch(args)
@@ -163,7 +171,7 @@ class RunParserTest(unittest.TestCase):
             extractor.extract_one.assert_called_once_with(single_pdf)
             written = json.loads((output_dir / "tick" / "pds" / "single.json").read_text(encoding="utf-8"))
             self.assertEqual(written["source_path"], str(single_pdf))
-            self.assertEqual(existing.read_text(encoding="utf-8"), "{}")
+            self.assertEqual(existing.read_bytes(), existing_bytes)
             self.assertFalse((output_dir / "tick" / "tmd").exists())
 
     def test_batch_rejects_unknown_category_before_loading_schema(self) -> None:

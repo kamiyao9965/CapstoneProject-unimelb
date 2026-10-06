@@ -460,8 +460,11 @@ Equivalent commands are:
 
 - `--categories pds` excludes auxiliary TMD/FSG folders.
 - `--output-dir` mirrors `<insurer>/pds/<name>.json`. PDFs with existing results
-  there are skipped when rerunning the same command after interruption. Use a
-  fresh folder for a new batch/schema/model experiment.
+  there are skipped only after validating their source, vertical/schema version,
+  provider/model, parser route, runtime contract, and business rules. Invalid
+  results stop the batch before provider creation and remain untouched. Use a
+  fresh folder for a new batch/schema/model/parser experiment or an unrecorded
+  legacy parser route; this command never repairs or overwrites existing results.
 - Batch storage uses one transaction per artifact, derives insurer from the
   recorded source path, and skips `errors/`. Multiple results for one PDF are all
   rejected; select one result before retrying. It prints per-file outcomes and a
