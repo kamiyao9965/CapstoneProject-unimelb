@@ -29,6 +29,8 @@ SUPPORTED_OPERATIONS = frozenset(
         "storage_init",
         "storage_load",
         "storage_load_batch",
+        "csv_export",
+        "csv_export_batch",
         "quality_audit",
     }
 )
@@ -175,6 +177,20 @@ def build_command(
             command, "--artifact-dir", options.get("artifact_dir"), "extraction results folder"
         )
         _add_database_environment(command, options.get("database_url_env"))
+    elif operation in {"csv_export", "csv_export_batch"}:
+        _add(command, "--schema", options.get("schema"))
+        if operation == "csv_export":
+            _add_required(command, "--artifact", options.get("artifact"), "artifact path")
+            insurer_code = _required_text(options.get("insurer_code"), "insurer code")
+            if not INSURER_CODE.fullmatch(insurer_code):
+                raise ValueError(f"Invalid insurer code: {insurer_code!r}.")
+            _add(command, "--insurer-code", insurer_code)
+        else:
+            _add_required(command, "--artifact-dir", options.get("artifact_dir"), "extraction results folder")
+        output = _required_text(options.get("output"), "CSV output path")
+        if Path(output).suffix.casefold() != ".csv":
+            raise ValueError("CSV output path must end in .csv.")
+        _add(command, "--output", output)
     elif operation == "quality_audit":
         _add_required(command, "--artifact-dir", options.get("artifact_dir"), "extraction artifacts folder")
         _add_required(command, "--output-dir", options.get("output_dir"), "quality output folder")

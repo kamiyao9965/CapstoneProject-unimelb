@@ -20,6 +20,8 @@ OPERATION_LABELS = {
     "Initialize PostgreSQL storage": "storage_init",
     "Load extraction into PostgreSQL": "storage_load",
     "Load extraction folder into PostgreSQL": "storage_load_batch",
+    "Export product CSV": "csv_export",
+    "Export extraction folder to product CSV": "csv_export_batch",
     "Quality audit (LLM judge)": "quality_audit",
 }
 PROVIDER_LABELS = {
@@ -54,6 +56,8 @@ def render_operation_form(operation_label: str, manifest: VerticalManifest) -> F
         "storage_init": _storage_init,
         "storage_load": _storage_load,
         "storage_load_batch": _storage_load_batch,
+        "csv_export": _csv_export,
+        "csv_export_batch": _csv_export_batch,
         "quality_audit": _quality_audit,
     }[operation]
     options, confirmation = renderer(manifest)
@@ -305,6 +309,29 @@ def _storage_load_batch(manifest: VerticalManifest) -> tuple[dict[str, object], 
         "schema": schema,
         "database_url_env": database_url_env,
     }, "I understand this operation writes validated records from every file in the folder to the configured database."
+
+
+def _csv_export(manifest: VerticalManifest) -> tuple[dict[str, object], None]:
+    st.caption("Exports one row per product version, with nested details kept as JSON. Choose a new .csv file.")
+    left, right = st.columns(2)
+    with left:
+        artifact = st.text_input("Validated extraction artifact path *", key="_form:artifact")
+        insurer_code = st.text_input("Insurer code *", key="_form:insurer_code")
+    with right:
+        schema = st.text_input("Canonical schema override (optional)", key="_form:schema")
+        output = st.text_input("Product CSV output path *", key="_form:output")
+    return {"artifact": artifact, "insurer_code": insurer_code, "schema": schema, "output": output}, None
+
+
+def _csv_export_batch(manifest: VerticalManifest) -> tuple[dict[str, object], None]:
+    st.caption("Combines the folder into one product CSV. All results must pass validation before the file is written.")
+    left, right = st.columns(2)
+    with left:
+        artifact_dir = st.text_input("Extraction results folder *", key="_form:artifact_dir")
+        schema = st.text_input("Canonical schema override (optional)", key="_form:schema")
+    with right:
+        output = st.text_input("Product CSV output path *", key="_form:output")
+    return {"artifact_dir": artifact_dir, "schema": schema, "output": output}, None
 
 
 def _quality_audit(manifest: VerticalManifest) -> tuple[dict[str, object], str | None]:

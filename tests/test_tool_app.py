@@ -16,6 +16,28 @@ class ToolAppTests(unittest.TestCase):
     def app(self):
         return AppTest.from_file(str(self.APP_PATH), default_timeout=20).run()
 
+    def test_product_csv_forms_preview_single_and_folder_export_without_paid_confirmation(self):
+        at = self.app()
+        self.assertNotIn("Export product CSV", at.selectbox(key="operation").options)
+        at.selectbox(key="vertical").set_value("travel_insurance").run()
+        for label, flag, path in (
+            ("Export product CSV", "--artifact", "extraction.json"),
+            ("Export extraction folder to product CSV", "--artifact-dir", "extractions"),
+        ):
+            with self.subTest(label=label):
+                at.selectbox(key="operation").set_value(label).run()
+                self.assertTrue(at.button(key="run-command").disabled)
+                at.text_input(key="_form:artifact" if flag == "--artifact" else "_form:artifact_dir").set_value(path).run()
+                if flag == "--artifact":
+                    at.text_input(key="_form:insurer_code").set_value("cover_more").run()
+                at.text_input(key="_form:output").set_value("exports/products.csv").run()
+                self.assertFalse(at.exception)
+                self.assertEqual(len(at.checkbox), 0)
+                self.assertFalse(at.button(key="run-command").disabled)
+                self.assertIn("csv-export", at.code[0].value)
+                self.assertIn(f"{flag} {path}", at.code[0].value)
+                self.assertNotIn("--database-url-env", at.code[0].value)
+
     def test_default_discovery_page_renders_preview_without_executing(self):
         at = self.app()
         self.assertFalse(at.exception)

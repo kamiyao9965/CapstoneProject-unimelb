@@ -22,6 +22,25 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ToolCommandBuilderTests(unittest.TestCase):
+    def test_csv_commands_require_output_and_use_literal_paths_without_database_flags(self) -> None:
+        for operation, inputs in (
+            ("csv_export", {"artifact": "results/a b.json", "insurer_code": "cover_more"}),
+            ("csv_export_batch", {"artifact_dir": "results/a b"}),
+        ):
+            with self.subTest(operation=operation):
+                options = {"vertical": "travel_insurance", **inputs, "output": "exports/products.csv"}
+                command = build_command(CommandRequest(operation, options), python_executable="python")
+                self.assertEqual(command[2], operation.replace("_", "-"))
+                self.assertEqual(command[command.index("--output") + 1], "exports/products.csv")
+                input_flag = "--artifact" if operation == "csv_export" else "--artifact-dir"
+                self.assertEqual(command[command.index(input_flag) + 1], next(iter(inputs.values())))
+                self.assertNotIn("--database-url-env", command)
+                del options["output"]
+                with self.assertRaisesRegex(ValueError, "CSV output path"):
+                    build_command(CommandRequest(operation, options))
+                with self.assertRaisesRegex(ValueError, "does not support"):
+                    build_command(CommandRequest(operation, {"vertical": "private_health"}))
+
     def test_builds_manifest_driven_travel_discovery_command(self) -> None:
         command = build_command(
             CommandRequest(
