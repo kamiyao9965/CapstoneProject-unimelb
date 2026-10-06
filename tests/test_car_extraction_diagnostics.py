@@ -179,6 +179,22 @@ class DiagnosticsTest(unittest.TestCase):
         rule['evidence'][0]['quote'] = 'We will not pay for loss or damage:'
         self.assertTrue(source_issues(self.data, clauses, text))
 
+    def test_ellipsis_in_quote_reported_unless_verbatim_source(self):
+        from src.car_insurance.extraction_diagnostics import ellipsis_issues
+        self.rules()
+        rule = self.record['policy_rules'][0]
+        self.assertEqual(ellipsis_issues(self.data, fixtures.RULE_SOURCE), [])
+        rule['evidence'][0]['quote'] = 'There is no cover if … unlicensed.'
+        errors = ellipsis_issues(self.data, fixtures.RULE_SOURCE)
+        self.assertEqual([e['path'] for e in errors], ['$.products[0].policy_rules[0].evidence[0].quote'])
+        self.assertIn('evidence_ellipsis', errors[0]['message'])
+        benefit = self.add()  # ordinary evidence (no checklist ID) may abbreviate
+        benefit['evidence'][0]['quote'] = 'We pay for … baby seats.'
+        self.assertEqual(len(ellipsis_issues(self.data, fixtures.RULE_SOURCE)), 1)
+        text =fixtures.source('General Exclusions', 'Other', 'There is no cover for wear... and tear.', 'Claims', 'Contact us.')
+        rule['evidence'][0].update(quote='There is no cover for wear... and tear.', pdf_page=7)
+        self.assertEqual(ellipsis_issues(self.data, text), [])
+
     def test_shared_liability_relation_names_missing_member(self):
         self.liability()
         self.record['caravans_and_trailers_tppd_extension'] = None

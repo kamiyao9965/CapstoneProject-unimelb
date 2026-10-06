@@ -41,6 +41,8 @@ from src.verticals.manifest import VerticalManifest, resolve_manifest
 from src.verticals.registry import get_prompt
 from src.schema.validation import validate_schema_mapping, validate_extraction_record
 
+SOURCE_CHECKED_PROFILES = {'car_insurance.review_v4', 'car_insurance.review_v5'}
+
 
 class SchemaExtractor:
     """Extract one validated, enveloped JSON record per PDF."""
@@ -115,6 +117,14 @@ class SchemaExtractor:
             self.extraction_prompt += GUIDANCE
             from src.car_insurance.extraction_diagnostics import GUIDANCE as DIAGNOSTIC_GUIDANCE
             self.extraction_prompt += DIAGNOSTIC_GUIDANCE
+        if self.schema_data.get('validation_profile') == 'car_insurance.review_v5':
+            from src.car_insurance.schema_revision_v5 import GUIDANCE
+            self.extraction_prompt = self.extraction_prompt.replace(
+                'Return exactly "products" and "_document_notes" at top level.',
+                'Return exactly "products", "_document_notes", "document_evidence", and "shared_policy_rules" at top level.')
+            self.extraction_prompt += GUIDANCE
+            from src.car_insurance.extraction_diagnostics import GUIDANCE_V5 as DIAGNOSTIC_GUIDANCE
+            self.extraction_prompt += DIAGNOSTIC_GUIDANCE
         if self.schema_data.get('validation_profile') == 'car_insurance.review_v3':
             self.extraction_prompt = self.extraction_prompt.replace(
                 'Return exactly "products" and "_document_notes" at top level.',
@@ -187,10 +197,10 @@ class SchemaExtractor:
         )
         business_validator = self.extraction_business_validator
         checklist_text = ''
-        if self.schema_data.get('validation_profile') == 'car_insurance.review_v4':
+        if self.schema_data.get('validation_profile') in SOURCE_CHECKED_PROFILES:
             from src.car_insurance.source_coverage import inventory, prompt_inventory, source_blocks
             if not source_blocks(document_text):
-                raise ValueError('review_v4 requires page/block-anchored source input for completeness checks')
+                raise ValueError('review_v4/v5 requires page/block-anchored source input for completeness checks')
             clauses = inventory(document_text)
             self._log(f'Source completeness checklist: {len(clauses)} high-signal blocks (not exhaustive).')
             checklist_text = prompt_inventory(clauses)
@@ -230,7 +240,7 @@ class SchemaExtractor:
                 data_contract_schema=self.extraction_contract,
                 business_validator=business_validator,
                 drop_structural_noise=True,
-                retain_repair_context=self.schema_data.get('validation_profile') == 'car_insurance.review_v4',
+                retain_repair_context=self.schema_data.get('validation_profile') in SOURCE_CHECKED_PROFILES,
             )
         except StructuredOutputFailure as exc:
             duration = round(time.perf_counter() - started, 3)

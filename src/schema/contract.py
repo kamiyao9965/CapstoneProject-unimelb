@@ -54,10 +54,14 @@ def compile_extraction_contract(
             from src.car_insurance.schema_revision import document_evidence_contract
             contract['properties']['document_evidence'] = document_evidence_contract()
             contract['required'].append('document_evidence')
-        elif schema.get('validation_profile') in {'car_insurance.review_v3', 'car_insurance.review_v4'}:
+        elif schema.get('validation_profile') in {'car_insurance.review_v3', 'car_insurance.review_v4', 'car_insurance.review_v5'}:
             contract['$defs'] = deepcopy(schema['$defs'])
             contract['properties']['document_evidence'] = deepcopy(schema['document_evidence_schema'])
             contract['required'].append('document_evidence')
+            if schema.get('validation_profile') == 'car_insurance.review_v5':
+                from src.car_insurance.schema_revision_v5 import shared_rules_contract
+                contract['properties']['shared_policy_rules'] = shared_rules_contract(schema)
+                contract['required'].append('shared_policy_rules')
         return contract
     raise ValueError(
         "output_cardinality must be either 'single' or 'multiple'."

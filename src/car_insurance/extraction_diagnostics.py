@@ -22,6 +22,8 @@ For blocks outside that checklist use ordinary page evidence and no invented che
 Complete source-block evidence can be on its owning record or that record's exceptions.
 Adjacent evidence snippets may be joined in their original order on the same page;
 do not omit intervening words, reorder text, remove sidebars or correct source text in quotes.
+For records with source_clause_ids (and their exceptions), never use '...' or '…' to skip
+source text inside a quote; quote each needed sentence or bullet as its own evidence entry.
 Put readable interpretations in text/details, separate from verbatim evidence.
 Exception evidence: the owning rule carries the complete source block. Each exception's
 evidence must quote verbatim, on that page, at least the complete sentence or bullet
@@ -44,6 +46,15 @@ Exception scope convention, as (preserved_cover, not_restored_cover) pairs only:
 separates own-car damage from liability; (both, none) when the carve-out lifts the whole
 exclusion; otherwise (source_defined, source_defined). Do not use unknown here.
 """
+V4_POLICY_WIDE_RULES = """General exclusions that 'apply to all sections of your policy' (or give 'no cover under
+any section of this policy') apply to EVERY product: repeat each one, with its evidence
+and exceptions, in each product's policy_rules. Never leave such a product's rules [].
+"""
+GUIDANCE_V5 = GUIDANCE.replace(V4_POLICY_WIDE_RULES, """General exclusions that 'apply to all sections of your policy' (or give 'no cover under
+any section of this policy') are written ONCE in shared_policy_rules, and every product
+sets shared_policy_rules_applicability=applies. Do not repeat them in products.
+""")
+assert GUIDANCE_V5 != GUIDANCE
 
 SCOPE_PAIRS = {('own_vehicle_damage', 'third_party_liability'), ('both', 'none'), ('source_defined', 'source_defined')}
 
@@ -73,10 +84,11 @@ def local_issues(payload):
                 errors.append(issue(f'$.document_evidence.coverage_summary_tables[{ti}].rows[{ri}].cells',
                     f'tables: column mismatch: expected {expected}, got {actual}. label does not replace a cell. '
                     'Example columns=[Feature,Cover], label=Hire, cells=[Hire,Reasonable costs].'))
-    for pi, product in enumerate(payload['products']):
-        root = f'$.products[{pi}]'
-        for ri, rule in enumerate(product['policy_rules'] or []):
-            path = f'{root}.policy_rules[{ri}].exceptions'
+    groups = [(f'$.products[{pi}].policy_rules', p['policy_rules'] or []) for pi, p in enumerate(payload['products'])]
+    groups += [('$.shared_policy_rules', payload.get('shared_policy_rules') or [])]
+    for prefix, rules in groups:
+        for ri, rule in enumerate(rules):
+            path = f'{prefix}[{ri}].exceptions'
             context = f"rule_id={rule['rule_id']}; source_clause_ids={rule['source_clause_ids']}"
             if EXCEPTION.search(' '.join(e['quote'] for e in rule['evidence'])) and not rule['exceptions']:
                 cues = [c for e in rule['evidence'] for c in exception_cues(e['quote'])]
@@ -95,6 +107,8 @@ def local_issues(payload):
                     errors.append(issue(f'{path}[{ei}].preserved_cover',
                         'exception_scope: own_vehicle_damage/third_party_liability needs exception evidence that explicitly '
                         f'distinguishes liability; otherwise use (source_defined, source_defined) or (both, none); {context}'))
+    for pi, product in enumerate(payload['products']):
+        root = f'$.products[{pi}]'
         for lpath, cap in _limits(product, root):
             if any(t['amount_kind'] == 'market_value' for t in cap['terms']) and cap['basis'] != 'per_vehicle':
                 errors.append(issue(f'{lpath}.basis', f"limit_basis: limit_id={cap['limit_id']} has a market_value term; "
@@ -128,11 +142,16 @@ def source_issues(payload, clauses, document_text=None):
     # A validation view only: the stored/raw candidate is never rewritten.
     view = deepcopy(payload)
     paths = {}
-    for pi, p in enumerate(view['products']):
+    groups = [(f'$.products[{pi}].', p) for pi, p in enumerate(view['products'])]
+    if 'shared_policy_rules' in view:  # review_v5: document-level rules count like one more rule owner
+        shared = {'policy_rules': view.pop('shared_policy_rules')}
+        groups.append(('$.shared_', shared))
+        view['products'].append(shared)
+    for prefix, p in groups:
         for owner in [*OWNERS, 'policy_rules', 'excesses']:
             for bi, item in enumerate(p.get(owner) or []):
                 for sid in item['source_clause_ids']:
-                    paths.setdefault(sid, []).append(f'$.products[{pi}].{owner}[{bi}].source_clause_ids')
+                    paths.setdefault(sid, []).append(f'{prefix}{owner}[{bi}].source_clause_ids')
                 item['evidence'] = _joined_evidence(item['evidence'])
                 for exc in item.get('exceptions', []):
                     exc['evidence'] = _joined_evidence(exc['evidence'])
@@ -209,11 +228,14 @@ POLICY_WIDE_RULES = re.compile(r'\b(?:(?:apply|applies) to (?:all|every|each) se
 def policy_wide_rule_issues(payload, clauses, document_text):
     """General exclusions stated to apply to every section of the policy apply to every product.
 
-    Multi-product documents only: one product's checklist coverage is already
-    enforced by coverage_issues. Without the explicit source cue nothing is inferred.
+    A product's rules are its own policy_rules plus, in review_v5, the document-level
+    shared_policy_rules when it marks them as applying. v4: multi-product documents only,
+    since one product's checklist coverage is already enforced by coverage_issues.
+    Without the explicit source cue nothing is inferred.
     """
     required = [c.source_id for c in clauses if c.kind == 'policy_rule']
-    if len(payload['products']) < 2 or not required:
+    v5 = 'shared_policy_rules' in payload
+    if (len(payload['products']) < 2 and not v5) or not required:
         return []
     cues = [(page, text) for page, _, text in ((p, b, normalized(t)) for p, b, t in source_blocks(document_text))
             if POLICY_WIDE_RULES.search(text)]
@@ -222,16 +244,65 @@ def policy_wide_rule_issues(payload, clauses, document_text):
     page, text = cues[0]
     m = POLICY_WIDE_RULES.search(text)
     sentence = text[text.rfind('. ', 0, m.start()) + 1:].strip()[:200]
+    shared = {sid for rule in payload.get('shared_policy_rules') or [] for sid in rule['source_clause_ids']}
     errors = []
     for pi, product in enumerate(payload['products']):
         mapped = {sid for rule in product['policy_rules'] or [] for sid in rule['source_clause_ids']}
+        if v5 and product['shared_policy_rules_applicability'] == 'applies':
+            mapped |= shared
         missing = [sid for sid in required if sid not in mapped]
-        if missing:
+        if missing and v5:
+            errors.append(issue(f'$.products[{pi}].shared_policy_rules_applicability',
+                f'policy_wide_rules: PDF page {page} states "{sentence}", so the general exclusions apply to every '
+                f"product. product_name={product['product_name']} has applicability="
+                f"{product['shared_policy_rules_applicability']} and covers {len(required) - len(missing)}/{len(required)} "
+                f'checklist rule IDs; missing e.g. {missing[:5]}. Write each general exclusion once in shared_policy_rules '
+                '(full evidence and exceptions) and set shared_policy_rules_applicability=applies; do not repeat them in products.'))
+        elif missing:
             errors.append(issue(f'$.products[{pi}].policy_rules',
                 f'policy_wide_rules: PDF page {page} states "{sentence}", so the general exclusions apply to every '
                 f"product. product_name={product['product_name']} maps {len(required) - len(missing)}/{len(required)} "
                 f'checklist rule IDs; missing e.g. {missing[:5]}. Repeat each general exclusion, with its full evidence '
                 'and exceptions, in every product; policy_rules=[] would wrongly mean none apply.'))
+    return errors
+
+
+ELLIPSIS = re.compile(r'\.\.\.|…')
+
+
+def _checklist_evidence(payload):
+    """Evidence of records mapped to checklist IDs (and their exceptions), with JSON paths."""
+    groups = [(f'$.products[{pi}].', p) for pi, p in enumerate(payload['products'])]
+    groups.append(('$.shared_', {'policy_rules': payload.get('shared_policy_rules') or []}))
+    for prefix, p in groups:
+        for owner in [*OWNERS, 'policy_rules', 'excesses']:
+            for bi, item in enumerate(p.get(owner) or []):
+                if not item['source_clause_ids']:
+                    continue
+                for ei, ev in enumerate(item['evidence']):
+                    yield f'{prefix}{owner}[{bi}].evidence[{ei}]', ev
+                for xi, exc in enumerate(item.get('exceptions', [])):
+                    for ei, ev in enumerate(exc['evidence']):
+                        yield f'{prefix}{owner}[{bi}].exceptions[{xi}].evidence[{ei}]', ev
+
+
+def ellipsis_issues(payload, document_text):
+    """Checklist-mapped quotes that skip source text with '...'/'…'.
+
+    Only records carrying source_clause_ids need verbatim source; a quote is
+    allowed when the page itself contains that exact text.
+    """
+    pages = {}
+    for page, _, text in source_blocks(document_text):
+        pages[page] = pages.get(page, '') + ' ' + normalized(text)
+    errors = []
+    for path, ev in _checklist_evidence(payload):
+        quote = ev['quote'] or ''
+        if ELLIPSIS.search(quote) and normalized(quote) not in pages.get(ev['pdf_page'], ''):
+            errors.append(issue(f'{path}.quote',
+                f"evidence_ellipsis: quote on PDF page {ev['pdf_page']} uses '...'/'…' to skip source text: "
+                f'"{quote[:160]}". Evidence for checklist-mapped records must be contiguous verbatim text. Quote each '
+                'needed sentence or bullet as a separate evidence entry instead of eliding the words between them.'))
     return errors
 
 
@@ -328,5 +399,6 @@ def validate_runtime(payload, base_validator, clauses, document_text):
     errors.extend(source_issues(payload, clauses, document_text))
     errors.extend(relation_issues(payload, document_text))
     errors.extend(policy_wide_rule_issues(payload, clauses, document_text))
+    errors.extend(ellipsis_issues(payload, document_text))
     if errors:
         raise BusinessDiagnostics(errors)
