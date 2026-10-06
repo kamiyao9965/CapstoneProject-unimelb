@@ -220,6 +220,11 @@ Changing the vertical/operation resets forms, confirmation, and result state.
 Changing command settings requires confirmation again. The console runs the CLI
 synchronously without a background queue. Credentials come from the launching
 process; restart the page process after changing its environment.
+On macOS/Linux a console timeout terminates the CLI and workers in its process
+group, including local parser workers, after a short cleanup grace period.
+Output collected before timeout remains visible and redacted. This ends local
+work; an already submitted remote model request may still run. Check saved
+artifacts and usage before retrying a paid workflow.
 
 ## 4. Health: discovery, review, holdout, and feedback
 

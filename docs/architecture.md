@@ -22,6 +22,10 @@ owns operation-specific controls, while `src/ui/tool/commands.py` is the only
 UI-to-process boundary. It validates supported operations and values, launches
 an argument list without a shell, enforces timeouts, and redacts credential-like
 console output. It does not accept arbitrary commands or credential values.
+On macOS/Linux each command has its own process group. Timeout sends `SIGTERM`,
+allows a one-second grace period, then uses `SIGKILL` for remaining group members
+and reaps the CLI. Captured output remains redacted. Other platforms retain
+the direct subprocess timeout behavior.
 
 The UI contains no workflow logic. `src/run.py` and `src/refine/loop.py` remain
 the authoritative parsers and orchestrators, so every UI action is reproducible

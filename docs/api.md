@@ -640,6 +640,12 @@ format detection or infer file identity from the selected schema.
 
 ## 11. CLI boundaries
 
+The console process boundary, `src.ui.tool.commands.run_command`, returns a
+`CommandResult` with exit code `124` and `timed_out=True` after timeout. On
+macOS/Linux it starts a new process group, terminates that group with a bounded
+grace period and reaps the CLI. Both stdout and stderr collected before timeout
+are redacted for display. This does not cancel a submitted remote provider job.
+
 Entry points are in the [README](../README.md#cli-entry-points); procedures and
 parameters are in the [operator guide](user-guide.md). Command `--help` is the
 precise option reference. Manifest arguments are paths, and not every entry point

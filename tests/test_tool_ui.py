@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
+import sys
+import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -218,6 +223,74 @@ class ToolCommandBuilderTests(unittest.TestCase):
 
 
 class ToolCommandRunnerTests(unittest.TestCase):
+    def test_default_runner_preserves_exit_status_literal_argv_and_redaction(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = run_command([
+                sys.executable, "-c",
+                "import os, sys; print(os.getcwd()); print(sys.argv[1]); "
+                "print('Bearer fixture-private', file=sys.stderr); sys.exit(7)",
+                "literal;touch should-not-exist",
+            ], project_root=root, timeout_seconds=5)
+            self.assertEqual(result.exit_code, 7)
+            self.assertFalse(result.timed_out)
+            self.assertIn(str(root.resolve()), result.output)
+            self.assertIn("literal;touch should-not-exist", result.output)
+            self.assertIn("Bearer [REDACTED]", result.output)
+            self.assertNotIn("fixture-private", result.output)
+            self.assertFalse((root / "should-not-exist").exists())
+
+    @unittest.skipUnless(os.name == "posix", "Process group cleanup is a POSIX boundary")
+    def test_timeout_stops_child_workers_even_when_they_ignore_sigterm(self) -> None:
+        for ignore_sigterm, inherit_pipes in ((False, True), (True, True), (True, False)):
+            with self.subTest(ignore_sigterm=ignore_sigterm, inherit_pipes=inherit_pipes), \
+                 tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                child = root / "worker.py"
+                child.write_text(
+                    "import os, signal, sys, time\n"
+                    "from pathlib import Path\n"
+                    "if sys.argv[1] == 'True':\n"
+                    "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+                    "Path('ready').write_text(str(os.getpid()))\n"
+                    "time.sleep(3)\n"
+                    "Path('finished').write_text('worker continued after timeout')\n",
+                    encoding="utf-8",
+                )
+                parent = root / "command.py"
+                parent.write_text(
+                    "import subprocess, sys, time\n"
+                    "from pathlib import Path\n"
+                    "kwargs = {} if sys.argv[2] == 'True' else "
+                    "{'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL}\n"
+                    "subprocess.Popen([sys.executable, 'worker.py', sys.argv[1]], **kwargs)\n"
+                    "while not Path('ready').exists(): time.sleep(0.01)\n"
+                    "print('worker ready', flush=True)\n"
+                    "print('Bearer fixture-private', file=sys.stderr, flush=True)\n"
+                    "time.sleep(20)\n",
+                    encoding="utf-8",
+                )
+                started = time.monotonic()
+                try:
+                    result = run_command([sys.executable, str(parent), str(ignore_sigterm), str(inherit_pipes)],
+                                         project_root=root, timeout_seconds=1)
+                    self.assertEqual(result.exit_code, 124)
+                    self.assertTrue(result.timed_out)
+                    self.assertIn("worker ready", result.output)
+                    self.assertIn("Bearer [REDACTED]", result.output)
+                    self.assertNotIn("fixture-private", result.output)
+                    self.assertLess(time.monotonic() - started, 4)
+                    # Wait beyond the worker's write deadline to detect leaked work.
+                    while time.monotonic() - started < 3.3:
+                        time.sleep(0.02)
+                    self.assertFalse((root / "finished").exists())
+                finally:
+                    if (root / "ready").exists():
+                        try:
+                            os.kill(int((root / "ready").read_text()), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+
     def test_runner_uses_argv_without_a_shell_and_returns_redacted_output(self) -> None:
         completed = subprocess.CompletedProcess(
             args=["python", "src/run.py", "storage-init"],

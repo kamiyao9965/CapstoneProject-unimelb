@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -191,12 +193,64 @@ def build_command(
     return command
 
 
+def _signal_process_group(process: subprocess.Popen[str], signal_number: int) -> None:
+    try:
+        os.killpg(process.pid, signal_number)
+    except ProcessLookupError:
+        pass
+
+
+def _run_process_group(
+    command: Sequence[str], *, cwd: Path, capture_output: bool,
+    text: bool, timeout: float, check: bool,
+) -> subprocess.CompletedProcess[str]:
+    """Own the CLI's POSIX process group so timed-out workers cannot continue."""
+    if os.name != "posix":
+        return subprocess.run(command, cwd=cwd, capture_output=capture_output,
+                              text=text, timeout=timeout, check=check)
+    process = subprocess.Popen(
+        command, cwd=cwd, start_new_session=True, text=text,
+        stdout=subprocess.PIPE if capture_output else None,
+        stderr=subprocess.PIPE if capture_output else None,
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        _signal_process_group(process, signal.SIGTERM)
+        try:
+            stdout, stderr = process.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            _signal_process_group(process, signal.SIGKILL)
+            try:
+                stdout, stderr = process.communicate(timeout=1)
+            except subprocess.TimeoutExpired as drain_timeout:
+                # A detached descendant may keep a pipe open after the group dies.
+                stdout, stderr = _text(drain_timeout.output), _text(drain_timeout.stderr)
+                process.wait(timeout=1)
+        finally:
+            # Children may close their pipes before exiting; still stop them.
+            _signal_process_group(process, signal.SIGKILL)
+        raise subprocess.TimeoutExpired(command, timeout, output=stdout, stderr=stderr) from exc
+    except BaseException:
+        _signal_process_group(process, signal.SIGKILL)
+        process.wait(timeout=1)
+        raise
+    finally:
+        for stream in (process.stdout, process.stderr):
+            if stream is not None:
+                stream.close()
+    completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+    if check:
+        completed.check_returncode()
+    return completed
+
+
 def run_command(
     command: Sequence[str],
     *,
     project_root: str | Path = PROJECT_ROOT,
     timeout_seconds: float = 7200,
-    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = _run_process_group,
 ) -> CommandResult:
     """Execute one prebuilt argv list and return display-safe output."""
     argv = [str(value) for value in command]
@@ -211,7 +265,7 @@ def run_command(
             check=False,
         )
     except subprocess.TimeoutExpired as exc:
-        partial = _text(exc.output)
+        partial = "\n".join(part.strip() for part in (_text(exc.output), _text(exc.stderr)) if part)
         output = f"{partial}\nCommand timed out after {timeout_seconds:g} seconds."
         return CommandResult(
             command=tuple(argv),

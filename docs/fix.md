@@ -292,6 +292,16 @@ verified reports can regenerate a queue in a new directory without paid calls.
 Offline regressions cover changed inputs, legacy decisions/file preservation,
 version/binding validation, report reuse and the review UI.
 
+### 6. Stop local workers after operator-console timeouts (2026-10-06)
+
+The direct subprocess timeout killed only the CLI, leaving child workers able
+to continue writing output. The macOS/Linux console now owns a dedicated process
+group, requests termination, then kills remaining group members and reaps the CLI.
+Timeout output retains stdout/stderr redaction and exit code `124`. Offline
+process regressions cover cooperative workers, ignored termination signals and
+workers with closed output pipes. Remote provider jobs are not cancelled by this
+local cleanup.
+
 ### 1. Logged pre-validation cleanup of structural noise (2026-09-16)
 
 `run_structured_output(..., drop_structural_noise=True)` removes undeclared

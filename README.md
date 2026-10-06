@@ -66,6 +66,7 @@ See [environment setup](docs/user-guide.md#2-installation-and-environment).
 Choose a vertical and operation, review the generated command, and confirm when
 required. These pages call the existing CLI, accept no credentials, and have no
 authentication boundary. Use them on a trusted local machine.
+On macOS/Linux console timeouts also stop workers in the CLI's process group.
 
 ## CLI entry points
 
