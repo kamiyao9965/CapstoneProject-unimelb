@@ -187,6 +187,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Environment variable containing the PostgreSQL URL",
     )
 
+    for command, description, input_flag in (
+        ("csv-export", "Export one validated extraction as a joined product CSV", "--artifact"),
+        ("csv-export-batch", "Export an extraction folder as one joined product CSV", "--artifact-dir"),
+    ):
+        csv_export = subparsers.add_parser(command, help=description)
+        csv_export.add_argument("--manifest")
+        csv_export.add_argument("--schema", help="Approved Canonical Schema override")
+        csv_export.add_argument(input_flag, required=True)
+        csv_export.add_argument("--output", required=True, help="New .csv path; existing files are not overwritten")
+        if command == "csv-export":
+            csv_export.add_argument("--insurer-code", required=True)
+
     quality_audit = subparsers.add_parser(
         "quality-audit", help="Screen extraction artifacts against source PDFs with an LLM judge",
     )
@@ -243,12 +255,14 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
     elif args.command == "canonical-compile":
         args.schema = Path(args.schema)
         args.output_dir = Path(args.output_dir)
-    elif args.command in {"storage-init", "storage-load", "storage-load-batch"}:
+    elif args.command in {"storage-init", "storage-load", "storage-load-batch", "csv-export", "csv-export-batch"}:
         args.schema = Path(args.schema) if args.schema else manifest.path("canonical_schema")
-        if args.command == "storage-load":
+        if args.command in {"storage-load", "csv-export"}:
             args.artifact = Path(args.artifact)
-        if args.command == "storage-load-batch":
+        if args.command in {"storage-load-batch", "csv-export-batch"}:
             args.artifact_dir = Path(args.artifact_dir)
+        if args.command.startswith("csv-export"):
+            args.output = Path(args.output)
     elif args.command == "quality-audit":
         args.schema = Path(args.schema) if args.schema else manifest.path("canonical_schema")
         args.artifact_dir = Path(args.artifact_dir)
@@ -727,6 +741,31 @@ def command_storage_load_batch(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def command_csv_export(args: argparse.Namespace) -> int:
+    """Export existing validated products without a database or model request."""
+    from src.storage.csv_export import export_extraction_artifact, export_extraction_directory
+
+    options = {
+        "manifest": args.vertical_manifest, "schema_path": args.schema,
+        "output_path": args.output,
+    }
+    try:
+        if args.command == "csv-export-batch":
+            summary = export_extraction_directory(**options, artifact_dir=args.artifact_dir)
+        else:
+            summary = export_extraction_artifact(
+                **options, artifact_path=args.artifact, insurer_code=args.insurer_code,
+            )
+    except (OSError, ValueError) as exc:
+        print(f"Product CSV export failed: {exc}")
+        return 1
+    print(
+        f"Product CSV export complete: {summary.output_path} "
+        f"(artifacts={summary.artifacts_exported}, products={summary.products_exported})"
+    )
+    return 0
+
+
 def command_quality_audit(args: argparse.Namespace) -> int:
     """Optional offline quality screen; no extraction, schema or DB mutation."""
     from src.common.model_provider import create_provider
@@ -814,6 +853,8 @@ def main() -> int:
         return command_storage_load(args)
     if args.command == "storage-load-batch":
         return command_storage_load_batch(args)
+    if args.command in {"csv-export", "csv-export-batch"}:
+        return command_csv_export(args)
     if args.command == "quality-audit":
         return command_quality_audit(args)
     parser.error(f"Unknown command: {args.command}")

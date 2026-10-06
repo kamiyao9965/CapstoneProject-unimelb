@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import csv
+import io
 import json
 import tempfile
 import unittest
@@ -9,6 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
 from unittest import mock
+from contextlib import redirect_stdout
 
 from src.common.json_artifacts import build_success_artifact
 from src.schema.canonical import compile_canonical_extraction_contract
@@ -67,6 +69,24 @@ class CsvExportTests(unittest.TestCase):
     def _read_rows(self) -> list[dict[str, str]]:
         with self.output.open(encoding="utf-8-sig", newline="") as handle:
             return list(csv.DictReader(handle))
+
+    def _export_directory(self):
+        from src.storage.csv_export import export_extraction_directory
+
+        return export_extraction_directory(
+            manifest=self.manifest, schema_path=self.schema_path,
+            artifact_dir=self.artifact_path.parent, output_path=self.output,
+        )
+
+    def _second_artifact(self) -> Path:
+        pdf = self.input_root / "tick/pds/tick.pdf"
+        pdf.parent.mkdir(parents=True)
+        pdf.write_bytes(b"%PDF-1.4\ndifferent synthetic CSV fixture\n%%EOF\n")
+        artifact = copy.deepcopy(self.artifact)
+        artifact["source_path"] = str(pdf)
+        path = self.artifact_path.parent / "tick.json"
+        path.write_text(json.dumps(artifact), encoding="utf-8")
+        return path
 
     def test_joins_products_releases_details_and_provenance_without_database(self) -> None:
         prepared = prepare_storage_load(
@@ -179,6 +199,118 @@ class CsvExportTests(unittest.TestCase):
         self.schema_path.write_text(json.dumps(self.schema), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "column.*product_id"):
             self._export()
+        self.assertFalse(self.output.exists())
+
+    def test_directory_combines_insurers_in_stable_order_and_skips_errors(self) -> None:
+        self._second_artifact()
+        errors = self.artifact_path.parent / "errors"
+        errors.mkdir()
+        (errors / "failed.json").write_text("invalid", encoding="utf-8")
+        summary = self._export_directory()
+        first_bytes = self.output.read_bytes()
+        self.assertEqual(summary.artifacts_exported, 2)
+        self.assertEqual(summary.products_exported, 2)
+        rows = self._read_rows()
+        self.assertEqual([row["insurer_code"] for row in rows], ["cover_more", "tick"])
+        self.assertNotEqual(rows[0]["document_id"], rows[1]["document_id"])
+        self.output = self.root / "again.csv"
+        self._export_directory()
+        self.assertEqual(first_bytes, self.output.read_bytes())
+
+    def test_directory_invalid_or_duplicate_sources_fail_without_partial_output(self) -> None:
+        second = self._second_artifact()
+        with self.subTest(problem="invalid payload"):
+            artifact = json.loads(second.read_text(encoding="utf-8"))
+            artifact["data"]["products"][0]["product_type"] = "invalid"
+            second.write_text(json.dumps(artifact), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "tick.json"):
+                self._export_directory()
+            self.assertFalse(self.output.exists())
+        with self.subTest(problem="duplicate source"):
+            second.write_bytes(self.artifact_path.read_bytes())
+            with self.assertRaisesRegex(ValueError, "keep one"):
+                self._export_directory()
+            self.assertFalse(self.output.exists())
+
+    def test_directory_requires_existing_nonempty_results_and_reports_bad_json(self) -> None:
+        self.artifact_path.write_text("not JSON", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "extraction.json"):
+            self._export_directory()
+        self.artifact_path.unlink()
+        with self.assertRaisesRegex(ValueError, "No extraction artifacts"):
+            self._export_directory()
+        self.artifact_path.parent.rmdir()
+        with self.assertRaisesRegex(ValueError, "does not exist"):
+            self._export_directory()
+        self.assertFalse(self.output.exists())
+
+    def test_numeric_columns_come_from_schema_and_preserve_negative_numbers(self) -> None:
+        field = copy.deepcopy(self.schema["fields"][3])
+        field.update(name="numeric_fixture", type="number", description="Numeric CSV fixture")
+        field["storage"]["column"] = "numeric_fixture"
+        self.schema["fields"].append(field)
+        self.schema_path.write_text(json.dumps(self.schema), encoding="utf-8")
+        self.artifact["data"]["products"][0]["numeric_fixture"] = -42.5
+        self._write_artifact()
+        self._export()
+        row, = self._read_rows()
+        self.assertEqual(row["numeric_fixture"], "-42.5")
+        self.assertEqual(list(row)[-2:], ["numeric_fixture", "attributes"])
+
+    def test_bundled_travel_schema_exports_every_typed_column_and_json_attribute(self) -> None:
+        schema = json.loads((PROJECT_ROOT / "configs/travel_insurance/canonical_schema_v1.json").read_text(encoding="utf-8"))
+        self.schema_path.write_text(json.dumps(schema), encoding="utf-8")
+        product = {field["name"]: None for field in schema["fields"]}
+        product.update(
+            product_name="Travel Complete", product_type="international_single_trip",
+            plan_name="Complete", max_trip_duration_days=365,
+            cruise_cover_available=True,
+            benefits=[{"name": "Medical", "limit": "Unlimited"}],
+            _unfilled=[], _notes=None,
+        )
+        self.artifact["data"]["products"] = [product]
+        self._write_artifact()
+        self._export()
+        row, = self._read_rows()
+        typed = [field["storage"]["column"] for field in schema["fields"] if field["storage"]["strategy"] == "extension_column"]
+        attributes = {field["name"]: product[field["name"]] for field in schema["fields"] if field["storage"]["strategy"] == "jsonb"}
+        self.assertEqual(list(row)[-len(typed)-1:], [*typed, "attributes"])
+        self.assertEqual(row["plan_name"], "Complete")
+        self.assertEqual(row["max_trip_duration_days"], "365")
+        self.assertEqual(json.loads(row["attributes"]), attributes)
+
+    def test_cli_exports_real_csv_for_single_and_directory_inputs_without_database(self) -> None:
+        from src import run
+
+        self._second_artifact()
+        for command, inputs, count in (
+            ("csv-export", ["--artifact", str(self.artifact_path), "--insurer-code", "cover_more"], 1),
+            ("csv-export-batch", ["--artifact-dir", str(self.artifact_path.parent)], 2),
+        ):
+            with self.subTest(command=command):
+                self.output = self.root / f"{command}.csv"
+                argv = ["run.py", command, "--schema", str(self.schema_path), *inputs, "--output", str(self.output)]
+                stdout = io.StringIO()
+                with mock.patch("sys.argv", argv), \
+                     mock.patch("src.run.resolve_manifest", return_value=self.manifest), \
+                     mock.patch("src.storage.service.create_engine", side_effect=AssertionError("DB call")), \
+                     mock.patch("src.storage.service.resolve_database_url", side_effect=AssertionError("DB env read")), \
+                     mock.patch("src.common.model_provider.create_provider", side_effect=AssertionError("model call")), \
+                     redirect_stdout(stdout):
+                    self.assertEqual(run.main(), 0)
+                self.assertEqual(len(self._read_rows()), count)
+                self.assertIn(f"products={count}", stdout.getvalue())
+
+    def test_cli_returns_failure_without_partial_csv_when_any_artifact_is_invalid(self) -> None:
+        from src import run
+
+        self._second_artifact().write_text("invalid", encoding="utf-8")
+        with mock.patch("sys.argv", [
+            "run.py", "csv-export-batch", "--schema", str(self.schema_path),
+            "--artifact-dir", str(self.artifact_path.parent), "--output", str(self.output),
+        ]), mock.patch("src.run.resolve_manifest", return_value=self.manifest), redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(run.main(), 1)
+        self.assertIn("tick.json", output.getvalue())
         self.assertFalse(self.output.exists())
 
 

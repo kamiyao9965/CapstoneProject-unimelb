@@ -18,6 +18,7 @@ OPERATION_CAPABILITIES = {
     "discover": "discovery", "extract": "extraction", "batch": "extraction",
     "crawl": "acquisition", "refine": "refinement", "canonical_compile": "storage",
     "storage_init": "storage", "storage_load": "storage", "storage_load_batch": "storage",
+    "csv_export": "storage", "csv_export_batch": "storage",
     "quality_audit": "quality_audit",
 }
 

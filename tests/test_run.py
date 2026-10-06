@@ -21,6 +21,26 @@ from tests.test_travel_schema_migration import (
 
 
 class RunParserTest(unittest.TestCase):
+    def test_csv_commands_default_to_travel_and_do_not_require_database_configuration(self) -> None:
+        for command, inputs in (
+            ("csv-export", ["--artifact", "extraction.json", "--insurer-code", "cover_more"]),
+            ("csv-export-batch", ["--artifact-dir", "extractions"]),
+        ):
+            with self.subTest(command=command):
+                args = build_parser().parse_args([command, *inputs, "--output", "products.csv"])
+                manifest = configure_command(args)
+                self.assertEqual(manifest.vertical, "travel_insurance")
+                self.assertEqual(args.schema, manifest.path("canonical_schema"))
+                self.assertEqual(args.output, Path("products.csv"))
+                self.assertFalse(hasattr(args, "database_url_env"))
+                self.assertFalse(hasattr(args, "provider"))
+                args = build_parser().parse_args([
+                    command, *inputs, "--output", "products.csv", "--manifest",
+                    str(PROJECT_ROOT / "configs/private_health/manifest.json"),
+                ])
+                with self.assertRaisesRegex(ValueError, "does not support"):
+                    configure_command(args)
+
     def test_batch_evaluation_preserves_matching_diagnostics_and_error_counts(self) -> None:
         from src.common.models import ProductMatch
         from src.evaluation.metrics import ExtractionEvaluator

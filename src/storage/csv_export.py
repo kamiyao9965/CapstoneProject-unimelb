@@ -11,7 +11,9 @@ from src.common.json_artifacts import write_text_output
 from src.common.json_codec import dumps_json
 from src.storage.canonical import compile_vertical_storage_metadata
 from src.storage.repository import deterministic_product_id, deterministic_release_id
-from src.storage.service import PreparedStorageLoad, prepare_storage_load
+from src.storage.service import (
+    PreparedStorageLoad, inspect_extraction_directory, prepare_storage_load,
+)
 from src.verticals.manifest import VerticalManifest
 
 
@@ -43,6 +45,34 @@ def export_extraction_artifact(
         artifact_path=artifact_path, insurer_code=insurer_code,
     )
     return _write_product_csv([prepared], output_path)
+
+
+def export_extraction_directory(
+    *,
+    manifest: VerticalManifest,
+    schema_path: str | Path,
+    artifact_dir: str | Path,
+    output_path: str | Path,
+) -> CsvExportSummary:
+    """Validate an entire folder before writing one CSV; failures leave no output."""
+    manifest.require_capability("storage")
+    prepared: list[PreparedStorageLoad] = []
+    errors: list[str] = []
+    for entry in inspect_extraction_directory(manifest=manifest, artifact_dir=artifact_dir):
+        if entry.error is not None:
+            errors.append(f"{entry.artifact_path}: {entry.error}")
+            continue
+        assert entry.insurer_code is not None
+        try:
+            prepared.append(prepare_storage_load(
+                manifest=manifest, schema_path=schema_path,
+                artifact_path=entry.artifact_path, insurer_code=entry.insurer_code,
+            ))
+        except (OSError, ValueError) as exc:
+            errors.append(f"{entry.artifact_path}: {exc}")
+    if errors:
+        raise ValueError("CSV export failed; no output was written:\n" + "\n".join(errors))
+    return _write_product_csv(prepared, output_path)
 
 
 def _write_product_csv(
@@ -103,7 +133,8 @@ def _csv_cell(value: object, column: str) -> str:
         return ""
     if isinstance(value, (bool, int, float)):
         return dumps_json(value)
-    text = str(value)
-    if text.lstrip().startswith(("=", "+", "-", "@")) or text.startswith(("\t", "\r")):
+    if not isinstance(value, str):
+        raise ValueError(f"CSV column {column!r} must contain a scalar value.")
+    if value.lstrip().startswith(("=", "+", "-", "@")) or value.startswith(("\t", "\r")):
         raise ValueError(f"CSV column {column!r} contains formula-like text; review the source value.")
-    return text
+    return value
