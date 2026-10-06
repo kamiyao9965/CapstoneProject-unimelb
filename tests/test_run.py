@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from src.common.model_config import ModelSelection, resolve_selection
@@ -71,11 +72,35 @@ class RunParserTest(unittest.TestCase):
 
     def test_batch_resume_flags_are_explicit(self) -> None:
         args = build_parser().parse_args(
-            ["batch", "--schema", "schema.json", "--resume", "--trust-legacy-cache"]
+            [
+                "batch", "--schema", "schema.json", "--resume",
+                "--trust-legacy-cache", "--archive-stale-products",
+            ]
         )
 
         self.assertTrue(args.resume)
         self.assertTrue(args.trust_legacy_cache)
+        self.assertTrue(args.archive_stale_products)
+
+    def test_batch_accepts_targeted_pet_product_ids(self) -> None:
+        args = build_parser().parse_args([
+            "batch", "--schema", "schema.json", "--product-ids",
+            "pd_insurance_accident", "pd_insurance_classic",
+        ])
+
+        self.assertEqual(
+            args.product_ids,
+            ["pd_insurance_accident", "pd_insurance_classic"],
+        )
+
+    def test_manifest_discovery_defaults_to_broader_12_document_sample(self) -> None:
+        args = build_parser().parse_args(["discover", "--manifest", "manifest.json"])
+
+        self.assertEqual(args.sample_count, 12)
+        self.assertEqual(
+            args.document_roles,
+            ["pds", "policy_booklet", "combined_fsg_pds", "renewal_pds"],
+        )
 
 
 class BatchResumeTest(unittest.TestCase):
@@ -173,6 +198,89 @@ class BatchResumeTest(unittest.TestCase):
                 output.read_text(encoding="utf-8")
             )
             self.assertEqual(persisted.source_sha256, source_hash)
+
+    def test_product_resume_requires_current_product_prompt_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "product.json"
+            run_module.ProductExtractionResult(
+                schema_version="1.0.0",
+                product_id="example",
+                document_family_id="example",
+                source_documents=[],
+                provider="openai",
+                model="gpt-5",
+                schema_sha256="schema-hash",
+                extraction_prompt_version="pet-product-family.v1",
+                source_sha256=["source-hash"],
+                data={"product_id": "example"},
+            ).write_json(output)
+
+            self.assertFalse(run_module._cached_product_matches(
+                output,
+                schema_hash="schema-hash",
+                source_hashes=["source-hash"],
+                provider="openai",
+                model="gpt-5",
+                extraction_prompt_version="pet-product-family.v2",
+            ))
+
+    def test_archives_only_product_ids_absent_from_current_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for product_id in ("current", "stale"):
+                run_module.ProductExtractionResult(
+                    schema_version="1.0.0",
+                    product_id=product_id,
+                    document_family_id=product_id,
+                    provider="openai",
+                    model="gpt-5",
+                    data={"product_id": product_id},
+                ).write_json(root / f"{product_id}.json")
+
+            archived = run_module._archive_stale_product_outputs(root, {"current"})
+
+            self.assertTrue((root / "current.json").exists())
+            self.assertEqual([path.name for path in archived], ["stale.json"])
+            self.assertTrue(archived[0].is_file())
+
+    def test_batch_failure_artifact_preserves_structured_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            error = RuntimeError("structured extraction failed")
+            error.result = SimpleNamespace(errors=(
+                {
+                    "path": "$.products[0].benefit_coverages[2]",
+                    "message": "source_block_id was not found",
+                    "kind": "business_validation",
+                },
+            ))
+            with mock.patch(
+                "src.run.load_config",
+                return_value=SimpleNamespace(outputs_dir=root),
+            ):
+                path = run_module.record_batch_failure(
+                    vertical="pet_insurance",
+                    pdf_path=Path("product.pdf"),
+                    schema_hash="schema-hash",
+                    source_hash="source-hash",
+                    provider="openai",
+                    model="gpt-5",
+                    document_input="markdown",
+                    error=error,
+                    stage="product_family_extraction",
+                )
+
+            artifact = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(artifact["status"], "failed")
+            self.assertEqual(artifact["provenance"]["document_input"], "markdown")
+            self.assertEqual(
+                artifact["error"]["details"][0],
+                {
+                    "path": "$.products[0].benefit_coverages[2]",
+                    "message": "source_block_id was not found",
+                },
+            )
 
 
 if __name__ == "__main__":

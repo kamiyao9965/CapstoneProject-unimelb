@@ -12,6 +12,7 @@ from pathlib import Path
 
 from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.refine.candidates.patch import SchemaPatch
+from src.refine.verticals import contract_name
 
 
 def compute_patch_stability(patches: list[SchemaPatch], total_runs: int) -> dict:
@@ -65,12 +66,19 @@ def write_patch_stability(
     path: str | Path,
     *,
     provenance: dict[str, object],
+    vertical: str = "private_health",
+    overwrite: bool = False,
 ) -> None:
     artifact = build_success_artifact(
         artifact_type="patch_stability",
         contract_version="1.0.0",
         data=payload,
         provenance=provenance,
-        data_contract="private_health/patch_stability",
+        data_contract=contract_name(vertical, "patch_stability"),
     )
-    write_artifact(path, artifact, data_contract="private_health/patch_stability")
+    write_artifact(
+        path,
+        artifact,
+        data_contract=contract_name(vertical, "patch_stability"),
+        overwrite=overwrite,
+    )

@@ -91,6 +91,7 @@ class ProviderContractTest(unittest.TestCase):
         for contract_name in (
             "private_health/discovered_schema",
             "private_health/candidate_patch_set",
+            "pet_insurance/discovered_schema",
         ):
             with self.subTest(contract=contract_name, provider="openai"):
                 projected = model_provider._project_openai_schema(

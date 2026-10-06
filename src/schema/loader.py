@@ -9,7 +9,7 @@ import yaml
 from src.common.json_contracts import validate_contract
 from src.models import SchemaField, SchemaSection, VerticalSchema
 from src.schema.migration import migrate_legacy_discovered_schema
-from src.schema.validation import validate_schema_mapping
+from src.schema.validation import validate_schema_mapping, validate_pet_schema_mapping
 from src.schema.field_contract import compile_field_contract
 
 
@@ -140,6 +140,32 @@ class SchemaLoader:
         return {"type": ["string", "null"]}
 
     def _load_discovered_schema(self, payload: dict[str, Any]) -> VerticalSchema:
+        if payload.get("vertical") == "pet_insurance":
+            validate_contract(payload, "pet_insurance/discovered_schema")
+            validate_pet_schema_mapping(payload)
+            fields = [
+                SchemaField(
+                    name=str(field.get("name", "")),
+                    type=str(field.get("type", "string")),
+                    description=field.get("description"),
+                    values=list(field.get("values") or []),
+                )
+                for field in payload.get("fields", [])
+                if isinstance(field, dict)
+            ]
+            return VerticalSchema(
+                vertical="pet_insurance",
+                version=str(payload.get("version", "1.0")),
+                coverage=SchemaSection(fields=fields),
+                metadata={
+                    "schema_style": "discovered_json",
+                    "cover_scopes": payload.get("cover_scopes", []),
+                    "document_roles": payload.get("document_roles", []),
+                    "benefit_categories": payload.get("benefit_categories", []),
+                    "notes": payload.get("notes", []),
+                    "source_schema": payload,
+                },
+            )
         validate_contract(payload, "private_health/discovered_schema")
         payload = migrate_legacy_discovered_schema(payload)
         validate_schema_mapping(payload)
@@ -426,9 +452,9 @@ class SchemaLoader:
     def _is_discovered_schema(payload: Any) -> bool:
         return (
             isinstance(payload, dict)
-            and payload.get("vertical") == "private_health"
+            and payload.get("vertical") in {"private_health", "pet_insurance"}
             and isinstance(payload.get("fields"), list)
-            and isinstance(payload.get("product_types"), list)
+            and (isinstance(payload.get("product_types"), list) or isinstance(payload.get("cover_scopes"), list))
         )
 
     @staticmethod

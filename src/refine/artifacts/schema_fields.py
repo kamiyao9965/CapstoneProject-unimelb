@@ -26,14 +26,17 @@ def fields_by_name(fields: object) -> dict[str, dict[str, object]]:
     return result
 
 
-def applies_to_from_group(target_group: str) -> list[str]:
+def applies_to_from_group(
+    target_group: str,
+    allowed_targets: set[str] | frozenset[str] = frozenset(VALID_PRODUCT_TYPES),
+) -> list[str]:
     """Convert consensus group names to schema product types.
 
     Group names like `extras_cover` are useful during consensus, but schema
     `applies_to` should only contain product types such as `extras`.
     """
     candidate = target_group.removesuffix("_cover")
-    return [candidate] if candidate in VALID_PRODUCT_TYPES else []
+    return [candidate] if candidate in allowed_targets else []
 
 
 def is_applicable_field_patch(
@@ -49,6 +52,9 @@ def is_applicable_field_patch(
 def field_payload_from_decision(
     decision: FieldDecision,
     existing_field: dict[str, object] | None = None,
+    *,
+    allowed_targets: set[str] | frozenset[str] = frozenset(VALID_PRODUCT_TYPES),
+    required_fields: set[str] | frozenset[str] = CORE_REQUIRED_FIELDS,
 ) -> dict[str, object]:
     """Build the schema field payload implied by one consensus decision."""
     payload = dict(existing_field or {})
@@ -73,7 +79,7 @@ def field_payload_from_decision(
                 "description": payload.get("description") or decision.description,
                 "applies_to": payload.get("applies_to")
                 or decision.applies_to
-                or applies_to_from_group(decision.target_group),
+                or applies_to_from_group(decision.target_group, allowed_targets),
                 "required": payload.get(
                     "required",
                     decision.required if decision.required is not None else False,
@@ -91,14 +97,18 @@ def field_payload_from_decision(
                 "aliases": payload.get("aliases", decision.aliases),
             }
         )
-    normalize_required_flag(payload)
+    normalize_required_flag(payload, required_fields=required_fields)
     return payload
 
 
-def normalize_required_flag(field: dict[str, object]) -> None:
+def normalize_required_flag(
+    field: dict[str, object],
+    *,
+    required_fields: set[str] | frozenset[str] = CORE_REQUIRED_FIELDS,
+) -> None:
     """Only identity fields should force a cross-document non-null value."""
     name = field.get("name")
-    if isinstance(name, str) and name not in CORE_REQUIRED_FIELDS:
+    if isinstance(name, str) and name not in required_fields:
         field["required"] = False
 
 

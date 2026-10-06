@@ -51,7 +51,12 @@ def compile_item_field_contract(
 
 def _scalar_contract(field_type: str, *, required: bool) -> dict[str, object]:
     json_type = {"string": "string", "number": "number", "boolean": "boolean"}[field_type]
-    return {"type": json_type if required else [json_type, "null"]}
+    contract: dict[str, object] = {
+        "type": json_type if required else [json_type, "null"]
+    }
+    if required and field_type == "string":
+        contract["minLength"] = 1
+    return contract
 
 
 def _enum_contract(
@@ -70,6 +75,9 @@ def _enum_values(
     enum_ref = str(field["enum_ref"])
     if enum_ref == "product_types":
         return list(schema.get("product_types") or [])
+    source = schema.get(enum_ref)
+    if isinstance(source, list) and all(not isinstance(item, Mapping) for item in source):
+        return list(source)
     return [
         item["canonical_name"]
         for item in schema.get(enum_ref, [])

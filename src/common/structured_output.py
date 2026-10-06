@@ -88,6 +88,7 @@ def run_structured_output(
                         exc.response.text,
                         list(errors),
                         attempt_number,
+                        data_contract=data_contract,
                     ),
                 )
                 continue
@@ -116,6 +117,7 @@ def run_structured_output(
                     response.text,
                     errors,
                     attempt_number,
+                    data_contract=data_contract,
                 ),
             )
 
@@ -202,11 +204,13 @@ def _repair_text(
     previous_response_text: str,
     errors: list[dict[str, str]],
     repair_number: int,
+    *,
+    data_contract: str | None = None,
 ) -> str:
     details = "\n".join(
         f"- {item['path']}: {item['message']}" for item in errors
     )
-    repair_hints = _business_repair_hints(errors)
+    repair_hints = _business_repair_hints(errors, data_contract=data_contract)
     source_context = (
         f"{original_user_text}\n\n"
         if repair_number == 1 and _needs_source_context(errors)
@@ -249,7 +253,11 @@ def _needs_source_context(errors: list[dict[str, str]]) -> bool:
     return any(error.get("kind") in context_kinds for error in errors)
 
 
-def _business_repair_hints(errors: list[dict[str, str]]) -> str:
+def _business_repair_hints(
+    errors: list[dict[str, str]],
+    *,
+    data_contract: str | None = None,
+) -> str:
     messages = "\n".join(item.get("message", "") for item in errors)
     required_product_type_error = any(
         item.get("path", "").endswith(".required")
@@ -261,6 +269,39 @@ def _business_repair_hints(errors: list[dict[str, str]]) -> str:
         for item in errors
         if item.get("repair_hint")
     ))
+    enum_source_error = (
+        "must declare exactly one of values or enum_ref" in messages
+        or (
+            data_contract == "pet_insurance/discovered_schema"
+            and any(
+                ".fields[" in item.get("path", "")
+                and "contract anyOf rule" in item.get("message", "")
+                for item in errors
+            )
+        )
+    )
+    if enum_source_error:
+        hints.append(
+            "For every enum or list[enum] field, choose exactly one source: "
+            'either set a non-empty "values" array and "enum_ref": null, or '
+            'set "values": [] and a non-null "enum_ref". Never populate both '
+            "and never leave both empty."
+        )
+    pet_enum_issue = enum_source_error or any(
+        field_name in messages
+        for field_name in (
+            "covered_benefit_categories", "document_role", "cover_scope"
+        )
+    )
+    if data_contract == "pet_insurance/discovered_schema" and pet_enum_issue:
+        hints.extend([
+            'For "covered_benefit_categories", set "type": "list[enum]", '
+            '"values": [], and "enum_ref": "benefit_categories".',
+            'For "document_role", set "type": "enum", "values": [], and '
+            '"enum_ref": "document_roles".',
+            'For "cover_scope", set "type": "enum", "values": [], and '
+            '"enum_ref": "cover_scopes".',
+        ])
     if "Schema product_type field must be required." in messages or required_product_type_error:
         hints.append(
             'Find the field whose name is exactly "product_type" and set '

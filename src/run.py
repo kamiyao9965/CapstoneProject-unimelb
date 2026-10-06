@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from hashlib import sha256
 from pathlib import Path
@@ -22,10 +23,18 @@ from src.common.json_artifacts import (
 from src.common.data_paths import default_private_health_pdf_root
 from src.common.model_config import resolve_selection
 from src.config import load_config
-from src.models import ExtractionResult
+from src.models import ExtractionResult, ProductExtractionResult
 from src.schema.loader import SchemaLoader
-from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
+from src.schema.sampler import (
+    DEFAULT_CATEGORIES,
+    DEFAULT_MANIFEST_ROLES,
+    DEFAULT_MANIFEST_SAMPLE_COUNT,
+    print_samples,
+    select_manifest_samples,
+    select_samples,
+)
 from src.schema.validator import SchemaValidator
+from src.schema_application.prompts import PET_PRODUCT_FAMILY_PROMPT_VERSION
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,6 +47,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     discover.add_argument("--samples", nargs="+")
     discover.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    discover.add_argument("--manifest", help="Manifest JSON for stratified document sampling")
+    discover.add_argument("--vertical", default="private_health")
+    discover.add_argument(
+        "--document-roles", nargs="+", default=list(DEFAULT_MANIFEST_ROLES),
+        help="Manifest document_role values to sample (used with --manifest)",
+    )
+    discover.add_argument(
+        "--sample-count",
+        type=int,
+        default=DEFAULT_MANIFEST_SAMPLE_COUNT,
+        help=(
+            "Total documents for manifest sampling; defaults to 12 across PDS, "
+            "policy-booklet, combined-FSG/PDS, and renewal-PDS roles."
+        ),
+    )
     discover.add_argument("--categories", nargs="+", default=list(DEFAULT_CATEGORIES))
     discover.add_argument("--per-category", type=int, default=5)
     discover.add_argument("--seed", type=int)
@@ -53,6 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument("--pdf", required=True)
     extract.add_argument("--schema", required=True)
     extract.add_argument("--output")
+    extract.add_argument("--manifest")
     extract.add_argument("--provider", default=None)
     extract.add_argument("--model", default=None)
     extract.add_argument(
@@ -65,6 +90,25 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("--vertical", default="private_health")
     batch.add_argument("--schema", required=True)
     batch.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    batch.add_argument("--manifest")
+    batch.add_argument(
+        "--product-ids",
+        nargs="+",
+        help=(
+            "Pet insurance only: rerun these manifest product IDs and include "
+            "their linked base/update documents. Shared multi-plan booklets are "
+            "rerun as one family."
+        ),
+    )
+    batch.add_argument(
+        "--archive-stale-products",
+        action="store_true",
+        help=(
+            "For pet-insurance batches, move existing product JSON files whose "
+            "product_id is no longer in the current manifest inventory into an "
+            "archive directory before extraction."
+        ),
+    )
     batch.add_argument(
         "--limit",
         type=int,
@@ -135,13 +179,22 @@ def command_discover(args: argparse.Namespace) -> int:
 
     try:
         if not sample_paths:
-            sample_paths = select_samples(
-                input_root=input_root,
-                categories=categories,
-                per_category=args.per_category,
-                seed=args.seed,
-            )
-            print_samples(sample_paths, input_root, categories)
+            if args.manifest:
+                sample_paths = select_manifest_samples(
+                    input_root=input_root,
+                    manifest_path=args.manifest,
+                    count=args.sample_count,
+                    seed=args.seed,
+                    roles=tuple(args.document_roles),
+                )
+            else:
+                sample_paths = select_samples(
+                    input_root=input_root,
+                    categories=categories,
+                    per_category=args.per_category,
+                    seed=args.seed,
+                )
+                print_samples(sample_paths, input_root, categories)
 
         schema_data = SchemaDiscovery(
             selection=selection,
@@ -149,6 +202,7 @@ def command_discover(args: argparse.Namespace) -> int:
             timeout_seconds=args.timeout,
             usage_log_path=args.usage_log,
             pdf_root=input_root,
+            vertical=args.vertical,
         ).discover(sample_paths, output_path=output_path, run_id=run_id)
     except Exception as exc:
         details = (
@@ -200,12 +254,12 @@ def command_discover(args: argparse.Namespace) -> int:
             "source_documents": list(sample_paths),
             "source_artifacts": [],
         },
-        data_contract="private_health/discovered_schema",
+        data_contract=f"{args.vertical}/discovered_schema",
     )
     write_artifact(
         output_path,
         artifact,
-        data_contract="private_health/discovered_schema",
+        data_contract=f"{args.vertical}/discovered_schema",
     )
     print(f"Wrote schema draft to {output_path}")
     return 0
@@ -227,6 +281,8 @@ def command_extract(args: argparse.Namespace) -> int:
     extractor = Extractor(
         schema_data=schema_data,
         selection=selection,
+        pdf_root=Path(args.pdf).parent,
+        manifest_path=args.manifest,
     )
     schema_hash = extractor.schema_hash
     schema_path = Path(args.schema)
@@ -285,6 +341,9 @@ def command_batch(args: argparse.Namespace) -> int:
     if not pdf_paths:
         print(f"No PDFs found under {input_root}")
         return 1
+    if args.product_ids and args.limit is not None:
+        print("--product-ids cannot be combined with --limit")
+        return 1
     if args.limit is not None:
         if args.limit <= 0:
             print("--limit must be greater than zero")
@@ -292,20 +351,54 @@ def command_batch(args: argparse.Namespace) -> int:
         pdf_paths = pdf_paths[:args.limit]
         print(f"Selected {len(pdf_paths)} PDF(s) with --limit {args.limit}")
 
+    selection = resolve_selection(provider=args.provider, model=args.model)
+    manifest_path = args.manifest
+    default_pet_manifest = PROJECT_ROOT / "configs" / "pet_insurance" / "document_manifest.json"
+    if schema.vertical == "pet_insurance" and not manifest_path and default_pet_manifest.is_file():
+        manifest_path = str(default_pet_manifest)
+        print(f"Using pet-insurance document manifest: {manifest_path}")
+    if args.product_ids:
+        if schema.vertical != "pet_insurance" or not manifest_path:
+            print("--product-ids requires a pet_insurance schema and document manifest")
+            return 1
+        from src.schema_application.product_families import select_manifest_product_paths
+
+        try:
+            pdf_paths = select_manifest_product_paths(manifest_path, args.product_ids)
+        except (ValueError, FileNotFoundError) as exc:
+            print(f"Could not resolve targeted pet products: {exc}")
+            return 1
+        print(
+            f"Selected {len(pdf_paths)} manifest PDF(s) for product IDs: "
+            + ", ".join(args.product_ids)
+        )
+
     source_hashes = {pdf_path: file_sha256(pdf_path) for pdf_path in pdf_paths}
     unique_source_documents = len(set(source_hashes.values()))
     duplicate_source_documents = len(pdf_paths) - unique_source_documents
-
-    selection = resolve_selection(provider=args.provider, model=args.model)
     extractor = Extractor(
         schema_data=schema_data,
         selection=selection,
+        pdf_root=input_root,
+        manifest_path=manifest_path,
     )
     # Batch resume/failure artifacts need the same schema identity as the
     # single-document command.  Define it before entering the per-PDF try block
     # so both the normal and exception paths can safely reference it.
     schema_path = Path(args.schema)
     schema_hash = extractor.schema_hash
+
+    if schema.vertical == "pet_insurance" and manifest_path:
+        return run_pet_product_batch(
+            extractor=extractor,
+            schema=schema,
+            pdf_paths=pdf_paths,
+            source_hashes=source_hashes,
+            manifest_path=manifest_path,
+            selection=selection,
+            resume=args.resume,
+            archive_stale_products=args.archive_stale_products,
+        )
 
     reports = []
     provider_counts: dict[str, int] = {}
@@ -374,6 +467,7 @@ def command_batch(args: argparse.Namespace) -> int:
                 source_hash=source_hash,
                 provider=selection.provider,
                 model=selection.model,
+                document_input=selection.document_input,
                 error=exc,
             )
             continue
@@ -432,6 +526,7 @@ def command_batch(args: argparse.Namespace) -> int:
                     source_hash=source_hash,
                     provider=selection.provider,
                     model=selection.model,
+                    document_input=selection.document_input,
                     error=exc,
                     stage="evaluation",
                 )
@@ -571,6 +666,230 @@ def command_batch(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_pet_product_batch(
+    *,
+    extractor: object,
+    schema: object,
+    pdf_paths: list[Path],
+    source_hashes: dict[Path, str],
+    manifest_path: str | Path,
+    selection: object,
+    resume: bool,
+    archive_stale_products: bool = False,
+) -> int:
+    """Extract pet insurance as product families and emit one file per product."""
+    from src.schema_application.product_families import resolve_product_families
+
+    families = resolve_product_families(manifest_path, pdf_paths)
+    hashes_by_resolved_path = {
+        path.resolve(): digest for path, digest in source_hashes.items()
+    }
+    output_root = load_config().outputs_dir / "pet_insurance" / "products"
+    expected_product_ids = {
+        product_id
+        for family in families
+        for product_id in family.expected_product_ids
+    }
+    if archive_stale_products:
+        if not expected_product_ids:
+            raise ValueError(
+                "Cannot archive stale product outputs when the manifest has no "
+                "declared product IDs."
+            )
+        archived = _archive_stale_product_outputs(output_root, expected_product_ids)
+        if archived:
+            print(f"Archived {len(archived)} stale product output(s): {archived[0].parent}")
+    completed_products = 0
+    resumed_products = 0
+    failed_families = 0
+    claimed_outputs: dict[Path, str] = {}
+    for family in families:
+        for document in family.unattached_documents:
+            print(
+                "Unattached amendment skipped: "
+                f"{document.get('document_id')} in family {family.family_id}; "
+                "no amends_document_ids link reaches a base document."
+            )
+        family_hashes = [hashes_by_resolved_path[path.resolve()] for path in family.pdf_paths]
+        expected_paths = [
+            output_root / f"{_safe_product_id(product_id)}.json"
+            for product_id in family.expected_product_ids
+        ]
+        for path in expected_paths:
+            owner = claimed_outputs.get(path)
+            if owner is not None and owner != family.family_id:
+                raise ValueError(
+                    f"Product output {path.name} is claimed by both {owner!r} and "
+                    f"{family.family_id!r}."
+                )
+            claimed_outputs[path] = family.family_id
+        if resume and expected_paths and all(
+            _cached_product_matches(
+                path,
+                schema_hash=extractor.schema_hash,
+                source_hashes=family_hashes,
+                provider=selection.provider,
+                model=selection.model,
+                extraction_prompt_version=PET_PRODUCT_FAMILY_PROMPT_VERSION,
+            )
+            for path in expected_paths
+        ):
+            resumed_products += len(expected_paths)
+            completed_products += len(expected_paths)
+            print(
+                f"Resumed product family {family.family_id}: "
+                f"{len(expected_paths)} product(s)"
+            )
+            continue
+        try:
+            record = extractor.extract_product_family(family)
+            products = record.get("products")
+            if not isinstance(products, list) or not products:
+                raise ValueError(f"Product family {family.family_id} returned no products.")
+            seen_ids: set[str] = set()
+            prepared: list[tuple[str, ProductExtractionResult, Path]] = []
+            for index, product_value in enumerate(products, start=1):
+                if not isinstance(product_value, dict):
+                    raise ValueError(
+                        f"Product family {family.family_id} returned a non-object product."
+                    )
+                product = dict(product_value)
+                product_id = _resolved_product_id(product, family.family_id, index)
+                if product_id in seen_ids:
+                    raise ValueError(
+                        f"Product family {family.family_id} returned duplicate product_id "
+                        f"{product_id!r}."
+                    )
+                seen_ids.add(product_id)
+                if "product_id" in product:
+                    product["product_id"] = product_id
+                result = ProductExtractionResult(
+                    schema_version=schema.version,
+                    product_id=product_id,
+                    document_family_id=family.family_id,
+                    source_documents=list(record["source_documents"]),
+                    provider=selection.provider,
+                    model=selection.model,
+                    schema_sha256=extractor.schema_hash,
+                    extraction_prompt_version=PET_PRODUCT_FAMILY_PROMPT_VERSION,
+                    source_sha256=family_hashes,
+                    data=product,
+                    family_notes=(
+                        record.get("_notes")
+                        if isinstance(record.get("_notes"), str)
+                        else None
+                    ),
+                )
+                output_path = output_root / f"{_safe_product_id(product_id)}.json"
+                owner = claimed_outputs.get(output_path)
+                if owner is not None and owner != family.family_id:
+                    raise ValueError(
+                        f"Product output {output_path.name} is claimed by both "
+                        f"{owner!r} and {family.family_id!r}."
+                    )
+                claimed_outputs[output_path] = family.family_id
+                prepared.append((product_id, result, output_path))
+            for product_id, result, output_path in prepared:
+                result.write_json(output_path)
+                completed_products += 1
+                print(
+                    f"Extracted product {product_id} from {len(family.pdf_paths)} PDF(s) "
+                    f"-> {output_path}"
+                )
+        except Exception as exc:
+            failed_families += 1
+            print(f"Product-family extraction failed for {family.family_id}: {exc}")
+            failure_path = safely_record_batch_failure(
+                vertical="pet_insurance",
+                pdf_path=family.pdf_paths[0],
+                schema_hash=extractor.schema_hash,
+                source_hash=family_hashes[0],
+                pdf_paths=list(family.pdf_paths),
+                source_hashes=family_hashes,
+                provider=selection.provider,
+                model=selection.model,
+                document_input=selection.document_input,
+                error=exc,
+                stage="product_family_extraction",
+            )
+            if failure_path is not None:
+                print(f"Failure artifact: {failure_path}")
+
+    print("\nProduct-oriented batch summary:")
+    print(f"  Document families: {len(families)}")
+    print(f"  Products written/resumed: {completed_products}")
+    print(f"  Resumed products: {resumed_products}")
+    print(f"  Failed families: {failed_families}")
+    print(f"  Output directory: {output_root}")
+    return 1 if failed_families else 0
+
+
+def _resolved_product_id(product: dict[str, object], family_id: str, index: int) -> str:
+    value = product.get("product_id")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return family_id if index == 1 else f"{family_id}_{index}"
+
+
+def _safe_product_id(value: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9._-]+", "_", value.strip()).strip("._")
+    if not safe:
+        raise ValueError("product_id cannot be converted to a safe output filename.")
+    return safe
+
+
+def _cached_product_matches(
+    path: Path,
+    *,
+    schema_hash: str,
+    source_hashes: list[str],
+    provider: str,
+    model: str,
+    extraction_prompt_version: str,
+) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        result = ProductExtractionResult.model_validate_json(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return (
+        result.schema_sha256 == schema_hash
+        and result.source_sha256 == source_hashes
+        and result.provider == provider
+        and result.model == model
+        and result.extraction_prompt_version == extraction_prompt_version
+    )
+
+
+def _archive_stale_product_outputs(
+    output_root: Path, expected_product_ids: set[str]
+) -> list[Path]:
+    """Move obsolete product records aside without deleting recoverable data."""
+    if not output_root.is_dir():
+        return []
+    stale: list[Path] = []
+    for path in sorted(output_root.glob("*.json")):
+        try:
+            result = ProductExtractionResult.model_validate_json(
+                path.read_text(encoding="utf-8")
+            )
+        except Exception:
+            continue
+        if result.product_id not in expected_product_ids:
+            stale.append(path)
+    if not stale:
+        return []
+    archive_root = output_root / "archive" / f"stale-{uuid4().hex}"
+    archive_root.mkdir(parents=True, exist_ok=False)
+    archived: list[Path] = []
+    for path in stale:
+        target = archive_root / path.name
+        path.replace(target)
+        archived.append(target)
+    return archived
+
+
 def command_build_eval_manifest(args: argparse.Namespace) -> int:
     from src.evaluation.manifest import build_evaluation_manifest
     from src.evaluation.metrics import PrivateHealthGroundTruthStore
@@ -659,10 +978,17 @@ def record_batch_failure(
     source_hash: str,
     provider: str,
     model: str,
+    document_input: str,
     error: Exception,
     stage: str = "extraction",
+    pdf_paths: list[Path] | None = None,
+    source_hashes: list[str] | None = None,
 ) -> Path:
     run_id = uuid4().hex
+    all_pdf_paths = pdf_paths or [pdf_path]
+    all_source_hashes = source_hashes or [source_hash]
+    structured_errors = getattr(getattr(error, "result", None), "errors", ())
+    details = [dict(item) for item in structured_errors if isinstance(item, dict)]
     failure = build_failure_artifact(
         artifact_type=f"batch_{stage}_error",
         contract_version="1.0.0",
@@ -670,15 +996,16 @@ def record_batch_failure(
             "run_id": run_id,
             "provider": provider,
             "model": model,
-            "source_documents": [pdf_path.as_posix()],
+            "document_input": document_input,
+            "source_documents": [path.as_posix() for path in all_pdf_paths],
             "source_artifacts": [
                 f"schema_sha256:{schema_hash}",
-                f"pdf_sha256:{source_hash}",
+                *(f"pdf_sha256:{digest}" for digest in all_source_hashes),
             ],
         },
         error_code=f"{stage}_failed",
         message=str(error),
-        details=[],
+        details=details,
     )
     return write_failure_artifact(
         load_config().outputs_dir / vertical / "extractions",

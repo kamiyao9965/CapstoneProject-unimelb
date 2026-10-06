@@ -11,6 +11,7 @@ from typing import Callable
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.common.json_contracts import validate_contract
 from src.refine.human_review.constants import SUPPORTED_ACTIONS
+from src.refine.verticals import contract_name, ensure_review_vertical
 
 try:
     import fcntl
@@ -28,22 +29,26 @@ def empty_decisions(reviewer: str = "") -> dict:
     }
 
 
-def load_review_decisions(path: str | Path) -> dict:
+def load_review_decisions(path: str | Path, *, vertical: str = "private_health") -> dict:
+    vertical = ensure_review_vertical(vertical)
     payload = read_artifact(
         path,
         expected_type="review_decisions",
-        data_contract="private_health/review_decisions",
+        data_contract=contract_name(vertical, "review_decisions"),
     )["data"]
     if not isinstance(payload, dict) or "decisions" not in payload:
         raise ValueError(f"Not a review decisions file: {path}")
     return payload
 
 
-def write_review_decisions(decisions_payload: dict, path: str | Path) -> None:
+def write_review_decisions(
+    decisions_payload: dict, path: str | Path, *, vertical: str = "private_health"
+) -> None:
+    vertical = ensure_review_vertical(vertical)
     decisions_payload.setdefault("metadata", {})["reviewed_at"] = datetime.now(
         timezone.utc
     ).isoformat()
-    validate_contract(decisions_payload, "private_health/review_decisions")
+    validate_contract(decisions_payload, contract_name(vertical, "review_decisions"))
     artifact = build_success_artifact(
         artifact_type="review_decisions",
         contract_version="1.0.0",
@@ -52,12 +57,12 @@ def write_review_decisions(decisions_payload: dict, path: str | Path) -> None:
             "run_id": None, "provider": None, "model": None,
             "document_input": None, "source_documents": [], "source_artifacts": [],
         },
-        data_contract="private_health/review_decisions",
+        data_contract=contract_name(vertical, "review_decisions"),
     )
     write_artifact(
         path,
         artifact,
-        data_contract="private_health/review_decisions",
+        data_contract=contract_name(vertical, "review_decisions"),
         overwrite=True,
     )
 
@@ -68,27 +73,35 @@ def save_review_decision(
     action: str,
     reviewer_notes: str = "",
     edited_update: dict | None = None,
+    *,
+    vertical: str = "private_health",
 ) -> dict:
     """Atomically merge one decision with the latest persisted file state."""
     return _update_decisions_file(
         Path(path),
         lambda payload: upsert_decision(
-            payload, item_id, action, reviewer_notes, edited_update
+            payload, item_id, action, reviewer_notes, edited_update, vertical=vertical
         ),
+        vertical=vertical,
     )
 
 
-def remove_review_decision(path: str | Path, item_id: str) -> dict:
+def remove_review_decision(
+    path: str | Path, item_id: str, *, vertical: str = "private_health"
+) -> dict:
     """Atomically remove one decision from the latest persisted file state."""
     return _update_decisions_file(
         Path(path),
         lambda payload: clear_decision(payload, item_id),
+        vertical=vertical,
     )
 
 
 def _update_decisions_file(
     path: Path,
     update: Callable[[dict], dict],
+    *,
+    vertical: str,
 ) -> dict:
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
@@ -98,9 +111,12 @@ def _update_decisions_file(
     descriptor = os.open(lock_path, flags, 0o600)
     with os.fdopen(descriptor, "r+") as lock:
         with _exclusive_lock(lock):
-            payload = load_review_decisions(path) if path.exists() else empty_decisions()
+            payload = (
+                load_review_decisions(path, vertical=vertical)
+                if path.exists() else empty_decisions()
+            )
             updated = update(payload)
-            write_review_decisions(updated, path)
+            write_review_decisions(updated, path, vertical=vertical)
             return updated
 
 
@@ -122,10 +138,22 @@ def upsert_decision(
     action: str,
     reviewer_notes: str = "",
     edited_update: dict | None = None,
+    *,
+    vertical: str = "private_health",
 ) -> dict:
     """Replace or append the decision for one queue item."""
     if action not in SUPPORTED_ACTIONS:
         raise ValueError(f"Unsupported action: {action}")
+    if vertical == "private_health" and isinstance(edited_update, dict):
+        applies_to = edited_update.get("applies_to")
+        allowed = {"hospital", "extras", "generalhealth", "combined"}
+        if isinstance(applies_to, list):
+            unknown = {str(value) for value in applies_to} - allowed
+            if unknown:
+                raise ValueError(
+                    "Edited private-health field contains unknown product types: "
+                    + ", ".join(sorted(unknown))
+                )
     entry = {
         "id": item_id,
         "action": action,
@@ -134,7 +162,7 @@ def upsert_decision(
     }
     validate_contract(
         {"metadata": decisions_payload.get("metadata", {}), "decisions": [entry]},
-        "private_health/review_decisions",
+        contract_name(vertical, "review_decisions"),
     )
     decisions_payload["decisions"] = [
         existing

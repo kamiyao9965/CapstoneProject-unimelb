@@ -60,6 +60,7 @@ def make_args(tmp: str, **overrides) -> SimpleNamespace:
         "autonomous": False,
         "resume_feedback": None,
         "resume_review": None,
+        "resume_consensus": None,
         "resume_extraction": None,
     }
     values.update(overrides)
@@ -72,6 +73,7 @@ class ParserBackwardCompatTest(unittest.TestCase):
         self.assertEqual(args.consensus_runs, 1)
         self.assertFalse(args.review_ui)
         self.assertIsNone(args.resume_review)
+        self.assertIsNone(args.resume_consensus)
         self.assertIsNone(args.resume_extraction)
         self.assertFalse(args.autonomous)
         self.assertEqual(args.rounds, 1)
@@ -359,6 +361,58 @@ class ResumeReviewTest(unittest.TestCase):
             self.assertEqual(round_artifact["data"]["description"], "Human-reviewed schema")
             self.assertTrue((refinement_dir / "final_schema.json").exists())
             self.assertFalse((Path(args.out_dir) / "final_schema.json").exists())
+
+
+class ResumeConsensusTest(unittest.TestCase):
+    def test_reuses_draft_then_evaluates_and_publishes_same_round(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            round_dir = Path(tmp) / "round_3"
+            draft_path = round_dir / "schema_draft.json"
+            write_schema(draft_path)
+            args = make_args(
+                tmp,
+                resume_consensus=str(round_dir),
+                consensus_runs=3,
+            )
+            evaluate = mock.Mock(return_value=(None, "feedback"))
+
+            def fake_consensus(
+                args_, draft_path_, round_dir_, schema_path_, base_sample_paths,
+            ):
+                self.assertEqual(draft_path_, draft_path)
+                write_schema(schema_path_)
+                return VALID_DISCOVERED_SCHEMA, ("pdfs/discovery.pdf",)
+
+            with mock.patch.object(
+                rounds, "_run_consensus_stage", side_effect=fake_consensus
+            ) as consensus, mock.patch.object(
+                rounds, "evaluate_schema", evaluate
+            ):
+                exit_code = rounds.resume_consensus(args)
+
+            self.assertEqual(exit_code, 0)
+            consensus.assert_called_once()
+            evaluate.assert_called_once()
+            self.assertEqual(
+                evaluate.call_args.kwargs["exclude_paths"],
+                ("pdfs/discovery.pdf",),
+            )
+            self.assertTrue((round_dir / "schema.json").exists())
+            self.assertTrue((Path(tmp) / "final_schema.json").exists())
+
+    def test_requires_multiple_consensus_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            round_dir = Path(tmp) / "round_3"
+            write_schema(round_dir / "schema_draft.json")
+            args = make_args(
+                tmp,
+                resume_consensus=str(round_dir),
+                consensus_runs=1,
+            )
+            with mock.patch.object(rounds, "_run_consensus_stage") as consensus:
+                exit_code = rounds.resume_consensus(args)
+            self.assertEqual(exit_code, 1)
+            consensus.assert_not_called()
 
 
 class ResumeExtractionTest(unittest.TestCase):

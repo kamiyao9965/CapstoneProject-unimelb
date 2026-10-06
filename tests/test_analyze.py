@@ -80,6 +80,64 @@ class AllExtractionFailuresTest(unittest.TestCase):
             self.assertEqual(len(records), 1)
             self.assertEqual(failures, 0)
 
+    def test_artifacts_from_an_old_schema_are_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            current_provenance = {
+                "run_id": "current", "provider": "openai", "model": "gpt-5",
+                "document_input": "markdown", "source_documents": ["current.pdf"],
+                "source_artifacts": [
+                    "schema_sha256:current", "pdf_sha256:current-pdf",
+                ],
+            }
+            old_provenance = {
+                **current_provenance,
+                "run_id": "old",
+                "source_documents": ["old.pdf"],
+                "source_artifacts": ["schema_sha256:old", "pdf_sha256:old-pdf"],
+            }
+            write_artifact(
+                root / "current.json",
+                build_success_artifact(
+                    artifact_type="extraction_result", contract_version="1.0.0",
+                    data={"product_type": "hospital"},
+                    provenance=current_provenance,
+                    data_contract_schema={"type": "object"},
+                ),
+                data_contract_schema={"type": "object"},
+            )
+            write_artifact(
+                root / "old.json",
+                build_success_artifact(
+                    artifact_type="extraction_result", contract_version="1.0.0",
+                    data={"product_type": "extras"},
+                    provenance=old_provenance,
+                    data_contract_schema={"type": "object"},
+                ),
+                data_contract_schema={"type": "object"},
+            )
+            write_artifact(
+                root / "errors" / "extraction" / "old-failure.json",
+                build_failure_artifact(
+                    artifact_type="extraction_error", contract_version="1.0.0",
+                    provenance=old_provenance, error_code="failed", message="old",
+                ),
+            )
+
+            records, failures = load_records(
+                root,
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"product_type": {"const": "hospital"}},
+                    "required": ["product_type"],
+                },
+                current_schema_hash="current",
+            )
+
+            self.assertEqual([record["product_type"] for record in records], ["hospital"])
+            self.assertEqual(failures, 0)
+
     def test_success_artifact_that_violates_runtime_contract_is_a_failure(self) -> None:
         provenance = {
             "run_id": "test", "provider": "openai", "model": "gpt-5",

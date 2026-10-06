@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import unittest
 
 from src.common.json_contracts import (
@@ -55,6 +56,64 @@ VALID_DISCOVERED_SCHEMA = {
     "notes": ["Use null when source evidence is absent."],
 }
 
+VALID_PET_DISCOVERED_SCHEMA = {
+    "vertical": "pet_insurance",
+    "version": "test",
+    "description": "Reusable pet insurance schema.",
+    "cover_scopes": ["accident_only", "accident_and_illness"],
+    "document_roles": [
+        "pds", "update", "combined_fsg_pds", "supplementary_pds",
+        "policy_booklet", "renewal_pds",
+    ],
+    "benefit_categories": ["vet_fees"],
+    "notes": [],
+    "fields": [{
+        "name": "product_id",
+        "type": "string",
+        "description": "Stable manifest product identifier.",
+        "applies_to": ["product"],
+        "required": True,
+        "values": [],
+        "aliases": [],
+        "enum_ref": None,
+        "item_fields": [],
+        "unique_items": False,
+    }, {
+        "name": "product_name",
+        "type": "string",
+        "description": "Product marketing name.",
+        "applies_to": ["product"],
+        "required": True,
+        "values": [],
+        "aliases": [],
+        "enum_ref": None,
+        "item_fields": [],
+        "unique_items": False,
+    }, {
+        "name": "insurer_name",
+        "type": "string",
+        "description": "Insurer underwriting the product.",
+        "applies_to": ["product"],
+        "required": True,
+        "values": [],
+        "aliases": [],
+        "enum_ref": None,
+        "item_fields": [],
+        "unique_items": False,
+    }, {
+        "name": "covered_benefit_categories",
+        "type": "list[enum]",
+        "description": "Canonical covered benefit categories.",
+        "applies_to": ["product"],
+        "required": False,
+        "values": [],
+        "aliases": [],
+        "enum_ref": "benefit_categories",
+        "item_fields": [],
+        "unique_items": True,
+    }],
+}
+
 
 class JsonContractTest(unittest.TestCase):
     def test_documented_discovered_schema_passes_structural_and_business_validation(self) -> None:
@@ -65,6 +124,65 @@ class JsonContractTest(unittest.TestCase):
 
         self.assertIs(validated, VALID_DISCOVERED_SCHEMA)
         self.assertIs(validate_schema_mapping(validated), VALID_DISCOVERED_SCHEMA)
+
+    def test_pet_enum_field_requires_exactly_one_value_source(self) -> None:
+        referenced = copy.deepcopy(VALID_PET_DISCOVERED_SCHEMA)
+        self.assertIs(
+            validate_contract(referenced, "pet_insurance/discovered_schema"),
+            referenced,
+        )
+
+        inline = copy.deepcopy(VALID_PET_DISCOVERED_SCHEMA)
+        field = next(
+            field for field in inline["fields"]
+            if field["name"] == "covered_benefit_categories"
+        )
+        field["values"] = ["vet_fees"]
+        field["enum_ref"] = None
+        self.assertIs(
+            validate_contract(inline, "pet_insurance/discovered_schema"),
+            inline,
+        )
+
+        for values, enum_ref in [
+            ([], None),
+            (["vet_fees"], "benefit_categories"),
+        ]:
+            with self.subTest(values=values, enum_ref=enum_ref):
+                invalid = copy.deepcopy(VALID_PET_DISCOVERED_SCHEMA)
+                field = next(
+                    field for field in invalid["fields"]
+                    if field["name"] == "covered_benefit_categories"
+                )
+                field["values"] = values
+                field["enum_ref"] = enum_ref
+                with self.assertRaisesRegex(ContractValidationError, "anyOf"):
+                    validate_contract(invalid, "pet_insurance/discovered_schema")
+
+    def test_pet_nested_enum_uses_the_same_exclusive_source_rule(self) -> None:
+        invalid = copy.deepcopy(VALID_PET_DISCOVERED_SCHEMA)
+        invalid["fields"].append({
+            "name": "benefits",
+            "type": "list[object]",
+            "description": "Structured benefits.",
+            "applies_to": ["product"],
+            "required": False,
+            "values": [],
+            "aliases": [],
+            "enum_ref": None,
+            "item_fields": [{
+                "name": "category",
+                "type": "enum",
+                "required": False,
+                "description": None,
+                "values": ["vet_fees"],
+                "enum_ref": "benefit_categories",
+            }],
+            "unique_items": False,
+        })
+
+        with self.assertRaisesRegex(ContractValidationError, "anyOf"):
+            validate_contract(invalid, "pet_insurance/discovered_schema")
 
     def test_rejects_missing_required_property(self) -> None:
         invalid = dict(VALID_DISCOVERED_SCHEMA)

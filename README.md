@@ -24,6 +24,67 @@ repair retries. Invalid data never proceeds to the next stage.
 | Refinement loop | Feed validated failure analysis into a later discovery round |
 | Cost estimation | Estimate actual and projected spend from JSONL token-usage logs |
 
+### Pet-insurance product-oriented extraction
+
+Pet-insurance batch extraction uses `configs/pet_insurance/document_manifest.json`
+to separate document identity from product identity. PDFs with several plans are
+extracted into several product records; base PDS/policy booklets and later
+Update/SPDS files connected by `amends_document_ids` are read together and produce
+one effective record per product. `document_family_id` finds candidates, but an
+explicit amendment link is required before an Update/SPDS can change a product.
+
+```bash
+.venv/bin/python src/run.py batch \
+  --vertical pet_insurance \
+  --schema outputs/pet_insurance/refine_enum_fix/final_schema.json \
+  --input-root data/raw \
+  --manifest configs/pet_insurance/document_manifest.json
+```
+
+The manifest argument may be omitted for this repository because the default
+pet-insurance manifest is detected automatically. Final records are written to
+`outputs/pet_insurance/products/<product_id>.json`; `source_documents` records
+every PDF used to build that product. Use `--resume` to reuse products whose
+schema, provider/model, and complete source-PDF hash list still match.
+
+To verify known fixes, rerun products deterministically instead of waiting for a
+random sample. The command resolves each product's base document and linked
+updates from the manifest; a shared multi-plan booklet is extracted once and
+emits all of its plans:
+
+```bash
+.venv/bin/python src/run.py batch \
+  --vertical pet_insurance \
+  --schema outputs/pet_insurance/refine_enum_fix/final_schema.json \
+  --input-root data/raw \
+  --manifest configs/pet_insurance/document_manifest.json \
+  --product-ids \
+    australian_seniors_top \
+    real_pet_classic \
+    pd_insurance_accident \
+    bow_wow_meow_accident_plus \
+    medibank_pet_max
+```
+
+Do not add `--resume` when validating a prompt/schema fix. Product-family
+failures are written below
+`outputs/pet_insurance/extractions/errors/batch_product_family_extraction/`
+with all source documents, hashes, and structured-validation details.
+
+For pet-schema discovery, use a 12-document manifest sample by default. It
+covers PDS, policy booklets, combined FSG/PDS, and renewal PDS documents while
+holding Update and supplementary PDS files out for downstream validation:
+
+```bash
+.venv/bin/python src/run.py discover \
+  --vertical pet_insurance \
+  --manifest configs/pet_insurance/document_manifest.json \
+  --input-root data/raw \
+  --output outputs/pet_insurance/schema.json
+```
+
+Use `--sample-count 12` through `--sample-count 16` to adjust discovery breadth.
+
 ## Safety guarantees
 
 - Generated runtime files use a versioned artifact envelope with provenance,
@@ -328,6 +389,64 @@ outputs/private_health/consensus/reviewed_schema.json
 
 Pending and rejected items are not applied. Unknown IDs, malformed decisions,
 invalid field edits, and unsafe rename/merge/move upserts fail loudly.
+
+### Pet-insurance schema review
+
+For pet insurance, review a generated schema through a three-run patch
+consensus rather than editing the discovery JSON directly. This keeps the
+original schema immutable, records reviewer decisions, and validates the
+result with the pet-insurance schema contract:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m src.refine.consensus \
+  --vertical pet_insurance \
+  --base-schema outputs/pet_insurance/schema_2.json \
+  --input-root data/raw \
+  --manifest configs/pet_insurance/document_manifest.json \
+  --per-category 12 \
+  --runs 3 \
+  --seed 42 \
+  --out-dir outputs/pet_insurance/consensus
+```
+
+Open the review queue, then apply the saved choices:
+
+```bash
+.venv/bin/python -m streamlit run src/review_app.py -- \
+  --consensus-dir outputs/pet_insurance/consensus \
+  --vertical pet_insurance
+
+.venv/bin/python src/refine/review.py apply \
+  --consensus-dir outputs/pet_insurance/consensus \
+  --vertical pet_insurance
+```
+
+The reviewed artifact is written to
+`outputs/pet_insurance/consensus/reviewed_schema.json`.
+
+The full pet refinement loop can also stop for review, then resume with
+product-level holdout analysis and pet refinement feedback:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m src.refine.loop \
+  --vertical pet_insurance \
+  --input-root data/raw \
+  --manifest configs/pet_insurance/document_manifest.json \
+  --per-category 12 \
+  --eval-per-category 8 \
+  --consensus-runs 3 \
+  --review-ui \
+  --out-dir outputs/pet_insurance/refine
+
+# After applying the decisions in round_1/consensus:
+PYTHONPATH=. .venv/bin/python -m src.refine.loop \
+  --vertical pet_insurance \
+  --input-root data/raw \
+  --manifest configs/pet_insurance/document_manifest.json \
+  --eval-per-category 8 \
+  --out-dir outputs/pet_insurance/refine \
+  --resume-review outputs/pet_insurance/refine/round_1
+```
 
 ## 9. Run schema generation with refinement
 

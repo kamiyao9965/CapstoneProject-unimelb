@@ -13,7 +13,7 @@ from src.common.json_artifacts import (
 )
 from src.common.json_contracts import validate_contract
 from src.schema.validation import (
-    JSONScalar, SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES,
+    JSONScalar, PET_FIELD_TARGETS, SUPPORTED_FIELD_TYPES, SUPPORTED_PRODUCT_TYPES,
     validate_canonical_item_policy, validate_item_field_payload,
     validate_reusable_description,
 )
@@ -29,6 +29,7 @@ SUPPORTED_PATCH_TYPES = {
     "add_alias",
     "reject_field",
 }
+PET_COVER_SCOPES = frozenset({"accident_only", "accident_and_illness", "comprehensive", "customisable"})
 MANUAL_EDIT_PATCH_TYPES = frozenset(
     {"rename_field", "merge_fields", "move_field_group"}
 )
@@ -164,7 +165,9 @@ class SchemaPatch:
                 raise ValueError(f"Unsupported field type: {self.field_type}")
             if not self.description:
                 raise ValueError("add_field patch must include a description.")
-            if not self.applies_to or set(self.applies_to) - SUPPORTED_PRODUCT_TYPES:
+            if not self.applies_to or set(self.applies_to) - (
+                SUPPORTED_PRODUCT_TYPES | PET_COVER_SCOPES | PET_FIELD_TARGETS
+            ):
                 raise ValueError(
                     "add_field patch applies_to must contain supported product types."
                 )
@@ -231,11 +234,11 @@ class SchemaPatch:
         }
 
 
-def load_patch_file(path: str | Path) -> list[SchemaPatch]:
+def load_patch_file(path: str | Path, *, vertical: str = "private_health") -> list[SchemaPatch]:
     artifact = read_artifact(
         path,
         expected_type="candidate_patch_set",
-        data_contract="private_health/candidate_patch_set",
+        data_contract=f"{vertical}/candidate_patch_set",
     )
     return parse_patch_payload(artifact["data"], source_run=Path(path).stem)
 
@@ -263,16 +266,21 @@ def write_patch_file(
     path: str | Path,
     *,
     provenance: Mapping[str, object],
+    vertical: str = "private_health",
+    overwrite: bool = False,
 ) -> Path:
     artifact = build_success_artifact(
         artifact_type="candidate_patch_set",
         contract_version="1.0.0",
         data=payload,
         provenance=provenance,
-        data_contract="private_health/candidate_patch_set",
+        data_contract=f"{vertical}/candidate_patch_set",
     )
     return write_artifact(
-        path, artifact, data_contract="private_health/candidate_patch_set"
+        path,
+        artifact,
+        data_contract=f"{vertical}/candidate_patch_set",
+        overwrite=overwrite,
     )
 
 

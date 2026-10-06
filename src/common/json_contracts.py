@@ -26,6 +26,14 @@ _CONTRACT_PATHS = {
     "private_health/review_queue": "private_health/review_queue.schema.json",
     "private_health/review_decisions": "private_health/review_decisions.schema.json",
     "private_health/refinement_feedback": "private_health/refinement_feedback.schema.json",
+    "pet_insurance/discovered_schema": "pet_insurance/discovered_schema.schema.json",
+    "pet_insurance/candidate_patch_set": "pet_insurance/candidate_patch_set.schema.json",
+    "pet_insurance/aliases": "private_health/aliases.schema.json",
+    "pet_insurance/field_frequency": "private_health/field_frequency.schema.json",
+    "pet_insurance/patch_stability": "private_health/patch_stability.schema.json",
+    "pet_insurance/review_queue": "private_health/review_queue.schema.json",
+    "pet_insurance/review_decisions": "private_health/review_decisions.schema.json",
+    "pet_insurance/refinement_feedback": "private_health/refinement_feedback.schema.json",
 }
 
 

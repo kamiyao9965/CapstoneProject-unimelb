@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.stability.signature import DIMENSIONS, SchemaSignature, signature_from_file
+from src.stability.signature import SchemaSignature, dimensions_for, signature_from_file
 
 
 def jaccard(sets: list[frozenset[str]]) -> tuple[float, set[str], set[str]]:
@@ -41,7 +41,7 @@ def compare(signatures: list[SchemaSignature], show_items: bool) -> float:
     per_dim_stability: list[tuple[float, int]] = []
     drift_report: dict[str, list[tuple[str, int]]] = {}
 
-    for dim in DIMENSIONS:
+    for dim in dimensions_for(signatures):
         sets = [s.get(dim) for s in signatures]
         stability, core, union = jaccard(sets)
         drift = union - core

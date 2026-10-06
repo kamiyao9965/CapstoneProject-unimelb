@@ -19,8 +19,14 @@ from src.refine.human_review.constants import (
 )
 from src.refine.human_review.decisions import decisions_by_id, load_review_decisions
 from src.refine.human_review.queue import load_review_queue
-from src.schema.validation import validate_field_payload, validate_schema_mapping
 from src.schema.migration import migrate_legacy_discovered_schema
+from src.refine.verticals import (
+    contract_name,
+    core_required_fields,
+    schema_field_targets,
+    validate_review_field,
+    validate_schema,
+)
 
 
 def apply_review(
@@ -46,7 +52,11 @@ def apply_review(
             f"(wrong file pairing?): {', '.join(unknown_ids)}"
         )
 
-    reviewed = migrate_legacy_discovered_schema(base_schema)
+    vertical = str(base_schema.get("vertical") or "")
+    reviewed = (
+        migrate_legacy_discovered_schema(base_schema)
+        if vertical == "private_health" else deepcopy(base_schema)
+    )
     fields = fields_by_name(reviewed.get("fields", []))
     allowed_product_types = set(reviewed.get("product_types") or [])
     summary = {"applied": [], "edited": [], "rejected": [], "pending": []}
@@ -56,13 +66,14 @@ def apply_review(
             item,
             by_id.get(item["id"]),
             summary,
-            allowed_product_types,
+            schema_field_targets(reviewed),
+            reviewed,
         )
         if payload is not None:
             fields[str(payload["name"])] = payload
 
     reviewed["fields"] = list(fields.values())
-    validate_schema_mapping(reviewed)
+    validate_schema(reviewed)
     return reviewed, summary
 
 
@@ -70,7 +81,8 @@ def _payload_from_review_item(
     item: dict,
     entry: dict | None,
     summary: dict[str, list[str]],
-    allowed_product_types: set[str],
+    allowed_targets: set[str],
+    schema: dict,
 ) -> dict | None:
     if entry is None:
         summary["pending"].append(item["id"])
@@ -91,7 +103,7 @@ def _payload_from_review_item(
             )
         summary["applied"].append(item["id"])
         payload = deepcopy(item.get("proposed_update") or {})
-        validate_field_payload(payload, allowed_product_types)
+        validate_review_field(payload, schema)
         return payload
 
     if item.get("needs_schema_edit"):
@@ -107,7 +119,7 @@ def _payload_from_review_item(
             "with at least a name"
         )
     summary["edited"].append(item["id"])
-    validate_field_payload(payload, allowed_product_types)
+    validate_review_field(payload, schema)
     return payload
 
 
@@ -115,17 +127,18 @@ def apply_review_files(
     consensus_dir: str | Path,
     base_schema_path: str | Path | None = None,
     output_path: str | Path | None = None,
+    vertical: str = "private_health",
 ) -> tuple[Path, dict]:
     """Load queue/decisions from disk and write reviewed_schema.json."""
     consensus_dir = Path(consensus_dir)
-    queue = load_review_queue(consensus_dir / QUEUE_FILENAME)
+    queue = load_review_queue(consensus_dir / QUEUE_FILENAME, vertical=vertical)
     decisions_path = consensus_dir / DECISIONS_FILENAME
     if not decisions_path.exists():
         raise FileNotFoundError(
             f"No decisions file at {decisions_path}. Review first, then apply."
         )
 
-    decisions_payload = load_review_decisions(decisions_path)
+    decisions_payload = load_review_decisions(decisions_path, vertical=vertical)
     resolved_base_schema = Path(base_schema_path or queue["metadata"]["base_schema_path"])
     reviewed, summary = apply_review(
         queue,
@@ -133,7 +146,7 @@ def apply_review_files(
         read_artifact(
             resolved_base_schema,
             expected_type="discovered_schema",
-            data_contract="private_health/discovered_schema",
+            data_contract=contract_name(vertical, "discovered_schema"),
         )["data"],
     )
 
@@ -153,11 +166,11 @@ def apply_review_files(
                 resolved_base_schema.as_posix(),
             ],
         },
-        data_contract="private_health/discovered_schema",
+        data_contract=contract_name(vertical, "discovered_schema"),
     )
     write_artifact(
         resolved_output,
         artifact,
-        data_contract="private_health/discovered_schema",
+        data_contract=contract_name(vertical, "discovered_schema"),
     )
     return resolved_output, summary

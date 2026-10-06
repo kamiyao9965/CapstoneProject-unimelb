@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import json
 from collections import defaultdict
 from functools import lru_cache
 from hashlib import sha256
@@ -14,6 +15,169 @@ from src.schema.product_types import (
 )
 
 DEFAULT_CATEGORIES = ("combined", "extras", "generalhealth", "hospital")
+# Discovery should see both product terms and document-level context. Updates
+# and SPDS files are held back for product-family extraction validation.
+DEFAULT_MANIFEST_ROLES = (
+    "pds",
+    "policy_booklet",
+    "combined_fsg_pds",
+    "renewal_pds",
+)
+DEFAULT_MANIFEST_SAMPLE_COUNT = 12
+
+
+def load_document_manifest(path: str | Path) -> dict[str, object]:
+    """Load and lightly validate the domain document manifest.
+
+    The manifest is deliberately metadata-only: raw PDFs remain the source of
+    truth.  Detailed product attributes may be null until document extraction
+    and review have resolved them.
+    """
+    manifest_path = Path(path)
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or not isinstance(payload.get("documents"), list):
+        raise ValueError(f"Document manifest must contain a documents list: {manifest_path}")
+    seen_ids: set[str] = set()
+    for index, document in enumerate(payload["documents"]):
+        if not isinstance(document, dict):
+            raise ValueError(f"Manifest document {index} must be an object.")
+        document_id = document.get("document_id")
+        source_path = document.get("source_path")
+        family_id = document.get("document_family_id")
+        role = document.get("document_role")
+        if not all(isinstance(value, str) and value.strip() for value in (document_id, source_path, family_id, role)):
+            raise ValueError(
+                f"Manifest document {index} needs document_id, source_path, "
+                "document_family_id, and document_role strings."
+            )
+        if document_id in seen_ids:
+            raise ValueError(f"Manifest contains duplicate document_id: {document_id}")
+        seen_ids.add(document_id)
+        if not isinstance(document.get("amends_document_ids", []), list):
+            raise ValueError(f"Manifest document {document_id} amends_document_ids must be a list.")
+    return payload
+
+
+def select_manifest_samples(
+    input_root: Path,
+    manifest_path: str | Path,
+    *,
+    count: int,
+    seed: int | None = None,
+    exclude_paths: Iterable[str | Path] = (),
+    roles: tuple[str, ...] = DEFAULT_MANIFEST_ROLES,
+    exclude_families: Iterable[str] = (),
+) -> list[str]:
+    """Select balanced manifest documents for discovery or holdout.
+
+    Selection balances ``brand_hint`` and ``document_role`` while allowing at
+    most one document from each ``document_family_id``.  Excluding a discovery
+    path therefore excludes its whole family, preventing PDS/Update leakage
+    between discovery and holdout.  ``count`` is the total number of documents
+    in manifest mode (unlike legacy category mode, where it is per category).
+    """
+    if count <= 0:
+        raise ValueError("count must be greater than 0.")
+    root = Path(input_root).resolve()
+    payload = load_document_manifest(manifest_path)
+    documents = payload["documents"]
+    assert isinstance(documents, list)
+    role_set = {role.strip().lower() for role in roles if role.strip()}
+    excluded_paths = {Path(path).resolve() for path in exclude_paths}
+    excluded_families = {str(value) for value in exclude_families}
+    path_to_family: dict[Path, str] = {}
+    candidates: list[dict[str, object]] = []
+    for document in documents:
+        if not isinstance(document, dict):
+            continue
+        source = _manifest_source_path(document.get("source_path"), root)
+        if source is None or not source.is_file():
+            continue
+        try:
+            source.relative_to(root)
+        except ValueError:
+            continue
+        family = str(document["document_family_id"])
+        path_to_family[source] = family
+        role = str(document["document_role"]).strip().lower()
+        if document.get("discovery_eligible") is not True or role not in role_set:
+            continue
+        if source in excluded_paths or family in excluded_families:
+            continue
+        candidates.append({
+            "path": source,
+            "family": family,
+            "role": role,
+            "brand": str(document.get("brand_hint") or "unknown").strip().casefold() or "unknown",
+        })
+
+    for path in excluded_paths:
+        family = path_to_family.get(path)
+        if family:
+            excluded_families.add(family)
+    candidates = [item for item in candidates if item["family"] not in excluded_families]
+    if len({str(item["family"]) for item in candidates}) < count:
+        available = len({str(item["family"]) for item in candidates})
+        raise ValueError(
+            f"Not enough unique manifest document families: found {available}, need {count}."
+        )
+
+    rng = random.Random(seed)
+    for item in candidates:
+        item["tie"] = rng.random()
+    selected: list[dict[str, object]] = []
+    used_families: set[str] = set()
+    brand_counts: defaultdict[str, int] = defaultdict(int)
+    role_counts: defaultdict[str, int] = defaultdict(int)
+    while len(selected) < count:
+        available = [item for item in candidates if str(item["family"]) not in used_families]
+        if not available:
+            break
+        # First cover underrepresented brands, then underrepresented roles;
+        # seeded randomness only breaks otherwise equivalent ties.
+        item = min(
+            available,
+            key=lambda value: (
+                brand_counts[str(value["brand"])],
+                role_counts[str(value["role"])],
+                float(value["tie"]),
+            ),
+        )
+        selected.append(item)
+        used_families.add(str(item["family"]))
+        brand_counts[str(item["brand"])] += 1
+        role_counts[str(item["role"])] += 1
+    return [str(item["path"]) for item in selected]
+
+
+def manifest_family_ids(
+    paths: Iterable[str | Path], manifest_path: str | Path, input_root: Path
+) -> set[str]:
+    """Resolve document family IDs for paths selected from a manifest."""
+    payload = load_document_manifest(manifest_path)
+    root = Path(input_root).resolve()
+    wanted = {Path(path).resolve() for path in paths}
+    families: set[str] = set()
+    for document in payload["documents"]:
+        if not isinstance(document, dict):
+            continue
+        source = _manifest_source_path(document.get("source_path"), root)
+        if source in wanted:
+            families.add(str(document["document_family_id"]))
+    return families
+
+
+def _manifest_source_path(value: object, input_root: Path) -> Path | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    path = Path(value)
+    if not path.is_absolute():
+        # Manifest paths are repository-relative; accepting input-root-relative
+        # paths keeps the loader useful for temporary test manifests too.
+        repository_relative = path.resolve()
+        input_relative = (input_root / path).resolve()
+        path = repository_relative if repository_relative.exists() else input_relative
+    return path.resolve()
 
 
 def select_samples(

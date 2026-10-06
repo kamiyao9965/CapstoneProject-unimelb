@@ -12,6 +12,7 @@ from src.PDFingestor.adapter import (
     document_quality,
     ingest_pdfs,
     render_documents_for_prompt,
+    render_table,
 )
 from src.common.json_artifacts import (
     ArtifactError,
@@ -22,7 +23,6 @@ from src.common.json_artifacts import (
     write_failure_artifact,
 )
 from src.common.json_contracts import validate_contract
-from src.common.json_codec import dumps_json
 from src.common.model_config import ModelSelection
 from src.common.model_provider import (
     ModelProvider,
@@ -33,7 +33,12 @@ from src.common.model_provider import (
 )
 from src.common.openai_run import append_jsonl
 from src.common.structured_output import StructuredOutputFailure, run_structured_output
-from src.schema.contract import compile_extraction_contract
+from src.schema.contract import (
+    compile_extraction_contract,
+    compile_pet_extraction_contract,
+    compile_pet_product_family_contract,
+    schema_hash,
+)
 from src.schema.migration import migrate_legacy_discovered_schema
 from src.schema.product_types import (
     DEFAULT_OVERRIDE_PATH,
@@ -42,9 +47,24 @@ from src.schema.product_types import (
     resolve_product_type,
 )
 from src.schema_application.normalizer import normalize_extraction
-from src.schema_application.extraction_validation import validate_unfilled_consistency
-from src.schema_application.prompts import EXTRACTION_PROMPT, EXTRACTION_PROMPT_VERSION
-from src.schema.validation import validate_schema_mapping
+from src.schema_application.extraction_validation import (
+    normalize_pet_benefit_categories,
+    normalize_pet_unfilled,
+    validate_pet_benefit_category_consistency,
+    validate_pet_benefit_coverage_evidence,
+    validate_pet_product_inventory,
+    validate_pet_unfilled_consistency,
+    validate_unfilled_consistency,
+)
+from src.schema_application.product_families import ProductFamily, family_prompt_context
+from src.schema_application.prompts import (
+    EXTRACTION_PROMPT,
+    EXTRACTION_PROMPT_VERSION,
+    PET_EXTRACTION_PROMPT,
+    PET_EXTRACTION_PROMPT_VERSION,
+    PET_PRODUCT_FAMILY_PROMPT,
+)
+from src.schema.validation import validate_schema_mapping, validate_pet_schema_mapping
 
 
 class SchemaExtractor:
@@ -68,11 +88,13 @@ class SchemaExtractor:
         pdfingestor_cache_dir: str | Path | None = None,
         product_type_overrides_path: str | Path | None = DEFAULT_OVERRIDE_PATH,
         extraction_cache_dir: str | Path | None = None,
+        manifest_path: str | Path | None = None,
     ) -> None:
-        validate_contract(schema_data, "private_health/discovered_schema")
+        contract_name = "pet_insurance/discovered_schema" if schema_data.get("vertical") == "pet_insurance" else "private_health/discovered_schema"
+        validate_contract(schema_data, contract_name)
         self.schema_data = migrate_legacy_discovered_schema(schema_data)
-        validate_schema_mapping(self.schema_data)
-        self.schema_hash = _schema_hash(self.schema_data)
+        (validate_pet_schema_mapping if self.schema_data.get("vertical") == "pet_insurance" else validate_schema_mapping)(self.schema_data)
+        self.schema_hash = schema_hash(self.schema_data)
         self.extraction_contract = compile_extraction_contract(self.schema_data)
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
@@ -83,6 +105,8 @@ class SchemaExtractor:
         self.model = self.selection.model
         self.provider = provider or create_provider(self.selection, client=client)
         self.pdf_root = Path(pdf_root) if pdf_root else None
+        self.manifest_path = Path(manifest_path) if manifest_path else None
+        self._manifest_documents = self._load_manifest_documents()
         self.product_type_overrides = load_product_type_overrides(product_type_overrides_path)
         self.preprocessor = preprocessor
         self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)
@@ -108,7 +132,17 @@ class SchemaExtractor:
         started = time.perf_counter()
         logical_run_id = run_id or uuid4().hex
         resolution = self._product_type_resolution(pdf_path)
-        extraction_contract = self._extraction_contract_for_resolution(resolution)
+        role = self._document_role(pdf_path)
+        expected_product_ids = self._manifest_product_ids(pdf_path)
+        extraction_contract = (
+            compile_pet_extraction_contract(
+                self.schema_data,
+                document_role=role,
+                expected_product_ids=expected_product_ids,
+            )
+            if self.schema_data.get("vertical") == "pet_insurance"
+            else self._extraction_contract_for_resolution(resolution)
+        )
         expected_product_type = (
             "The directory/override classification follows the labelled-CSV taxonomy "
             "and is authoritative for this document: "
@@ -130,18 +164,28 @@ class SchemaExtractor:
             )
         if not quality["has_key_heading"]:
             self._log(f"Input quality warning for {pdf_path.name}: no expected cover heading; {quality}")
+        pet_document_id = self._pet_evidence_document_id(pdf_path)
+        pet_source_blocks = (
+            _pet_evidence_blocks(documents, [pet_document_id])
+            if self.schema_data.get("vertical") == "pet_insurance"
+            else {}
+        )
         document_text = render_documents_for_prompt(
             documents,
             table_format="tsv",
-            comment_level="none",
+            comment_level=(
+                "full" if self.schema_data.get("vertical") == "pet_insurance" else "none"
+            ),
             include_document_metadata=False,
             conservative_filter=True,
         )
         request = ProviderRequest(
             selection=self.selection,
-            system_prompt=EXTRACTION_PROMPT,
+            system_prompt=(PET_EXTRACTION_PROMPT if self.schema_data.get("vertical") == "pet_insurance" else EXTRACTION_PROMPT),
             user_text=(
                 f"{expected_product_type}"
+                f"{self._pet_product_identity_context(pdf_path)}"
+                f"{self._pet_evidence_context(pet_document_id)}"
                 "Compact field guide for extraction semantics:\n"
                 f"{_compact_field_guide(self.schema_data)}\n\n"
                 "Extract from this PDFingestor structured representation. "
@@ -167,8 +211,12 @@ class SchemaExtractor:
                 self.provider,
                 request,
                 data_contract_schema=extraction_contract,
-                business_validator=lambda payload: validate_unfilled_consistency(
-                    payload, self.schema_data
+                business_validator=(
+                    (lambda payload: self._validate_pet_payload(
+                        payload, expected_product_ids, pet_source_blocks
+                    ))
+                    if self.schema_data.get("vertical") == "pet_insurance"
+                    else lambda payload: validate_unfilled_consistency(payload, self.schema_data)
                 ),
             )
         except StructuredOutputFailure as exc:
@@ -186,8 +234,9 @@ class SchemaExtractor:
                 attempt.number, not attempt.errors,
             )
         assert result.data is not None
-        normalized = normalize_extraction(result.data, self.schema_data)
-        validate_unfilled_consistency(normalized, self.schema_data)
+        normalized = result.data if self.schema_data.get("vertical") == "pet_insurance" else normalize_extraction(result.data, self.schema_data)
+        if self.schema_data.get("vertical") != "pet_insurance":
+            validate_unfilled_consistency(normalized, self.schema_data)
         return normalized
 
     def extract_many(self, pdf_paths: list[str | Path], out_dir: str | Path) -> list[Path]:
@@ -256,6 +305,136 @@ class SchemaExtractor:
             written.append(target)
         return written
 
+    def extract_product_family(
+        self,
+        family: ProductFamily,
+        *,
+        run_id: str | None = None,
+    ) -> dict[str, object]:
+        """Extract one effective product record per plan across related PDFs."""
+        if self.schema_data.get("vertical") != "pet_insurance":
+            raise ValueError("Product-family extraction is only available for pet_insurance.")
+        if not family.pdf_paths:
+            raise ValueError(f"Document family {family.family_id!r} has no PDFs.")
+        missing = [path for path in family.pdf_paths if not path.is_file()]
+        if missing:
+            raise FileNotFoundError(missing[0])
+
+        started = time.perf_counter()
+        logical_run_id = run_id or uuid4().hex
+        contract = compile_pet_product_family_contract(
+            self.schema_data,
+            document_family_id=family.family_id,
+            document_count=len(family.pdf_paths),
+            expected_product_ids=family.expected_product_ids,
+        )
+        self._log(
+            f"Extracting product family {family.family_id} from "
+            f"{len(family.pdf_paths)} PDF(s) with {self.selection.provider}/{self.model}..."
+        )
+        documents = ingest_pdfs(
+            family.pdf_paths,
+            cache_dir=self.pdfingestor_cache_dir,
+            pdf_root=self.pdf_root,
+        )
+        quality = document_quality(documents)
+        if quality["hard_failures"]:
+            raise ValueError(
+                f"PDFingestor produced unusable family input for {family.family_id}: "
+                f"{', '.join(quality['hard_failures'])}; quality={quality}"
+            )
+        document_text = render_documents_for_prompt(
+            documents,
+            table_format="tsv",
+            comment_level="full",
+            include_document_metadata=True,
+            conservative_filter=True,
+        )
+        source_blocks = _pet_evidence_blocks(
+            documents,
+            [str(item["document_id"]) for item in family.documents],
+        )
+        request = ProviderRequest(
+            selection=self.selection,
+            system_prompt=PET_PRODUCT_FAMILY_PROMPT,
+            user_text=(
+                f"{family_prompt_context(family)}\n\n"
+                "Compact field guide for product extraction semantics:\n"
+                f"{_compact_field_guide(self.schema_data)}\n\n"
+                "Return the effective products after applying all relevant later "
+                "documents to their base plan. Copy the routing metadata into "
+                "source_documents exactly.\n\n"
+                f"{document_text}"
+            ),
+            document_paths=(),
+            timeout_seconds=self.timeout_seconds,
+            cleanup_documents=self.cleanup_uploaded_files,
+            request_params={},
+            background=self.background,
+            poll_interval=self.poll_interval,
+            log=self.log,
+            structured_output=StructuredOutputSpec(
+                name="pet_product_family",
+                schema=contract,
+                strict=True,
+            ),
+        )
+        try:
+            result = run_structured_output(
+                self.provider,
+                request,
+                data_contract_schema=contract,
+                business_validator=lambda payload: self._validate_pet_payload(
+                    payload, family.expected_product_ids, source_blocks
+                ),
+            )
+        except StructuredOutputFailure as exc:
+            duration = round(time.perf_counter() - started, 3)
+            for attempt in exc.result.attempts:
+                self._log_usage(
+                    attempt.response, family.pdf_paths[0], duration, logical_run_id,
+                    attempt.number, False,
+                )
+            raise
+        duration = round(time.perf_counter() - started, 3)
+        for attempt in result.attempts:
+            self._log_usage(
+                attempt.response, family.pdf_paths[0], duration, logical_run_id,
+                attempt.number, not attempt.errors,
+            )
+        assert result.data is not None
+        output = dict(result.data)
+        # Routing metadata is deterministic manifest data. Keep the model focused
+        # on product semantics and never allow a copied path/date typo downstream.
+        output["document_family_id"] = family.family_id
+        output["source_documents"] = [
+            {
+                "document_id": str(item["document_id"]),
+                "document_role": str(item["document_role"]),
+                "effective_date": item.get("document_date"),
+                "source_path": str(item["source_path"]),
+            }
+            for item in family.documents
+        ]
+        return output
+
+    def _validate_pet_payload(
+        self,
+        payload: object,
+        expected_product_ids: list[str],
+        source_blocks: Mapping[str, Mapping[str, tuple[int, str]]],
+    ) -> None:
+        if not isinstance(payload, Mapping):
+            raise ValueError("Pet extraction output must be an object.")
+        # The richer per-category rows are authoritative. Derive their legacy
+        # included-only projection before deriving null bookkeeping.
+        normalize_pet_benefit_categories(payload)
+        normalize_pet_unfilled(payload, self.schema_data)
+        validate_pet_product_inventory(payload, expected_product_ids)
+        validate_pet_benefit_category_consistency(payload)
+        validate_pet_benefit_coverage_evidence(payload, source_blocks)
+        validate_pet_unfilled_consistency(payload, self.schema_data)
+
     def _extraction_cache_key(self, pdf_path: Path) -> str:
         effective_product_type = (
             self._product_type_resolution(pdf_path).effective_product_type or "unclassified"
@@ -310,7 +489,7 @@ class SchemaExtractor:
         source_artifacts = [
             f"schema_sha256:{self.schema_hash}",
             f"pdf_sha256:{_file_hash(pdf_path)}",
-            f"prompt_version:{EXTRACTION_PROMPT_VERSION}",
+            f"prompt_version:{self._prompt_version}",
             f"provider:{self.selection.provider}",
             f"model:{self.selection.model}",
         ]
@@ -346,7 +525,7 @@ class SchemaExtractor:
             return None
         expected_schema = f"schema_sha256:{self.schema_hash}"
         expected_pdf = f"pdf_sha256:{_file_hash(pdf_path)}"
-        expected_prompt = f"prompt_version:{EXTRACTION_PROMPT_VERSION}"
+        expected_prompt = f"prompt_version:{self._prompt_version}"
         expected_provider = f"provider:{self.selection.provider}"
         expected_model = f"model:{self.selection.model}"
         extraction_contract = self._extraction_contract_for_pdf(pdf_path)
@@ -373,6 +552,12 @@ class SchemaExtractor:
         )
 
     def _extraction_contract_for_pdf(self, pdf_path: Path) -> dict[str, object]:
+        if self.schema_data.get("vertical") == "pet_insurance":
+            return compile_pet_extraction_contract(
+                self.schema_data,
+                document_role=self._document_role(pdf_path),
+                expected_product_ids=self._manifest_product_ids(pdf_path),
+            )
         return self._extraction_contract_for_resolution(
             self._product_type_resolution(pdf_path)
         )
@@ -383,6 +568,94 @@ class SchemaExtractor:
         return compile_extraction_contract(
             self.schema_data,
             product_type=resolution.effective_product_type,
+        )
+
+    def _load_manifest_documents(self) -> list[dict[str, object]]:
+        if not self.manifest_path or not self.manifest_path.exists():
+            return []
+        import json
+        payload = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        return [item for item in payload.get("documents", []) if isinstance(item, dict)]
+
+    def _document_role(self, pdf_path: Path) -> str:
+        item = self._manifest_document(pdf_path)
+        if item is not None:
+            return str(item.get("document_role") or "pds")
+        return "pds"
+
+    @property
+    def _prompt_version(self) -> str:
+        return (
+            PET_EXTRACTION_PROMPT_VERSION
+            if self.schema_data.get("vertical") == "pet_insurance"
+            else EXTRACTION_PROMPT_VERSION
+        )
+
+    def _manifest_document(self, pdf_path: Path) -> Mapping[str, object] | None:
+        for item in self._manifest_documents:
+            source = str(item.get("source_path", ""))
+            if (
+                pdf_path.as_posix().endswith(source.replace("\\", "/"))
+                or pdf_path.name == Path(source).name
+            ):
+                return item
+        return None
+
+    def _manifest_product_ids(self, pdf_path: Path) -> list[str]:
+        return [
+            str(product["product_id"])
+            for product in self._manifest_products(pdf_path)
+            if isinstance(product.get("product_id"), str)
+            and str(product["product_id"]).strip()
+        ]
+
+    def _manifest_products(self, pdf_path: Path) -> list[Mapping[str, object]]:
+        item = self._manifest_document(pdf_path)
+        if item is None or not isinstance(item.get("products"), list):
+            return []
+        return [
+            product
+            for product in item["products"]
+            if isinstance(product, Mapping)
+        ]
+
+    def _pet_product_identity_context(self, pdf_path: Path) -> str:
+        if self.schema_data.get("vertical") != "pet_insurance":
+            return ""
+        products = self._manifest_products(pdf_path)
+        if not products:
+            return ""
+        identity_lines = []
+        for product in products:
+            product_id = str(product.get("product_id") or "").strip()
+            if not product_id:
+                continue
+            name_hint = str(product.get("product_name_hint") or "").strip()
+            suffix = f"; product_name_hint={name_hint}" if name_hint else ""
+            identity_lines.append(f"- product_id={product_id}{suffix}")
+        if not identity_lines:
+            return ""
+        return (
+            "Manifest product identity metadata (not policy evidence):\n"
+            + "\n".join(identity_lines)
+            + "\nReturn one product for each applicable listed ID, copy each ID "
+            "exactly, and use its product_name_hint as the non-empty product name.\n\n"
+        )
+
+    def _pet_evidence_document_id(self, pdf_path: Path) -> str:
+        item = self._manifest_document(pdf_path)
+        if item is not None and isinstance(item.get("document_id"), str):
+            return str(item["document_id"])
+        return pdf_path.name
+
+    def _pet_evidence_context(self, document_id: str) -> str:
+        if self.schema_data.get("vertical") != "pet_insurance":
+            return ""
+        return (
+            "Coverage evidence routing:\n"
+            f"- source_document_id={document_id}\n"
+            "Use the page and block_id/table_id markers in the structured "
+            "representation for benefit_coverages evidence.\n\n"
         )
 
     def _log(self, message: str) -> None:
@@ -413,6 +686,39 @@ class SchemaExtractor:
         )
 
 
+def _pet_evidence_blocks(
+    documents: object,
+    document_ids: list[str],
+) -> dict[str, dict[str, tuple[int, str]]]:
+    parsed_documents = list(documents)  # type: ignore[arg-type]
+    if len(parsed_documents) != len(document_ids):
+        raise ValueError(
+            "Pet evidence routing requires one document_id per parsed PDF."
+        )
+    evidence: dict[str, dict[str, tuple[int, str]]] = {}
+    for document_id, document in zip(document_ids, parsed_documents):
+        blocks: dict[str, tuple[int, str]] = {}
+        for page in document.pages:
+            for block in page.blocks:
+                if block.type == "table":
+                    block_id = str(block.table_id)
+                    context = str(block.caption_context.get("summary") or "")
+                    block_text = "\n".join(filter(None, (
+                        context,
+                        render_table(block, table_format="tsv"),
+                    )))
+                else:
+                    block_id = str(block.block_id)
+                    block_text = str(block.content)
+                if block_id in blocks:
+                    raise ValueError(
+                        f"Duplicate evidence block ID {block_id!r} in {document_id!r}."
+                    )
+                blocks[block_id] = (int(page.page_num), block_text)
+        evidence[document_id] = blocks
+    return evidence
+
+
 def _available_target(path: Path, reserved: set[Path]) -> Path:
     candidate = path
     suffix = 2
@@ -420,17 +726,6 @@ def _available_target(path: Path, reserved: set[Path]) -> Path:
         candidate = path.with_name(f"{path.stem}_{suffix}{path.suffix}")
         suffix += 1
     return candidate
-
-
-def _schema_hash(schema_data: Mapping[str, object]) -> str:
-    return sha256(
-        dumps_json(
-            schema_data,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    ).hexdigest()
 
 
 def _file_hash(path: Path) -> str:

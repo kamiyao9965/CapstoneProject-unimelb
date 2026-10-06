@@ -26,6 +26,8 @@
         "missing_required": {"type": "object", "additionalProperties": {"type": "integer"}},
         "enum_violations": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": ["string", "number", "integer", "boolean"]}}},
         "model_unfilled": {"type": "object", "additionalProperties": {"type": "integer"}},
+        "comparison_fill_rate": {"type": "object", "additionalProperties": {"type": "number"}},
+        "comparison_missing": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
         "business_fidelity": {
           "type": "object",
           "additionalProperties": false,

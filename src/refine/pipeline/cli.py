@@ -6,15 +6,18 @@ import argparse
 from pathlib import Path
 
 from src.common.data_paths import default_private_health_pdf_root
+from src.schema.sampler import DEFAULT_MANIFEST_ROLES
 from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json
 from src.common.model_config import resolve_selection
 from src.refine.pipeline.rounds import (
     next_round_index,
+    resume_consensus,
     resume_extraction,
     resume_review,
     run_round,
 )
+from src.refine.verticals import contract_name
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -24,7 +27,16 @@ def build_parser() -> argparse.ArgumentParser:
             "-> optional human review -> holdout schema application -> feedback"
         )
     )
-    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    parser.add_argument("--input-root")
+    parser.add_argument(
+        "--vertical", default="private_health",
+        choices=("private_health", "pet_insurance"),
+    )
+    parser.add_argument("--manifest", help="Manifest JSON for brand/role/family stratified sampling")
+    parser.add_argument(
+        "--document-roles", nargs="+", default=list(DEFAULT_MANIFEST_ROLES),
+        help="Manifest document_role values used for discovery and holdout",
+    )
     parser.add_argument(
         "--per-category", type=int, default=5, help="PDFs/category for discovery"
     )
@@ -45,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model")
     parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
-    parser.add_argument("--out-dir", default="outputs/private_health/refine")
+    parser.add_argument("--out-dir")
     parser.add_argument("--rounds", type=int, default=1, help="Max rounds")
     parser.add_argument(
         "--consensus-runs",
@@ -70,6 +82,15 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Path to a round_N directory whose consensus/reviewed_schema.json "
             "should be applied to holdout PDFs before publishing final_schema.json"
+        ),
+    )
+    parser.add_argument(
+        "--resume-consensus",
+        help=(
+            "Path to an incomplete round_N directory. Reuse validated candidate "
+            "patch runs, generate only missing/invalid runs, then continue through "
+            "holdout extraction and final_schema.json. Pass the original "
+            "--consensus-runs value."
         ),
     )
     parser.add_argument(
@@ -98,6 +119,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    if args.input_root is None:
+        args.input_root = (
+            "data/raw"
+            if args.vertical == "pet_insurance"
+            else str(default_private_health_pdf_root())
+        )
+    if args.out_dir is None:
+        args.out_dir = f"outputs/{args.vertical}/refine"
     try:
         args.selection = resolve_selection(
             provider=args.provider,
@@ -112,10 +141,21 @@ def main() -> int:
     if args.review_ui and args.consensus_runs <= 1:
         parser.error("--review-ui requires --consensus-runs N greater than 1.")
 
-    if args.resume_review and args.resume_extraction:
-        parser.error("Choose only one of --resume-review and --resume-extraction.")
+    resume_modes = [
+        args.resume_review,
+        args.resume_consensus,
+        args.resume_extraction,
+    ]
+    if sum(bool(mode) for mode in resume_modes) > 1:
+        parser.error(
+            "Choose only one of --resume-review, --resume-consensus, "
+            "and --resume-extraction."
+        )
     if args.resume_review:
         return resume_review(args)
+    if args.resume_consensus:
+        args.out_dir = str(Path(args.resume_consensus).parent)
+        return resume_consensus(args)
     if args.resume_extraction:
         return resume_extraction(args)
 
@@ -147,7 +187,7 @@ def _load_feedback(args, start_index: int) -> str | None:
     artifact = read_artifact(
         args.resume_feedback,
         expected_type="refinement_feedback",
-        data_contract="private_health/refinement_feedback",
+        data_contract=contract_name(args.vertical, "refinement_feedback"),
     )
     feedback = dumps_json(artifact["data"], ensure_ascii=False)
     print(f"Seeding round {start_index} with feedback from {args.resume_feedback}")

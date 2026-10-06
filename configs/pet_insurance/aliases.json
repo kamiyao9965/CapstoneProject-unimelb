@@ -1,0 +1,20 @@
+{
+  "field_aliases": {
+    "annual_limit": "annual_benefit_limit_aud",
+    "annual_benefit_limit": "annual_benefit_limit_aud",
+    "benefit_limit": "annual_benefit_limit_aud",
+    "reimbursement_percentage": "benefit_percentage",
+    "reimbursement_rate": "benefit_percentage",
+    "copayment_percentage": "co_payment_percentage",
+    "co_pay_percentage": "co_payment_percentage",
+    "waiting_period": "waiting_periods",
+    "waiting_period_days": "waiting_periods"
+  },
+  "group_aliases": {
+    "plan": "product",
+    "plan_cover": "product",
+    "product_cover": "product",
+    "policy": "document",
+    "policy_document": "document"
+  }
+}

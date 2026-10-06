@@ -39,6 +39,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--out",
         help=f"Output path (default: <consensus-dir>/{REVIEWED_SCHEMA_FILENAME})",
     )
+    apply_command.add_argument(
+        "--vertical",
+        default="private_health",
+        choices=("private_health", "pet_insurance"),
+        help="Schema vertical represented by the review queue.",
+    )
     return parser
 
 
@@ -48,6 +54,7 @@ def run_apply(args: argparse.Namespace) -> int:
             consensus_dir=args.consensus_dir,
             base_schema_path=args.base_schema,
             output_path=args.out,
+            vertical=args.vertical,
         )
     except FileNotFoundError as exc:
         print(exc)

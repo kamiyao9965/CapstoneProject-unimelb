@@ -13,9 +13,15 @@ from src.common.json_artifacts import build_success_artifact, write_artifact
 from src.common.data_paths import default_private_health_pdf_root
 from src.common.model_config import resolve_selection
 from src.schema.discovery import SchemaDiscovery
-from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
+from src.schema.sampler import (
+    DEFAULT_CATEGORIES,
+    DEFAULT_MANIFEST_ROLES,
+    select_manifest_samples,
+    select_samples,
+)
 from src.stability.compare import compare
 from src.stability.signature import signature_from_file
+from src.refine.verticals import contract_name
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,7 +29,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run schema discovery N times on the SAME sampled PDFs and measure drift"
     )
     parser.add_argument("--runs", type=int, default=3, help="Number of discovery runs")
-    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    parser.add_argument("--input-root")
+    parser.add_argument(
+        "--vertical", default="private_health",
+        choices=("private_health", "pet_insurance"),
+    )
+    parser.add_argument("--manifest", help="Manifest JSON for stratified document sampling")
+    parser.add_argument(
+        "--document-roles", nargs="+", default=list(DEFAULT_MANIFEST_ROLES),
+        help="Manifest document_role values used for sampling",
+    )
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42,
                         help="Sampling seed - fixed so every run sees the same PDFs")
@@ -33,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("--temperature", type=float,
                         help="Forward temperature to the model (opt-in; may be rejected by gpt-5)")
-    parser.add_argument("--out-dir", default="outputs/private_health/stability")
+    parser.add_argument("--out-dir")
     parser.add_argument("--show-items", action="store_true")
     return parser
 
@@ -53,16 +68,29 @@ def main() -> int:
         print("--runs must be at least 2 to measure drift.")
         return 1
 
-    out_dir = Path(args.out_dir)
+    input_root = Path(
+        args.input_root
+        or ("data/raw" if args.vertical == "pet_insurance" else default_private_health_pdf_root())
+    )
+    out_dir = Path(args.out_dir or f"outputs/{args.vertical}/stability")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Sample ONCE so the only thing varying across runs is the model itself.
-    sample_paths = select_samples(
-        input_root=Path(args.input_root),
-        categories=DEFAULT_CATEGORIES,
-        per_category=args.per_category,
-        seed=args.seed,
-    )
+    if args.manifest:
+        sample_paths = select_manifest_samples(
+            input_root=input_root,
+            manifest_path=args.manifest,
+            count=args.per_category,
+            seed=args.seed,
+            roles=tuple(args.document_roles),
+        )
+    else:
+        sample_paths = select_samples(
+            input_root=input_root,
+            categories=DEFAULT_CATEGORIES,
+            per_category=args.per_category,
+            seed=args.seed,
+        )
     print(f"Fixed sample of {len(sample_paths)} PDFs (seed={args.seed}). "
           f"Running discovery {args.runs}x...\n")
 
@@ -77,7 +105,8 @@ def main() -> int:
             timeout_seconds=args.timeout,
             usage_log_path=str(out_dir / "token_usage.jsonl"),
             request_params=request_params,
-            pdf_root=args.input_root,
+            pdf_root=str(input_root),
+            vertical=args.vertical,
         ).discover(sample_paths, output_path=path, run_id=run_id)
         artifact = build_success_artifact(
             artifact_type="discovered_schema",
@@ -91,10 +120,12 @@ def main() -> int:
                 "source_documents": list(sample_paths),
                 "source_artifacts": [],
             },
-            data_contract="private_health/discovered_schema",
+            data_contract=contract_name(args.vertical, "discovered_schema"),
         )
         write_artifact(
-            path, artifact, data_contract="private_health/discovered_schema"
+            path,
+            artifact,
+            data_contract=contract_name(args.vertical, "discovered_schema"),
         )
         schema_paths.append(path)
         print(f"Wrote {path}\n")

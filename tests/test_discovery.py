@@ -8,10 +8,33 @@ from unittest import mock
 from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest
 from src.schema.discovery import SchemaDiscovery
-from src.schema.prompts import SCHEMA_PATCH_PROMPT
+from src.schema.prompts import (
+    PET_SCHEMA_DISCOVERY_PROMPT,
+    PET_SCHEMA_PATCH_PROMPT,
+    SCHEMA_PATCH_PROMPT,
+)
 
 
 class SchemaDiscoveryInputTest(unittest.TestCase):
+    def test_pet_prompts_state_enum_source_invariants_explicitly(self) -> None:
+        for prompt in (PET_SCHEMA_DISCOVERY_PROMPT, PET_SCHEMA_PATCH_PROMPT):
+            self.assertIn("choose exactly one", prompt)
+            self.assertIn("covered_benefit_categories", prompt)
+            self.assertIn("benefit_coverages", prompt)
+            self.assertIn("included, optional, excluded", prompt)
+            self.assertIn("source_document_id", prompt)
+            self.assertIn("source_block_id", prompt)
+            self.assertIn("source_page", prompt)
+            self.assertIn("source_quote", prompt)
+            self.assertIn('enum_ref="benefit_categories"', prompt)
+            self.assertIn("document_role", prompt)
+            self.assertIn('enum_ref="document_roles"', prompt)
+            self.assertIn('eligible_species', prompt)
+            self.assertIn('["dog", "cat"]', prompt)
+            self.assertIn("cover_scope", prompt)
+            self.assertIn('enum_ref="cover_scopes"', prompt)
+            self.assertIn("values=[]", prompt)
+
     def test_pdfingestor_failure_stops_before_provider(self) -> None:
         class RecordingProvider:
             def __init__(self) -> None:

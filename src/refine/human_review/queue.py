@@ -15,6 +15,12 @@ from src.refine.artifacts.schema_fields import (
 )
 from src.refine.candidates.aggregator import FieldDecision
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
+from src.refine.verticals import (
+    contract_name,
+    core_required_fields,
+    ensure_review_vertical,
+    schema_field_targets,
+)
 
 
 def build_review_queue(
@@ -24,7 +30,9 @@ def build_review_queue(
     base_schema_path: str | Path,
     generated_at: str | None = None,
     schema_build_samples: Iterable[str | Path] = (),
+    vertical: str = "private_health",
 ) -> dict:
+    ensure_review_vertical(vertical)
     existing_fields = fields_by_name(base_schema.get("fields", []))
     return {
         "metadata": {
@@ -37,14 +45,25 @@ def build_review_queue(
             ),
         },
         "updates": [
-            _queue_item(decision, existing_fields.get(decision.canonical_name))
+            _queue_item(
+                decision,
+                existing_fields.get(decision.canonical_name),
+                allowed_targets=schema_field_targets(base_schema),
+                required_fields=core_required_fields(base_schema),
+            )
             for decision in decisions
             if is_applicable_field_patch(decision, existing_fields)
         ],
     }
 
 
-def _queue_item(decision: FieldDecision, existing_field: dict | None) -> dict:
+def _queue_item(
+    decision: FieldDecision,
+    existing_field: dict | None,
+    *,
+    allowed_targets: set[str],
+    required_fields: frozenset[str],
+) -> dict:
     return {
         "id": f"field:{decision.canonical_name}",
         "patch_types": decision.patch_types,
@@ -62,7 +81,12 @@ def _queue_item(decision: FieldDecision, existing_field: dict | None) -> dict:
         "reject_rationale_samples": decision.reject_rationale_samples,
         "needs_manual_edit": decision_requires_manual_edit(decision),
         "needs_schema_edit": decision_requires_schema_edit(decision),
-        "proposed_update": field_payload_from_decision(decision, existing_field),
+        "proposed_update": field_payload_from_decision(
+            decision,
+            existing_field,
+            allowed_targets=allowed_targets,
+            required_fields=required_fields,
+        ),
     }
 
 
@@ -71,22 +95,31 @@ def write_review_queue(
     path: str | Path,
     *,
     provenance: dict[str, object] | None = None,
+    vertical: str = "private_health",
+    overwrite: bool = False,
 ) -> None:
+    vertical = ensure_review_vertical(vertical)
     artifact = build_success_artifact(
         artifact_type="review_queue",
         contract_version="1.0.0",
         data=queue,
         provenance=provenance or _local_provenance(),
-        data_contract="private_health/review_queue",
+        data_contract=contract_name(vertical, "review_queue"),
     )
-    write_artifact(path, artifact, data_contract="private_health/review_queue")
+    write_artifact(
+        path,
+        artifact,
+        data_contract=contract_name(vertical, "review_queue"),
+        overwrite=overwrite,
+    )
 
 
-def load_review_queue(path: str | Path) -> dict:
+def load_review_queue(path: str | Path, *, vertical: str = "private_health") -> dict:
+    vertical = ensure_review_vertical(vertical)
     payload = read_artifact(
         path,
         expected_type="review_queue",
-        data_contract="private_health/review_queue",
+        data_contract=contract_name(vertical, "review_queue"),
     )["data"]
     if not isinstance(payload, dict) or "updates" not in payload:
         raise ValueError(f"Not a review queue file: {path}")

@@ -55,7 +55,7 @@
         "applies_to": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"enum": ["hospital", "extras", "generalhealth", "combined"]}
+          "items": {"type": "string", "minLength": 1}
         },
         "required": {"type": ["boolean", "null"]},
         "values": {"type": "array", "items": {"$ref": "#/$defs/jsonScalar"}},

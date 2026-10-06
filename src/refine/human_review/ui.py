@@ -29,13 +29,18 @@ DEFAULT_CONSENSUS_DIR = "outputs/private_health/consensus"
 def parse_cli_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--consensus-dir", default=DEFAULT_CONSENSUS_DIR)
+    parser.add_argument(
+        "--vertical",
+        default="private_health",
+        choices=("private_health", "pet_insurance"),
+    )
     args, _ = parser.parse_known_args()
     return args
 
 
-def load_decisions_or_empty(path: Path) -> dict:
+def load_decisions_or_empty(path: Path, *, vertical: str = "private_health") -> dict:
     if path.exists():
-        return load_review_decisions(path)
+        return load_review_decisions(path, vertical=vertical)
     return empty_decisions()
 
 
@@ -46,9 +51,11 @@ def save_decision(
     action: str,
     notes: str,
     edited_update: dict | None = None,
+    *,
+    vertical: str = "private_health",
 ) -> None:
     latest = save_review_decision(
-        decisions_path, item_id, action, notes, edited_update
+        decisions_path, item_id, action, notes, edited_update, vertical=vertical
     )
     decisions.clear()
     decisions.update(latest)
@@ -73,8 +80,8 @@ def main() -> None:
         )
         st.stop()
 
-    queue = load_review_queue(queue_path)
-    decisions = load_decisions_or_empty(decisions_path)
+    queue = load_review_queue(queue_path, vertical=cli.vertical)
+    decisions = load_decisions_or_empty(decisions_path, vertical=cli.vertical)
     status = derive_status(queue, decisions)
     updates = queue.get("updates", [])
 
@@ -121,7 +128,10 @@ def main() -> None:
 
     st.sidebar.divider()
     if st.sidebar.button("Apply decisions -> reviewed_schema.json", type="primary"):
-        out_path, summary = apply_review_files(consensus_dir=consensus_dir)
+        out_path, summary = apply_review_files(
+            consensus_dir=consensus_dir,
+            vertical=cli.vertical,
+        )
         st.sidebar.success(
             f"Wrote {out_path}\n\n"
             f"applied {len(summary['applied'])} + edited {len(summary['edited'])}, "
@@ -153,7 +163,7 @@ def main() -> None:
         _render_review_item(item, status[item_id])
 
     with right:
-        _render_decision_panel(item, decisions, decisions_path)
+        _render_decision_panel(item, decisions, decisions_path, cli.vertical)
 
 
 def _render_review_item(item: dict, status_label: str) -> None:
@@ -203,6 +213,7 @@ def _render_decision_panel(
     item: dict,
     decisions: dict,
     decisions_path: Path,
+    vertical: str,
 ) -> None:
     item_id = item["id"]
     st.subheader("Your decision")
@@ -220,17 +231,23 @@ def _render_decision_panel(
         type="primary",
         disabled=bool(item.get("needs_manual_edit")),
     ):
-        save_decision(decisions_path, decisions, item_id, "accept", notes)
+        save_decision(
+            decisions_path, decisions, item_id, "accept", notes, vertical=vertical
+        )
         st.rerun()
     if reject_col.button("Reject", key=f"reject:{item_id}"):
-        save_decision(decisions_path, decisions, item_id, "reject", notes)
+        save_decision(
+            decisions_path, decisions, item_id, "reject", notes, vertical=vertical
+        )
         st.rerun()
     if clear_col.button(
         "Clear",
         key=f"clear:{item_id}",
         help="Remove the decision; item returns to pending",
     ):
-        latest = remove_review_decision(decisions_path, item_id)
+        latest = remove_review_decision(
+            decisions_path, item_id, vertical=vertical
+        )
         decisions.clear()
         decisions.update(latest)
         st.rerun()
@@ -255,5 +272,13 @@ def _render_decision_panel(
         except Exception as exc:
             st.error(f"Invalid JSON: {exc}")
         else:
-            save_decision(decisions_path, decisions, item_id, "edit", notes, payload)
+            save_decision(
+                decisions_path,
+                decisions,
+                item_id,
+                "edit",
+                notes,
+                payload,
+                vertical=vertical,
+            )
             st.rerun()

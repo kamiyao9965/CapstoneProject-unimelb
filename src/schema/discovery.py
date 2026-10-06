@@ -27,8 +27,13 @@ from src.common.structured_output import (
     StructuredOutputFailure,
     run_structured_output,
 )
-from src.schema.prompts import SCHEMA_DISCOVERY_PROMPT, SCHEMA_PATCH_PROMPT
-from src.schema.validation import validate_schema_mapping
+from src.schema.prompts import (
+    PET_SCHEMA_DISCOVERY_PROMPT,
+    PET_SCHEMA_PATCH_PROMPT,
+    SCHEMA_DISCOVERY_PROMPT,
+    SCHEMA_PATCH_PROMPT,
+)
+from src.schema.validation import validate_pet_schema_mapping, validate_schema_mapping
 from src.refine.candidates.patch import parse_patch_payload
 
 
@@ -50,6 +55,7 @@ class SchemaDiscovery:
         pdf_root: str | Path | None = None,
         preprocessor: object | None = None,
         pdfingestor_cache_dir: str | Path | None = None,
+        vertical: str = "private_health",
     ) -> None:
         self.selection = selection or ModelSelection("openai", model, "markdown")
         if self.selection.document_input != "markdown":
@@ -80,6 +86,9 @@ class SchemaDiscovery:
         # {"seed": 7}. Only what the caller sets is sent; support varies by model
         # (gpt-5 reasoning models may reject temperature), so this is opt-in.
         self.request_params = dict(request_params or {})
+        self.vertical = vertical
+        if self.vertical not in {"private_health", "pet_insurance"}:
+            raise ValueError(f"Unsupported discovery vertical: {self.vertical}")
 
     def discover(
         self,
@@ -90,7 +99,7 @@ class SchemaDiscovery:
     ) -> dict[str, object]:
         return self._generate_from_pdfs(
             sample_pdfs=sample_pdfs,
-            system_prompt=SCHEMA_DISCOVERY_PROMPT,
+            system_prompt=(PET_SCHEMA_DISCOVERY_PROMPT if self.vertical == "pet_insurance" else SCHEMA_DISCOVERY_PROMPT),
             user_text_factory=self._input_text,
             output_path=output_path,
             usage_event="schema_discovery",
@@ -113,7 +122,7 @@ class SchemaDiscovery:
         """
         return self._generate_from_pdfs(
             sample_pdfs=sample_pdfs,
-            system_prompt=SCHEMA_PATCH_PROMPT,
+            system_prompt=(PET_SCHEMA_PATCH_PROMPT if self.vertical == "pet_insurance" else SCHEMA_PATCH_PROMPT),
             user_text_factory=lambda pdf_paths: self._patch_input_text(pdf_paths, current_schema),
             output_path=output_path,
             usage_event="schema_consensus_patch",
@@ -167,15 +176,16 @@ class SchemaDiscovery:
             poll_interval=self.poll_interval,
             log=self.log,
         )
+        contract_prefix = "pet_insurance" if self.vertical == "pet_insurance" else "private_health"
         structured_contract = {
             "schema_discovery": (
                 "discovered_schema",
-                "private_health/discovered_schema",
-                validate_schema_mapping,
+                f"{contract_prefix}/discovered_schema",
+                validate_pet_schema_mapping if self.vertical == "pet_insurance" else validate_schema_mapping,
             ),
             "schema_consensus_patch": (
                 "candidate_patch_set",
-                "private_health/candidate_patch_set",
+                f"{contract_prefix}/candidate_patch_set",
                 parse_patch_payload,
             ),
         }.get(usage_event)

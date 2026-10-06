@@ -17,7 +17,10 @@ from src.common.structured_output import (
     run_structured_output,
 )
 from src.schema.validation import validate_schema_mapping
-from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
+from tests.test_json_contracts import (
+    VALID_DISCOVERED_SCHEMA,
+    VALID_PET_DISCOVERED_SCHEMA,
+)
 
 
 class SequenceProvider:
@@ -93,6 +96,39 @@ class StructuredOutputTest(unittest.TestCase):
         self.assertEqual(len(result.attempts), 2)
         self.assertIn("$.fields[0].values", provider.requests[1].user_text)
         self.assertIn("Return the complete corrected JSON object", provider.requests[1].user_text)
+
+    def test_pet_enum_contract_error_gets_targeted_repair_hints(self) -> None:
+        import json
+
+        invalid = json.loads(json.dumps(VALID_PET_DISCOVERED_SCHEMA))
+        invalid["fields"][0]["values"] = ["vet_fees"]
+        provider = SequenceProvider([
+            json.dumps(invalid),
+            json.dumps(VALID_PET_DISCOVERED_SCHEMA),
+        ])
+        pet_request = replace(
+            request(),
+            structured_output=StructuredOutputSpec(
+                name="pet_discovered_schema",
+                schema=load_contract("pet_insurance/discovered_schema"),
+            ),
+        )
+
+        result = run_structured_output(
+            provider,
+            pet_request,
+            data_contract="pet_insurance/discovered_schema",
+        )
+
+        self.assertEqual(result.data, VALID_PET_DISCOVERED_SCHEMA)
+        repair_text = provider.requests[1].user_text
+        self.assertIn("choose exactly one source", repair_text)
+        self.assertIn('"covered_benefit_categories"', repair_text)
+        self.assertIn('"benefit_categories"', repair_text)
+        self.assertIn('"document_role"', repair_text)
+        self.assertIn('"document_roles"', repair_text)
+        self.assertIn('"cover_scope"', repair_text)
+        self.assertIn('"cover_scopes"', repair_text)
 
     def test_business_validation_error_is_repaired(self) -> None:
         import json

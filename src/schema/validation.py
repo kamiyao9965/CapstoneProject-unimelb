@@ -21,10 +21,64 @@ ENUM_REF_REGISTRY = {
     "product_types": "scalar_list",
     "hospital_categories": "canonical_items",
     "extras_services": "canonical_items",
+    "cover_scopes": "scalar_list",
+    "benefit_categories": "scalar_list",
+    "document_roles": "scalar_list",
 }
 SUPPORTED_ENUM_REFS = frozenset(ENUM_REF_REGISTRY)
+PET_FIELD_TARGETS = frozenset({"product", "document"})
+PET_DOCUMENT_ROLES = frozenset({
+    "pds",
+    "update",
+    "combined_fsg_pds",
+    "supplementary_pds",
+    "policy_booklet",
+    "renewal_pds",
+})
+PET_REQUIRED_DISCOVERY_FIELDS = {
+    "co_payment_percentage": ("number", None),
+    "covered_benefit_categories": ("list[enum]", "benefit_categories"),
+    "annual_benefit_limit_options_aud": ("list[number]", None),
+    "benefit_percentage_options": ("list[number]", None),
+    "excess_options_aud": ("list[number]", None),
+    "temporary_condition_reinstatement_after_months": ("number", None),
+}
+PET_REQUIRED_IDENTITY_FIELDS = {
+    "product_id": "Product ID",
+    "product_name": "Product name",
+    "insurer_name": "Insurer name",
+}
 RESERVED_OUTPUT_FIELD_NAMES = frozenset({"_unfilled", "_notes"})
 CANONICAL_ITEM_FIELD_POLICIES: dict[str, dict[str, object]] = {
+    "benefit_coverages": {
+        "required_item_fields": {
+            "benefit_category": {
+                "type": "enum", "required": True, "values": [],
+                "enum_ref": "benefit_categories",
+            },
+            "coverage_status": {
+                "type": "enum", "required": True,
+                "values": ["included", "optional", "excluded"],
+                "enum_ref": None,
+            },
+            "source_document_id": {
+                "type": "string", "required": True, "values": [],
+                "enum_ref": None,
+            },
+            "source_block_id": {
+                "type": "string", "required": True, "values": [],
+                "enum_ref": None,
+            },
+            "source_page": {
+                "type": "number", "required": True, "values": [],
+                "enum_ref": None,
+            },
+            "source_quote": {
+                "type": "string", "required": True, "values": [],
+                "enum_ref": None,
+            },
+        },
+    },
     "extras_benefits": {
         "legacy_item_names": {"service": "service_name", "name": "service_name"},
         "required_item_fields": {
@@ -219,6 +273,140 @@ def validate_schema_mapping(payload: object) -> dict[str, object]:
     return payload
 
 
+def validate_pet_schema_mapping(payload: object) -> dict[str, object]:
+    """Validate the domain-level schema produced by pet-insurance discovery."""
+    if not isinstance(payload, dict):
+        raise ValueError("Pet insurance schema JSON must be an object.")
+    if payload.get("vertical") != "pet_insurance":
+        raise ValueError("Schema vertical must be 'pet_insurance'.")
+    for key in ("version", "description"):
+        if not isinstance(payload.get(key), str) or not str(payload[key]).strip():
+            raise ValueError(f"Pet insurance schema {key} must be a non-empty string.")
+    cover_scopes = payload.get("cover_scopes")
+    if not isinstance(cover_scopes, list) or not cover_scopes or any(
+        not isinstance(value, str) or not value.strip() for value in cover_scopes
+    ):
+        raise ValueError("Pet insurance schema cover_scopes must be a non-empty string list.")
+    if len(cover_scopes) != len(set(cover_scopes)):
+        raise ValueError("Pet insurance schema cover_scopes must not contain duplicates.")
+    for key in ("document_roles", "benefit_categories"):
+        values = payload.get(key)
+        if not isinstance(values, list) or any(not isinstance(value, str) for value in values):
+            raise ValueError(f"Pet insurance schema {key} must be a string list.")
+    document_roles = payload["document_roles"]
+    if set(document_roles) != PET_DOCUMENT_ROLES:
+        missing = sorted(PET_DOCUMENT_ROLES - set(document_roles))
+        unknown = sorted(set(document_roles) - PET_DOCUMENT_ROLES)
+        details = []
+        if missing:
+            details.append(f"missing {missing}")
+        if unknown:
+            details.append(f"unknown {unknown}")
+        raise ValueError(
+            "Pet insurance schema document_roles must match the manifest roles "
+            f"({'; '.join(details)})."
+        )
+    fields = payload.get("fields")
+    if not isinstance(fields, list) or not fields:
+        raise ValueError("Pet insurance schema fields must be a non-empty list.")
+    errors: list[dict[str, str]] = []
+    names: set[str] = set()
+    for index, field in enumerate(fields):
+        try:
+            validate_field_payload(
+                field,
+                PET_FIELD_TARGETS | set(cover_scopes),
+                index=index,
+                core_required_fields={"product_id", "product_name", "insurer_name"},
+                applies_to_label="pet applicability targets",
+            )
+        except ValueError as exc:
+            errors.append({"path": f"$.fields[{index}]", "message": str(exc)})
+        if isinstance(field, dict) and isinstance(field.get("name"), str):
+            if field["name"] in names:
+                errors.append({"path": f"$.fields[{index}].name", "message": "Duplicate schema field name."})
+            names.add(field["name"])
+    if "product_name" not in names:
+        raise ValueError("Pet insurance schema must contain a product_name field.")
+    fields_by_name = {
+        str(field.get("name")): field
+        for field in fields
+        if isinstance(field, dict) and isinstance(field.get("name"), str)
+    }
+    for field_name, label in PET_REQUIRED_IDENTITY_FIELDS.items():
+        field = fields_by_name.get(field_name)
+        if field is None:
+            errors.append({
+                "path": "$.fields",
+                "message": f"Pet insurance schema must contain required {label.lower()} field {field_name!r}.",
+            })
+            continue
+        if (
+            field.get("type") != "string"
+            or field.get("required") is not True
+            or "product" not in field.get("applies_to", [])
+        ):
+            errors.append({
+                "path": f"$.fields[{field_name}]",
+                "message": (
+                    f"Pet identity field {field_name!r} must be a required "
+                    "product-scoped string."
+                ),
+            })
+    missing_discovery_fields = sorted(set(PET_REQUIRED_DISCOVERY_FIELDS) - names)
+    if missing_discovery_fields:
+        errors.append({
+            "path": "$.fields",
+            "message": (
+                "Pet insurance schema must preserve these canonical comparison "
+                f"fields: {missing_discovery_fields}."
+            ),
+        })
+    for field_name, (expected_type, expected_enum_ref) in PET_REQUIRED_DISCOVERY_FIELDS.items():
+        field = fields_by_name.get(field_name)
+        if field is None:
+            continue
+        if field.get("type") != expected_type:
+            errors.append({
+                "path": f"$.fields[{field_name}].type",
+                "message": f"Pet field {field_name!r} must have type {expected_type!r}.",
+            })
+        if expected_enum_ref is not None and (
+            field.get("enum_ref") != expected_enum_ref or field.get("values") != []
+        ):
+            errors.append({
+                "path": f"$.fields[{field_name}].enum_ref",
+                "message": (
+                    f"Pet field {field_name!r} must reference "
+                    f"{expected_enum_ref!r} with values=[]."
+                ),
+            })
+    for field_name, expected_enum_ref in {
+        "cover_scope": "cover_scopes",
+        "document_role": "document_roles",
+    }.items():
+        field = fields_by_name.get(field_name)
+        if field is not None and (
+            field.get("type") != "enum"
+            or field.get("enum_ref") != expected_enum_ref
+            or field.get("values") != []
+        ):
+            errors.append({
+                "path": f"$.fields[{field_name}].enum_ref",
+                "message": (
+                    f"Pet field {field_name!r} must use type 'enum', values=[], "
+                    f"and enum_ref={expected_enum_ref!r}."
+                ),
+            })
+    try:
+        _validate_enum_references(fields, payload)
+    except ValueError as exc:
+        errors.append({"path": "$.fields", "message": str(exc)})
+    if errors:
+        raise SchemaValidationError(errors)
+    return payload
+
+
 def _validate_ambulance_single_source(
     fields: list[object], schema: Mapping[str, object]
 ) -> None:
@@ -252,7 +440,7 @@ def _validate_enum_references(
                 continue
             enum_ref = str(candidate["enum_ref"])
             source = schema.get(enum_ref)
-            if enum_ref == "product_types":
+            if ENUM_REF_REGISTRY.get(enum_ref) == "scalar_list":
                 values = source if isinstance(source, list) else []
             else:
                 values = [
@@ -312,6 +500,8 @@ def validate_field_payload(
     allowed_product_types: Collection[str],
     *,
     index: int | None = None,
+    core_required_fields: Collection[str] = CORE_REQUIRED_FIELDS,
+    applies_to_label: str = "product types",
 ) -> Mapping[str, object]:
     """Validate one schema field without silently repairing external data."""
     label = f"field {index}" if index is not None else "field"
@@ -340,7 +530,7 @@ def validate_field_payload(
     unknown = set(applies_to) - set(allowed_product_types)
     if unknown:
         raise ValueError(
-            f"Schema field {name!r} contains unknown product types: "
+            f"Schema field {name!r} contains unknown {applies_to_label}: "
             + ", ".join(sorted(unknown))
         )
     if len(applies_to) != len(set(applies_to)):
@@ -348,7 +538,7 @@ def validate_field_payload(
 
     if not isinstance(payload.get("required"), bool):
         raise ValueError(f"Schema field {name!r} required must be boolean.")
-    if payload.get("required") is True and name not in CORE_REQUIRED_FIELDS:
+    if payload.get("required") is True and name not in set(core_required_fields):
         raise ValueError(
             f"Schema field {name!r} must not be marked required; "
             "only core product identity fields may be required."

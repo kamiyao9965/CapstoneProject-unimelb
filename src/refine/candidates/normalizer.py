@@ -14,18 +14,22 @@ from typing import Mapping
 from src.common.json_codec import loads_json
 from src.common.json_contracts import validate_contract
 from src.refine.candidates.patch import SchemaPatch
+from src.refine.verticals import contract_name, default_alias_config, ensure_review_vertical
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_ALIAS_CONFIG = PROJECT_ROOT / "configs" / "private_health" / "aliases.json"
 
 def load_alias_config(
     path: str | Path | None = None,
+    *,
+    vertical: str = "private_health",
 ) -> tuple[Mapping[str, str], Mapping[str, str]]:
     """Load (field_aliases, group_aliases) from a JSON config.
 
     The tracked JSON file is the single authoritative default alias source.
     """
-    resolved = Path(path) if path else DEFAULT_ALIAS_CONFIG
+    vertical = ensure_review_vertical(vertical)
+    resolved = Path(path) if path else default_alias_config(vertical)
     if not resolved.exists():
         raise FileNotFoundError(resolved)
 
@@ -33,7 +37,7 @@ def load_alias_config(
         payload = loads_json(resolved.read_text(encoding="utf-8"))
     except ValueError as exc:
         raise ValueError(f"Alias config is not valid JSON: {resolved}: {exc}") from exc
-    validate_contract(payload, "private_health/aliases")
+    validate_contract(payload, contract_name(vertical, "aliases"))
     if not isinstance(payload, dict):
         raise ValueError(f"Alias config must be a JSON object: {resolved}")
     return (

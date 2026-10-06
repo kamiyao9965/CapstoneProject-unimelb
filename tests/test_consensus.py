@@ -8,7 +8,11 @@ from src.common.json_artifacts import build_success_artifact, read_artifact, wri
 from src.common.model_config import ModelSelection
 from src.refine.consensus import SchemaConsensusRefinement
 from src.refine.candidates.aggregator import aggregate_patches
-from src.refine.candidates.patch import SchemaItemField, SchemaPatch
+from src.refine.candidates.patch import (
+    SchemaItemField,
+    SchemaPatch,
+    write_patch_file,
+)
 from src.refine.artifacts.schema_fields import decision_requires_manual_edit
 
 BASE_SCHEMA = {
@@ -117,6 +121,59 @@ class SchemaConsensusRefinementTest(unittest.TestCase):
             self.assertIn("# Schema Consensus Report", outputs.report)
             self.assertTrue(outputs.stability_path.exists())
             self.assertTrue(outputs.queue_path.exists())
+
+    def test_reuses_valid_runs_and_generates_only_the_missing_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base_path = Path(tmp) / "schema_draft.json"
+            artifact = build_success_artifact(
+                artifact_type="discovered_schema",
+                contract_version="1.0.0",
+                data=BASE_SCHEMA,
+                provenance={
+                    "run_id": "base", "provider": "openai", "model": "gpt-5",
+                    "document_input": "pdf", "source_documents": [],
+                    "source_artifacts": [],
+                },
+                data_contract="private_health/discovered_schema",
+            )
+            write_artifact(
+                base_path,
+                artifact,
+                data_contract="private_health/discovered_schema",
+            )
+            patch_path = Path(tmp) / "consensus" / "candidate_patches" / "run_001.json"
+            write_patch_file(
+                PATCH_RUN_1,
+                patch_path,
+                provenance={
+                    "run_id": "consensus-001",
+                    "provider": "openai",
+                    "model": "gpt-5",
+                    "document_input": "pdf",
+                    "source_documents": ["pdfs/first-run.pdf"],
+                    "source_artifacts": [base_path.as_posix()],
+                },
+            )
+            messages: list[str] = []
+            discovery = StubDiscovery([PATCH_RUN_2])
+
+            outputs = SchemaConsensusRefinement(
+                discovery=discovery, log=messages.append
+            ).refine(
+                base_schema_path=base_path,
+                runs=2,
+                seed=42,
+                samples=["pdfs/second-run.pdf"],
+                output_dir=Path(tmp) / "consensus",
+            )
+
+            self.assertEqual(len(discovery.calls), 1)
+            self.assertEqual(discovery.calls[0]["run_id"], "consensus-002")
+            self.assertIn("Reusing validated consensus run 1/2", messages[0])
+            self.assertEqual(
+                outputs.schema_build_samples,
+                ("pdfs/first-run.pdf", "pdfs/second-run.pdf"),
+            )
 
     def test_review_queue_and_stability_derive_from_patch_runs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -20,10 +20,27 @@ from src.schema_application.extractor import SchemaExtractor
 from src.schema.contract import compile_extraction_contract
 from src.refine.consensus import SchemaConsensusRefinement
 from src.schema.discovery import SchemaDiscovery
-from src.schema.sampler import DEFAULT_CATEGORIES, select_samples
+from src.schema.sampler import (
+    DEFAULT_CATEGORIES,
+    DEFAULT_MANIFEST_ROLES,
+    select_manifest_samples,
+    select_samples,
+)
+from src.refine.verticals import contract_name
 
 
 def select_discovery_samples(args) -> tuple[str, ...]:
+    manifest_path = getattr(args, "manifest", None)
+    if manifest_path:
+        return tuple(
+            select_manifest_samples(
+                input_root=Path(args.input_root),
+                manifest_path=manifest_path,
+                count=args.per_category,
+                seed=args.seed,
+                roles=tuple(getattr(args, "document_roles", DEFAULT_MANIFEST_ROLES)),
+            )
+        )
     return tuple(
         select_samples(
             input_root=Path(args.input_root),
@@ -63,6 +80,7 @@ def generate_schema(
         usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
         extra_instructions=feedback,
         pdf_root=Path(args.input_root),
+        vertical=getattr(args, "vertical", "private_health"),
     ).discover(resolved_sample_paths, output_path=out_path, run_id=run_id)
     artifact = build_success_artifact(
         artifact_type="discovered_schema",
@@ -73,9 +91,13 @@ def generate_schema(
             "model": selection.model, "document_input": selection.document_input,
             "source_documents": resolved_sample_paths, "source_artifacts": [],
         },
-        data_contract="private_health/discovered_schema",
+        data_contract=contract_name(getattr(args, "vertical", "private_health"), "discovered_schema"),
     )
-    write_artifact(out_path, artifact, data_contract="private_health/discovered_schema")
+    write_artifact(
+        out_path,
+        artifact,
+        data_contract=contract_name(getattr(args, "vertical", "private_health"), "discovered_schema"),
+    )
     return schema_data
 
 
@@ -92,16 +114,19 @@ def run_consensus_stage(
             timeout_seconds=args.timeout,
             usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
             pdf_root=Path(args.input_root),
+            vertical=getattr(args, "vertical", "private_health"),
         ),
-    ).refine(
-        base_schema_path=draft_schema_path,
-        input_root=args.input_root,
-        per_category=args.per_category,
-        runs=args.consensus_runs,
-        seed=args.seed,
-        base_sample_paths=base_sample_paths,
-        output_dir=round_dir / "consensus",
-    )
+        ).refine(
+            base_schema_path=draft_schema_path,
+            input_root=args.input_root,
+            per_category=args.per_category,
+            runs=args.consensus_runs,
+            seed=args.seed,
+            base_sample_paths=base_sample_paths,
+            output_dir=round_dir / "consensus",
+            manifest_path=getattr(args, "manifest", None),
+            document_roles=tuple(getattr(args, "document_roles", DEFAULT_MANIFEST_ROLES)),
+        )
 
 
 def evaluate_schema(
@@ -113,28 +138,46 @@ def evaluate_schema(
     overwrite_feedback: bool = False,
 ):
     """Apply a schema to holdout PDFs, find failures, and write feedback."""
-    eval_paths = select_samples(
-        input_root=Path(args.input_root),
-        categories=DEFAULT_CATEGORIES,
-        per_category=args.eval_per_category,
-        seed=args.eval_seed,
-        exclude_paths=exclude_paths,
-    )
+    manifest_path = getattr(args, "manifest", None)
+    if manifest_path:
+        eval_paths = select_manifest_samples(
+            input_root=Path(args.input_root),
+            manifest_path=manifest_path,
+            count=args.eval_per_category,
+            seed=args.eval_seed,
+            exclude_paths=exclude_paths,
+            roles=tuple(getattr(args, "document_roles", DEFAULT_MANIFEST_ROLES)),
+        )
+    else:
+        eval_paths = select_samples(
+            input_root=Path(args.input_root),
+            categories=DEFAULT_CATEGORIES,
+            per_category=args.eval_per_category,
+            seed=args.eval_seed,
+            exclude_paths=exclude_paths,
+        )
     extractions_dir = round_dir / "extractions"
-    SchemaExtractor(
+    extractor = SchemaExtractor(
         schema_data=schema_data,
         selection=_selection(args),
         timeout_seconds=args.timeout,
         usage_log_path=str(round_dir / "extraction_usage.jsonl"),
         pdf_root=Path(args.input_root),
-    ).extract_many(eval_paths, extractions_dir)
+        manifest_path=manifest_path,
+    )
+    extractor.extract_many(eval_paths, extractions_dir)
 
     specs = load_field_specs(schema_data)
+    vertical = getattr(args, "vertical", "private_health")
     records, failed_artifacts = load_records(
         extractions_dir,
         compile_extraction_contract(schema_data),
+        vertical=vertical,
+        current_schema_hash=extractor.schema_hash,
     )
-    analysis = analyze(records, specs, failed_artifacts=failed_artifacts)
+    analysis = analyze(
+        records, specs, failed_artifacts=failed_artifacts, vertical=vertical
+    )
     print_report(analysis)
     feedback = build_feedback(analysis)
     feedback_data = build_feedback_data(analysis)
@@ -147,12 +190,12 @@ def evaluate_schema(
             "document_input": None, "source_documents": list(eval_paths),
             "source_artifacts": [],
         },
-        data_contract="private_health/refinement_feedback",
+        data_contract=contract_name(vertical, "refinement_feedback"),
     )
     write_artifact(
         round_dir / "refinement_feedback.json",
         feedback_artifact,
-        data_contract="private_health/refinement_feedback",
+        data_contract=contract_name(vertical, "refinement_feedback"),
         overwrite=overwrite_feedback,
     )
     return analysis, feedback

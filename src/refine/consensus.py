@@ -40,9 +40,15 @@ from src.refine.candidates.stability import (
 from src.refine.human_review import build_review_queue, write_review_queue
 from src.refine.artifacts.schema_fields import fields_by_name, is_applicable_field_patch
 from src.common.model_config import resolve_selection
-from src.common.json_artifacts import read_artifact
+from src.common.json_artifacts import ArtifactError, read_artifact
 from src.schema.discovery import SchemaDiscovery
-from src.schema.sampler import DEFAULT_CATEGORIES, print_samples, select_samples
+from src.schema.sampler import (
+    DEFAULT_CATEGORIES,
+    DEFAULT_MANIFEST_ROLES,
+    print_samples,
+    select_manifest_samples,
+    select_samples,
+)
 from src.schema.migration import migrate_legacy_discovered_schema
 
 
@@ -79,6 +85,8 @@ class SchemaConsensusRefinement:
         base_sample_paths: Iterable[str | Path] = (),
         output_dir: str | Path = "outputs/private_health/consensus",
         alias_config_path: str | Path | None = None,
+        manifest_path: str | Path | None = None,
+        document_roles: tuple[str, ...] = DEFAULT_MANIFEST_ROLES,
     ) -> ConsensusOutputs:
         if runs <= 0:
             raise ValueError("runs must be greater than 0.")
@@ -95,32 +103,67 @@ class SchemaConsensusRefinement:
         stability_path = resolved_output_dir / "patch_stability.json"
         queue_path = resolved_output_dir / "review_queue.json"
 
-        field_aliases, group_aliases = load_alias_config(alias_config_path)
+        vertical = getattr(self.discovery, "vertical", "private_health")
+        field_aliases, group_aliases = load_alias_config(
+            alias_config_path,
+            vertical=vertical,
+        )
+        schema_contract = f"{vertical}/discovered_schema"
         current_schema = migrate_legacy_discovered_schema(read_artifact(
             base_schema,
             expected_type="discovered_schema",
-            data_contract="private_health/discovered_schema",
+            data_contract=schema_contract,
         )["data"])
         all_patches = []
         schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
 
         for run_number in range(1, runs + 1):
+            patch_path = patch_dir / f"run_{run_number:03d}.json"
+            run_id = f"consensus-{run_number:03d}"
+            reusable = self._load_reusable_run(
+                patch_path,
+                base_schema=base_schema,
+                run_id=run_id,
+                vertical=vertical,
+            )
+            if reusable is not None:
+                patches, source_documents = reusable
+                self._log(
+                    f"Reusing validated consensus run {run_number}/{runs}: "
+                    f"{patch_path}"
+                )
+                for sample_path in source_documents:
+                    if sample_path not in schema_build_samples:
+                        schema_build_samples.append(sample_path)
+                all_patches.extend(
+                    normalize_patches(patches, field_aliases, group_aliases)
+                )
+                continue
+
             run_seed = _run_seed(seed, run_number)
             self._log(f"Starting consensus run {run_number}/{runs}")
-            sample_paths = samples or select_samples(
-                input_root=Path(input_root),
-                categories=categories,
-                per_category=per_category,
-                seed=run_seed,
-            )
-            if not samples:
+            if samples:
+                sample_paths = samples
+            elif manifest_path:
+                sample_paths = select_manifest_samples(
+                    input_root=Path(input_root),
+                    manifest_path=manifest_path,
+                    count=per_category,
+                    seed=run_seed,
+                    roles=document_roles,
+                )
+            else:
+                sample_paths = select_samples(
+                    input_root=Path(input_root),
+                    categories=categories,
+                    per_category=per_category,
+                    seed=run_seed,
+                )
                 print_samples(sample_paths, Path(input_root), categories)
             for sample_path in sample_paths:
                 if sample_path not in schema_build_samples:
                     schema_build_samples.append(sample_path)
 
-            patch_path = patch_dir / f"run_{run_number:03d}.json"
-            run_id = f"consensus-{run_number:03d}"
             patch_data = self.discovery.discover_patches(
                 sample_pdfs=sample_paths,
                 current_schema=current_schema,
@@ -138,9 +181,15 @@ class SchemaConsensusRefinement:
                     "source_documents": list(sample_paths),
                     "source_artifacts": [base_schema.as_posix()],
                 },
+                vertical=vertical,
+                overwrite=patch_path.exists(),
             )
             all_patches.extend(
-                normalize_patches(load_patch_file(patch_path), field_aliases, group_aliases)
+                normalize_patches(
+                    load_patch_file(patch_path, vertical=vertical),
+                    field_aliases,
+                    group_aliases,
+                )
             )
 
         decisions = aggregate_patches(all_patches, total_runs=runs)
@@ -152,8 +201,19 @@ class SchemaConsensusRefinement:
                     f"{decision.canonical_name} is not an existing schema field. "
                     "Taxonomy aliases are not supported."
                 )
-        render_frequency_json(decisions, frequency_path)
-        render_consensus_schema(base_schema, decisions, consensus_schema_path)
+        render_frequency_json(
+            decisions,
+            frequency_path,
+            vertical=vertical,
+            overwrite=frequency_path.exists(),
+        )
+        render_consensus_schema(
+            base_schema,
+            decisions,
+            consensus_schema_path,
+            vertical=vertical,
+            overwrite=consensus_schema_path.exists(),
+        )
         report = render_report(decisions)
         write_patch_stability(
             compute_patch_stability(all_patches, total_runs=runs),
@@ -163,6 +223,8 @@ class SchemaConsensusRefinement:
                 "document_input": None, "source_documents": [],
                 "source_artifacts": [path.as_posix() for path in sorted(patch_dir.glob("*.json"))],
             },
+            vertical=vertical,
+            overwrite=stability_path.exists(),
         )
         write_review_queue(
             build_review_queue(
@@ -171,6 +233,7 @@ class SchemaConsensusRefinement:
                 total_runs=runs,
                 base_schema_path=base_schema,
                 schema_build_samples=schema_build_samples,
+                vertical=vertical,
             ),
             queue_path,
             provenance={
@@ -178,6 +241,8 @@ class SchemaConsensusRefinement:
                 "document_input": None, "source_documents": [],
                 "source_artifacts": [frequency_path.as_posix(), base_schema.as_posix()],
             },
+            vertical=vertical,
+            overwrite=queue_path.exists(),
         )
 
         return ConsensusOutputs(
@@ -191,9 +256,64 @@ class SchemaConsensusRefinement:
             schema_build_samples=tuple(schema_build_samples),
         )
 
+    def _load_reusable_run(
+        self,
+        patch_path: Path,
+        *,
+        base_schema: Path,
+        run_id: str,
+        vertical: str,
+    ) -> tuple[list, tuple[str, ...]] | None:
+        """Load a completed run only when its artifact and provenance match."""
+        if not patch_path.exists():
+            return None
+        try:
+            artifact = read_artifact(
+                patch_path,
+                expected_type="candidate_patch_set",
+                data_contract=f"{vertical}/candidate_patch_set",
+            )
+            provenance = artifact.get("provenance")
+            if not isinstance(provenance, dict):
+                raise ValueError("candidate patch provenance must be an object")
+            if provenance.get("run_id") != run_id:
+                raise ValueError(
+                    f"expected run_id {run_id!r}, got {provenance.get('run_id')!r}"
+                )
+            source_artifacts = provenance.get("source_artifacts")
+            if not isinstance(source_artifacts, list) or not _contains_path(
+                source_artifacts, base_schema
+            ):
+                raise ValueError("candidate patch was built from a different base schema")
+            source_documents = provenance.get("source_documents")
+            if not isinstance(source_documents, list) or any(
+                not isinstance(path, str) for path in source_documents
+            ):
+                raise ValueError("candidate patch source_documents must be a string list")
+            patches = load_patch_file(patch_path, vertical=vertical)
+        except (ArtifactError, OSError, TypeError, ValueError) as exc:
+            self._log(
+                f"Ignoring invalid consensus checkpoint {patch_path}: {exc}. "
+                "The run will be regenerated."
+            )
+            return None
+        return patches, tuple(source_documents)
+
     def _log(self, message: str) -> None:
         if self.log:
             self.log(message)
+
+
+def _contains_path(values: list[object], expected: Path) -> bool:
+    expected_path = expected.resolve()
+    for value in values:
+        if isinstance(value, str):
+            try:
+                if Path(value).resolve() == expected_path:
+                    return True
+            except OSError:
+                continue
+    return False
 
 
 def _run_seed(seed: int | None, run_number: int) -> int | None:
@@ -209,23 +329,45 @@ def build_parser() -> argparse.ArgumentParser:
         description="Standalone consensus refinement: N patch runs against a base "
         "schema, frequency voting, review queue (uses the selected provider API)"
     )
-    parser.add_argument("--base-schema", default="outputs/private_health/schema.json")
-    parser.add_argument("--input-root", default=str(default_private_health_pdf_root()))
+    parser.add_argument("--base-schema")
+    parser.add_argument("--input-root")
+    parser.add_argument("--manifest", help="Manifest JSON for stratified document sampling")
+    parser.add_argument(
+        "--document-roles", nargs="+", default=list(DEFAULT_MANIFEST_ROLES),
+        help="Manifest document_role values used for consensus sampling",
+    )
     parser.add_argument("--per-category", type=int, default=5)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--provider")
+    parser.add_argument(
+        "--vertical", default="private_health",
+        choices=("private_health", "pet_insurance"),
+    )
     parser.add_argument("--model")
     parser.add_argument("--document-input")
     parser.add_argument("--timeout", type=float, default=600.0)
-    parser.add_argument("--out-dir", default="outputs/private_health/consensus")
-    parser.add_argument("--alias-config", help="Alias JSON (default: configs/private_health/aliases.json)")
+    parser.add_argument("--out-dir")
+    parser.add_argument(
+        "--alias-config",
+        help="Alias JSON (default: configs/<vertical>/aliases.json)",
+    )
     return parser
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    if args.base_schema is None:
+        args.base_schema = f"outputs/{args.vertical}/schema.json"
+    if args.input_root is None:
+        args.input_root = (
+            "data/raw"
+            if args.vertical == "pet_insurance"
+            else str(default_private_health_pdf_root())
+        )
+    if args.out_dir is None:
+        args.out_dir = f"outputs/{args.vertical}/consensus"
     try:
         selection = resolve_selection(
             provider=args.provider,
@@ -240,6 +382,7 @@ def main() -> int:
             timeout_seconds=args.timeout,
             usage_log_path=str(Path(args.out_dir) / "token_usage.jsonl"),
             pdf_root=args.input_root,
+            vertical=args.vertical,
         ),
     ).refine(
         base_schema_path=args.base_schema,
@@ -249,6 +392,8 @@ def main() -> int:
         seed=args.seed,
         output_dir=args.out_dir,
         alias_config_path=args.alias_config,
+        manifest_path=args.manifest,
+        document_roles=tuple(args.document_roles),
     )
     print(f"Wrote candidate patches to {outputs.patch_dir}")
     print(f"Wrote consensus schema (auto-merge reference) to {outputs.consensus_schema_path}")

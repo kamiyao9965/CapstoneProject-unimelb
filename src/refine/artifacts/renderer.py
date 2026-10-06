@@ -20,8 +20,13 @@ from src.common.json_artifacts import (
     read_artifact,
     write_artifact,
 )
-from src.schema.validation import validate_schema_mapping
 from src.schema.migration import migrate_legacy_discovered_schema
+from src.refine.verticals import (
+    contract_name,
+    core_required_fields,
+    schema_field_targets,
+    validate_schema,
+)
 
 
 PROMOTED_DECISIONS = {"core", "conditional"}
@@ -31,12 +36,17 @@ def render_consensus_schema(
     base_schema_path: str | Path,
     decisions: list[FieldDecision],
     output_path: str | Path,
+    *,
+    vertical: str = "private_health",
+    overwrite: bool = False,
 ) -> None:
-    base_schema = migrate_legacy_discovered_schema(read_artifact(
+    base_schema = read_artifact(
         base_schema_path,
         expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
-    )["data"])
+        data_contract=contract_name(vertical, "discovered_schema"),
+    )["data"]
+    if vertical == "private_health":
+        base_schema = migrate_legacy_discovered_schema(base_schema)
     if not isinstance(base_schema, dict):
         raise ValueError("Base schema JSON must be an object.")
 
@@ -55,7 +65,13 @@ def render_consensus_schema(
         if patch_type in {"update_description", "update_field_shape"} and existing_field is None:
             continue
         if patch_type == "add_field" and (
-            not (decision.applies_to or applies_to_from_group(decision.target_group))
+            not (
+                decision.applies_to
+                or applies_to_from_group(
+                    decision.target_group,
+                    schema_field_targets(consensus_schema),
+                )
+            )
             or (
                 decision.field_type in {"enum", "list[enum]"}
                 and not decision.values and not decision.enum_ref
@@ -65,35 +81,52 @@ def render_consensus_schema(
         existing_fields[decision.canonical_name] = field_payload_from_decision(
             decision,
             existing_field,
+            allowed_targets=schema_field_targets(consensus_schema),
+            required_fields=core_required_fields(consensus_schema),
         )
 
     for field in existing_fields.values():
-        normalize_required_flag(field)
+        normalize_required_flag(
+            field,
+            required_fields=core_required_fields(consensus_schema),
+        )
     consensus_schema["fields"] = list(existing_fields.values())
-    validate_schema_mapping(consensus_schema)
+    validate_schema(consensus_schema)
     artifact = build_success_artifact(
         artifact_type="discovered_schema",
         contract_version="1.0.0",
         data=consensus_schema,
         provenance=_local_provenance([Path(base_schema_path).as_posix()]),
-        data_contract="private_health/discovered_schema",
+        data_contract=contract_name(vertical, "discovered_schema"),
     )
     write_artifact(
-        output_path, artifact, data_contract="private_health/discovered_schema"
+        output_path,
+        artifact,
+        data_contract=contract_name(vertical, "discovered_schema"),
+        overwrite=overwrite,
     )
 
 
-def render_frequency_json(decisions: list[FieldDecision], output_path: str | Path) -> None:
+def render_frequency_json(
+    decisions: list[FieldDecision],
+    output_path: str | Path,
+    *,
+    vertical: str = "private_health",
+    overwrite: bool = False,
+) -> None:
     data = {"fields": [decision.to_dict() for decision in decisions]}
     artifact = build_success_artifact(
         artifact_type="field_frequency",
         contract_version="1.0.0",
         data=data,
         provenance=_local_provenance(),
-        data_contract="private_health/field_frequency",
+        data_contract=contract_name(vertical, "field_frequency"),
     )
     write_artifact(
-        output_path, artifact, data_contract="private_health/field_frequency"
+        output_path,
+        artifact,
+        data_contract=contract_name(vertical, "field_frequency"),
+        overwrite=overwrite,
     )
 
 

@@ -89,6 +89,35 @@ class ExtractionResult(BaseModel):
         return path
 
 
+class ProductExtractionResult(BaseModel):
+    """Final product-oriented result assembled from one or more source PDFs."""
+
+    vertical: str = "pet_insurance"
+    schema_version: str
+    product_id: str
+    document_family_id: str
+    source_documents: list[dict[str, Any]] = Field(default_factory=list)
+    extracted_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
+    )
+    provider: str
+    model: str | None = None
+    schema_sha256: str | None = None
+    extraction_prompt_version: str | None = None
+    source_sha256: list[str] = Field(default_factory=list)
+    data: dict[str, Any] = Field(default_factory=dict)
+    family_notes: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+    def write_json(self, output_path: str | Path) -> Path:
+        path = Path(output_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(f".{path.name}.tmp")
+        temporary.write_text(self.model_dump_json(indent=2), encoding="utf-8")
+        temporary.replace(path)
+        return path
+
+
 class EvaluationReport(BaseModel):
     source_path: str
     source_sha256: str | None = None

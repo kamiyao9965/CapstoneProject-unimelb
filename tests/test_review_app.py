@@ -20,7 +20,7 @@ from src.refine.human_review import (
     write_review_queue,
 )
 
-APP_PATH = "src/review_app.py"
+APP_PATH = str(Path(__file__).resolve().parents[1] / "src" / "review_app.py")
 
 
 def build_fixture(tmp: str) -> Path:

@@ -171,6 +171,8 @@ def render_page(
                 chunks.append(f"table_context: {context}")
             chunks.append(render_table(block, table_format=table_format))
         else:
+            if comment_level == "full":
+                chunks.append(f"<!-- vision block_id={block.block_id} -->")
             chunks.append(block.content)
     return "\n\n".join(chunk for chunk in chunks if chunk.strip()).strip()
 

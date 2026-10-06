@@ -7,15 +7,24 @@ from src.common.json_artifacts import read_artifact
 from src.common.json_codec import dumps_json, loads_json
 from src.common.json_contracts import validate_contract
 from src.schema.migration import migrate_legacy_discovered_schema
+from src.refine.verticals import contract_name
 
 # The dimensions we track for drift. Each maps to a set of identifier strings
 # pulled out of a schema so two schemas can be compared set-against-set.
-DIMENSIONS = (
+PRIVATE_HEALTH_DIMENSIONS = (
     "product_types",
     "field_contracts",
     "hospital_categories",
     "extras_services",
 )
+PET_INSURANCE_DIMENSIONS = (
+    "cover_scopes",
+    "document_roles",
+    "benefit_categories",
+    "field_contracts",
+)
+# Compatibility export for callers that have not yet selected a vertical.
+DIMENSIONS = PRIVATE_HEALTH_DIMENSIONS
 
 
 @dataclass(frozen=True)
@@ -23,14 +32,29 @@ class SchemaSignature:
     """Comparable fingerprint of one schema document."""
 
     label: str
+    vertical: str = "private_health"
     product_types: frozenset[str] = field(default_factory=frozenset)
     fields: frozenset[str] = field(default_factory=frozenset)
     field_contracts: frozenset[str] = field(default_factory=frozenset)
     hospital_categories: frozenset[str] = field(default_factory=frozenset)
     extras_services: frozenset[str] = field(default_factory=frozenset)
+    cover_scopes: frozenset[str] = field(default_factory=frozenset)
+    document_roles: frozenset[str] = field(default_factory=frozenset)
+    benefit_categories: frozenset[str] = field(default_factory=frozenset)
 
     def get(self, dimension: str) -> frozenset[str]:
         return getattr(self, dimension)
+
+
+def dimensions_for(signatures: list[SchemaSignature]) -> tuple[str, ...]:
+    verticals = {signature.vertical for signature in signatures}
+    if len(verticals) != 1:
+        raise ValueError("Schema stability comparison requires one vertical at a time.")
+    return (
+        PET_INSURANCE_DIMENSIONS
+        if verticals == {"pet_insurance"}
+        else PRIVATE_HEALTH_DIMENSIONS
+    )
 
 
 def _canonical_names(items: object, key: str) -> frozenset[str]:
@@ -76,8 +100,13 @@ def signature_from_artifact(artifact: object, label: str) -> SchemaSignature:
         raise ValueError(f"{label}: schema artifact is not successful")
     if artifact.get("artifact_type") != "discovered_schema":
         raise ValueError(f"{label}: expected a discovered_schema artifact")
-    data = migrate_legacy_discovered_schema(artifact["data"])
-    validate_contract(data, "private_health/discovered_schema")
+    data = artifact["data"]
+    if not isinstance(data, dict):
+        raise ValueError(f"{label}: schema data must be an object")
+    vertical = str(data.get("vertical") or "")
+    validate_contract(data, contract_name(vertical, "discovered_schema"))
+    if vertical == "private_health":
+        data = migrate_legacy_discovered_schema(data)
 
     product_types = data.get("product_types") or []
     pt = (
@@ -88,11 +117,15 @@ def signature_from_artifact(artifact: object, label: str) -> SchemaSignature:
 
     return SchemaSignature(
         label=label,
+        vertical=vertical,
         product_types=pt,
         fields=_canonical_names(data.get("fields"), "name"),
         field_contracts=_field_contracts(data.get("fields")),
         hospital_categories=_canonical_names(data.get("hospital_categories"), "canonical_name"),
         extras_services=_canonical_names(data.get("extras_services"), "canonical_name"),
+        cover_scopes=frozenset(str(value).strip() for value in data.get("cover_scopes") or []),
+        document_roles=frozenset(str(value).strip() for value in data.get("document_roles") or []),
+        benefit_categories=frozenset(str(value).strip() for value in data.get("benefit_categories") or []),
     )
 
 
@@ -107,9 +140,5 @@ def signature_from_text(text: str, label: str) -> SchemaSignature:
 
 def signature_from_file(path: str | Path) -> SchemaSignature:
     path = Path(path)
-    artifact = read_artifact(
-        path,
-        expected_type="discovered_schema",
-        data_contract="private_health/discovered_schema",
-    )
+    artifact = read_artifact(path, expected_type="discovered_schema")
     return signature_from_artifact(artifact, label=path.name)

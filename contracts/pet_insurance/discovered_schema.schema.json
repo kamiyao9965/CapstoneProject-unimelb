@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://capstone.local/contracts/pet-insurance/discovered-schema.schema.json",
+  "title": "Discovered pet insurance extraction schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["vertical", "version", "description", "cover_scopes", "fields", "document_roles", "benefit_categories", "notes"],
+  "properties": {
+    "vertical": {"const": "pet_insurance"},
+    "version": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "cover_scopes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "document_roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["pds", "update", "combined_fsg_pds", "supplementary_pds", "policy_booklet", "renewal_pds"]}},
+    "benefit_categories": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "notes": {"type": "array", "items": {"type": "string"}},
+    "fields": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/field"}}
+  },
+  "$defs": {
+    "field_name": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
+    "scalar_value": {"type": ["string", "number", "boolean"]},
+    "empty_values": {
+      "type": "array", "maxItems": 0, "items": {"$ref": "#/$defs/scalar_value"}
+    },
+    "inline_values": {
+      "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/scalar_value"}
+    },
+    "enum_reference": {
+      "enum": ["cover_scopes", "benefit_categories", "document_roles"]
+    },
+    "item_field": {
+      "anyOf": [
+        {"$ref": "#/$defs/item_field_inline_enum"},
+        {"$ref": "#/$defs/item_field_referenced_enum"},
+        {"$ref": "#/$defs/item_field_non_enum"}
+      ]
+    },
+    "item_field_inline_enum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
+      "properties": {
+        "name": {"$ref": "#/$defs/field_name"},
+        "type": {"const": "enum"},
+        "required": {"type": "boolean"},
+        "description": {"type": ["string", "null"]},
+        "values": {"$ref": "#/$defs/inline_values"},
+        "enum_ref": {"type": "null"}
+      }
+    },
+    "item_field_referenced_enum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
+      "properties": {
+        "name": {"$ref": "#/$defs/field_name"},
+        "type": {"const": "enum"},
+        "required": {"type": "boolean"},
+        "description": {"type": ["string", "null"]},
+        "values": {"$ref": "#/$defs/empty_values"},
+        "enum_ref": {"$ref": "#/$defs/enum_reference"}
+      }
+    },
+    "item_field_non_enum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "description", "values", "enum_ref"],
+      "properties": {
+        "name": {"$ref": "#/$defs/field_name"},
+        "type": {"enum": ["string", "number", "boolean"]},
+        "required": {"type": "boolean"},
+        "description": {"type": ["string", "null"]},
+        "values": {"$ref": "#/$defs/empty_values"},
+        "enum_ref": {"type": "null"}
+      }
+    },
+    "field": {
+      "anyOf": [
+        {"$ref": "#/$defs/field_inline_enum"},
+        {"$ref": "#/$defs/field_referenced_enum"},
+        {"$ref": "#/$defs/field_non_enum"}
+      ]
+    },
+    "field_inline_enum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "description", "applies_to", "required", "values", "aliases", "enum_ref", "item_fields", "unique_items"],
+      "properties": {
+        "name": {"$ref": "#/$defs/field_name"},
+        "type": {"enum": ["enum", "list[enum]"]},
+        "description": {"type": "string", "minLength": 1},
+        "applies_to": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "required": {"type": "boolean"},
+        "values": {"$ref": "#/$defs/inline_values"},
+        "aliases": {"type": "array", "items": {"type": "string"}},
+        "enum_ref": {"type": "null"},
+        "item_fields": {"type": "array", "items": {"$ref": "#/$defs/item_field"}},
+        "unique_items": {"type": "boolean"}
+      }
+    },
+    "field_referenced_enum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "description", "applies_to", "required", "values", "aliases", "enum_ref", "item_fields", "unique_items"],
+      "properties": {
+        "name": {"$ref": "#/$defs/field_name"},
+        "type": {"enum": ["enum", "list[enum]"]},
+        "description": {"type": "string", "minLength": 1},
+        "applies_to": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "required": {"type": "boolean"},
+        "values": {"$ref": "#/$defs/empty_values"},
+        "aliases": {"type": "array", "items": {"type": "string"}},
+        "enum_ref": {"$ref": "#/$defs/enum_reference"},
+        "item_fields": {"type": "array", "items": {"$ref": "#/$defs/item_field"}},
+        "unique_items": {"type": "boolean"}
+      }
+    },
+    "field_non_enum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "description", "applies_to", "required", "values", "aliases", "enum_ref", "item_fields", "unique_items"],
+      "properties": {
+        "name": {"$ref": "#/$defs/field_name"},
+        "type": {"enum": ["string", "number", "boolean", "list[string]", "list[number]", "list[boolean]", "list[object]"]},
+        "description": {"type": "string", "minLength": 1},
+        "applies_to": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "required": {"type": "boolean"},
+        "values": {"$ref": "#/$defs/empty_values"},
+        "aliases": {"type": "array", "items": {"type": "string"}},
+        "enum_ref": {"type": "null"},
+        "item_fields": {"type": "array", "items": {"$ref": "#/$defs/item_field"}},
+        "unique_items": {"type": "boolean"}
+      }
+    }
+  }
+}
