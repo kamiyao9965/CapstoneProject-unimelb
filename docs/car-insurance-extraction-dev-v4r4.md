@@ -149,6 +149,51 @@ AAMI Comprehensive 的成功产物因此**不再符合当前检查**，需要重
 Youi 的成功产物因此**不再符合当前检查**。
 成本预估：Youi 每个档位的一般除外约 3.2 万字符（约 8K output tokens），补齐两个档位每轮约多 1.6 万 output tokens；上次重跑 44 万 tokens，预计下次约 50–55 万。
 
+## 后续：3 份按当前检查重跑（2026-10-06，用户确认 “直接一次完成计划的任务”）
+
+代码已提交（f057cc4）。运行脚本新增 `qbe_tppd_1123`，runtime_revision 加 `_policywide_liability_rules`；三份原文与清单均与上一轮逐字节一致。3 份并行，各最多 3 次调用。
+
+| 文档 | 目录后缀 | 结果 | 诊断轨迹 | Tokens（total） |
+| --- | --- | --- | --- | --- |
+| QBE TPPD | （新目录） | **失败** | 11 → 4 → 1 | 268,667 |
+| AAMI Comprehensive | `_rerun` | **中止（基础设施）** | 15 → — | 100,595（仅第 1 轮已记录） |
+| Youi | `_rerun2` | **失败** | 29 → 6 → 4 | 492,272 |
+
+合计已记录约 86 万 tokens；AAMI 第 2 次请求如已在服务端计费，不在此数中。
+
+**QBE TPPD：真实遗漏。** 第 2、3 轮只剩共享责任池一条。原文 p.10 “In this section, your car includes an attached trailer as well as a substitute car”，
+但产物的 `caravans_and_trailers_tppd_extension` 为 null，池里只有核心责任和替代车 2 个成员。检查正确，但报错没有点名缺哪个成员，模型两轮都没改到。
+已改进：报错现在列出缺失的成员字段（`Missing member field(s): [...]`）。
+
+**AAMI Comprehensive：基础设施中止。** 第 2 次请求在服务端 900 秒后仍为 in_progress，超时退出。不是模型或检查结果。
+
+**Youi：检查器缺陷 + 真实证据缩写。**
+
+- 清单项 `p42_text_3` 的原文是解析器把导航链接粘进来的 “contents pg. 3 ↗ We will not pay for: Product guide”。
+  模型引用了正文 “We will not pay for:”，检查却要求连导航噪声一起逐字引用；第 3 轮模型干脆去掉了这个 ID，于是三个档位都报 66/67。
+  上一轮 Youi 能通过，只是因为模型碰巧照抄了噪声。**已修复**（`source_coverage.py`）：块首 “(table of) contents pg. N ↗” 和块尾 “product guide” 视为导航，引用中可以省略；其他文字仍须逐字。
+- 修复后离线回放：第 2 轮 6 → 3 条，只剩 `p59_text_16` 一项——第 2、3 个档位的 excess 证据用 “…” 缩写了原文（真实违规）。
+  报错同时挂在了第 1 个档位上（它其实是对的），这是已知的路径归属限制，暂不处理。
+- 一般除外三个档位都已带上（66–67/67），说明新的全保单检查在起作用；但三份重复让输出变长，出现了缩写证据。若后续反复出现，应考虑在 schema 层支持保单级共享规则。
+
+检查器两处改动后选定离线测试 **199 项通过**（新增 2 项回归）；全部已保存响应回放，清单无漂移，原先通过的 QBE Comp、AAMI TP 重跑仍为 0。
+
+## 人工复核结论（零调用）
+
+**QBE Comprehensive 自车损失额度**：原文对碰撞、风暴等自车损失没有单独的 “most we will pay”；只有 p.27 的理赔方式（修理 / 合理修理费 / 全损按凭证上的 agreed value 或 market value / 换新车）。
+产物把这一点放在 `valuation_basis`（agreed_value、market_value 两项，均带原文证据），事件本身不挂额度，与原文一致，**不算遗漏**。
+
+**AAMI Third Party 例外范围**（重跑第 3 轮，两个产品各 13 组 both/none，写法相同）：
+
+| 例外 | 判断 |
+| --- | --- |
+| Agreements、Alcohol（非致因）、Driving damaged car、Extra costs（prior authority）、Hire/ridesharing、Motor sports、Test drives、Unregistered（8 组） | (both, none) 合理：例外条件满足时整条除外解除 |
+| Unlicensed、Alcohol（被盗）| 应为 (source_defined, source_defined)：原文 “for you (but not the driver or person in charge…)”，对驾驶人仍除外 |
+| Extra costs：travel、cleaning | 应为 (source_defined, source_defined)：只恢复 Transport cover / TPPD 下已有的保障 |
+| Extra costs：“unless stated otherwise in your policy” | 应为 (source_defined, source_defined)：只在保单另有规定处恢复 |
+
+即 13 组中 5 组口径不对。检查器目前无法判断这种语义；“(but not the driver” 这类措辞可以做成窄检查，需另行决定。
+
 注意：`compare_extraction_dev_v4r4.py` 会断言运行时代码哈希与 `run_plan.json` 一致，代码改动后对已有目录会报 drift，这是预期行为；本节回放用的是不检查哈希的临时脚本。
 
 ## 留存

@@ -281,11 +281,13 @@ def relation_issues(payload, document_text):
         benefits = [b for owner in owners for b in p[owner] or [] if b['status'] not in {'excluded', 'not_applicable'}]
         number = re.search(r'\bis\s*\$([\d,]+(?:\.\d+)?)', caps[0])
         amount = float(number[1].replace(',', '')) if number else None
-        if any(not p[owner] for owner in owners) or not common_pool(benefits, liability=True, amount=amount):
+        absent = [owner for owner in owners if not p[owner]]
+        if absent or not common_pool(benefits, liability=True, amount=amount):
             errors.append(issue('$.products[0].limit_pools',
                 f'shared_liability_relation: PDF page {page} explicitly includes trailer/substitute car in one liability section '
                 f'with one all-claims incident cap (parsed amount={amount}). Represent covered members and a reciprocal '
-                'per_incident/aggregate pool preserving the stated amount; do not invent amounts.'))
+                'per_incident/aggregate pool preserving the stated amount; do not invent amounts.'
+                + (f' Missing member field(s): {absent}; add each as a covered benefit in that pool.' if absent else '')))
         break
     if policy_wide and not any(e['message'].startswith('shared_liability_relation') for e in errors):
         errors.extend(policy_wide)

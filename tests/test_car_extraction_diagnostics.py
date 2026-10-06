@@ -168,6 +168,23 @@ class DiagnosticsTest(unittest.TestCase):
         rule['evidence'][0]['quote'] = 'We do not cover confiscation of your car or its contents.'
         self.assertTrue(source_issues(self.data, clauses, text))
 
+    def test_glued_navigation_link_may_be_omitted_but_not_words(self):
+        text = fixtures.source('General Exclusions', 'Driver',
+                               'contents pg. 3 ↗ We will not pay for loss, damage or legal liability: Product guide',
+                               'There is no cover if a driver is unlicensed.', 'Claims', 'Contact us.', page=42)
+        clauses = self.rules(text)
+        rule = self.record['policy_rules'][0]
+        rule['evidence'][0]['quote'] = 'We will not pay for loss, damage or legal liability:'
+        self.assertEqual(source_issues(self.data, clauses, text), [])
+        rule['evidence'][0]['quote'] = 'We will not pay for loss or damage:'
+        self.assertTrue(source_issues(self.data, clauses, text))
+
+    def test_shared_liability_relation_names_missing_member(self):
+        self.liability()
+        self.record['caravans_and_trailers_tppd_extension'] = None
+        errors = relation_issues(self.data, LIABILITY)
+        self.assertIn("Missing member field(s): ['caravans_and_trailers_tppd_extension']", errors[0]['message'])
+
     def test_eg_abbreviation_does_not_split_cue_sentence(self):
         from src.car_insurance.source_coverage import exception_cues
         self.assertEqual(exception_cues('• costs to prove your loss (e.g. calls, postage) unless stated otherwise; • travel.'),

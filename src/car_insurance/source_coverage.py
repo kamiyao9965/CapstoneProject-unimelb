@@ -179,11 +179,21 @@ def without_page_footer(text):
     return re.sub(r'(?<=[.;:)])\s+\d{1,3}$', '', text.strip())
 
 
+NAV_FRAGMENTS = re.compile(r'^(?:table of )?contents pg\. \d+ ↗\s*|\s*product guide$')
+
+
+def without_navigation(text):
+    """Drop navigation links the parser glued to a block's ends (e.g. 'contents pg. 3 ↗ ... Product guide')."""
+    return NAV_FRAGMENTS.sub('', normalized(text)).strip()
+
+
 def full_quote_present(item, clause):
     # Exact normalized source text is required for a coverage assertion; quoting
     # only the first sentence must not hide the exception in its last sentence.
-    # A trailing printed page number is layout, not clause text, and may be omitted.
-    targets = {normalized(clause.text), normalized(without_page_footer(clause.text))}
+    # A trailing printed page number or glued navigation link is layout, not clause
+    # text, and may be omitted.
+    targets = {normalized(clause.text), normalized(without_page_footer(clause.text)), without_navigation(clause.text)}
+    targets.discard('')
     return any(e['pdf_page'] == clause.pdf_page and any(t in normalized(e['quote']) for t in targets)
                for e in item.get('evidence', []))
 
