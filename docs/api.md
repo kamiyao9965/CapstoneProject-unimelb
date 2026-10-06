@@ -28,6 +28,7 @@ application integration interfaces.
 | Extraction parsing / identity | [`src.schema_application.records`](../src/schema_application/records.py) | Memory; no source PDF or DB access |
 | Canonical approval | [`src.schema.canonical`](../src/schema/canonical.py) | Memory |
 | PostgreSQL | [`src.storage.service`](../src/storage/service.py) | Local preflight; DB access for initialization/loading |
+| Product CSV export | [`src.storage.csv_export`](../src/storage/csv_export.py) | Artifact/PDF reads; one local CSV write |
 | Strict JSON / persistence | [`src.common.json_codec`](../src/common/json_codec.py), [`src.common.json_artifacts`](../src/common/json_artifacts.py) | Memory / local IO |
 
 Pass the same explicit `VerticalManifest` throughout an integration. Do not guess
@@ -453,6 +454,7 @@ load_extraction_artifact(*, database_url, manifest, schema_path,
                         artifact_path, insurer_code) -> StorageLoadSummary
 load_extraction_directory(*, database_url, manifest, schema_path,
                           artifact_dir, load_one=None) -> list[DirectoryLoadResult]
+inspect_extraction_directory(*, manifest, artifact_dir) -> list[DirectoryArtifact]
 ```
 
 `prepare_storage_load` reads the approved schema, artifact, and source PDF, checks
@@ -477,6 +479,47 @@ If multiple results identify the same source PDF, all such results are skipped.
 Returns path-sorted `DirectoryLoadResult(artifact_path, insurer_code, summary, error)`:
 `summary` for success or `error` for failure. One failure does not prevent others.
 Missing/empty folders raise `ValueError`; `load_one` is test injection only.
+
+`inspect_extraction_directory` is the shared source-discovery boundary for
+PostgreSQL and CSV. Each entry contains `artifact_path`, optional `insurer_code`
+and optional `error`. Source/duplicate failures are reported without DB access.
+
+### Product CSV export
+
+```text
+export_extraction_artifact(*, manifest, schema_path, artifact_path,
+                           insurer_code, output_path) -> CsvExportSummary
+export_extraction_directory(*, manifest, schema_path, artifact_dir,
+                            output_path) -> CsvExportSummary
+```
+
+`src.storage.csv_export` reuses storage preparation and approved Canonical
+mapping; supports native results and successful extraction envelopes with
+explicit matching identity. It creates no database engine or model provider.
+`CsvExportSummary` contains `output_path`, `artifacts_exported`, `products_exported`.
+
+One row represents one product release, ordered by artifact path then extraction
+product order. Fixed columns, in order, are `product_id`, `release_id`,
+`vertical_code`, `insurer_code`, `canonical_name`, `source_product_type`,
+`document_id`, `document_type`, `title`, `source_path`, `sha256`,
+`schema_version_id`, `version`, `run_id`, `provider`, `model`. Typed detail
+columns follow in Canonical field order, followed by the configured attributes
+column containing compact JSON. Names/IDs/values match PostgreSQL preparation;
+database-generated timestamps and database history are omitted. Conflicting
+detail column names and duplicate release IDs fail before writing.
+
+The file uses a UTF-8 BOM, comma separators, CSV quote/newline escaping and CRLF
+records. Scalar null/empty string both produce empty cells; booleans use
+`true/false` and numbers use strict JSON numeric text. JSON attributes retain
+nested nulls and structures. Formula-like text cells fail with `ValueError`;
+source values are never silently changed. This is an Excel-oriented view rather
+than a lossless PostgreSQL backup/import format.
+
+Output must end in `.csv`; the shared atomic text writer refuses existing paths
+with `FileExistsError`. Directory export skips `errors/` and reports all input
+preparation errors as `ValueError`, with no partial output. No output is written
+unless every input and row validates. Current support follows the `storage`
+capability (Travel); Private Health requires an approved mapping first.
 
 ### Optional Travel quality audit
 
@@ -663,6 +706,12 @@ vertical/version, provider/model, parser route, runtime contract, and business
 rules. Invalid files or directories cause a nonzero exit before provider creation;
 existing bytes are preserved. Native results retain their evaluation metadata,
 and successful envelopes are read through the same extraction boundary.
+
+`csv-export --artifact ... --insurer-code ... --output ...` and
+`csv-export-batch --artifact-dir ... --output ...` accept optional `--manifest`
+and `--schema`, and default to the storage-capable Travel configuration. They
+accept no database URL or provider options. Success returns 0 with file/counts;
+validation or output failures return 1 without a partial CSV.
 
 `batch --evaluate` writes `evaluation/report.json`, `evaluation/report.md`, and
 matching diagnostics when needed. It no longer creates duplicate

@@ -86,6 +86,7 @@ validated cached results; a fully cached evaluation makes no model requests.
 | Apply human decisions | `src/refine/review.py apply` | Local artifacts |
 | Compile contract and SQL preview | `src/run.py canonical-compile` | Local files; no SQL execution |
 | Create tables or load records | `storage-init`, `storage-load`, `storage-load-batch` via `src/run.py` | PostgreSQL writes |
+| Export joined product CSV | `csv-export`, `csv-export-batch` via `src/run.py` | Local CSV; reads existing artifacts and source PDFs |
 | Audit Travel extraction quality | `src/run.py quality-audit` | Model calls; `--summary-only` is local |
 | Analyze existing extractions | `src/schema_application/analyze.py` | Local reads |
 | Measure or compare stability | `src/stability/measure.py` / `compare.py` | Measurement calls models; comparison is local |
@@ -106,6 +107,12 @@ Run commands from the repository root. For example, after preparing inputs:
 Replace the example PDF with a real file. Confirm costs before model calls,
 downloads, or database writes. Complete workflows, independent review pages,
 parser options, and recovery instructions are in the [operator guide](docs/user-guide.md).
+
+For Excel, choose “Export product CSV” or “Export extraction folder to product
+CSV” in the Travel console. Each row joins product, release, detail and source
+values using the same IDs and approved Canonical mapping as PostgreSQL. Nested
+attributes remain JSON; no database configuration or model request is needed.
+See [CSV export commands](docs/user-guide.md#product-csv-export).
 
 ## Workflow and validation boundaries
 

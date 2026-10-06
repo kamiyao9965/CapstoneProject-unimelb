@@ -31,6 +31,8 @@ claim of extraction accuracy.
   explains the existing prompt ownership and resolution rules.
 - [ADR-004: Project layout](decisions/004-project-layout.md) explains the directory
   migration and preservation of historical provenance.
+- [ADR-006: Product CSV export](decisions/006-product-csv-export.md) explains the
+  joined product view, shared validation/IDs and atomic export behavior.
 - [Approved Canonical Schema PRD](specs/approved-canonical-schema-prd.md) provides
   the requirements behind candidates, approval, and storage mappings.
 - [Relational storage PRD](specs/relational-storage-prd.md) provides storage
@@ -50,6 +52,8 @@ claim of extraction accuracy.
   old line numbers do not identify current code locations.
 - [Confirmed layout scope](ideas/project-layout.md) records the user's directory,
   retention, language, and compatibility choices.
+- [Confirmed product CSV scope](ideas/csv-product-export.md) records the user's
+  Excel use case and selected product-release row grain.
 
 Completed cross-vertical implementation plans have been removed from the working
 tree. Their durable conclusions—one engine, manifest-owned vertical differences,

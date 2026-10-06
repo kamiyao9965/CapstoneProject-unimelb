@@ -480,6 +480,52 @@ Equivalent commands are:
 - Both UI operations are synchronous with a two-hour limit. Estimate large-batch
   duration using a small sample first.
 
+### Product CSV export
+
+Choose “Export product CSV” for one result, or “Export extraction folder to
+product CSV” for a directory. Set the input and a **new `.csv` output path**;
+single-result export also requires the insurer code. Equivalent commands:
+
+```bash
+.venv/bin/python src/run.py csv-export \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact outputs/travel_insurance/extractions/allianz/pds/example.json \
+  --insurer-code allianz \
+  --output outputs/travel_insurance/exports/csv/example-products.csv
+
+.venv/bin/python src/run.py csv-export-batch \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact-dir outputs/travel_insurance/extractions/run20 \
+  --output outputs/travel_insurance/exports/csv/run20-products.csv
+```
+
+Replace the example input with existing results. `--schema` overrides the
+manifest's approved Canonical Schema; it must match every result's identity.
+The same PDF/source/product checks apply as PostgreSQL loading. This is a local
+export of those artifacts and does not call a model or connect to PostgreSQL.
+Private Health is unavailable until it has an approved storage mapping.
+
+Each row represents a product version in one PDF, with `product_id`, `release_id`,
+product name/type, typed detail columns, source PDF/hash and schema/run provenance.
+The column names and IDs follow PostgreSQL; `attributes` contains JSON for the
+nested fields. Different PDFs retain their own `document_id`. Database-generated
+timestamps and historical database state are not part of this view.
+
+Open the UTF-8 CSV in Excel; the BOM preserves Chinese text
+([Microsoft guidance](https://support.microsoft.com/en-us/excel/opening-csv-utf-8-files-correctly-in-excel)). Booleans are
+`true/false`, numbers are numeric text, and null scalar values are empty cells
+(indistinguishable from empty strings). JSON retains nested nulls and values.
+For lengthy attributes, inspect the original CSV/JSON as Excel's
+[32,767-character cell limit](https://support.microsoft.com/en-us/excel/excel-specifications-and-limits)
+may prevent displaying all the content. Formula-like text cells fail validation rather than being
+silently rewritten.
+
+Directory export skips `errors/` and derives insurers from PDF paths. Any invalid
+artifact, duplicate source, or duplicate product release fails the complete
+export with exit code 1 and no new CSV. Correct/select inputs and retry with a
+new output path. Existing outputs are never overwritten. Successful exports
+print the file path and artifact/product counts.
+
 ### F. Optional LLM judge and human review
 
 This independent post-extraction step screens PDF evidence and values. Successful

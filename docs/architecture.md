@@ -163,6 +163,17 @@ each product name includes its tier label while `plan_tier` preserves the source
 label separately. Duplicate identities fail during structured-output business
 validation and enter the bounded repair cycle; they cannot reach storage.
 
+### Product CSV output
+
+`src/storage/csv_export.py` is a portable product view alongside PostgreSQL
+loading. Both use `prepare_storage_load`, Canonical load plans and repository
+ID helpers. `inspect_extraction_directory` owns ordered directory discovery and
+duplicate-source checks for both destinations. CSV joins product/release values,
+typed vertical details and source/run provenance; nested attributes stay JSON.
+It validates all inputs before using the existing atomic text writer, refuses
+overwrites, and creates no database engine or model provider. CLI and console
+controls call this owner. See [ADR-006](decisions/006-product-csv-export.md).
+
 ## Structured-output boundary
 
 - `src/common/model_config.py` resolves provider/model/input selection and the
@@ -240,7 +251,8 @@ their original metadata and files.
 - `src/schema_application/`: shared extraction and applicability analysis.
 - `src/evaluation/`: existing Health labelled matching/metrics, plus optional
   Travel PDF-evidence quality screening and queue-bound human review.
-- `src/storage/`: approved Canonical compilation, PostgreSQL transactions and idempotency.
+- `src/storage/`: approved Canonical compilation, shared artifact preparation,
+  PostgreSQL transactions/idempotency, and joined product CSV output.
 - `src/scraper/`: existing Travel acquisition; no new crawler framework.
 - `src/stability/`: semantic schema drift excluding envelope/provenance.
 - `src/cost/`: JSONL token-cost estimation.

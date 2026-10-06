@@ -1,6 +1,6 @@
 # Product CSV export
 
-Status: confirmed by the user on 2026-10-07; implementation in progress.
+Status: confirmed by the user on 2026-10-07; implemented.
 
 ## Problem statement
 
