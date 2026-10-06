@@ -1,5 +1,9 @@
 # TODO：Health / Travel 统一流程（精简版）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 规格：[multi-vertical-engine-spec.md](../docs/specs/multi-vertical-engine-spec.md)。状态：完成，统一实现已合入远端 main。
 
 **约 5,000 行只是规模估计，不设行数上限、逐模块额度或 LOC 验收关卡。** 本轮减少重复和不必要抽象，保留正确性；prompt 正文和爬虫不混入核心逻辑体量。第三领域与 aliases 功能不做。
@@ -263,3 +267,60 @@ T06–T09：公共字段/taxonomies契约按所选manifest编译；旧JSON集中
 限制：未运行真实模型、真实 PDFingestor 转换、真实 Health 标签批处理或 PostgreSQL live test；不把离线 fixture 和浏览器验证称为这些验证已通过。旧 CSV 外置搬迁仍只有历史记录，未验证数据已在当前数据根。
 
 最终合并记录：2026-09-10 已将 `063c13e` → `a00a9044cc7d1495be6a71111946ef6dd0cba131` 快进推送到远端 main，并通过 `git ls-remote origin refs/heads/main` 核实。本文档、README 与 architecture 的完成记录随最终文档提交同步。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Historical completed Health/Travel unification checklist; spec linked above, merged into remote main. Rough5,000 core lines is not a cap/module quota/LOC gate. Reduce duplication/needless abstractions while retaining correctness; exclude prompt body/crawler from core comparison; third vertical/aliases deferred.
+
+### Execution and tasks
+Reuse modules/tests by actual runtime slice. These20 tasks replace31, removing independent context/application.json/all-artifact version upgrades/general migration-mapping/LOC tools. Each task targets at most five implementation/test files(S1–2,M3–5), split larger independent work first. Temporary readers/exports serve actual callers and end atT18; do not invent classes/files just to match the checklist. V0 is compileall, offline unittest without KONKRD_TEST_DATABASE_URL and diff-check; VCLI is run.py/loop.py --help. All listed test commands are offline. File lists above include proposed new files; add behavioral gaps, not mirrored implementations/fixed test counts. Check evidence rather than re-requesting existing authority.
+
+All T01–T20 and checkpoints A–F/AC01–08 are checked complete in the historical record. Exact file lists and executable test commands above remain shared references.
+
+| Task | Purpose and acceptance | Dependency / size |
+| --- | --- | --- |
+| T01 | Audit main diff/B01–20 and actual callers; one owner/disposition per boundary, justified deletions/replacements, no speculative third-domain abstraction; remote/diff/rg audit | None/S |
+| T02 | Validate/merge existing Health+Travel baseline, whitespace fixes, isolate larger regressions; no force push/user overwrite; verify remote ancestry | T01/M |
+| T03 | One manifest/registry for discovery/capabilities/defaults/paths/prompts; separate document/sample/product categories, pre-call failures for missing/conflicting/escaping resources | T02/M |
+| T04 | Externalise three Health prompts with single authority; preserve behavior, document formatting differences and temporary named exports | T03/M |
+| T05 | Same loader for Travel, preserving types/multiple plans/source/canonical/storage; remove duplicate bodies byT18 | T04/M |
+| T06 | Shared fields/identities/taxonomies/cardinality and enum/applies_to/type validation; only necessary contract changes | T05/M |
+| T07 | One validated read-only legacy-JSON converter, no second model/compiler; YAML/entity compatibility only if used; preserve approval/source | T06/M |
+| T08 | Shared discovery config/prompt/contracts/sampling, content dedup/holdout isolation/bounded failures; compare actual requests | T07,T03/M |
+| T09 | Shared single/batch compiler/extractor/cache paths; Health single/Travel multiple, cross-vertical fail before calls, no false success | T08/M |
+| T10 | Deterministic names/votes without aliases/new add_alias; different names not synonym-merged, old alias audit-only; fixed vote comparisons | T09/M |
+| T11 | Manifest runs/protection/promotion and common loop/consensus; identity-bound resume, document categories not products, alias flag explicit error | T10/M |
+| T12 | Shared Accept/Reject/Edit/Apply, queue/decision/base identity, consensus baseline retained, pending/reject not applied, no silent legacy migration | T11/M |
+| T13 | Shared applicability/fill analysis from trusted categories, N/A without samples; capability-driven Health labels, no fabricated Travel evaluation/DSL | T12/M |
+| T14 | Shared signature taxonomies/paths for measure/compare/cost, existing usage rather than new history platform | T13/M |
+| T15 | Reuse canonical/compile/storage, explicit approved mappings and reviewed unknowns, identity/idempotency/rollback, no new DB/mapping platform | T12,T09/M |
+| T16 | One global vertical-aware UI, capability/defaults/launch-bound results and isolated forms/confirmation; reuse CLI, no scheduler | T14,T15/M |
+| T17 | Review pages show original vertical/schema, reject stale/wrong-queue confirmation, reuse apply/approve/new outputs, preview not approval | T16,T12/M |
+| T18 | Remove unused aliases files/readers/prompt exports/temporary adapters; justify every remaining B01–20 resource by actual use | T17/M |
+| T19 | Both complete offline flows/negative identities, browser switches/review/errors, authorised real PDF/DB only; record simplification/limits, not LOC gate | T18/M |
+| T20 | Accurate README/architecture, complete diff/deletion/acceptance review, remote-main merge/ancestry; no third domain/process bureaucracy | T19/M |
+
+Checkpoints: A baseline merge/deletions/regressions, not finished unification; B same config/prompt entry/no platform; C common model/legacy reader not second authority; D configuration-explained consensus and explicit alias rejection; E no hidden Health fallbacks/wrong auxiliary paths; F real form/operation/review/result isolation, not relabelled UI.
+
+Acceptance: AC01 remote main contains baseline+unification; AC02 unique owners; AC03 real simplification/no LOC gaming/speculative complexity; AC04 both full single/multiple flows; AC05 UI identity isolation; AC06 alias runtime removed/history auditable; AC07 old formats/approval protected; AC08 peripherals retained/no third domain/honest verification limits. Checkboxes require actual commit/evidence, not prior tests.
+
+### Historical evidence
+T01–02: main24f31ee/Travel012fdfe,43commits, independent baseline review; initial371 tests. Batch exit-code and exact Health flat-field/legacy-label alignment fixes yielded373tests(372pass/one DBskip), compile/help passed.
+Sept8 main063c13e confirmed with43Travel commits+fixes;374tests(373pass/one DBskip),22independent checks passed. Old ingestor/router→PDFingestor, LLMExtractor→SchemaExtractor, crawler config→Travel sources. Placeholder domains/YAML no production callers; six old CSVs not found under external data root, so relocation unverified, history retained; real Health labels untested.
+T03–05: discovered manifests, separated product/sample types, consensus policies, six external prompts/shared loading/pre-call missing-empty-escape checks;377tests(376pass/one skip), compile/diff; temporary constants endedT18.
+T06–09: manifest-driven fields/taxonomy contracts/read-only legacy normalization; unused static loaders/validators/models/seven-line pipeline wrapper removed; shared prompts/cardinality/cache/identity/applicability. Independent review's custom-manifest/legacy-response/cross-domain-contract issues fixed with regressions;381tests(380pass/one skip), compile/two help.
+
+Final implementation a00a904,Sept10:
+T08–09 shared discovery/compiler/extractor, inline contracts prevent legacy downgrade; offline cardinality/cross-domain/failure/no-overwrite/source-name paths.
+T10–12 aliases/new proposals removed; manifest votes/protection; queue/base/decision identity and recomputed resume; no silent old-alias/unbound-queue apply.
+T13–15 trusted classification, Travel N/A, old ExtractionResult compatibility, selected manifests in stability/cost; canonical mapping reused, approved config byte-identical to origin/main.
+T16–18 global capabilities, state reset on switch, parameter-bound confirmation, queue-bound review, source/output-bound canonical approval; old prompt exports/Travel wrappers/adapter-ID transition removed.
+T19:388tests(387pass/one live-PostgreSQL skip), compile/diff/seven help; actual orchestration with fake PDF/model covers both full pipelines, identity errors/output protection.
+
+Chrome tested Health→Travel/capabilities/confirmation invalidation/missing-schema errors/result attribution; temporary Accept→Apply preserved pending; canonical preview not approved, output changes cleared confirmation/reviewer. No captured console errors/warnings;320px screenshot and768/1024/1440 layouts checked. Writes only temporary browser fixtures, no model/DB.
+Independent review's extraction overwrite/compiler-manifest/stability-manifest issues fixed/regressed; two final independent reviews hit usage limits and were not counted passes. Main agent checked calls/diff. No new dependencies/domain/tables/platform.
+
+Unrun: real model, real PDFingestor conversion, actual Health label batch and PostgreSQL live. Offline/browser evidence is not those checks. CSV relocation remains unverified.
+Final remote main fast-forward063c13e→a00a9044cc7d1495be6a71111946ef6dd0cba131 onSept10 verified with ls-remote; README/architecture/spec/todo completion synchronised. tasks is generally ignored; only this already-selected todo is included, never bulk-stage local task notes.

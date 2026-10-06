@@ -1,5 +1,9 @@
 # Car schema 修订 v2（2026-10-03）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 状态：四项检查已落实为候选 schema、抽取约束及离线测试。**不是人工批准版本，也不是 benchmark 标签。**
 本次没有调用模型，没有读取 holdout/test 内容。原始模型草稿保持不变。
 
@@ -70,3 +74,34 @@
 离线测试使用合成结果及模拟 provider，覆盖有效输出与失败路径；没有测试真实模型的准确率或远端 API 对整份 contract 的接受情况。
 本轮选定回归共 210 项通过，其中新增 car schema 修订测试 23 项；原稿 SHA-256 与来源记录一致，生成的 schema/contract 与当前代码一致。
 即使通过所有检查，仍需复核内容是否忠实于原文，不能把格式正确等同于业务正确。
+
+<a id="english-version-text"></a>
+
+## English version
+
+On 2026-10-03, four review areas were implemented as a candidate schema, extraction constraints and offline tests. This is neither human-approved nor benchmark gold. No model calls or holdout/test inspection occurred; the original model draft remains unchanged.
+
+### Files and use
+Under outputs/car_insurance/schema_trial_20261003, schema_draft.json retains the original envelope; schema_review_v2.json is a raw extractor-ready schema with 31 product fields, 25 executable nested definitions; extraction_contract_v2.json validates outputs, not discovery inputs; revision_v2_provenance.json records source SHA-256 and zero model calls. The builder is src/car_insurance/schema_revision.py; the local build_revision_v2.py refuses overwrite.
+
+This intentionally changes structure: renaming old results does not migrate them. It is not the default schema; select it explicitly with --schema and retain parser-review fingerprint checks. Review first, then a small development extraction. Consensus or final evaluation is not started automatically. Structural/taxonomy changes must update the profile and tests together; new fields cannot be silently ignored.
+
+### 1. Single ownership
+Dedicated coverage fields own their benefits; other_coverages permits only other_documented_benefit. Business items/campervan contents belong to additional_item_benefits. available_addons replaces duplicate optional_benefits amounts with eligibility and benefit-ID references; amounts stay on benefits. policy_rules combines eligibility/use restrictions and general exclusions, distinguished by kind. PDF metadata and summary tables move outside products into document_evidence, stored once. issuer_legal_name and risk_underwriter_legal_name distinguish roles even if one entity fills both.
+
+Each benefit retains ID, category, variant, source title and evidence. Repeated IDs or category/variant/option tuples fail. Paraphrased semantic duplicates still require human review; dedicated fields are retained for readability.
+
+### 2. Amounts and quantities
+Limits separate numeric AUD amount, amount_kind, period, basis, shared_with, conditions/source/evidence. Only fixed carries a number; unknown, unlimited, reasonable_costs and schedule_specific carry null. Per claim/incident/policy period/day is independent of aggregate/per-person/per-item scope. Shared caps are stored once and referenced.
+
+Illustrative development expressions: counselling 1500/per_claim/per_person; funeral 5000/per_policy_period/aggregate. A combined emergency accommodation/transport/repair 1000 cap must not become three independent 1000 caps; covered_components may identify the components. These are representation examples, not universal insurer terms or generated results.
+
+Days, vehicle age, kilometres and counts use quantities with metric/value/comparison/reference. Daily hire cost and maximum days are separate. Excesses are deductibles, not benefit caps; unspecified amounts are not zero.
+
+### 3. Products versus add-ons
+product_basis and product_identity_evidence require explicitly named products/tiers. Do not invent products for hypothetical add-on combinations. QBE Fire and theft remains an add-on to TPPD; AAMI/Youi named tiers may form separate source-supported records. available_addons means purchasable, not purchased; selected is forbidden. option_id and benefit_ids must agree bidirectionally; add-on benefits cannot be base included coverage. Structural checks do not prove that cited text supports the product boundary.
+
+### 4. Executable nesting
+item_schema compiles into closed output objects with explicit required keys, enums and numeric types. The extractor uses strict typed output plus local JSON and business validation: amount status, shared/optional references, duplicate IDs/rules, nonempty evidence, table column counts and _unfilled/null consistency. Remote nested-schema references are forbidden; older verticals without this profile retain their layouts.
+
+Synthetic/mock-provider tests cover valid and invalid paths, not actual model accuracy or remote API acceptance. All 210 selected regressions passed, including 23 new car-schema tests. Draft hash/provenance and generated schema/contract match code. Content still needs review against the PDF.

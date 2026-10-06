@@ -1,5 +1,9 @@
 # Health / Travel 实用手册
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 面向项目组的开发、实验和演示。依据 `main` 的 `2e4465f` 及其后本分支的引擎精简核对，更新于 2026-09-15（新增 MinerU 解析路线和 InsureandGo / Tick / 1Cover 采集来源）。所有命令从仓库根目录执行；示例 PDF 路径需要替换为自己的文件。Python 接口见 [api.md](../api.md)，实现边界见 [architecture.md](architecture.md)。
 
 ## 1. 先选对入口
@@ -473,3 +477,73 @@ configs/<vertical>/
 团队演示前，另外选少量实际 PDF，记录 manifest、schema 版本、模型、种子、样本和输出路径，并人工对照提取值。离线测试不验证真实 API、PDF 解析质量或数据库连接。
 
 本文的命令参数和 Python 示例按上述代码版本核对；本次更新未执行付费模型调用、PDF 批量下载或 PostgreSQL 写入。新增采集来源只做了不下载正文的链接预检，MinerU 路线只在一份本地 PDS 上做过解析冒烟测试。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Practical Health/Travel guide for team development, experiments and demos, checked against main2e4465f and this branch's simplification, updated2026-09-15 with MinerU and InsureandGo/Tick/1Cover sources. Run all commands above at repository root and replace sample paths with actual files. Code blocks, flags and configuration identifiers are shared by both language versions. See api.md and architecture.md for interfaces/owners. Historical scope statements describe that update, not later car work.
+
+### 1. Choose the entry point
+tool_app.py is the unified UI; run.py discover finds fields(model API), extract/batch uses schema(model API); refine.loop/review_app proposes/reviews/resumes(model only generation/extraction); analyze and stability.compare inspect saved results offline; crawl visits public insurers; canonical_review_app approves storage contracts offline; canonical-compile previews SQL offline; storage-init/load/load-batch connect PostgreSQL. This is one Python engine and three local Streamlit pages, no REST service.
+
+Health uses combined/extras/generalhealth/hospital sampling and one product/document; Travel samples pds documents and outputs multiple products/releases. Health types match its four categories; Travel types international_single_trip/international_multi_trip/domestic/inbound/business/cruise. Other config paths/defaults are in the original comparison table. Health proposal default1, automatic holdout/feedback and labelled evaluation(with local labels); Travel default5, no automatic holdout/feedback or labels, but acquisition/canonical/storage. pds is document type, never product truth.
+
+### 2. Install/configure/parse
+Use existing .venv or the installation commands above; supported dependencies are in README/dependency policy. No keys/PDFs/labels are bundled. Main workflows read process environment, not .env automatically. Export nonsecret options and inject credentials securely; the optional shell import executes trusted .env content, never use untrusted files or commit secrets.
+
+MY_OPENAI_API_KEY takes precedence over OPENAI_API_KEY; ANTHROPIC_API_KEY/DEEPSEEK_API_KEY for others. LLM_PROVIDER/MODEL/DOCUMENT_INPUT are overridden by explicit CLI; OPENAI_MODEL is fallback. KONKRD_DATA_ROOT contains data/private_health; KONKRD_DATABASE_URL selects Travel PostgreSQL. Default openai/gpt-5/markdown, explicit model for other providers. model_capabilities.json is local validation, not account entitlement. Main PDF-to-page/block/table-text pipeline stays markdown even if low-level provider supports PDF.
+
+PDFingestor is the fast default; MinerU local-model route targets complex tables/OCR and comparisons. Both produce the same prompt structure. discover/extract/batch/loop/UI support --document-parser; standalone consensus/measure still only PDFingestor. MinerU runs pipeline in a separate local process, no service/upload, needs downloaded models or ~/mineru.json. Historical40-page smoke took~4min versus~3s, then parser-specific content cache is fast. Known merged-cell words may concatenate, e.g. transportationexpenses. Keep parser choice on resume or default returns. Provenance/results/usage record parser. Exact per-PDF prompt Markdown lives under parsed_markdown/<parser>/<relative path>, outside-root filename_hash; unchanged files not rewritten and safely regenerable. MinerU empty-content errors before model; PDFingestor lacked that guard at this guide's version, so inspect scans.
+
+Migration: vertical selection unchanged; change configs rather than removed constructor overrides. Python uses same environment selection; explicit selection wins. AppConfig/old document_preprocessor removed; MinerU is optional route, no raw/Markdown mirror; preserve historical files. Health reports now report.json, deprecated --no-fallback has no effect.
+
+Use insurer/category/file.pdf layouts illustrated above. Files are not bundled; supply all Health categories and enough distinct insurers. per-category5 is not five files from one company; copying content adds no samples. Holdout excludes discovery/proposal content. Travel ignores KONKRD_DATA_ROOT; --input-root can override runs, but storage manifest root must match actual source layout.
+
+### 3. Quick extraction/UI
+With a usable schema, skip rediscovery. Health/Travel commands above are billable and require real PDFs/schema/credentials. Health schema path must exist; Travel can use the repository's approved canonical. Inspect printed output path; data contains model content, Travel data.products. null plus _unfilled/_notes explains missingness. Structural success isn't factual correctness; inspect key source values before demos.
+
+Default extractions preserve relative input layout and use numeric suffixes on collisions. Explicit existing --output is refused. UI: select vertical, operation, PDF/schema/model/output and parser; inspect command/vertical, confirm where needed, execute, read exit/result. Switching vertical/operation resets form/confirmation/result, changed parameters invalidate confirmation. UI runs synchronously without a queue; credentials come from launch environment, restart after environment changes.
+
+### 4. Health discovery→review→holdout→feedback
+A: discover example samples two insurers per each of four categories(eight distinct PDFs), or explicit --samples bypasses automatic selection. Insufficient data needs smaller count/more data. Discovery returns a discovered_schema envelope with data schema; printed path may gain a suffix even for requested output.
+
+B: recommended review loop creates round_1/consensus queue then stops; reused experiment directories choose next round_N. Health defaults one proposal; --review-ui still creates a queue. Launch review_app, use8502 if main UI occupies8501. Accept/Reject/Edit each item, save, then Apply in UI or CLI once. Default reviewed_schema.json; Pending/Reject don't apply and Apply doesn't mean all reviewed. Queue/decisions/base must match one review, never mix experiments.
+Resume with original manifest/input/experiment paths and --resume-review round_N. It validates review, extracts holdout unseen by schema-building, generates refinement_feedback and publishes final_schema or suffix without replacing production. Alternate Apply --out isn't automatically used: resume expects consensus/reviewed_schema.json. Editing decisions invalidates old applied output; regenerate consistently, preferably in a fresh experiment to preserve audit trail.
+
+C: feedback must be a successful current-format artifact with matching vertical. Default one round; --autonomous --rounds N adds model calls and cannot combine with --review-ui.
+
+D: use actual printed final-schema filename for batch. --evaluate needs local Health labels(default konkrd-data/data/private_health/labelled); omit without labels. Batch writes manifest outputs, not --out-dir; isolate using configured roots or archives. Reports are evaluation/report.json/report.md, old report_model_only retained only as history.
+
+### 5. Travel acquisition→review→extraction→optional storage
+A: crawl --discovery-only still visits websites/writes metadata but doesn't download PDFs; inspect metadata before removing flag. Sources config supports repeated --insurer CODE. Codes at this update:allianz,cover_more,scti,insureandgo,tick,onecover. Allianz/InsureandGo/Tick seed URLs were pinned to avoid old/PDS-TMD confusion, and require updating on release. Seeds without start_pages skip HTML discovery. Sampling maxone per insurer, count cannot exceed pds insurers. Acquisition supports PDS/SPDS/brochure/TMD/FSG; auto discovery samples pds only.
+
+B: five proposals default. Same queue/save/Apply/resume procedure, with Travel manifest/experiment. Only eligible core suggestions auto-promote; manual queue retains decisions. product_name/product_type protected; vote frequency isn't accuracy. Travel resume publishes final schema but not Health holdout/feedback. Discovered schema can extract/batch; storage needs canonical approval.
+
+C: canonical_review_app builds candidate/field mappings. Review then supply reviewer/rationale/confirmation; changed inputs/output/storage options invalidate confirmation. No model/DB/table writes or approved-version overwrite. Targets: core_column(common product name/type), extension_column(travel_product_details named column), jsonb(attributes keyed by field).
+Existing approved mappings persist. Unmapped fields default JSONB or chosen SQL columns with numeric/bool/enum types; lists, already-JSONB fields and release_id/attributes reserved names remain JSONB. Counts are shown; many SQL columns increase future migration work because storage-init doesn't alter tables.
+canonical-compile writes extraction_contract.json/vertical_table.sql to a new directory without executing SQL. Candidate isn't an approved contract.
+
+D: extract again with the same approved schema before storage; renaming a discovered result's version is invalid. Both CLI result/envelope require matching vertical/version. Old missing-identity envelopes remain analysis-compatible but need re-extraction for storage, never inferred identity. storage-init/load actually modify the configured PostgreSQL: verify target. Original PDF must exist under manifest insurer/document-type layout with matching code. No SQLite; missing tables created, no migration; load transactional, identical identities/content reload idempotently, conflicts fail.
+
+E: batch pds to --output-dir then storage-load-batch the same folder (commands above). UI Batch extraction defaults pds and an extraction output folder; folder load uses it. Only insurer/pds processed, not TMD/FSG. Existing matching results in that folder are skipped, so rerun fills gaps; use a new folder per storage batch. Each load is a separate transaction, insurer derived from source, errors/ skipped. Multiple results for one source are all withheld until one remains. Individual failures continue, summary loaded/failed/total and nonzero on any failure. UI operations synchronous, maximum2h; estimate with small batches first.
+
+### 6. Outputs, quality and costs
+Single schemas: outputs/<vertical>/schema*.json; round draft/adopted schema under round_N; consensus contains patches/frequency/queue/decisions/review; round extractions are Health holdout; round feedback is refinement_feedback.json; final_schema* is published experiment version; CLI results under extractions; errors/<stage> holds diagnostics. pdfingestor_cache and parsed_markdown/<parser> are regenerable.
+
+Discovery/consensus/review/holdout use status/provenance/data/error envelopes. CLI extract/batch retains ExtractionResult with vertical/version/source_path/data and no envelope status. File existence alone proves neither valid; use proper readers.
+
+Analysis needs matching discovered schema and isolated results, not canonical; --feedback-out persists. Fill rate is nonempty applicable fields, not accuracy. Health denominators derive trusted directories, not predicted types; Travel product/classification metrics N/A without labels, generic fields still analysed; product records may outnumber PDFs.
+stability.compare uses saved same-domain schemas without calls, measuring fields/types/taxonomies, not values. stability.measure repeatedly calls discovery on fixed samples and needs its own budget.
+
+Discovery/proposal usage in experiment root, holdout in round_N/extraction_usage.jsonl, CLI in vertical extraction_usage.jsonl: inspect all relevant logs. Default initial+two repairs increases token cost. Built-in rates are estimates, not bills; provide verified per-million input/output rates for accuracy and account for mixed models. Never commit usage logs.
+
+### 7. Configuration
+One package contains manifest and three prompts: paths/capabilities/categories/types/taxonomies/identities/consensus/review; discovery proposes schema, patch proposes changes, extraction explains domain semantics. Inspect existing packages, no duplicate Python vertical/prompt lists. Validate manifest offline then small experiments. Prompts cannot weaken contracts/business checks. This historical guide adds neither aliases nor third vertical; compatible future domains may be config-only, new protocols/evaluation/steps may require code, not speculative DSL.
+
+### 8. Troubleshooting/recovery
+Missing UI operation: capability(Health no storage, Travel no labels). Missing key after .env: inject launch environment without printing keys. Rejected model/input: local capabilities, markdown, explicit non-OpenAI model. Not enough unique PDFs: categories/distinct insurers/dedup/holdout exclusions. Bad PDF: inspect locally, compare MinerU for scans/tables. MinerU missing/model error: requirements and local models; no-content means no model called, inspect source; slow first parse then cache, sample first.
+Repeated JSON failures: inspect errors/path and config agreement; don't analyse invalid data. Structural-noise log means nondata keys/duplicates cleaned, not business values; other failures remain. FileExistsError: fresh output/experiment, not audit-chain deletion. Pending after Apply is normal, team decides review completeness. Resume-review needs round_N/default reviewed_schema matching queue/base/decisions. Old unbound queues are audit-only or handled in original version. Travel N/A isn't zero or pds-inferred truth. Storage identity/source refusal: check approved schema/PDF/root/insurer/artifact, not manual identity bypass. Interruption: resume valid review or Health feedback; other failures generally need a fresh experiment, no arbitrary API checkpoint resume.
+
+### 9. Acceptance
+Use compileall/unittest/help commands above for code changes. Before demos, small real PDFs with recorded manifest/schema/model/seed/sample/output and human source checks. Offline tests don't establish API/PDF/DB quality. This historical guide update did not perform paid calls, bulk downloads or PostgreSQL writes; added sources had link-only preflight and MinerU one local PDS smoke.

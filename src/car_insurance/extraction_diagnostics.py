@@ -29,8 +29,22 @@ Exception evidence: the owning rule carries the complete source block. Each exce
 evidence must quote verbatim, on that page, at least the complete sentence or bullet
 containing its unless/except/does-not-apply cue (the whole bullet 'X, unless Y.', not
 just 'unless Y.'). If the cue ends with ':' and the carve-out continues in the next
-block, quoting that complete next block also suffices. Every such cue needs an exception.
+block, quoting that complete next block also suffices ONLY when the checker identifies
+a connected exception bullet list. Never quote the next exclusion as a continuation.
+Every such cue needs an exception.
+Before returning, reconcile each owning rule against EACH source block it cites.
+Merging source blocks into one rule does not permit dropping any block's evidence.
+For every independent qualification (including prior authorisation and unless otherwise
+stated), retain a structured exception, not merely a mention in the parent's evidence.
+Keep the exception's full introductory sentence and all applicable list items together;
+do not quote only the concluding carve-out. Use the source page for each quote.
+When repairing an evidence diagnostic, first inspect the existing structured meaning:
+preserve correct exceptions and repair their citations; add an exception only when missing.
+Never delete source IDs, merge away qualifications or empty a coverage to silence checks.
 Shared liability caps include every covered member of the source-defined liability section.
+Explicit liability for towing a trailer/caravan belongs in caravans_and_trailers_tppd_extension
+for every source-named applicable product, with the same liability pool, not [].
+This is distinct from damage to the trailer itself and from towing/recovery expenses.
 A cap on 'all claims from any one incident for legal liability covered by this policy' is
 policy-wide: in EACH product, all covered liability members share one such pool.
 General exclusions that 'apply to all sections of your policy' (or give 'no cover under
@@ -73,6 +87,21 @@ def _limits(node, path):
 
 def issue(path, message):
     return dict(path=path, message=message)
+
+
+def classify_diagnostic(error):
+    """Triage only, never infer semantic correctness from a failed quotation."""
+    message = error['message']
+    if 'source_mapping_missing' in message or 'missing source clause' in message:
+        category = 'coverage_review'  # mapping absent != proven semantic omission
+    elif any(s in message for s in ('evidence_', 'evidence must', 'full source evidence', 'quote verbatim')):
+        category = 'evidence_issue'
+    elif any(s in message for s in ('trailer_liability_missing', 'shared_liability_relation', 'shared_event_payout',
+                                  'structured_costs', 'excess_combination', 'exception cue without explicit exception')):
+        category = 'structured_content_missing'
+    else:
+        category = 'structure_or_business_rule'
+    return {**error, 'category': category, 'semantic_review_required': True}
 
 
 def local_issues(payload):
@@ -141,7 +170,7 @@ def _joined_evidence(evidence):
 def source_issues(payload, clauses, document_text=None):
     # A validation view only: the stored/raw candidate is never rewritten.
     view = deepcopy(payload)
-    paths = {}
+    records = []
     groups = [(f'$.products[{pi}].', p) for pi, p in enumerate(view['products'])]
     if 'shared_policy_rules' in view:  # review_v5: document-level rules count like one more rule owner
         shared = {'policy_rules': view.pop('shared_policy_rules')}
@@ -150,17 +179,22 @@ def source_issues(payload, clauses, document_text=None):
     for prefix, p in groups:
         for owner in [*OWNERS, 'policy_rules', 'excesses']:
             for bi, item in enumerate(p.get(owner) or []):
-                for sid in item['source_clause_ids']:
-                    paths.setdefault(sid, []).append(f'{prefix}{owner}[{bi}].source_clause_ids')
+                records.append((f'{prefix}{owner}[{bi}].source_clause_ids', owner, item))
                 item['evidence'] = _joined_evidence(item['evidence'])
                 for exc in item.get('exceptions', []):
                     exc['evidence'] = _joined_evidence(exc['evidence'])
                     item['evidence'].extend(exc['evidence'])
     following = following_blocks(document_text) if document_text is not None else None
-    messages = coverage_issues(view, clauses, OWNERS, following)
-    bad_quotes = {m.split(':', 1)[0] for m in messages if ': evidence must retain' in m}
+    # Per-record checks retain the full checklist for parent-rule relations, but
+    # missing mappings are a document-wide question, checked separately below.
+    located = [(path, message) for path, owner, item in records
+               for message in coverage_issues({'products': [{owner: [item]}]}, clauses, OWNERS, following)
+               if ': missing source clause' not in message]
+    bad_quotes = {m.split(':', 1)[0] for _, m in located if ': evidence must retain' in m}
+    located.extend(('$.products', m) for m in coverage_issues(view, clauses, OWNERS, following)
+                   if ': missing source clause' in m)
     errors = []
-    for message in messages:
+    for path, message in located:
         sid = message.split(':', 1)[0]
         if ': missing source clause' in message and sid in bad_quotes:
             continue  # Citation mismatch already explains this unverified mapping.
@@ -168,10 +202,7 @@ def source_issues(payload, clauses, document_text=None):
             message += '; evidence_mismatch: mapped clause, not proof of semantic omission. Preserve full verbatim block/page; do not rewrite source layout.'
         elif ': missing source clause' in message:
             message += '; source_mapping_missing: no verified owner mapping, inspect source and candidate.'
-        if message.startswith('Unknown/stale source_clause_id '):
-            sid = message.split('Unknown/stale source_clause_id ', 1)[1]
-        for path in paths.get(sid, ['$.products']):
-            errors.append(issue(path, message))
+        errors.append(issue(path, message))
     return [dict(path=path, message=message) for path, message in dict.fromkeys(
         (e['path'], e['message']) for e in errors)]
 
@@ -179,6 +210,63 @@ def source_issues(payload, clauses, document_text=None):
 LIABILITY_OWNERS = ['third_party_property_liability', 'substitute_car_liability_feature', 'caravans_and_trailers_tppd_extension']
 POLICY_LIABILITY_CAP = re.compile(r'all claims (?:arising )?from any one incident for (?:all )?legal liability covered by this policy'
                                   r'\s+is\s+\$([\d,]+(?:\.\d+)?)\s*(million)?')
+
+
+def trailer_liability_issues(payload, document_text):
+    """Narrow explicit named-tier liability extension, not trailer property cover.
+
+    Requires a Legal Liability heading, named applicability and a positive
+    'This includes ... tow a trailer/caravan' statement in that section. No
+    insurer, product-name, page or amount constants. Unresolved names are not guessed.
+    """
+    blocks = source_blocks(document_text)
+    errors = []
+    for index, (page, _, text) in enumerate(blocks):
+        heading = normalized(text)
+        if not re.fullmatch(r'(?:\d+\.\s*)?legal liability', heading):
+            continue
+        section = []
+        for cp, _, content in blocks[index + 1:]:
+            line = normalized(content)
+            if cp > page + 1 or re.match(r'^\d+\.\s+\w', line) or line == 'what is not covered?':
+                break
+            section.append(content)
+        source = normalized(' '.join(section)).replace('&', 'and')
+        applicability = re.search(r'this applies if you have (.+?) cover with us\.', source)
+        extension = re.search(r'this includes when .{0,100}being used to tow a trailer or caravan\.', source)
+        cap = re.search(r'most we will pay for each claim is \$([\d,]+(?:\.\d+)?)\s*(million)?', source)
+        if not applicability or not extension:
+            continue
+        amount = float(cap[1].replace(',', '')) * (1_000_000 if cap[2] else 1) if cap else None
+        for pi, product in enumerate(payload['products']):
+            name = normalized(product['product_name']).replace('&', 'and')
+            if not name or not re.search(r'(?<!\w)' + re.escape(name) + r'(?!\w)', applicability[1]):
+                continue
+            path = f'$.products[{pi}].caravans_and_trailers_tppd_extension'
+            trailer = [b for b in product.get('caravans_and_trailers_tppd_extension') or []
+                       if b['status'] in {'included', 'conditional', 'limited'}]
+            if not trailer:
+                errors.append(issue(path, f'trailer_liability_missing: PDF page {page} explicitly names '
+                    f'{product["product_name"]} and states "{extension[0]}". Add the covered liability extension '
+                    'and its source evidence; []/null/excluded is not supported. Not trailer damage or towing costs.'))
+                continue
+            if not cap:
+                continue  # no amount or period inferred from silence
+            members = [b for owner in LIABILITY_OWNERS for b in product.get(owner) or []
+                       if b['status'] in {'included', 'conditional', 'limited'}]
+            ids = {b['benefit_id'] for b in members}
+            valid = any(ids <= set(pool['member_benefit_ids']) and
+                        all(pool['pool_id'] in b['limit_pool_ids'] for b in members) and
+                        pool['limit']['period'] == 'per_claim' and pool['limit']['basis'] == 'aggregate' and
+                        pool['limit']['combination'] == 'single' and len(pool['limit']['terms']) == 1 and
+                        pool['limit']['terms'][0]['amount_kind'] == 'fixed' and
+                        pool['limit']['terms'][0]['amount_aud'] == amount
+                        for pool in product.get('limit_pools') or [])
+            if not valid:
+                errors.append(issue(f'$.products[{pi}].limit_pools',
+                    f'shared_liability_relation: PDF page {page} includes trailer liability in the same section '
+                    f'with a per_claim/aggregate cap {amount}. Link covered liability members reciprocally to that pool.'))
+    return errors
 
 
 def _shared_liability_pool(product, benefits, amount):
@@ -313,7 +401,7 @@ def relation_issues(payload, document_text):
     checked only for single-product documents: do not infer multi-tier
     applicability. Numeric truth and full semantics still require review.
     """
-    policy_wide = policy_liability_issues(payload, document_text)
+    policy_wide = policy_liability_issues(payload, document_text) + trailer_liability_issues(payload, document_text)
     if len(payload['products']) != 1:
         return policy_wide
     blocks = [(page, normalized(text)) for page, _, text in source_blocks(document_text)]
@@ -360,8 +448,7 @@ def relation_issues(payload, document_text):
                 'per_incident/aggregate pool preserving the stated amount; do not invent amounts.'
                 + (f' Missing member field(s): {absent}; add each as a covered benefit in that pool.' if absent else '')))
         break
-    if policy_wide and not any(e['message'].startswith('shared_liability_relation') for e in errors):
-        errors.extend(policy_wide)
+    errors.extend(policy_wide)
     for ai, addon in enumerate(p['available_addons'] or []):
         name = normalized(addon['option_name'])
         if not name or addon['availability'] == 'not_available':

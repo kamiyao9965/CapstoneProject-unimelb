@@ -1,5 +1,12 @@
 # review_v5：保单级共享规则、省略号诊断、超时（2026-10-06，零调用）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
+后续更新：跨块例外误关联已修复，新增 Youi 拖车责任检查；三个超时请求经只读查询均已完成并找回输出。
+v5 已知总用量补记为 1,574,885 tokens，Youi 原通过产物现在检出 3 个字段遗漏。下方保留当时运行记录；最新结论见 [v5 审核修复与结果找回](car-insurance-v5-audit-fixes.md)。
+
 背景见 `car-insurance-extraction-dev-v4r4.md`：v4 要求多档位文档每个档位重复全部一般除外，Youi（67 条 × 3 档）输出过长，模型开始缩写、漏抄，两轮重跑都没收敛；AAMI Comp 卡在用 “...” 跳过 bullet 的例外证据；两轮 6 份运行中有 2 份因单次请求 900 秒超时中断。
 
 本轮三项改动，全部零调用。代码提交 a082337；选定离线测试 **207 项通过**。
@@ -74,3 +81,37 @@ v4 不变，之前所有 v4 运行与回放结果不受影响。v4 产物不做�
 
 - AAMI Third Party 的 5 组例外范围口径（见 v4r4 文档人工复核），检查器仍无法判断；可做 “(but not the driver” 类窄检查。
 - 报错路径归属：某个清单 ID 只要有一个产品引用不全，报错会挂在所有引用它的路径上（含引用正确的产品）。
+
+<a id="english-version-text"></a>
+
+## English version
+
+This is the historical review_v5 implementation/run record. Later timeout recovery raises known v5 usage to1,574,885 and identifies three Youi trailer-field omissions; see the audit-fixes report. Preserve earlier outcomes as historical, not current approval.
+
+### Offline v5 changes
+v4 repeated all exclusions per tier: Youi67×3 caused long output, abbreviations and omissions in two failed rounds. AAMI Comp skipped bullets with ellipses; two of six runs stopped at900s request timeout. Commit a082337 introduced three zero-call changes;207 selected tests passed.
+
+evidence_ellipsis checks only checklist-mapped records and their exceptions, whose evidence must be verbatim. Unmapped ordinary benefit evidence is excluded. Unsupported .../… yields a precise evidence quote path and instruction to quote needed bullets separately. An initial all-evidence version wrongly added3–10 diagnostics to old passing outputs, so scope was narrowed. Replay preserves old QBE Comp/AAMI TP passes; AAMI _rerun2 final response gets four explicit ellipsis diagnostics beside its original issue, and Youi _rerun2 excess abbreviations are identified.
+
+review_v5, built on v4, stores policy-wide exclusions/conditions once in shared_policy_rules, including single-product PDFs. Products use shared_policy_rules_applicability=applies/does_not_apply(with evidence)/null+_unfilled. Shared IDs/text cannot duplicate product rules or reference product benefit IDs; use event scope/text. applies requires nonempty shared rules. Evidence/checklist/exception checks treat shared rules as a document owner with proper paths. Explicit all-policy scope requires each product's own+applicable shared rules to cover the exclusion inventory. Prompts replace repeated per-tier instructions with shared storage.
+
+v4 snapshots are not migrated. A memory-only conversion of the prior Youi output to v5 passed: shared exclusions reduce~96k→32k characters. One of~470 rules referenced a Comprehensive benefit ID, already covered by event scope; the invariant was retained, not relaxed.
+
+start_extraction_dev_v5.py requires --run and --authorization, uses1800s instead of900s and hashes schema_revision_v5.py. Five serial runs were recommended. Schema/contract/provenance are in schema_trial_20261006_v5. Timeout calls without responses are absent from token_usage.jsonl until recovered.
+
+### Preparation and original run
+Five development plans/snapshots/checklists were prepared with counts QBE TP41, QBE Comp44, AAMI Comp32, AAMI TP32, Youi71. The historical estimate was1.6–1.8m tokens and2–3h, up tothree calls each, subject to separate authorisation.
+
+User then approved five serial runs:
+QBE TPPD passed14→2→0,271,281 tokens.
+QBE Comp failed14→11→7(five after checker fix),307,881.
+AAMI Comp aborted after9 diagnostics in attempt1,101,238 recorded.
+AAMI TP failed12→3→2,342,092.
+Youi passed19→7→0 at that time,434,463.
+Original recorded total1,456,955 excluded the timed-out AAMI request.
+
+QBE TP had11 shared rules/seven with exceptions, applies/no own rules, and all three AUD30m liability members. Youi had42 shared rules covering67 IDs, three applies/no own rules; previously repeated/abbreviated exclusions improved. Trailer fields [] and ten source_defined/source_defined exception groups required review.
+
+AAMI Comp request2 remained in_progress after1800s; later recovery supersedes the original speculation about a stuck request. AAMI TP Extra costs omitted prior-authority/unless-otherwise-stated structure and Hire quoted only the latter introduction. QBE Comp had two checker defects requiring literal table bars around row text; these were fixed while retaining verbatim cell text. Five diagnostics remained on merged-block quotations/exception completeness. The original report called them omissions; later review distinguishes evidence failure from semantic loss. After checker repair208 selected tests passed; saved-response replay preserved earlier passes.
+
+Open issues at this historical stage: semantic scope of five AAMI exception groups, potential narrow “but not the driver” checks, and errors broadcast across all records sharing an ID. Subsequent reports document later fixes.

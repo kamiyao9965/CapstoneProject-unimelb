@@ -1,5 +1,9 @@
 # v4 + r2 + 例外证据方案 A：同样本两次独立复跑（2026-10-06）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 结论：**两次都通过完整运行时校验，都生成了成功产物；修复路径一致（10 → 1 → 0 条诊断）。**
 这是该开发样本首次在 v4 下通过。S1–S5、R1/R2 两个共享池以及此前修不动的例外问题，两次结果一致且正确。
 通过校验不等于 schema 已批准，也不是人工 gold 或准确率；本次发现 1 处语义字段错误（见下）。只有 n=2，属于单文档的初步稳定性证据。
@@ -113,3 +117,30 @@
 
 每个 run 目录包含：`run_plan.json`、`schema_snapshot.json`、`source_checklist.json`、`source_representation.md`、`extraction_contract.json`、`request_1/2/3.json`、`response_1/2/3.json`、`run_status.json`、`token_usage.jsonl`、`run_console.log`、`qbe_tppd_1123.json`、`comparison.json`、`content_spot_check.json`。
 运行脚本：`outputs/car_insurance/start_extraction_sample_v4_r3.py --trial {1,2}`；对比：`compare_extraction_sample_v4r2.py <run_dir>`（零调用）。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Two independent same-document runs on2026-10-06 passed full v4+r2+convention-A checks, both10→1→0, the first v4 acceptance for this sample. Key S1–S5/shared-pool/exception items agreed, but one semantic field error remained. n=2 is preliminary single-document evidence, not approval, gold or accuracy.
+
+Inputs/PDF/parser/source/41-item inventory matched prior trials; development only. Candidate schema_review_v4 is unchanged; convention A/diagnostics/GUIDANCE are the difference from r2, hashes recorded. Two parallel independent gpt-5 runs have distinct response IDs/JSONs, three calls each. Run1:506.6s, input210,449/output59,367/total269,816; run2:507.4s,209,043/60,334/269,377. Files are extraction_sample_v4r3_20261006_qbe_tppd_run{1,2}/qbe_tppd_1123.json, matching raw response3; offline comparison also passed.
+
+Initial issues: duplicate IDs, four exception diagnostics, three evidence mismatches, plus two pool issues(run1) or missing mappings(run2). One repair fixed these including tyre/mechanical exceptions and whole-item quotations; each then had one missingness error. Attempt3 passed. Unlike r2's stalled repairs, exact source text in diagnostics enabled both to repair these exceptions in one step.
+
+Content: one TPPD+Fire & Theft add-on, no Comprehensive (run2 notes the misleading title); own-damage-only driver exception;11 rules mapping all41 IDs, separate tyre/mechanical exceptions, full precautions/car-condition items and next-block carpool/rideshare evidence; optional reasonable_costs/per_day hire up to14days; distinct vehicle-change up to14days; three stacking rules(short codes versus prose); reciprocal core/substitute/trailer AUD30m per_incident/aggregate pool; shared fire/theft/attempted-theft lesser_of(schedule_specific,market_value); uninsured lesser_of(5000,market_value) still needs pages11/20 review; preparation31 July2023/effective null.
+
+Run1 rule_precautions.condition incorrectly describes admitting fault, not the unless-covered-anyway exception; effect is correct, run2 is correct. Checks validate citations/structure, not condition semantics. Fire/theft pool basis differs aggregate versus per_vehicle; car-condition scope differs both/none versus source_defined/source_defined. Missingness errors lacked field paths, costing another repair(~90k tokens each run's order of magnitude). Review these discrepancies before reference use; do not generalise two passes to other insurers/layouts. Proposed next steps were precise errors, semantic spot checks, scope/basis decisions, then other development PDFs, not holdout/test.
+
+### Subsequent offline changes
+schema_revision_v3.py now reports product path and fields null-but-not-_unfilled or vice versa; the two second attempts omitted three/two fields. benefit_uniqueness now names ID and category/variant/option tuple; initial runs reused the same variant for all three fire/theft events.
+
+source_coverage.py recognises numbered Things we don't cover/what we do not cover headings, including curly quotes, with exclusion wording to avoid contents matches. Only a larger heading number closes a numbered section, preserving internal enumerations. Repeated identical section introductions/(cont.) are counted once. AAMI but-we-will provide-cover/pay/cover cues are recognised.
+
+Detector counts: AAMI Comp0→29 rules/9 with exceptions; AAMI TP0→29/9; QBE Comp36/7 and QBE TPPD36/7 unchanged; Youi69→67/9 after removing two repeated headers. QBE outputs still passed at this stage; four new regressions,188 selected passes. All five development inputs belong to the2026-10-03 parser review. Counts describe detector coverage, not gold.
+
+User-confirmed conventions were then added to GUIDANCE/path checks: any market_value term implies per_vehicle, including uninsured-driver limits; fixed AUD30m liability stays aggregate; hire/towing basis not decided. Allowed preserved/not-restored pairs: own_vehicle_damage/third_party_liability only with explicit liability distinction; both/none for lifting the whole exclusion; otherwise source_defined/source_defined, not unknown.
+
+Historical candidate JSON/hash remains unchanged; a future schema revision should put conventions in descriptions. Under stricter checks run1 has7 issues(five scope,two basis), run2 two(one each). This is tightened policy, not deterioration at generation time; neither qualifies under current checks without rerun/manual revision. Three more regressions,191 passes.
+
+Preserved artifacts and exact scripts/commands are listed above: both full raw runs, status/usage/source/schema/contracts, comparison and agent spot checks. Replays make no model calls.

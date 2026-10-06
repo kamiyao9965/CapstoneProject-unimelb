@@ -1,5 +1,9 @@
 # v4 + 诊断 r2 同样本复跑：QBE TPPD（2026-10-05）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 结论：**仍未通过验收，没有成功产品产物；但失败形态明显收敛。**
 r2 的修复上下文让模型稳定保住了已修正的内容（表格、共享额度池、S1/S3/S4/S5），未再出现 v4 那种“修一处坏一处”。
 剩下 5 条诊断在第 2、3 轮**原样不变**：模型在最后一轮修复中实际只改了两个无关字段，修复已停滞。
@@ -109,3 +113,33 @@ r2 第 3 轮剩下 4 条，都不是检查约定误报：
 - `run_status.json`、`token_usage.jsonl`、`errors/`、`run_console.log`
 - `comparison.json`：离线复算的每轮完整诊断与内容索引（`compare_extraction_sample_v4r2.py` 生成，零调用）
 - `content_spot_check.json`：本次定向检查结论，代理审查，不是人工 gold
+
+<a id="english-version-text"></a>
+
+## English version
+
+The2026-10-05 v4+r2 same-QBE run still failed, without an accepted product, but retained repaired tables/pools/S1/S3/S4/S5. Five identical diagnostics remained in attempts2/3; only two unrelated fields changed in the final repair. One run cannot establish stability: the observed regression pattern improved, but exception repair stalled.
+
+### Run
+Same40-page development input, PDF/parser/source/41-item inventory as v3/v4; same unapproved v4 schema. Only runtime diagnostics/prompts/context changed, hashes recorded. openai/gpt-5, three calls,09:55:13–10:06:36 UTC,681.982s. Input207,664/output61,491/total269,155 (v4:262,422). Repair input~73.5k versus initial60.5k reflects~13k candidate context; output~25k→18k. No holdout/test or old-directory edits. Directory extraction_sample_v4r2_20261005_qbe_tppd.
+
+Attempt1 had10 diagnostics: uniqueness1, missing mappings2(page14), liability pool1, common option payout pool1, exception-related5; table correct initially. Attempt2 fixed the first five, retaining five exception diagnostics. Attempt3 repeated those verbatim, changing only uninsured-driver basis and an irrelevant APPlicable capitalisation. Counts are not accuracy.
+
+### Remaining exceptions
+Other loss/damage(page16): tyre/mechanical unless exceptions absent in all attempts, two diagnostics, genuine omission despite precise paths; earlier v4 attempt3 had included them. Precautions(page15) and car condition(page17): correct condition with an unless fragment; full block on parent, but nested evidence fails convention. Use of car(page15): correct exception cites the next block's carpool/rideshare conditions, while the checker requires the introducing block, including irrelevant delivery text.
+
+Actual repair requests only gave source IDs, not missing full text/existing exception counts; GUIDANCE's parent-or-exception evidence rule conflicted with per-exception full-block wording. Real tyre/mechanical omissions show diagnostics alone may not suffice.
+
+### Content and regressions
+S1 own damage retained, liability not restored in all attempts. S2:11 rules, six with exceptions; two page14 mappings repaired on attempt2, tyre/mechanical still absent. S3 reasonable daily cost and S4 separate14-day vehicle-change persist; S4 evidence now matches. S5 three stacking fields filled, with harmless-but-irrelevant capitalisation change. R1 restored from attempt2: core/substitute/trailer reciprocal AUD30m per_incident/aggregate pool, no duplicated caps. R2 restored: common lesser_of(schedule_specific,market_value) for fire/theft/attempted theft, including total-loss branch. R3 unified lesser_of(5000,market_value) with repair/total-loss conditions, still requires page11/20 review. One TPPD + one add-on,31 July2023 preparation, effective_date null; v3 shared-relations still0.
+
+The historical “four evidence placement plus one omission” characterisation is qualitative, not independent error counting; the detailed table above reports two missing tyre/mechanical diagnostics and three evidence cases. Fixed fields stayed fixed in this run, precise mapping/pool/ID errors repaired in one step, exceptions stalled. Initial generation remains stochastic; no statistical stability claim.
+
+### Proposed and implemented convention A
+Recommendation A: parent keeps full block; exception uses the exact complete cue sentence/bullet, with complete adjacent continuation where applicable. Alternative B would retain full-block requirements but supply exact missing text and remove conflicting guidance. Either needs trigger sentences; replay before paying, with2–3 independent runs if testing stability.
+
+User selected A. source_coverage.py/extraction_diagnostics.py preserve full parent evidence; exception quotes must contain the entire same-page unless/except/does-not-apply sentence/bullet, not half a sentence. A colon-ended cue may use the complete next same/next-page block when source is supplied. Every cue needs coverage, no invented quotation. Diagnostics now include source text and existing exception count; old complete-block citations remain valid. Seven new regressions;185 selected tests passed.
+
+Replay old→A: r2 attempts10/5/5→9/4/4; old v4 12/52/13→10/52/11; v3 shared relations0→0. Use-of-car continuation no longer fails; tyre/mechanical omissions remain(two), precautions/car-condition half-sentences remain(two). Improved diagnostics do not prove the next model run succeeds.
+
+Plans/schema/checklist/source/contract, three raw requests/responses, status/usage/errors/console, comparison and agent spot-check are preserved. Comparison script makes no model calls; spot checks are not human gold.

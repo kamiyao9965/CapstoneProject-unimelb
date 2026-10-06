@@ -1,5 +1,9 @@
 # Car insurance：首批数据登记与解析检查
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 更新（2026-10-02）：已修复下述定位到的 Youi、QBE 和 AAMI 目录问题，开发集重跑结果在 `parse_check_v3`。
 本文保留 v1 基线结论；最新结果、限制和测试见 [解析修复报告](car-insurance-parser-fixes.md)。
 
@@ -70,3 +74,21 @@
 应加入基于上述失败类型的回归检查，再复核开发集其他关键页面，记录模型/解析器版本。
 不要借机检查 Allianz 测试正文来调优，也不要把手工补全的表格伪装成原解析器输出。
 来源的当前适用性及相关 SPDS 仍需单独核实；若只做指定版本 PDS 抽取，应明确这一研究范围。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Update, 2026-10-02: the identified Youi, QBE and AAMI contents-page defects were addressed in parse_check_v3; see the parser-fixes report for current results and limitations. This document preserves the v1 baseline.
+
+On 2026-10-01, eight original PDS files were copied locally without altering their originals, verified individually by SHA-256, and registered with path/group/cross-split duplicate checks. All eight have distinct content. Sources derive from Windows Zone.Identifier HostUrl; Allianz analytics parameters were removed. The inferred retrieval date, 2026-10-01, comes from original-file UTC modification times, not independent download verification. Current applicability and supplementary-document completeness remain unreviewed: these are specific-version extraction samples, not complete current contracts. Nine car-insurance tests passed after an authorised rerun resolved sandbox temporary-directory permissions; production parser code was unchanged.
+
+The provisional brand-level split is five AAMI/QBE/Youi development PDFs, one NRMA holdout and two Allianz test PDFs. Related versions and supplements must remain together. This is not a sufficiently representative final benchmark; cross-brand template similarity remains unchecked. Initial identity inspection previously viewed all PDFs' beginning/end pages and NRMA comparison pages, so these are not never-seen blind samples. Only development data were parsed in this stage; holdout/test did not inform schema or model tuning.
+
+Default PDFIngestor, no vision callback and no cache, processed: AAMI Comprehensive 76 pages/43 table blocks; AAMI Third Party 64/38; QBE Comprehensive 48/10; QBE TPPD 40/5; Youi 61/2. All 289 pages had blocks and no parser warnings. Neither absence of warnings nor detected-table counts establish semantic correctness.
+
+Confirmed defects: Youi physical page 4, p4_t0 retained three headings but no rows, losing benefit/status/product associations despite confidence=1.0; QBE Comprehensive physical page 10 (printed 9), p10_t0 mistook an arrow callout for a one-column table and truncated words, verified against the page image; AAMI Comprehensive page 7 had contents ordering and empty-table callout concerns awaiting fuller review. Only Youi page 4 and QBE page 10 were visually spot-checked; no whole-document review was claimed.
+
+Local artifacts under outputs/car_insurance are intake.csv (eight rows), provenance_v1.json, inventory_v1.json, parse_check_v1 (JSON/Markdown/summary/screenshots), prepare_batch_v1.py (refuses overwriting registration) and render_checks_v1.py. PDFs and runtime outputs remain Git-ignored.
+
+Do not begin paid discovery until fixed development pages preserve status/product mapping and callouts no longer swallow text. Any paid visual route requires explicit configuration/cost scope. Add failure-type regressions and review other key development pages, recording versions. Do not tune on Allianz test text or disguise hand-filled tables as parser output. Review applicability/SPDS separately, or state explicitly that the research only extracts the selected PDS versions.

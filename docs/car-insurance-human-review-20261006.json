@@ -1,0 +1,47 @@
+{
+  "review_date": "2026-10-06",
+  "reviewer": "user",
+  "confirmation": "人工审核通过；都核实了",
+  "confirmation_en": "Human review passed; all findings have been checked.",
+  "scope": "AAMI v4 recovered result accepted; all listed findings reviewed. Other outputs are not accepted as complete.",
+  "model_creations": 0,
+  "source_lookup": "outputs/car_insurance/timeout_lookup_20261006/lookup_1.json",
+  "source_lookup_sha256": "0f6bbb10f4170663cdb8f553e8158e5e69e89597d83de528b2074cccd80a3161",
+  "source_findings": "outputs/car_insurance/v5_audit_fixes_20261006_verified/agent_review.json",
+  "source_findings_sha256": "897a8e23e720471a95f99f5cf8a29c93815d9063d443e6635cf11fd8295b3352",
+  "source_audit": "outputs/car_insurance/v5_audit_fixes_20261006_verified/audit_report.json",
+  "source_audit_sha256": "bd6580570c20f4eaf9727760253b6e5ac4e4cca0fb05526e7b2df8f6f3cf289e",
+  "accepted_result": "outputs/car_insurance/human_review_20261006/aami_comprehensive_v4_reviewed.json",
+  "accepted_result_sha256": "c5ebe784d8a0d48e757fd74d02554bd7191375647c12ddc29b1ada9750efb634",
+  "accepted_result_transformation": "JSON parse and indentation only; no semantic edits; original lookup and run status retained",
+  "findings": [
+    {
+      "id": "youi_trailer_01",
+      "status": "confirmed_open"
+    },
+    {
+      "id": "aami_tp_extra_costs",
+      "status": "confirmed_open"
+    },
+    {
+      "id": "aami_tp_hire",
+      "status": "confirmed_open"
+    },
+    {
+      "id": "qbe_comp_five_diagnostics",
+      "status": "reviewed_open",
+      "note": "No per-diagnostic adjudication supplied; do not infer five semantic omissions."
+    },
+    {
+      "id": "aami_comp_v5_recovered",
+      "status": "reviewed_open",
+      "note": "Four diagnostics remain; v4 acceptance does not approve v5."
+    }
+  ],
+  "not_claimed": [
+    "test-set evaluation",
+    "all development outputs passed",
+    "independent gold labels",
+    "schema frozen"
+  ]
+}

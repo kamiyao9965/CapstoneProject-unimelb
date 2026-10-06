@@ -1,5 +1,9 @@
 # API 与文件契约参考
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 依据 `main` 的 `2e4465f` 及其后本分支的引擎精简核对，更新于 2026-09-14。本文描述 Python、CLI 和文件接口；项目没有 HTTP / REST API。操作步骤见 [实用手册](docs/user-guide.md)，模块职责见 [架构](docs/architecture.md)。
 
 Python 示例从仓库根目录运行，使用 `.venv/bin/python`。下列接口是推荐集成入口，不代表已承诺长期版本兼容；升级时应保留 manifest、schema、审核产物和调用代码的版本。内部 adapter、UI session state 和数据库表细节不应成为业务调用方的接口。
@@ -480,3 +484,94 @@ parse_extraction_artifact(raw: bytes, *, vertical: str,
 | provider / PDF / DB 异常 | 保留异常链，按边界处理，不一概当作“无内容” |
 
 本文离线示例和 CLI 参数可在无凭证环境验证。真实模型输出质量、PDF 解析表现、网站可用性及 PostgreSQL 事务集成需要各自环境；本文不声称已运行这些外部流程。
+
+<a id="english-version-text"></a>
+
+## English version
+
+API and file-contract reference, checked against main2e4465f and subsequent engine simplification on this branch, updated2026-09-14. This documents Python/CLI/files, not HTTP/REST. See the user guide for procedures and architecture for ownership. Python examples run at repo root with .venv/bin/python. Recommended integration boundaries are not a promise of permanent version compatibility; preserve manifest/schema/review/caller versions. Internal adapters, UI state and DB table details are not public business APIs. Signatures, code examples, paths and command flags in the Chinese sections above are shared verbatim references for both languages.
+
+### 1. Interface map
+Local configuration: verticals.manifest. Environment/model config: common.model_config. Sampling/PDF conversion: schema.sampler/PDFingestor.adapter(local PDF reads/cache writes). Schema loading/normalisation: schema.loader/validation. In-memory contracts: schema.contract. Model-backed discovery/patching: schema.discovery, with cache/usage/failures. Model-backed extraction: schema_application.extractor, optional artifact writes. Model-backed consensus: refine.consensus, multiple review artifacts. Local review/apply: refine.human_review. Local analysis: schema_application.analyze. In-memory extraction identity reading: schema_application.records(no PDF/DB). Canonical approval: schema.canonical(in-memory). Storage: storage.service(local preflight, DB only init/load). Strict JSON/files: common.json_codec/json_artifacts.
+
+Pass the same explicit VerticalManifest, not independently guessed vertical/path/cardinality/taxonomy. Config comes from discovered manifest packages and three prompts, not static lists.
+
+### 2. Manifest and model selection
+The example above is offline. discover_manifests scans */manifest.json into code→VerticalManifest, validates and rejects duplicate codes. load_vertical_manifest checks versions/resource paths/contracts. resolve_manifest selects and capability-checks; explicit path and vertical must agree. default_manifest_path discovers, not hard-codes. Without selection, Health is preferred; an unsupported default operation may select the sole capable domain, ambiguity fails. Automation should always supply manifest.
+
+The frozen manifest exposes vertical/display_name/version/source_path, product_types/taxonomies/identity_fields, documents categories/types/extraction_unit/output_cardinality/category_product_types, consensus_runs/promoted_decisions/manual_only_queue/protected_fields, supports/require_capability, path/contract/adapter. prompt(stage) returns a validated FILE PATH, not text; registry.get_prompt loads it. Missing resources, conflicts, escapes or unsupported operations raise ManifestValidationError(ValueError). Adapters are registered names, not arbitrary executable config.
+
+ModelSelection contains provider/model/document_input. Precedence: explicit→environment→default openai/gpt-5/markdown. Other providers require model names. LLM_PROVIDER/LLM_MODEL/LLM_DOCUMENT_INPUT and OpenAI's OPENAI_MODEL fallback apply. No automatic .env load; never print resolve_api_key's returned key. require_structured_output_capability checks local model_capabilities patterns/input and returns mode; resolve_selection does not establish remote availability. Main discovery/extraction accept Markdown only.
+
+### 3. Schema and extraction models
+The schematic above means product_types is a list of product-type strings, taxonomies maps taxonomy-set names to canonical_name/description items, notes is a list of strings. It is not submit-ready JSON. product_type lives once in fields, including Travel. Taxonomy names derive from manifest. Allowed field types: string/number/boolean/enum/list[object]; snake_case unique names and valid applies_to types. No aliases/synonym merge.
+
+load_schema_data accepts standalone schema or successful discovery envelope; canonical validation is separate and approval enforced at the relevant usage boundary. normalize_schema validates current/supported legacy shapes then copies into common representation, retaining old Health top-level taxonomies/Travel classifier compatibility without rewriting files. validate_schema_mapping returns a business-validated normalized copy (classifier/types/taxonomies/identities); do not coerce model values or invent missing fields. compile_extraction_contract returns in-memory JSON Schema, defaults from manifest, explicit cardinality must agree. validate_extraction_record handles identity/applicability/multiproduct duplicate identities alongside JSON Schema.
+
+Health returns one object; Travel returns products(one or more) plus nullable _document_notes. Every product includes all fields/_unfilled/_notes, no extra top-level keys. Discovered fields can be null; business required:true also informs missingness and does not alone forbid null. Identity fields require nonempty values. Open list[object] is not a recursive DSL. Known product types cannot have nonnull inapplicable fields. Multiproduct identities compare trim+casefold without rewriting raw values. The offline minimal example demonstrates contracts, not a recommended insurance schema.
+
+### 4. Sampling and PDF
+schema.sampler selects distinct insurers per category, deduplicates content hashes, and exclude_paths excludes paths and identical content. Insufficient directories/insurers/content raises ValueError. Supply manifest categories to avoid Health defaults in Travel.
+
+PDFingestor.adapter functions/signatures above render pages/blocks/tables, optionally cache/save Markdown, and return ParsedPDF tuples. pdf_root resolves otherwise unresolved relative paths. Parsing is local, cache identity includes content/config. Camelot is optional fallback; vision requires explicit vision_page_extractor injection, not automatic activation.
+
+document_parser rejects unsupported values. pdfingestor uses pdfplumber; mineru invokes MinerU do_parse in a separate Python process, pipeline/auto/ch (also English), converts content_list JSON into the same page/block/Markdown-table representation, expanding merged cells. No HTTP service/upload; local models required. Its CLI was avoided due to temporary-service polling failures during CPU-heavy postprocessing. Empty text/table output raises RuntimeError before generation. MinerUIngestor parameters are cache_dir, runner=subprocess.run, python_executable and3600s timeout, current interpreter by default. Shared cache directory uses separate parser keys.
+
+With markdown_dir, save exactly the PDF's prompt segment under parser/relative-PDF-path.md; outside pdf_root use filename plus12-character path hash. Unchanged text is not rewritten; absent markdown_dir means no file. Ingest methods can inspect ParsedPDF structure. Missing files/parser-library errors need not share one exception type.
+
+### 5. Discovery and extraction
+Constructors accept manifest/model selection/provider injection/runtime options; prompts/contracts/validators/cardinality are manifest authority, not duplicate overrides. The full signatures above apply unchanged.
+SchemaDiscovery.discover returns validated normalized schema, not a saved success artifact; output_path is diagnostic context, CLI writes envelope. discover_patches validates base schema/refinement capability and returns a validated patch set, never a failed response as a normal patch.
+Default discovery manifest uses resolve_manifest. Both engines resolve selection from the same CLI environment when absent; explicit selection wins. Inject ModelProvider test doubles, or create_provider(selection,client=...) for SDK injection.
+SchemaExtractor resolves manifest from schema vertical unless explicitly passed, then requires agreement. Only schema_data may be positional; config arguments are keyword-only. document_parser propagates to rendering, envelope provenance and usage logs. parsed_markdown_dir defaults under manifest output root, preserving parser comparison text.
+extract_one returns data dict, no success file/wrapper. extract_many writes no-overwrite extraction envelopes, returns successful paths, records diagnostics and stops on failure. Accept discovered or approved canonical schema; require structure/business checks. Set usage_log_path for costs. extract_one checks path existence before pdf_root resolution, so use an absolute or cwd-resolvable path.
+
+The example makes a billable call and was not executed when writing docs. Migration: model→selection, vertical→manifest, client→provider injection. Remove old preprocessor/contract/prompt/validator/cardinality overrides listed above; update the config package instead. AppConfig/old document_preprocessor are removed. MinerU uses document_parser and no raw/Markdown mirror.
+
+### 6. Provider and bounded repair
+ModelProvider.generate accepts ProviderRequest and returns ModelResponse. create_provider selects OpenAI/Anthropic/DeepSeek, not proof of remote success. StructuredOutputSpec is provider-neutral. Required request fields and optional log/structured_output, response text/provider/model plus optional ID/usage/key-env, nullable token counts are listed above.
+
+run_structured_output requires structured_output and exactly one named/inline contract. Strict JSON→JSON Schema→optional business checks, default initial+two repairs. Result contains data/numbered response+error attempts. Refusal may stop early; network errors are not necessarily structural repairs.
+drop_structural_noise cleans only nondata formatting before validation: undeclared double-underscore keys in closed objects, misspelled declared names when the correct key is absent, duplicate strings in uniqueItems arrays. Log every cleanup, preserve values and fail other violations. Extractor enables it.
+Exhaustion raises StructuredOutputFailure with result; invalid data is not accepted. SDK transport retries differ from repairs, so three attempts are not a monetary cap.
+
+### 7. Consensus and human review
+Consensus refine's signature above uses manifest defaults when runs=None and writes patches, consensus schema, frequencies, stability, queue. ConsensusOutputs fields are listed above; decisions is aggregated FieldDecision, not human-decision file. Count distinct proposal runs: default core≥0.8,conditional≥0.5,candidate≥0.2,otherwise noise; promotion also depends on conflicts/protection/manifest. Health defaults1,Travel5. Nonempty alias_config_path explicitly fails.
+
+Review APIs load validated queue/decisions; new empty_decisions should bind queue identity. save_review_decision is preferred incremental locked read/merge/write against adjacent queue; remove restores Pending; derive_status validates identity. apply_review returns reviewed_schema/summary in memory; apply_review_files reads associated files and writes a new artifact.
+Actions accept/reject/edit only; Edit needs full valid edited_update. Summary lists applied/edited/rejected/pending IDs. Pending/reject do not apply; rename/merge/move cannot masquerade as upsert; old add_alias is audit-only. Bind queue ID/vertical/schema-version/base hash; do not fabricate identities/overwrite base. Low-level whole-file writes risk overwriting newer decisions.
+Default consensus/reviewed_schema.json refuses overwrite. resume-review reads that exact name and recomputes against current queue/base/decisions; alternate --out isn't automatically used. Old identity-less queues cannot resume directly.
+
+### 8. Analysis and stability
+analyze APIs/signatures above use matching discovered schema/manifest/version; load_field_specs rejects canonical. load_records reads both formats, skips errors/, rejects unknown/ambiguous source classification and explicit identity conflicts, but compatibility analysis may read missing old provenance.
+ExtractionRecord contains data/source_document/source_category; multiple products expand into records. Trusted manifest category mapping, not predicted type, controls applicability. Travel classification/product-specific metrics are N/A without labels. build_feedback_data is data-only; --feedback-out saves envelope. Travel standalone reports do not enable Health's loop feedback/evaluation.
+Schema signatures cover fields/types/all taxonomies from files/text/artifacts. compare prints and returns aggregate stability; cross-vertical comparison fails. Stability is not value accuracy.
+
+### 9. Canonical, acquisition and storage
+Canonical APIs above build candidate copies from discovered schema using approved mapping template, requiring storage capability. unmapped_storage defaults jsonb, or extension_column with field-name columns; lists/reserved/occupied columns remain JSONB, other options error. validate allows valid candidate/approved; approve returns content-bound approval with reviewer/rationale, no file/model/DB; require_approved verifies binding; compile requires approved; identity validation checks nonempty unique names separately from full output schema. Incompatible identity storage prevents automatic candidate generation. Content changes require reapproval, not just status edits. Empty legacy aliases fields do not enable alias behavior.
+
+run_travel_acquisition visits configured public sources and writes acquisition metadata, optionally PDFs. discovery_only still performs network/writes; injectable http_client is for tests. Returns artifact_path/data/pdf_paths; manifest uses the registered adapter, not another crawler.
+
+prepare_storage_load reads approved schema/artifact/original PDF, checks identity/source and builds plan without DB. Source must exist under manifest insurer/document-type layout. Both artifact formats require matching vertical/schema_version and provider/model/run identity. Identity-less historical envelopes may be analysed but must be re-extracted for storage, not patched from the selected schema.
+initialize_storage creates missing core/vertical tables transactionally, no migration. load_extraction_artifact preflights then writes one transaction, checks repeated-identity consistency, never silently overwrites conflict; returns run/document/schema-version IDs, product count/release IDs. Engine lifecycle is managed, no returned connection; PostgreSQL only.
+load_extraction_directory recursively scans JSON excluding errors, derives insurer from source path and loads one transaction per artifact. Multiple results for one PDF are all withheld. Returns sorted DirectoryLoadResult(path,insurer,summary,error), continues individual failures; missing/empty directory raises ValueError; load_one is test injection.
+
+### 10. JSON boundaries
+loads_json rejects duplicate keys/non-JSON constants/Markdown/YAML/type guessing. Contract loaders/validators above return original payload on success, ContractValidationError on failure. Dynamic discovered contracts need matching manifest; otherwise contract name selects it. Use manifest contract names and shared schema_refinement contracts; never import validators from untrusted JSON strings.
+
+Envelope fields above: UTC RFC3339 timestamps, success data/error=null; failure data=null/error code/message/details. contract_version differs from domain data.version. Extraction/feedback add vertical/schema_version; historical provenance may omit them. document_parser is pdfingestor/mineru/null; old absence denotes the then-only PDFingestor route.
+
+Success artifact build/write requires exactly one data contract. Load dynamic contracts with manifest then pass inline schema. read_artifact returns full envelope, rejects failed/invalid/type mismatch; expected_type does not validate data without explicit contract. Atomic writes default no-overwrite; next_available_path chooses but does not reserve. Failure artifacts go errors/<stage>, never successful schema paths.
+
+Main CLI extract/batch use ExtractionResult, whose field names are listed above; missing historical parser reads null. Read with model_validate/write_json, not read_artifact. Wrapper validity doesn't replace extraction-data validation; compatibility names don't imply aliases.
+parse_extraction_artifact is the shared analysis/storage reader: bytes→frozen ParsedExtraction, validates strict JSON/wrapper/successful extraction/single nonempty source and explicit identity conflicts. require_identity additionally rejects absent/empty IDs; storage enables it with approved version, analysis may be compatible. Returns original artifact/data/source/vertical/version/provider/model/run. Legacy run ID is SHA-256 of original bytes for idempotency, envelope uses provenance.run_id. Does not read source PDF or domain-validate data; downstream services do. Do not duplicate format switches/infer file identity from selected schema.
+
+### 11–12. CLI and errors
+Use the exact command/flag table above and current --help. manifest is a file path; only some main commands accept --vertical, loop does not. discover needs readable samples; extract requires --pdf/--schema, batch --schema, canonical-compile --schema/--output-dir, storage-load --artifact/--insurer-code, storage-load-batch --artifact-dir, review apply --consensus-dir, analyze --schema/--extractions, compare --schemas or --dir. Other defaults come from manifest.
+
+cost --vertical NAME=COUNT labels projected workload, not manifest choice. extract/batch use environment document input, no --document-input. Parsers pdfingestor/default or mineru; standalone consensus/measure still PDFingestor. --no-fallback is deprecated/no heuristic extraction. --keep-uploaded-files is legacy lifecycle; main path renders local text.
+Typical exits0 success/nonzero failure/2 argparse, no universal JSON error protocol; Python preferred for typed integration. CLI batch aggregates per-file failures, unlike fail-fast extract_many. Evaluation now report.json/report.md plus matching diagnostics, no duplicate report_model_only or fallback_documents; historical files retained.
+
+ManifestValidationError: fix config/resource/capability. StrictJSONError/ContractValidationError: reject and inspect paths, not auto-success. ArtifactError: inspect upstream status/type/contract. StructuredOutputFailure: stop dependent stages, retain usage/sanitised errors and start a new run after correction. FileExistsError: new path, not default overwrite. Other ValueError: schema/identity/review/storage preflight. Provider/PDF/DB errors: preserve causal chain and handle at boundary, not uniformly “empty content”.
+
+Offline examples/help need no credentials. Real generation quality, PDF behavior, website availability and PostgreSQL require separate environments; this reference does not claim those workflows were run.

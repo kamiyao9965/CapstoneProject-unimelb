@@ -1,5 +1,9 @@
 # PRD: Travel Insurance 官方文档采集与关联
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 ## 文档信息
 
 | 项目 | 内容 |
@@ -910,3 +914,103 @@ Live test 必须显式 opt-in，并只访问少量官方页面。通过标准包
 6. 实施分支建议使用 `feat/travel-insurance`，代码基线建议使用 `origin/merged-pipeline`。
 
 本文获批前不进入实现阶段。评审后如业务范围、provider、法律边界或文档 taxonomy 有变化，应先更新本 PRD。
+
+<a id="english-version-text"></a>
+
+## English version
+
+### Document information
+Draft0.1.0,2026-08-10, awaiting business/technical review. Australian Travel Insurance; proposed branch feat/travel-insurance and baseline origin/merged-pipeline. Scope: requirements, acquisition boundaries, document relationships, acceptance and implementation recommendations. This is a historical proposal, not a statement that the described system is implemented. JSON/CLI/tree examples and external URLs above apply unchanged to both languages.
+
+### 1–2. Executive summary and problem
+Extend the Australian Private Health schema-discovery project with auditable, repeatable acquisition of official public Travel PDS/SPDS/Policy Wording/Benefits Summary/Brochure and assemble related documents into product_release bundles. Not quotes/recommendations/sales in phase1. The asset is trustworthy provenance/version/applicability/relationships/content history, not maximum PDF count.
+
+MVP proposes Allianz, Cover-More and Southern Cross, with international_single_trip, annual_multi_trip and domestic. Config-driven static discovery follows at most one documentation-centre level, not a general crawler.
+Existing PDF/discovery/structured-output/validation/refinement/review/holdout/cost capabilities are reusable, but Health contracts/categories/rules do not transfer merely by changing prompts/directories.
+
+Enterprise comparisons are hindered by inconsistent PDS names/locations, SPDS amendments, nonauthoritative marketing summaries, multiproduct documents, coexisting archives and duplicate/changing URLs. Correct extraction from the wrong version is still business failure. Travel offers high reuse/public-PDF value without personal-information quote flows compared with car quoting; build reliable documents/versions before comparison/difference/recommendation services.
+
+### 3–6. Goals, exclusions, assumptions and users
+Goals: discover current official sources(strong provenance), validate/download/content-hash dedup(stable identity), associate full release bundles(SPDS may change terms), record every status/error(distinguish absence from failure), feed existing discovery/extraction without a separate pipeline.
+
+MVP targets: at least three independently runnable providers; ≥95% discovery coverage on a human-labelled current PDS/SPDS/Brochure set, not all website PDFs; all files pass PDF signature/type/size checks; ≥95% high-confidence relationship precision on reviewed links; repeat runs dedup and report added/changed/removed/unchanged; complete page/discovered/final URL/time/hash provenance; ambiguous versions/links reviewed, never silently current.
+
+Non-goals: quote/buy/login/customer portals; personal names/ages/destinations/travel dates/health; premiums/price comparison; captcha/access/robots bypass; unbounded web search; auto-promoting low-confidence links; brochures as legal authority; public PDF redistribution without legal review; LLM calls inside crawler. These boundaries reduce privacy/legal/cost/correctness risk.
+
+Assumptions needing review before implementation: Australian official market sources; internal research/no full-PDF republication; current-sale products first, archives not default discovery; limited human review acceptable; PDS/wording primary, SPDS effective amendment, brochure/summary auxiliary; merged-pipeline still agreed baseline; new dependencies require policy review/approval.
+
+Users: data engineers/researchers want validated PDFs/manifests/links in one command; schema researchers want current nonduplicate related samples; analysts need product types/active documents/benefit sources; reviewers accept/edit/reject uncertain links from page/title/date/text evidence.
+
+### 7. MVP scope
+Allianz official travel entry tests multiproduct PDS; Cover-More /pds tests current/previous documents; Southern Cross comprehensive/annual/domestic pages test multiple entries/product sources. nib/1Cover are later possibilities after official-domain/entry/terms checks.
+Types: international_single_trip,annual_multi_trip,domestic. Defer inbound/medical_only/working_overseas/cruise_only to reduce ambiguity/labelling cost. Rental-car excess remains a benefit, not a separate type/vertical.
+Documents: pds(primary including explicit policy wording) required; spds required with amends; benefit_summary/brochure required when available and associated; tmd optional/outside core comparison; fsg discovery-only/no default download; claim_form skipped; archive recorded/not current bundle. Benefit summaries are usually structured comparisons, brochures marketing; neither overrides PDS.
+
+### 8. Relationships
+Many-to-many is necessary: one PDS covers types, one SPDS amends several PDS, one summary compares plans; a new PDS must not inherit an old brochure automatically. Provider→family→release contains primary/supplement/summary/brochure, documents have explicit relationships and release links.
+amends:SPDS→PDS; summarizes:brochure→PDS; summarizes_benefits_of:summary→PDS; supersedes:new→old PDS; targets_market_for:TMD→release.
+Release identity combines provider, normalized family and base-PDS version, e.g. the example date+short content hash distinguishes same-date republication. Date must be explicit.
+Evidence precedence: explicit PDF reference to PDS name/date; official common current-document section; matching provider/product/type; overlapping effective dates without supersession; URL/filename/anchor hints last. High-confidence auto-links retain evidence/rule; medium goes to review before current bundle; low stays unlinked/outside product processing. A confidence number alone is insufficient.
+
+### 9. Workflow
+Configure tracked provider/entries/domains/product/document hints→dry-run page/candidate discovery without PDFs→provider-isolated robots/URL/static-one-level validated downloads→page/PDF text metadata/version/relationship resolution→review needs_review with retained rejection reasons→downstream sampling only current, confirmed/high-confidence, validated, nonduplicate content.
+
+### 10. Functional requirements
+FR01(P0): config-driven provider additions, no cloned crawlers; example registry contains code/display/entries/domains/depth1/pages20/rate0.5/follow/include/exclude/product hints.
+FR02(P0): static-first, one hinted allowlisted document-page level, no unbounded recursion into quote/claims/news/privacy.
+FR03(P0): retain anchor, nearest heading, source page/date; current/archive evidence often surrounds links.
+FR04(P0): HTTPS only; validate allowlist before requests and after redirects; reject loopback/private/link-local/local-file targets; robots/clear User-Agent; connect/read/total timeouts; per-provider rate/page/candidate caps to prevent SSRF/cross-domain/excess requests.
+FR05(P0): classify pds/spds/benefit_summary/brochure/tmd/fsg/claim_form/unknown with rules/evidence, not labels alone; legal roles differ.
+FR06(P0): streaming max50MiB, Content-Type plus %PDF- signature, reject HTML/empty/oversize; validate temporary file before final move; SHA-256 identity avoids partial/false PDFs.
+FR07(P0): one stored content per hash with multiple URLs; same URL/new hash creates version/content_changed without overwriting.
+FR08(P0): current/archived/superseded/unknown/needs_review from page/date/supersession/body, not presence on entry page; uncertain fails closed.
+FR09(P0): explicit PDS/SPDS/summary/brochure links and product_release; one document may link multiple releases, no forced single-product directory duplication.
+FR10(P0): record every candidate/download including success/duplicate/skip/failure; example fields include document/provider/type/product_types/title/page/discovered/final URLs/heading/effective interval/status/hash/type/bytes/download time/retrieval status/crawler version. Success-only logs hide gaps.
+FR11(P0): stable codes ROBOTS_DISALLOWED,OFF_DOMAIN_URL,OFF_DOMAIN_REDIRECT,PRIVATE_NETWORK_TARGET,HTTP_ERROR,TIMEOUT,SIZE_LIMIT_EXCEEDED,NOT_PDF,DUPLICATE_CONTENT,NO_DOCUMENT_CANDIDATES,AMBIGUOUS_DOCUMENT_TYPE,AMBIGUOUS_VERSION,AMBIGUOUS_RELATIONSHIP. Redacted exception detail supplements, not replaces, codes.
+FR12(P0): provider/URL failure isolated; run success/partial_success/failed, retain useful results and failure scope.
+FR13(P0): dry-run shows expected pages/candidates/types/versions/exclusions/warnings, no raw PDF writes; cheap prelaunch review.
+FR14(P1): provider-specific browser fallback only when static/official entries insufficient, explicitly approved. Heavy/slow/fragile browser dependency is not default.
+FR15(P1): adjacent-run added/removed/content_changed/metadata_changed/unchanged for ongoing PDS/SPDS updates.
+
+### 11–16. Nonfunctional behavior, layout, CLI, release and review
+Never guess uncertain types/versions/links; preserve evidence and only downstream-consume validated success artifacts. Identical config/page snapshot/file content yields identical semantic classifications/links, ignoring nondeterministic timestamps/run IDs.
+Defaults per provider:0.5requests/s, depth1,20HTML pages,100PDF candidates,50MiB/PDF; throttle provider/domain, serial MVP allowed. Tune from real evidence, not speculative concurrency.
+Provider differences belong in config/narrow adapters; share URL/security/download/hash/manifest/errors. Keep acquisition separate from model/PDF extraction responsibilities. Retain original/final URL/time/hash/rules/link evidence/decisions; new runs cannot erase review.
+The English flow/tree above defines registry→security→static discovery→bounded follow→classify→download→dedup→PDF metadata→version/link resolution→review→current bundles→pipeline. Separate acquisition/model failure domains for independent retry/test/audit.
+Track configs/contracts, ignore raw PDFs/runtime outputs. Suggested provider/document_type/hashprefix_sanitized-title.pdf; product applicability is an array, not exclusive directory. Suggested CLI dry-run/full/provider-filter commands above are proposals; confirm entry ownership against current architecture, not confuse acquisition with run.py discovery. Progress logs must omit PDF text/keys/unnecessary raw error pages.
+Release JSON example preserves provider/family/types/effective interval/status/primary PDS/supplements/summaries/brochures/relationship IDs/association/evidence. primary_pds is an array to allow legitimate multi-primary bundles, usually one in MVP.
+Review items contain candidate/link ID,suggestion/confidence,page/final URL,heading/anchor/date,title/effective/body snippets,conflicts,accept/reject/edit and reviewer/time/reason. Queue immutable after generation; decisions separate to preserve original suggestion versus final judgment.
+
+### 17–18. Safety/legal/dependencies
+Visit only configured official public URLs, respect robots/rates/responses, do not bypass controls or conceal automation, no interactive quote/account/claim submission.
+Public download does not imply commercial redistribution rights; Allianz terms link above is an example. Internal research default; business/legal owners must confirm automated download, retention,fact extraction, third-party text/screenshot/PDF display and attribution before enterprise/customer/public delivery.
+No personal-data collection or credentials/environment/PDF/raw-error text in ordinary logs.
+Prefer existing dependencies/stdlib; additions require policy update/approval. Validate existing HTML capability first; httpx/BeautifulSoup need explicit review, not transitive reliance. Playwright only for proven static gaps with approval. Reuse existing PDFingestor/parsing, no parallel parser.
+
+### 19. Tests
+Units: URL/domain/private-IP controls, hints/types, dates/current/archive, hashes/names, many-to-many links/confidence/review threshold/errors.
+Offline fixtures: direct PDF; one document-centre hop; separate current/archive sections; multiple URLs/same content; same URL/new content; off-domain redirect; .pdf returning HTML; provider partial failure.
+All run/manifest/release/relationship/review artifacts validate authoritative JSON Schema; reject unknown fields/enums/missing provenance/evidence-free auto-links.
+Human-reviewed golden sets for three providers label expected current documents, excluded archived/FSG/claim forms, types/products/relationships; use for95% targets.
+Explicit opt-in live smoke: few official pages, robots/allowlist success, at least valid candidate or explainable NO_DOCUMENT_CANDIDATES, no off-config domain/quotes/forms. Offline tests do not establish website acquisition.
+Implementation runs compileall/unittest discover and any new CLI --help (commands above).
+
+### 20–22. Monitoring, phases and acceptance
+Report provider total/success/partial/fail; pages/candidates/downloads/duplicates/skips/failures; type/version/review counts; added/changed/removed/unchanged; link/confidence counts; error-code counts; bytes/duration. Zero candidates may mean redesign, not discontinued products.
+Phase0: review PRD, providers/internal/legal scope/browser/dependencies before code.
+Phase1: registry/contracts/errors/security/robots/static/download/validation/hash/manifest with fully offline end-to-end fixtures, no provider-specific dependency.
+Phase2: Allianz/Cover-More/SCTI configs,golden expectations,opt-in smoke,95% core-current discovery.
+Phase3: titles/dates/releases/link resolver/review,many-to-many,95% high-confidence precision.
+Phase4: sampler confirmed current releases,Travel contracts/business validation,isolated discovery/extraction/analysis/refinement; Health defaults unchanged, Travel explicit config.
+Phase5: change reports/redesign alerts/dynamic adapters only where proven.
+
+Acceptance checklist: three valid provider configs; HTTPS/allowlist including redirects; hard depth/page caps; every saved file signature/size-valid; hash dedup; partial success isolation. Distinct document roles; SPDS→one/many PDS; multiproduct applicability; evidence-backed current/archive; ambiguity reviewed; validated release bundles. Each candidate page/discovered/final URL/status, saved file hash/time/size/type; stable failure/skip codes; separate review decisions. No PDFs/runtime/usage/credentials committed, no unapproved deps; clean-checkout compile/tests, offline --help; README/architecture/project index updated when public workflow implemented.
+
+### 23–26. Risks, open decisions, references and recommendation
+Risks/mitigation: website redesign→config/fixtures/count alerts/isolation; wrong current/archive→page+dates+supersession/review; missing SPDS→amends/current completeness; brochure conflicts→PDS/SPDS priority/source evidence; dynamic cost→static-first/provider opt-in; commercial terms→internal MVP/provider legal review; unsafe redirects→allowlist/network validation; Health assumptions→Travel contracts/taxonomies/rules; moving baseline→small slices/rebase after integration.
+
+Open decisions: internal versus customer PDF display/download; full archive retention versus metadata; TMD in MVP; chosen three providers; review owner/SLA; manual/weekly/monthly frequency; PDS/SPDS authority on summary conflict; HTML dependency approval versus stdlib maintenance; field-level document provenance in MVP.
+
+External references are the Moneysmart/Allianz product-policy/terms/Cover-More/SCTI links above. Pages change: recheck pages, robots and terms before provider/live configuration; URLs are not permanent APIs.
+
+Recommend approving three providers/three types/four core document roles; release-based PDS/SPDS/summary/brochure linking; official static one-hop allowlisted acquisition; human review of uncertain links with PDS/SPDS authority; manifest/versioned-contract separation from LLM; feat/travel-insurance from origin/merged-pipeline. Do not implement before PRD approval; update scope/providers/legal/taxonomy first if review changes them.

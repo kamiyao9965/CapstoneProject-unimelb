@@ -1,5 +1,9 @@
 # 车险开发集解析修复（2026-10-02）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 ## 第四轮：概览索引、质量拦截与跨页证据（2026-10-03，最新）
 
 最终产物：`outputs/car_insurance/parse_check_v8/`；v7 为本轮中间结果，旧产物未覆盖。
@@ -140,3 +144,50 @@ confidence 是启发式值，不是实测准确率。尚未生成车险 schema�
 
 下一步先抽查 AAMI/QBE 带警告的关键保障页，确认转为正文后没有丢失金额及对应条件，决定是否需要进一步结构恢复；
 随后才启动 development schema discovery。版本适用性和 SPDS 审核仍按 intake 报告单独跟进。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Historical parser-fix stages are preserved below in their original newest-first order. “Latest” in an older section refers to that stage, not the current repository.
+
+### Fourth round: overview index, quality gate and continuation evidence (2026-10-03)
+Final artifacts: parse_check_v8; v7 is intermediate; older outputs are preserved. Cache version pdfingestor.v9. All five development PDFs (289 pages) were rerun, without holdout/test inspection or tuning.
+
+AAMI Comprehensive page5 now has a two-column benefit-to-page index: 15 benefits plus two group-heading rows. Screenshot review confirms Optional cover/pay extra grouping is preserved. It remains an overview index, not a complete coverage conclusion; detailed clauses govern conditions and amounts. The index is no longer forced into the Third Party two-product/four-column layout.
+
+Explicit continuation headings link source blocks without copying/guessing limits across pages: AAMI TP Substitute car pages33→34 is linked. There are 16 resolved links; 11 ambiguous Youi headings remain unresolved.
+
+Quality checks cover unrecovered overviews, repeated unmapped graphics, isolated We/cover labels, empty pages, UNRESOLVED values and unresolved continuations. Car discovery, consensus patch and extraction enable enforce_quality on the shared Markdown path: unresolved blockers raise ParserQualityError before model calls, while local previews remain possible. Health/Travel and other callers retain defaults; this is not a universal request firewall. Integration tests assert empty provider.requests when blocked. No detected blockers means no_detected_blockers_not_human_approved, not accuracy or approval. Warnings are not cleared to bypass gates; at this historical stage, fingerprint-bound human waivers were still future work.
+
+quality_review.json records PDF/config hashes, blockers, links and source/block-ID clues for money, days, per-day/item/claim/incident/policy limits, excess and Limited/Optional/Not required. Sidebars are review targets, not proven reliable boundaries. These are review clues, not validated values. Prompts preserve status distinctions, detailed-condition priority and existing notes for schema limitations without undeclared fields.
+
+Blocked-page counts were AAMI Comp34, AAMI TP33, QBE Comp4, QBE TP3, Youi14: 88 total. More warnings reflect conservative detection, not 88 proven new defects. None of five was automatically released; errors, acceptable degradation and false positives still needed review, so discovery was not started. All 146 selected regressions passed, including index/page mapping, optional groups, continuation headings, daily amounts versus duration, unknown/isolated labels and pre-call blocking; no paid calls.
+
+### Third round: AAMI Third Party page5
+parse_check_v6 uses pdfingestor.v8. summary_tables.py infers missing vertical boundaries from horizontal-rule endpoints, separately extracts product headings, benefit rows, statuses and page references, and reads merged category headings full-width. Triggering requires Summary of your cover, a Page column and sufficient regular horizontal rules in a two-product overview.
+
+There is no same-page legend, so Youi's legend method is unsuitable. After screenshot confirmation, restricted geometry recognises crossed diagonals in a circle and a specific normalised tick outline. It does not infer from colour or hard-code product/benefit membership. Missing symbols, empty circles and unknown shapes yield UNRESOLVED plus warnings; Limited cover stays limited.
+
+Nine benefits, 18 statuses, page references and one full Additional cover heading were restored and checked row-by-row. Tests cover the entire matrix and prohibit interpreting missing/empty-circle symbols as not covered. Only this page triggered the path. All five development files reran; 138 selected tests passed, including earlier Youi/sidebar regressions. No paid calls or holdout/test use. Screenshot: outputs/car_insurance/aami_summary_page5.png. This resolves the older page5 issue, not whole-document review.
+
+### Second round: AAMI side labels and body
+User review found We cover/We don't cover split into fragments in v3; preserving words did not preserve semantic alignment, so v3 was unsuitable for discovery.
+
+labelled_sections.py uses geometry, not global replacements: vertically adjacent words sharing a left edge form labels, aligned right-hand text is extracted separately, then combined with page/coordinates/engine provenance. Next labels, cross-column notes, changed-font benefit headings and footers bound regions. Content/status is not inferred; unmatched layouts follow the ordinary route. Normal inline We cover sentences are not sidebars; cross-page label inheritance is not invented.
+
+Final parse_check_v5 uses pdfingestor.v7; v4 was an intermediate boundary fix, v1–v4 retained. All 289 development pages reran. AAMI Comp/TP yielded 40/31 labelled regions, with no text-only We blocks. These counts are not accuracy; TP page5 still had separate overview fragments at this stage. The English page26 example above illustrates reconstructed labels, body and limit.
+
+Synthetic geometry and local page26/37 regressions cover full labels, alignment, next-heading boundaries and ordinary sentences. All 135 selected tests passed; the Youi24-row matrix still passed. No paid calls.
+
+### First round: initial fixes
+vector_tables.py restores Youi's vector-path symbols using same-page legends, normalised shapes, fill/stroke colour and component matching, positioned in table cells. No insurer/benefit answers or blanket green=covered assumptions are used. The entire table must match uniquely; absent legends, unknown/ambiguous/missing symbols fail closed. Page4 has15 rows, page5 has9, totalling72 product statuses verified against screenshots. Not required and Not covered remain distinct; each page remains a separate block.
+
+Suspicious empty/single-column QBE tables no longer mask body text; they degrade to text plus warnings. Page10 driver/claim wording was restored. AAMI contents columns now require text blocks entirely on each side rather than centre-point heuristics; page7 Contents ordering is restored. Warnings propagate into JSON and both Markdown renderers; degraded tables lose high confidence. Cache version v5→v6 avoids old cached parses.
+
+Only five development PDFs reran. Final parse_check_v3 preserved v1/v2; Youi retained two restored tables, QBE Comp/TP six/two table blocks. AAMI's former43/38 table blocks failed the conservative multirow/multicolumn gate and became text+warnings. This does not prove no tables: real single-row/column structure may be lost to preserve text. Warning-page counts were33/30/4/3 for AAMI Comp/TP and QBE Comp/TP, none for Youi; warnings are review requests, not error counts, and absence is not human approval.
+
+All131 selected regressions passed across parsing, intake, Markdown, MinerU adapter, shared pipeline, manifest, loop, consensus, review and CLI. Tests include missing legends/symbols, same-colour different-shape graphics, text retention, warning propagation and optional local-PDF regressions (skipped when Git-ignored PDFs are absent). The existing nanosecond timestamp test now compares actual persisted Windows timestamps rather than assuming 1ns precision. The reproduction command above applies unchanged.
+
+### Boundaries and next steps at this stage
+These are targeted development-layout fixes, not universal PDF-table/OCR support. Initial symbol recovery requires English same-page legends, circular vectors and detectable grids; scanned images, other shapes and mixed-text matrices need other handling. Confidence is heuristic, not measured accuracy. No car schema or paid calls existed at this stage. Review warned AAMI/QBE key coverage pages for amounts and matching conditions before discovery; applicability/SPDS review remains separate.

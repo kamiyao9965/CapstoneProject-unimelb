@@ -1,5 +1,9 @@
 # Main 审查：业务有效性、正确性与精简
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 审查日期：2026-09-13。基线：`main`，`2e4465f`。审查开始时工作区干净。本次仅审查与离线复现，没有修改业务代码、删除兼容入口或更改依赖。
 
 ## 结论
@@ -165,3 +169,57 @@ src 的主要分布：
 - 没有调用付费模型、抓取网站、读取实际保险 PDF 或标签原数据、连接真实数据库。本次也未做新一轮真实浏览器或依赖漏洞扫描。
 
 建议顺序：先分别修复 R1–R4 并补行为测试；再退出旧入口、fallback 分流和重复格式判断；最后用每个 vertical 的小规模真实样本，对关键字段、缺失、错误值、产品身份与来源做人工核验。将问题修复和行为保持的精简分成独立变更，避免一次大改后无法定位质量变化的原因。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Review date2026-09-13, clean main baseline2e4465f. Review/offline reproductions only; no business-code, compatibility-entry or dependency changes.
+
+Health/Travel already share discovery, patch consensus, review and extraction; manifest/prompt differences are appropriate, no wholesale rebuild needed. Defects still threaten evaluation, resume and storage identity. Suitable for team development/demos, not proof of stable accurate/comparable/storable insurance data.5,000 lines is not acceptance: core4,352 effective lines, core+CLI4,970, all noncrawler runtime9,894; the core depends on support modules.
+
+### R1/P1: envelope storage identity
+storage/service.py _artifact_values lines214–233 versus239–244: legacy ExtractionResult checks vertical/schema_version, envelope validates success/source then returns data without expected identity checks. Real prepare_storage_load with fixtures accepted Travel/different-schema-version as selected1.0.0 and structurally compatible Health data as Travel. This proves preflight acceptance, not actual DB writes. Unify vertical/schema/source checks after reading either format; reject conflicts and explicitly handle old missing identity, never infer selected approval. Add symmetric tests.
+
+### R2/P2: holdout resume contamination
+refine/pipeline/steps.py evaluate_schema lines137–153/170–174 and extractor235–245 reuse round_N/extractions; no-overwrite creates suffixed successes, analysis scans all rather than returned paths, feedback has fixed filename. Real orchestration with mocked sampling/single extraction: first of two succeeds, second interrupts; retry succeeds both but analysis reports documents3/error_docs1 for two sources; rerunning completed stage spends two calls then fails FileExistsError on feedback. Feedback incorrectly says no systematic failure because successful-record paths omit error_docs.
+
+Define one attempt's output set: new directory/analyse returned files, or reuse successes only with matching source/schema. Detect completed feedback before calls. Avoid a scheduler/checkpoint platform.
+
+### R3/P2: Health evaluation silently ignores malformed/duplicate list items
+metrics.py _flatten394–401/_keyed_items546–549 counts only category/service/name items and dictionary-overwrites repeated identities. Public open list[object] permits these. Validated fixtures with one correct GeneralDental plus invented benefit_name-only item, or duplicate GeneralDental false→true, both score field_precision1/hallucination0/service_precision1 against one label. Extra/conflicting output can look perfect. Count invalid/unmatched/duplicate entries explicitly or fail evaluation; retain existing Health identity rules without aliases/arbitrary nested frameworks.
+
+### R4/P2: empty PDF reaches paid extraction
+adapter.py38–52/62–69, extractor148–155: zero-block pages render metadata, creating nonempty prompt text. A real generated blank PDF had blocks=[]; fake provider plus real extractor still made one call and wrote success/product Example. This demonstrates missing content gate, not observed real-model hallucination. Check usable text/tables/visual content per document at the shared renderer before calls; fail explicitly on zero content. OCR is separate, not a prerequisite platform.
+
+### Business fit and scope
+Shared engine/config broadly fit; normal-path offline coverage exists but R2 affects recovery. Keep structural/bounded-repair/approval gates; R1/R4 are gaps. R3 overstates quality; fill rate/stability are not accuracy. Review identity/no-overwrite has value. Similar domains may fit config, while new acquisition/label protocols need code. Travel's missing labels, open lists and unsupported rename/merge/move review are existing scope, not new regressions; silently ignoring open-list content is still a bug.
+
+Repeated feedback holdout is effectively development validation; reserve independent human-checked final test samples. Travel's then-three providers versus default five-per-category causes default discovery failure; preflight should display available/required insurers.
+
+### Simplification opportunities
+S1: unused config.py35physical/27effective and document_preprocessor.py123/92, no production imports by rg/AST; self-tests do not prove runtime use. Old gpt-4.1/KONKRD_LLM_* and separate MinerU route duplicate current ModelSelection/manifest/PDFingestor.158physical/119effective removal candidates require checking external consumers/dependency use first; not deleted in this review.
+S2: run.py fallback/model-only branches392–397/444–477 produce duplicate reports despite model-only supported providers and empty warnings. Aggregate once; decide filename compatibility separately.
+S3: centralise envelope/ExtractionResult reading and identity, preserving history, not more consumer branches or bulk migration.
+S4: narrow constructors to manifest/selection/schema/test injection; duplicate prompt/contract/validator/model/client overrides and unused preprocessor should exit. Reuse validated compiled schema, preserve boundary validation without new config framework.
+
+Do not split/compress/move files merely for LOC or remove provider repair, PDF tables, transactions, provenance, review identity/tests. Small cleanup cannot reduce all noncrawler runtime to5,000 while retaining scope.
+
+### Code counts
+Tracked Python only, excluding venv/prompts/JSON/data/outputs. Physical includes blanks/comments/docstrings; effective uses tokenize/AST to exclude those but counts code physical lines and ordinary multiline strings, not statements.
+
+| Scope | Files | Physical | Effective |
+| --- | ---: | ---: | ---: |
+| All src |83|13470|11571|
+| src excluding scraper |75|11576|9894|
+| schema/refine/schema_application/verticals |35|5051|4352|
+| Those four plus run.py |36|5742|4970|
+| Tests separately |46|8357|7147|
+| All tracked Python |129|21827|18718|
+
+Core includes canonical compilation/review UI but excludes common/PDF/main UI/storage/Health metrics/cost/stability. Effective breakdown: refine2333,scraper1677,common1440,schema1119,root905,storage865,PDFingestor805,schema_application664,evaluation595,tool_ui470,stability280,verticals236,cost182.5,000 fits narrowly core+CLI, not the runnable project; not an acceptance criterion.
+
+### Verification and next steps
+compileall passed;388 tests,387 passes/one live PostgreSQL skip. R1–R3 use existing fixtures; R4 real temporary blank PDF/fake provider. A synthetic real PDF with heading/bordered table passed basic parser smoke, not complex real policies/scans. No paid model, crawling, actual policy/label data, DB, new browser round or vulnerability scan.
+
+Fix R1–R4 with behavior tests first, then remove old entries/fallback/duplicate readers, then authorised small real samples per vertical with human checks of values/missingness/identities/provenance. Keep correctness fixes separate from behavior-preserving cleanup to attribute quality changes.

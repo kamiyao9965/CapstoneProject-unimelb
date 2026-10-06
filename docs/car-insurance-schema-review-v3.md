@@ -1,5 +1,9 @@
 # Car schema v3：回应人工审核意见
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 日期：2026-10-03。状态：**修订候选稿，未批准，未调用模型**。
 保留原始 `schema_draft.json` 和 `schema_review_v2.json`；本次没有读取 holdout/test 文档或修改数据划分。
 新增结构依据用户提供的审核意见，不把“建议支持的保障”当作任何 PDS 确实提供的保障。
@@ -131,3 +135,47 @@ excess applicability 为 all_coverages / benefits / events / benefits_and_events
 本轮选定离线回归 **250 项通过**，其中 v3 新增 40 项；v3 有 35 个产品字段、30 个保障分类和 6 个复用定义。
 旧 v2 测试保留。没有真实 API 接受性测试或新一轮真实 PDF 抽取准确率结果。
 下一步由你继续审核这个 v3，确认后再选择 development 的少量 PDF 试抽取并逐条对照原文；不能用本次测试通过数替代人工内容审核。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Dated 2026-10-03: revised candidate, unapproved, zero model calls. Original draft/v2 and split assignments remain unchanged; no holdout/test inspection. New representational capacity follows user review and does not assert that any PDS actually provides those benefits.
+
+### Review location and implementation
+Open outputs/car_insurance/schema_trial_20261003/schema_review_v3.json. Review taxonomies (includes/excludes, especially replacement cars/trailers/liability), limit_pools/$defs.limit_pool, $defs.amount_term/$defs.limit, validation_rules, document_evidence_schema/$defs.document_evidence, excesses and policy_rules in that order.
+
+No legacy consensus UI, fabricated queue or human-approved status is introduced. Structure/taxonomies/rules are coupled to builder, validator and tests; change them together and regenerate a new version. Ordinary descriptions remain editable but must agree with rules. This is not a lossless conversion to the old canonical schema.
+
+Each category now has real Includes/Excludes/ownership definitions. document_evidence and preparation/effective/version metadata already existed in v2's compiler; v3 exposes them in the source schema, adding vehicle types, applicability and evidence. v2 already checked fixed amounts and optional links; v3 makes executable validation_rules explicit with positive/negative tests. shared_with is replaced by product-level limit_pools and benefit limit_pool_ids. terms/combination supports percentages and comparisons without inventing market values. Excesses gain applicability, benefit/event references and quantities. Taxonomies add no-claim protection, modifications/accessories and pet injury; policy_rules supports waiting periods; quantities add hours/months/percent/reference_kind. Add-ons gain evidenced not_available and mutually exclusive tiers. Local $defs reuse evidence, amount, quantity, pool and document definitions; remote/cyclic references are forbidden.
+
+JSON Schema validates type, required keys, enums and ranges; business validators enforce cross-field/record references and amounts. Not every business rule is encoded as if/then. Generic contract validation alone is insufficient; SchemaExtractor runs both layers and uses bounded repairs/failure records.
+
+### Shared limits
+Pools belong to each product, never across tiers. Store totals and sub-limits only in pools; benefits reference pool IDs. The Chinese diagram above is synthetic shorthand: transport/accommodation share AUD750 per_incident/aggregate, accommodation sub-limit AUD500, benefit standalone limits empty; it is not an actual insurer result or complete record.
+
+Membership is reciprocal, uses existing IDs and at least two different members. Sharing means combined consumption, not equal independent caps. A separate AUD100-per-day accommodation limit may coexist, but do not duplicate the pool's sub-limit. Compare sub-limit <= total only for fixed values with identical period/basis/conditions; do not guess percentage/conditional comparisons. Duplicate member-set/amount-expression pools fail; paraphrased duplicates need review. Split components into referenceable benefits when their sub-limits differ. per_person pools are valid: multiple benefits share a separate cap for each person.
+
+### Amounts
+All limits use limit_id/period/basis/conditions/source_text/evidence, combination single/lesser_of/greater_of, and terms amount_kind/amount_aud/percentage/percentage_of/reference_text.
+
+Synthetic examples: AUD90/day is single fixed90/per_day; AUD90/day, 14 days, AUD1000 total uses two limits plus days/lte/14, jointly applicable when conditions hold. Ten percent of sum insured uses percentage10/sum_insured and amount_aud=null. Lesser of AUD10000 and market value uses fixed10000 plus market_value(null). Greater of a fixed amount and an insured-value percentage uses two terms. Unlimited/reasonable/schedule-specific values stay null with evidence, never zero.
+
+per_claim requires explicit claim wording; any one event/occurrence/incident maps to per_incident; policy period is not calendar year. Different periods cannot be combined into one lesser_of, and conditional alternatives must not be treated as simultaneous constraints. Unsupported nested formulas, uncertain percentage references or ambiguous conditions may require unknown + source + review.
+
+### Categories and status
+Hire-car benefits cover hire/provision; temporary_replacement_vehicle covers damage to that vehicle; substitute_car_liability covers its third-party liability. trailer_cover is physical damage; caravans_and_trailers_tppd_extension is third-party property liability. third_party_property_damage is core liability; legal_liability_features is separately stated legal-cost/ancillary cover, not duplicate core caps.
+
+Fire/theft/attempted_theft use fire_and_theft; other known events use accidental_loss_or_damage; other requires source wording. included is base cover and is not limited merely because capped. limited means expressly restricted risk/service scope; conditional means eligibility/approval makes entitlement contingent, not routine claim procedures. Add-on purchase takes optional precedence, with conditions retained. not_applicable replaces not_required only for explicit inapplicability; not needing purchase is not inapplicability, so old values cannot be blindly migrated. General exclusions belong in policy_rules; benefit exclusions only hold benefit-specific restrictions. Identical text duplication is checked; paraphrases are not universally detected.
+
+### Products, options and excesses
+Benefit IDs are unique across benefit fields within each product, not globally across products. Different tiers may reuse IDs and assign different statuses; product names must remain distinct. Named PDS tiers get records, not invented option combinations.
+
+Separately purchasable 14/21-day hire tiers use two option IDs, one option_group_id, selection_rule=one_of and separate variants. Different triggers within one option do not create new tiers. Included theft hire and optional accident hire remain separate, not merged as conditional. not_available requires explicit evidence; absence means neither unavailable nor purchased.
+
+Excess applicability is all_coverages/benefits/events/benefits_and_events/unknown, with consistent references. Driver under25 uses years/lt/25/driver_age; vehicle age uses vehicle_age. Initial-hour exclusions use policy_rules.kind=waiting_period, hours/time_since_policy_start and affected events. Representation never proves a clause exists without evidence.
+
+### Reproduction and tests
+Use the command above in this worktree; existing outputs are refused. It generates schema_review_v3.json, extraction_contract_v3.json and revision_v3_provenance.json, including source-v2 SHA-256 and model_calls=0. Preserve source code/input/command for reproducibility.
+
+Synthetic/mock tests cover amounts, references, categories, options, sub-limits and missing evidence. All 250 selected regressions passed, including 40 new v3 tests; v3 has 35 product fields, 30 coverage categories and six reusable definitions. v2 tests remain. No actual API-acceptance test or new real-PDF accuracy evaluation occurred. Review v3 first, then choose a few development PDFs and check each result against its source.

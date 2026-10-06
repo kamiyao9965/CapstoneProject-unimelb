@@ -1,5 +1,9 @@
 # v4 扩到其余 4 份开发文档：各跑一次（2026-10-06）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 结论：**QBE Comprehensive、AAMI Comprehensive 通过；AAMI Third Party 失败；Youi 因基础设施问题中止，没有模型输出。**
 都是 development 样本，各一次运行，候选 schema。通过校验不代表 schema 已批准，也不是人工 gold 或准确率。
 
@@ -224,3 +228,71 @@ Youi 的成功产物因此**不再符合当前检查**。
 
 各目录：`run_plan.json`、`schema_snapshot.json`、`source_checklist.json`、`source_representation.md`、`extraction_contract.json`、`request_*.json`、`response_*.json`、`run_status.json`、`token_usage.jsonl`、`run_console.log`、`comparison.json`（失败/中止的目录没有产物）。
 脚本：`outputs/car_insurance/start_extraction_dev_v4r4.py --doc <name>`；对比：`compare_extraction_dev_v4r4.py <run_dir>`（零调用）。
+
+<a id="english-version-text"></a>
+
+## English version
+
+This historical2026-10-06 report extends v4 to four other development PDFs, then records later reruns/checker revisions. Candidate-schema validation is not approval, gold or accuracy.
+
+### Initial run
+Four parallel gpt-5 runs, maxthree calls each, asserted development split/PDF SHA/Oct3 parser-review/build equality and froze runtime hashes/inventories. Runtime: v4+r2+conventionA+paths+AAMI detector+scope/basis rules. No holdout/test or old QBE TPPD edits.
+QBE Comp48pages/44items passed8→1→0,311,165 tokens; AAMI Comp76/32 passed12→8→0,327,156; AAMI TP64/32 failed26→8→8,383,602; Youi61/71 infrastructure-aborted with no response/unknown usage. Recorded total1,021,923 excludes any unobserved Youi charge. Directories use extraction_dev_v4r4_20261006_<doc>.
+
+Youi had no console output for~12h despite900s timeout/30s progress expectations, while others finished~20min. Process manually stopped, status aborted_infrastructure; a blocked HTTP call/machine sleep was suspected, not model/check failure.
+
+AAMI TP final eight messages represent four issues duplicated over two products. Confiscation18/Radioactivity20 were checker defects: trailing printed numbers glued to blocks were required in quotes. Extra costs19 omitted prior-authority/unless-stated-otherwise(two of four exceptions). Unlicensed22 quoted only the latter sentence. AAMI Comp handled the same two clauses correctly, supporting run variability rather than relaxing conventionA.
+Fix: trailing1–3 digit page numbers after sentence punctuation may be omitted; other words remain exact, and e.g./i.e. do not split sentences. Two regressions,193 tests; QBE inventory unchanged; TP attempts2/3 replay8→4.
+
+### Initial passing-output spot checks
+QBE Comp: one product, Hire Car Extra/No Excess Windscreen/Choice of Repairer add-ons;11 rules/seven with exceptions, scope groups1own/liability+3both/none+5source_defined; AUD30m three-member pool; four excesses/three stacking; not-at-fault/theft/optional hire all reasonable daily cost, theft/optional14days. Collision/storm own-damage limits absent at event level needed review against valuation_basis.
+
+AAMI Comp: one product, unlimited-days hire/windscreen/roadside add-ons;29 rules/nine with exceptions; AUD1000 post-incident expenses pool with three members; five excesses/four stacking. AUD20m liability copied to three benefits, no common pool, although page27 says policy-wide per-incident cap. Existing QBE-only pattern missed it.
+
+Only two of four accepted, one run each; remaining semantic omissions/shared relations/valuation ownership needed review. Next proposals: rerun Youi with sleep protection, extend liability checks, review QBE and successful outputs, rerun AAMI TP after checker fixes.
+
+### Policy-wide liability extension
+User-approved offline policy_liability_issues matches explicit “all claims from any one incident for legal liability covered by this policy is $N (million)”. Check every product, unlike earlier single-product pattern. Two or more covered core/substitute/trailer members must share one per_incident/aggregate pool with source amount. One member does not require a pool; contradictory source amounts remain for human review. GUIDANCE updated; two regressions,195 passes.
+
+Replay: AAMI Comp now one missing-pool issue, no longer current-valid; AAMI TP0(each product already had correct20m pool, source pages25/34 matched); QBE wording unaffected,0.
+
+### First Youi/AAMI TP reruns
+User confirmed sleep caused Youi interruption and authorised both. --tag produces _rerun without overwriting; Windows script prevents sleep only while running. Includes page-number/e.g./liability fixes.
+AAMI TP passed18→16→0,376,950 tokens; Youi passed26→3→0,440,359.
+
+AAMI TP: two products, each30 rules/nine exception-bearing and20m shared pool; Extra costs four exceptions and full Unlicensed citation repaired. But Unlicensed both/none contradicts “for you, but not driver”; all13 exception groups per product were both/none and needed review.
+Youi: three tiers with20m each-claim liability pools. General exclusions only on Comprehensive(28 rules), other tiers[] despite explicit all-sections wording. Inventory checks required one product only and missed tier application.
+
+Then-current five-document status: QBE TPPD r3 outputs fail tightened basis/scope; QBE Comp conforms but valuation review pending; AAMI Comp fails new pool check; AAMI TP conforms but scope review pending; Youi fails later all-policy exclusion check. Initial four+two reruns recorded~1.84m tokens, excluding aborted Youi.
+
+### All-policy exclusion check
+policy_wide_rule_issues triggers explicit all-sections/no-cover-under-any-section wording in multiproduct documents. Every product must map all exclusion IDs; reports mapped/total plus missing IDs, with ordinary evidence/exception checks retained. Single-product coverage already handled; applicability never inferred without cue. Two regressions,197 passes.
+
+Youi final rerun gains two0/67 errors for lower tiers; AAMI TP rerun0(both map29), initial TP attempts2/3 retain four unrelated errors; single-product QBE/AAMI unchanged. Youi's earlier success no longer current-valid. Estimated copying~32k chars/~8k output tokens per tier adds~16k output tokens each round; next trial estimated500–550k versus prior440k.
+
+### Three reruns under current checks
+Authorised together, commit f057cc4; script adds QBE TPPD and policywide runtime revision. Sources/inventories byte-identical; three parallel runs,maxthree calls.
+QBE TPPD failed11→4→1,268,667 tokens.
+AAMI Comp _rerun stopped after15→timeout,100,595 recorded(attempt1 only).
+Youi _rerun2 failed29→6→4,492,272.
+~860k recorded excludes AAMI's unreturned request2.
+
+QBE's page10 includes attached trailer/substitute car, but trailer field null and pool only two members; diagnostics now name missing member fields. AAMI request2 exceeded900s while in_progress, not a model-content outcome.
+
+Youi p42_text_3 mixed contents navigation and Product guide with “We will not pay for:”; exact noise was wrongly demanded, prompting ID deletion and66/67 per tier. source_coverage now permits leading contents pg.N arrow/trailing product guide omission, not other words. Replay attempt2:6→3, remaining p59_text_16 excess ellipses on tiers2/3; correct tier1 also got the error due to known path broadcasting. Exclusions now present66–67/67, but triple duplication lengthened output. Two fixes/two tests led199 passes; inventories stable, old QBE Comp/AAMI TP passes preserved.
+
+### Second three-document rerun
+Commit28172c5, same input/checklists:
+QBE TPPD _rerun stopped request2 at900s,84,741 recorded.
+AAMI Comp _rerun2 failed10→6→1,333,647.
+Youi _rerun3 failed45→10→11,434,194.
+~850k recorded, two rounds~1.71m, no accepted result. Two of six runs timed out on request2 under three-way parallelism.
+
+AAMI's remaining Extra costs has all four exceptions but quotes noncontiguous bullets with ellipses; messages did not name ellipses, repairs stalled. Youi lower tiers regress to28/67, omit required “We will not pay for:” and abbreviate other blocks. Repeating67 exclusions×3 tiers is too long. Proposed zero-call changes: explicit ellipsis diagnostics, shared policy rules in schema, and longer/serial requests rather than blind reruns.
+
+### Human review
+QBE Comp own-damage limits are not omitted: collision/storm have no separate cap; page27 settlement is repair/reasonable repair/agreed or market value from certificate/new car. valuation_basis stores agreed/market evidence consistently; events need not duplicate it.
+
+AAMI TP's13 groups per product: both/none is reasonable for Agreements, noncausal Alcohol, Driving damaged car, prior-authority Extra costs, Hire/ridesharing, Motor sports, Test drives and Unregistered(eight). source_defined/source_defined is required for Unlicensed and theft Alcohol (not driver), Extra costs travel/cleaning (only existing cover) and unless-otherwise-stated(five). Checker cannot determine all these semantics; a narrow driver-exclusion check remained undecided.
+
+compare_extraction_dev_v4r4.py intentionally rejects runtime-hash drift; this historical replay used a temporary no-hash-check script. Each run retains plan/schema/source/checklist/contract/requests/responses/status/usage/console/comparison, with no product artifact for failure/abort. Scripts and commands above remain the recorded reproduction references.

@@ -1,5 +1,9 @@
 # v4 抽取流程改进 r2（2026-10-05）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 状态：已完成离线实现及旧响应回放，**没有新增模型调用，没有把失败响应改成成功数据**。
 本轮改的是 v4 的运行时提示、诊断和修复流程，不改变候选 schema 的字段结构，也不覆盖历史 schema/请求/响应。
 旧的 [v4 真实试跑失败](car-insurance-extraction-sample-v4.md) 结论仍然成立；真实模型能否稳定修好，要由下一次受控试跑验证。
@@ -72,3 +76,29 @@ v3 只验证共享关系，不将它伪装为符合 v4 的记录。v4 的原始�
 - 本轮没有修改历史 schema 快照或将其标成人工批准；未来试跑需要记录新的运行代码指纹，不能复用旧试跑目录/started 标记。
 - 下一步是用同一 QBE 开发样本做一次独立受控模型试跑，保留 v3/v4 历史，检查内容改善和共享池是否同时保持。本轮未自动启动该付费步骤。
 - 未 commit/push 本轮改动。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Implemented offline on2026-10-05 with old-response replay, no new model calls and no failed-response promotion. v4 runtime prompts/diagnostics/repair changed, not candidate field structure or historical snapshots. The prior v4 failure remains; actual repair reliability requires another controlled run.
+
+### Five changes
+Tables: columns counts all cells; label is additional, not a replacement. Two-column examples and table/row paths with actual/expected counts are supplied; cells are never auto-inserted/deleted.
+Repair context: v4 only, latest complete compact JSON plus deduplicated cumulative errors, not recursively nested responses; still two repairs and full revalidation.
+Diagnostics: after JSON shape passes, aggregate table/exception/daily-hire/excess/source/shared-relation checks, with rule/source IDs and paths; preserve other base-business failures, not all legacy checks are aggregated.
+Evidence: full owning-rule evidence may reside in parent or nested exceptions; consecutive same-page original-order snippets may join. No deletion, reordering, wrong pages or fuzzy matching. Only a validation view changes.
+Shared limits: conservative explicit single-product cues require reciprocal liability pools and common fire/theft/attempted-theft payout pools, source amount and per_incident/aggregate scope.
+
+source_mapping_missing means no verified mapping, not proven semantic loss. evidence_mismatch means mapped but incomplete/wrong-page text, without duplicate missing-source diagnosis. At this historical stage, exception evidence still required its complete related source block. Sidebar contamination is not repaired by these checks; readable summaries can interpret but quotations must remain faithful.
+
+### Context budgets
+Off by default; only review_v4 extraction opted in then, not health/travel/v2/v3. Latest candidate max240,000 characters; oversized JSON is omitted whole with explanation, never truncated as a fake complete object. Current errors and history each max32,000 characters; full errors remain logged. These are character, not token bounds. Historical compact candidates53,482/53,482/55,710 all fit. Context adds input cost and cannot guarantee preservation; tests verify recurring old errors still reject success.
+
+### Replay and tests
+Verified report: extraction_diagnostics_r2_20261005_verified/replay_report.json, with original SHA-256 and runtime hashes; no new parsing or holdout/test. v3 shared relations:0; v4 attempts1/2/3:12/52/13 diagnostics, each with two shared-relation issues; attempt2 includes illegal IDs. Counts are not independent errors/accuracy and cannot rank quality alone. v3 is not relabelled v4; failed candidates are not published. The command above requires a new directory and no API key.
+
+All178 selected tests passed across diagnostics/context, car v2–v4, extractor/contracts/schema/canonical/travel. New tests cover paths, aggregation, evidence nesting/pages/words/order, source pool members/amounts, common events and recurring-error rejection. A broader run's symlink test failed with Windows WinError1314, not counted passed or bypassed. Earlier temporary-directory permissions required authorised rerun; this is not an all-repository pass.
+
+### Limits
+Shared-source checks at this stage target single-product explicit patterns, not arbitrary semantic proof; no matched cue or multiple tiers does not establish completeness. Complex conditions, exception scope and uninsured-driver caps need review. Shape-dependent diagnostics run only after structural validation. Historical schema approval/hashes are not changed; future runs need fresh directories/code fingerprints. The next paid same-QBE trial was not automatically started here. No commit/push occurred at this historical stage.

@@ -64,6 +64,24 @@ class DiagnosticsTest(unittest.TestCase):
         self.record['policy_rules'][0]['exceptions'][0]['evidence'][0]['quote'] = 'The above exclusions do not apply'
         self.assertTrue(any('explicit exceptions' in e['message'] for e in source_issues(self.data, clauses)))
 
+    def test_shared_source_error_only_targets_broken_record(self):
+        clauses = self.rules()
+        self.data['products'].append(deepcopy(self.record))
+        self.data['products'][1]['policy_rules'][0]['exceptions'][0]['evidence'][0]['quote'] = 'The above exclusions do not apply'
+        before = deepcopy(self.data)
+        errors = source_issues(self.data, clauses)
+        self.assertTrue(errors)
+        self.assertTrue(all(e['path'].startswith('$.products[1].') for e in errors), errors)
+        self.assertEqual(self.data, before)
+
+    def test_shared_document_rule_error_has_shared_path(self):
+        clauses = self.rules()
+        self.data['shared_policy_rules'] = deepcopy(self.record['policy_rules'])
+        self.data['shared_policy_rules'][0]['exceptions'][0]['evidence'][0]['quote'] = 'The above exclusions do not apply'
+        errors = source_issues(self.data, clauses)
+        self.assertTrue(errors)
+        self.assertTrue(all(e['path'].startswith('$.shared_policy_rules[') for e in errors), errors)
+
     def test_wrong_page_nested_evidence_does_not_restore_coverage(self):
         clauses = self.rules()
         rule = self.record['policy_rules'][0]

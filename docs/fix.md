@@ -1,5 +1,9 @@
 # 待修复事项
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 记录已经确认、但暂时没有处理的问题。每一项写清现象、原因、建议做法和验收方式，处理完后移到"已处理"。
 
 ## 1. 提取时启用 OpenAI 严格结构化输出
@@ -151,3 +155,55 @@
 
 - `run_structured_output(..., drop_structural_noise=True)`：校验前删除合同未声明的双下划线键，拼错的已声明键在正确键缺失时改回来，`uniqueItems` 字符串数组去掉重复项；每次清理都会打印日志，提取值不做任何修改，其他格式错误仍然判失败。
 - `SchemaExtractor` 默认开启。这是临时缓解，不能替代第 1 项的严格模式。
+
+<a id="english-version-text"></a>
+
+## English version
+
+This is the historical confirmed-issues backlog. Each issue records symptoms, causes, proposal and acceptance; completed items move to the final section. Pending statuses below remain historical, not claims that this documentation change implements them.
+
+### 1. Strict OpenAI extraction output (pending,2026-09-16)
+The Sept15 complete GPT-5/MinerU/canonical_approved batch processed19 PDS with61 calls:19 final passes/42 validation failures. At then-standard uncached rates, failed calls represented~68% of estimated model cost. Earlier47calls/33format failures/five missing outputs was an intermediate snapshot; all19 run-gpt5 outputs now exist and the full usage log is baseline. Errors were __typename/__proto__, __document_notes__ versus _document_notes, repeated _unfilled fields, not assessed content defects.
+
+strict is wired through StructuredOutputSpec, but extractor disables it for any list[object] or required:false. Travel's13 lists/optional fields therefore used nonstrict output. Lists compile to null-or-array of open objects, incompatible with strictness. Canonical only stores type/description, not element properties/types/requiredness; compiler lacks structure. This is a schema-expression/compiler gap, not a parser corrupting canonical. Prompt prohibitions alone are insufficient.
+
+Proposal: add explicit item contracts to canonical_schema.schema.json. Define closed nullable-required element properties for waiting_period_rules, excess_rules, cruise_benefits, optional_add_ons, coverage_benefits, sub_limits, included_activities, optional_activity_cover, excluded_activities, depreciation_rules, general_exclusions, benefit_exclusions, source_evidence. Compile scalars normally, lists from item contracts; runtime requires every key with null for business optionality without changing canonical required semantics. Stop silently disabling strict; projection must yield strict:true or fail before calls. Retain projection rejection of open objects/missing required/unsupported keywords. Build a new candidate, human-approve and re-extract representative PDS; never mutate approved schema. JSONB can retain nested lists without extra tables.
+
+After strictness, prompts explain semantics, named plans/null/no unsupported inference, not JSON syntax. Remove name-uniqueness/tier-concatenation requirements and plan_tier typo per issue2. Add tiny few-shots only for measured recurring semantics, comparing zero/one/two examples on fixed data, first-pass/field quality/tokens/cost; retain only stable benefit exceeding cost.
+
+Acceptance targets: offline strict:true and all nested objects closed;3–5 varied PDS trial, target at least95% first-pass (target, not achieved evidence),19-document batch19–23calls, lower retries/output tokens, contract/list/projection tests.
+
+### 2. Simplify extraction identity/storage (pending,reviewed2026-09-20)
+Supersedes the Sept16 proposal to force unique product_name by concatenating tiers. Current normalized-name uniqueness and deterministic vertical+insurer+name product IDs/product+document release IDs conflate model wording with identity; repeated names consume repair calls. JSON validity never proves PDF truth.
+
+Scope: PDF→traceable structurally valid records, not cross-document/year entity resolution. Each valid products item becomes an independent row with DB-generated nonsemantic auto-increment product_id; no canonical_id or encoded business key. Neither product_name nor plan_name is unique. Idempotency uses run_id+document_id+item_index; new runs may represent the same real product again. Keep source/run/provider/model/schema/artifact provenance. No candidate/product mapping, auto-merge, compound codes or family/variant platform. Retain strict parsing/schema/approval/vertical-version/source/transaction gates.
+
+Implementation proposal: adjust PostgreSQL PK/FKs/SQLAlchemy types, stop deterministic_product_id, store the idempotency tuple, remove canonical name-duplicate rejection in extractor/load-plan compiler while retaining nonempty/type/enum/required checks, correct prompts to plan_name, preserve raw artifacts and treat tables as projections without guessed/corrected values. Update both storage/canonical ADRs, architecture, README, API and guide.
+
+Human review remains independent; readonly SQL/views/anomaly reports may flag negatives/extremes/missingness/conflicts. Optional offline teacher-model judging receives PDF evidence/definitions/values and emits correctness/support/uncertainty separately, never synchronous ingestion gating, automatic retry or overwriting. It is screening, not gold; calibrate against small human labels and record provider/model/prompt/schema. Run fixed eval/release regression/sample batches with separate costs; low scores enter review.
+
+Non-goals: entity dedup/synonyms, new family/variant/release hierarchy, mandatory judge gate or automatic corrections. Acceptance: same-name Gold/Silver records pass without name repair, get distinct surrogate IDs; same tuple reload is idempotent/new run allowed; invalid schema still fails under issue3 policy; provenance retained; at least one readonly anomaly-query example; any judge output independently stored/calibrated.
+
+### 3. Typed failure-based retries (pending,2026-09-20)
+Implement after strict output and removal of name repair. Current structured_output flattens parse/schema/business errors to path/message and retries all twice; provider/PDF/poll exceptions follow separate ununified routes. SDK transport retry, output repair and whole-document rerun are distinct.
+
+Failures must be typed at origin, not guessed from message keywords or decided by the model:
+
+| failure_kind | Signal | Default action |
+| --- | --- | --- |
+| transient_transport | SDK disconnect/408/429/5xx | SDK exponential backoff, stop on exhaustion; no LLM repair |
+| poll_timeout | Pending response beyond local wait | Retrieve same ID; stop if unknown, no duplicate create |
+| output_truncated | Explicit incomplete/max_output_tokens or length | At most one regeneration with higher cap/smaller contract, logged as regeneration |
+| json_parse | Invalid nonstrict/legacy JSON | At most one format repair; strict path stops as provider/adapter defect |
+| schema_validation | Local keyword/path violation | Nonstrict at most one repair; strict stops as projection/adapter defect |
+| business_validation | Identity/range/business constraint | No format repair; storage boundary/anomaly/manual review as appropriate |
+| refusal_or_filter | Explicit refusal/empty/filter | No auto retry; traceable failure/manual decision |
+| source_parse | Empty/corrupt/unparseable PDF | No model call; operator fixes parser/source before rerun |
+| content_uncertain | Suspicious/ambiguous but valid | Structurally accept+review flag, human/offline judge, no auto extraction |
+
+Add stable enums/types and independent budgets for transport/poll/repair/rerun, avoiding layered duplicate retries. Strict Travel should not normally need two repairs; keep only single-repair legacy compatibility. Log failure_kind/retry_action/retry_reason/new-call flag plus tokens/time/validation. Failure artifacts use safe codes/details, not full PDF/key/raw response.
+
+Acceptance: fake tests for every kind with exact calls/actions; duplicate names, suspicious values, uncertainty, refusal and parse failures do not trigger format repair; truncation maxone regeneration; timeout no duplicate response; logs explain cause/action/extra tokens. Targets:0–4format failures and19–23calls per19 documents.
+
+### Completed: structural-noise cleanup (2026-09-16)
+drop_structural_noise=True deletes undeclared double-underscore keys in closed objects, restores misspelled declared keys only if the correct key is absent, and deduplicates uniqueItems string arrays. Every cleanup logs; extracted business values unchanged, other violations fail. SchemaExtractor enables it by default. This is temporary mitigation, not issue1 strictness.

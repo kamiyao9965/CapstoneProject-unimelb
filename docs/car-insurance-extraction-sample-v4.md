@@ -1,5 +1,9 @@
 # v4 同样本重跑：QBE TPPD（2026-10-05）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 结论：**真实调用完成，但抽取验收失败；有内容改善，也有回退，不能发布为已审核产品数据。**
 
 ## 运行与复验
@@ -93,3 +97,29 @@ PDS 准备日期 2023-07-31、版本 QM8506-1123、生效日期 null 保留。
 - `content_spot_check.json`：本次定向检查结论；代理审查，不是人工 gold 或 schema 审批。
 
 所有 outputs 仍由 Git 忽略。本次报告及此前 v4 代码改动尚未 commit/push；不要把本地试跑资料误认为已经上传 GitHub。
+
+<a id="english-version-text"></a>
+
+## English version
+
+The 2026-10-05 QBE TPPD rerun completed real calls but failed acceptance: some improvements and some regressions; not approved product data.
+
+### Run
+User authorisation: “lets go”. Same40-page development PDF, same PDF SHA/parser review/source as v3; v4 prompt/schema/checks changed together, not a single-variable experiment. schema_review_v4.json remained a candidate. Code/schema hashes and41 source units were frozen; runtime and v3 records remained unchanged. openai/gpt-5 ended07:25:26 UTC, 799.793s. Three calls (initial+two repairs), then stopped. Input180,870/output81,552/total262,422 tokens. Duration in each usage row is the same logical-run total and must not be summed. No qbe_tppd_1123.json was published; response_3 is not accepted data. Outputs are under extraction_sample_v4_20261005_qbe_tppd.
+
+Attempt1: three table columns but two cells, with label separate; offline checks also found unstructured Other loss or damage exceptions/evidence issues. Attempt2: table fixed, tyre/mechanical unless exceptions absent, ordinary block IDs mistaken for checklist IDs. Attempt3: exceptions added but table regressed;11 completeness messages remained. Fail-fast business checks prevented runtime completeness checks in all three calls; comparison.json ran them separately. Eleven messages were not11 omissions: three blocks each produced evidence+coverage messages, plus five exception evidence issues. Neither diagnostics nor41 heuristic units are accuracy/gold.
+
+### S1–S5 comparison, final failed candidate
+S1 page14: unknown-driver exception now preserves own damage, not liability; evidence omits recovery wording and full parent block. S2 pages14–17: rules grow3→11, adding major excluded topics; tyre/mechanical exceptions appear only in attempt3, several citations remain partial. S3 page13: reasonable_costs/per_day/null,14 days and stop conditions retained, passes targeted review. S4 page11: dedicated change_of_vehicle_cover, sale/disposal origin, days/lte/14 and notice; source sidebar/body reordering fails exact evidence matching despite meaningful content. S5 page26: three stacking rules and learner exemption retained, schedule_specific/null amounts; passes targeted review.
+
+Reordered mixed-layout evidence is not automatically semantic error; nested exception evidence versus parent duplication also exposed checker conventions. Clarify evidence ownership and readable summaries rather than deleting validation.
+
+### Regressions R1–R3
+Product/add-on boundary, AUD30m liability,14-day hire, under25 age and metadata remain. R1 high: both shared pools disappear in all v4 attempts ([] then null). AUD30m only on core liability, substitute/trailer references empty; Fire & Theft caps duplicated. Restore source-supported relationships, not just numbers. R2 high: fire/theft retain repair+total-loss branches, attempted theft only repair, although page12 applies a common option rule. R3 review: uninsured-driver cap changes from one lesser_of(5000, market_value) to conditional repair/total-loss limits; both terms remain but page11/20 conditions need review. No real percentage/sub-limit validation and no overall accuracy claim.
+
+### Repair problems and proposed offline work
+Column errors lacked table/row paths and actual/expected counts; exception errors lacked rule_id. structured_output.py then sent only original input plus latest error, not previous JSON/history, allowing repaired tables to regress. Fail-fast checks hid independent problems. Reference consistency alone did not detect missing shared pools.
+
+Five proposed fixes: clarify label/cells and precise errors; retain latest candidate/history or verified targeted repairs with bounded context and regression tests; aggregate safe diagnostics with rule/source IDs; distinguish content loss from evidence placement/layout while retaining page binding; add shared-liability and common fire/theft/attempted-theft payout regressions. Subsequent offline implementation is in the diagnostics-r2 report; this historical failed run remains unchanged, with no fourth paid call or holdout/test expansion.
+
+Artifacts include plans/schema/contracts, source/checklist, three raw requests/responses, status/usage/errors, comparison.json (v4=null: no accepted product), and agent content_spot_check (not gold/approval). Outputs remain Git-ignored; statements about uncommitted changes describe this historical stage.

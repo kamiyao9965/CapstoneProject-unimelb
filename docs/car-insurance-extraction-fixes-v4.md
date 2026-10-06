@@ -1,5 +1,9 @@
 # 抽样问题修复 v4（2026-10-05）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 状态：已实现新的候选 schema、原文完整性检查和回归测试。**没有改写 v3 模型结果，没有宣称真实模型已消除全部遗漏。**
 实现阶段仅做离线验证。2026-10-05 用户确认后已重跑同一 QBE 开发样本：3 次生成后仍未通过校验，内容有改善但共享额度关系回退，未使用 holdout/test 文档。
 实际运行结论见 [v4 同样本重跑报告](car-insurance-extraction-sample-v4.md)；以下离线测试结果不能替代该真实失败记录。
@@ -73,3 +77,28 @@ AAMI 两份目前只识别到 excess 叠加提示，**其一般除外章节尚�
 - 完整引用并不证明模型概括正确；例外条件的逻辑、档位适用范围、不同条款之间的关系仍需人工复核。
 - 尚未加入第二阶段专门抽取，因为先验证现有单次流程加检查是否足够，避免无依据增加 API 调用。
 - 离线测试证明“这些缺陷会被检查拦住”，不能证明真实模型每次都能生成正确答案。同样本重跑已失败；下一步先完善离线诊断/修复流程和共享额度回归，不自动追加付费调用。
+
+<a id="english-version-text"></a>
+
+## English version
+
+On 2026-10-05 a new candidate, source-completeness checks and regressions were implemented offline. v3 outputs were not rewritten and real-model completeness was not claimed. A subsequently authorised same-QBE rerun used three calls and failed: content improved but shared limits regressed; no holdout/test. See the actual v4 sample report; offline tests do not override that failure.
+
+### S1–S5 implementation
+S1: policy_rules.exceptions holds condition/effect/restored/not-restored scope/evidence; explicit cues require exceptions with their parent, preserving own-damage versus liability distinctions. S2: build source-block inventory from actual input and map source_clause_ids on rules/benefits/excesses; missing/stale IDs, wrong owners/pages and incomplete quotations fail into bounded repair. S3: reasonable daily hire cost requires reasonable_costs/per_day in limits, not evidence only. S4: dedicated change_of_vehicle_cover and time_since_vehicle_change distinguish replacement after purchase/sale from hire/repair substitutes; preserve explicit N hours/days/months maxima. S5: “in addition to … excess” requires nonempty combination_rule, without summing unknown amounts.
+
+v4 is a structural version change, not a renamed v3 result or automatically approved/default schema. Old v2/v3 behavior and outputs remain.
+
+### Runtime
+SchemaExtractor applies parser quality gates, renders physical page/block/table anchors, builds the conservative checklist in the same request, validates JSON/v3 business rules then v4 exceptions/dedicated fields, and checks source IDs/quotes/ownership/parents. It permits at most two repairs; failure is recorded without a successful product file. Missing source anchors stop before generation. Each extract_one rebuilds its own inventory. A clause represented in at least one product does not prove every tier applies it correctly.
+
+Checks do not hard-code QBE, filenames, pages, amounts,14 or25. Tests vary pages/durations, cross-page rules, contents/footers and towing-cost versus daily-hire negatives. QBE yields41 blocks:36 policy rules, one daily-hire, one vehicle-change and three excess-stacking. These are heuristic regression units, not gold; old v3 lacking IDs is not41 semantic errors. Its missing daily hire/three stacking fields can be checked independently.
+
+Offline detection over five parsed development documents found QBE exclusions and69 Youi exclusions; Claiming now ends scanning and navigation/footer text is excluded. AAMI exclusions were not yet covered at this historical stage, so no completeness claim was possible. No new model outputs or scores were produced.
+
+### Files and verification
+schema_review_v4.json, extraction_contract_v4.json, revision_v4_provenance.json and source_coverage_audit.json reside under schema_trial_20261005. Builders/checks/tests are schema_revision_v4.py, source_coverage.py and test_car_schema_revision_v4.py. Selected regressions passed, including26 v4-specific tests after chapter-end/navigation negatives. Generated v4 matches builder; v3 hash and saved QBE inventory are unchanged.
+
+The reproduction command above refuses overwrite. Real extraction must explicitly select v4 and retain parser_review, using a new directory. Generic JSON Schema tools do not run source checks; SchemaExtractor does.
+
+Detection covers explicit exclusion sections/high-confidence cues, not every layout/wording; zero inventory is not no exclusions. Exact citations do not prove summary/exception/tier semantics. A second extraction stage was deferred until the checked single-pass workflow could be evaluated. Offline rejection tests do not prove reliable real generation; repair diagnostics and shared-limit regressions precede further paid work.

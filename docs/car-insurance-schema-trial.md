@@ -1,5 +1,9 @@
 # Schema 首次试跑（2026-10-03）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 结果：首次 discovery 已成功完成，运行器耗时约 112 秒，输出 artifact.status=success。
 草稿含 31 个顶层字段、3 种 product_type、30 个 coverage_categories 项。
 模型报告 input 131,824 tokens、output 10,427 tokens、total 142,251 tokens；未估算货币费用。
@@ -28,3 +32,19 @@ Car 质量门槛仅在显式指定 `CAR_INSURANCE_PARSER_REVIEW` 时读取试跑
 该脚本不在 Git 跟踪中，不是通用数据采集脚本。
 
 测试：147 项选定离线回归通过，包含试跑授权不能放行复核后发生变化的解析内容。
+
+<a id="english-version-text"></a>
+
+## English version
+
+The first discovery completed successfully on 2026-10-03 in approximately 112 seconds, with artifact.status=success. The draft has 31 top-level fields, three product types and 30 coverage categories. Reported usage: 131,824 input + 10,427 output = 142,251 tokens; no currency estimate. Structural success is not human approval. Consensus, product extraction and benchmarking were not started. Next review duplicate fields, executable nested constraints and source-supported product/add-on distinctions before choosing consensus refinement.
+
+The user authorised a trial after checking parse_check_v8. This accepts the trial's remaining parsing risks, not a claim that every warning was fixed, schema approved or benchmark labelled.
+
+Scope: five development PDFs from AAMI/QBE/Youi, excluding NRMA holdout and Allianz test. Existing openai/gpt-5 receives local parsed Markdown, not uploaded original PDFs. One discovery workflow may include underlying structural retries; no consensus/extraction is started.
+
+In outputs/car_insurance/schema_trial_20261003/: parser_review.json records authorisation and PDF/parser/page-content fingerprints; run_plan.json records model/inputs/targets; schema_draft.json exists only on successful generation; token_usage.jsonl records usage where provided by the runner.
+
+The car quality gate reads this trial approval only through explicit CAR_INSURANCE_PARSER_REVIEW. Otherwise existing warnings still block. Only exact fingerprint matches pass; changed PDFs, parsed content or parser settings require review again. Original warnings, quality_review and old parsing outputs are retained.
+
+The local, untracked start_schema_trial.py reads selected variables from the parent workspace .env without exposing keys. It refuses rerunning after a draft exists; inspect failure records before retrying because retries may be billable. It is not a general acquisition script. All 147 selected offline tests passed, including rejection of parsing content changed after review.

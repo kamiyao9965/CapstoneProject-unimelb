@@ -1,5 +1,9 @@
 # v3 首次真实抽样：QBE TPPD（2026-10-03）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 结论：**真实模型抽取和两层校验成功；内容抽查发现遗漏，不作为已审核产品数据或 benchmark 成绩。**
 
 ## 运行记录
@@ -88,3 +92,32 @@
 可以继续把 v3 用于开发集诊断，但不建议立即批量跑所有文档或测试集。
 先处理 S1/S2（例外条件和完整性），再处理结构化漏填与换车保障归属；经用户授权后对同一开发样本重新试跑，保留本次作为前后对照。
 本次任务止于“一份真实样本 + 保存结果 + 内容抽查”，没有自动开始下一轮付费调用，也没有把候选 schema 升级为已批准版本。
+
+<a id="english-version-text"></a>
+
+## English version
+
+On 2026-10-03 the first QBE TPPD trial completed generation and both validation layers, but spot checks found omissions. It is neither approved product data nor a benchmark score.
+
+### Run and artifacts
+The purposively selected 40-page development PDF contains a Fire & Theft option, testing product boundaries rather than random/general accuracy. Candidate schema_review_v3.json remained unapproved. PDF, parsed text and parser-review fingerprints matched accepted parse_check_v8. openai/gpt-5 received local Markdown, not the original PDF. Completion: 07:07:15 UTC; 159.377 seconds. One generation, no repairs used (maximum allowed: initial plus two). Tokens: 53,351 input, 17,237 output, 70,588 total; no monetary estimate. Output: one product, one add-on, two pools, four excesses and three global rules. JSON Schema, profile checks and offline replay passed. No holdout/test, benchmark, result-specific schema/prompt changes or manual output patching.
+
+In outputs/car_insurance/extraction_sample_v3_20261003_qbe_tppd/, qbe_tppd_1123.json wraps data.products[0]; schema_snapshot/extraction_contract record actual contracts; run_plan records selection/model/fingerprints; source_representation is prepared text and request_1 the actual prompt/input; response_1 is raw response/usage; token_usage/run_status record usage/outcome; content_spot_check is agent review, not gold.
+
+### Verified spot checks
+Physical PDF pages usually exceed printed pages by one. Pages10/12: only TPPD, with Fire & Theft as add-on, no invented TPFT/Comprehensive product. Pages10–11: AUD30m per_incident/aggregate shared by core/substitute/trailer liability. Pages11/20: uninsured-driver lesser_of(5000, market_value), retaining fault/identity conditions without inventing market value. Page13: optional theft hire linked to Fire & Theft, days/lte/14 with stop/authorisation conditions. Page26: driver_age years/lt/25, excess schedule_specific/null. Pages1/3/40: title, preparation 31 July2023, version QM8506-1123, unknown effective date.
+
+This is targeted review, not complete correctness. Pool scope and combination conditions need final review. Neither pool has sub-limits and no percentage was extracted, so those features have only synthetic coverage, not real-data validation.
+
+### Findings S1–S5
+S1, high: page14 Driver exception absent from rule_driver_exclusions; unknown driver circumstances can preserve originally covered own-car damage but not third-party liability. Empty conditions and blanket exclusion change meaning. Extract adjacent exception/however/unless text jointly and test scope.
+
+S2, high: pages14–17 include intentional/reckless/fraud and exceptions, precautions, war/nuclear, wear/mechanical, condition and sanctions. Only use/driver/cyber rules were output; use was partial. Text was in the actual model input, so this is not simply parser failure. Build source-clause coverage and consider staged coverage/rule extraction; outputs are not labels.
+
+S3, medium: page13 reasonable daily cost appears only in evidence/table; ft_hire_car_after_theft.limits is empty. Add reasonable_costs/per_day without inventing a fixed daily amount.
+
+S4, medium: page11 automatic transfer to a replacement after sale/disposal, up to14 days, is absent; other_coverages and temporary_replacement_vehicle_cover are null. It is neither14-day hire nor a repair substitute car. Define ownership and regress it.
+
+S5, medium: page26 age/additional-policy/additional-driver excess stacking exists in conditions/evidence but combination_rule is null. Fill the dedicated field consistently; do not sum unknown schedule amounts.
+
+Continue v3 as development diagnosis only. Prioritise S1/S2, then dedicated fields/change-of-car ownership, before a separately authorised same-sample rerun. This stage stopped after one sample and review, without further paid calls or schema approval.

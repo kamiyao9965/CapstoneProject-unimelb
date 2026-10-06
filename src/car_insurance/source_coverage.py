@@ -69,14 +69,30 @@ def _source_id(page, block_id, text):
 
 
 def following_blocks(document_text):
-    """Map each block's source_id form to the next non-navigation block (page, text).
+    """Only map conservative, grammatically connected exception bullet lists.
 
-    Only the same or next page counts as adjacent; used for exception carve-outs
-    whose cue ends with ':' and continues in the following block.
+    Adjacency alone is not evidence of continuation. Inline lists already in
+    the parent cannot borrow the next exclusion. Unknown layouts fail closed.
     """
     blocks = [b for b in source_blocks(document_text) if not NAVIGATION.fullmatch(' '.join(b[2].split()))]
     return {_source_id(page, block_id, text): (blocks[i + 1][0], blocks[i + 1][2])
-            for i, (page, block_id, text) in enumerate(blocks[:-1]) if 0 <= blocks[i + 1][0] - page <= 1}
+            for i, (page, block_id, text) in enumerate(blocks[:-1])
+            if 0 <= blocks[i + 1][0] - page <= 1 and exception_continuation(text, blocks[i + 1][2])}
+
+
+def exception_continuation(parent, child):
+    parent = normalized(without_page_footer(parent))
+    child = normalized(without_page_footer(child))
+    if not EXCEPTION.search(parent) or not parent.endswith(':') or not child.startswith('•'):
+        return False
+    if re.search(r'\b(?:no cover|not covered|exclusion|unless|except)\b', child):
+        return False  # a new operative rule, not a safe alternative quotation
+    bullets = [s.strip() for s in child.split('•') if s.strip()]
+    if re.search(r'(?:except (?:when|if|where)|unless):$', parent):
+        return bool(bullets) and all(re.match(r'(?:it is|you (?:have|had|are|were|bought))\b', s) for s in bullets)
+    if re.search(r'if your car is:$', parent):
+        return bool(bullets) and all(s.startswith('being ') for s in bullets)
+    return False
 
 
 SEGMENT = re.compile(r'•|(?<!e\.g\.)(?<!i\.e\.)(?<=[.;])\s+')

@@ -1,5 +1,9 @@
 # Spec：Health / Travel 统一流程（精简版）
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 状态：完成，统一实现已合入远端 main；进度和验证记录见 [todo](../../tasks/todo.md)。
 日期：2026-09-08；实现验证更新：2026-09-10。用户：项目组，用于开发、实验、审核与演示。
 
@@ -173,3 +177,66 @@ UI：`.venv/bin/python -m streamlit run src/tool_app.py`。无独立 build/lint 
 约 5,000 行仍只是规模判断，不作硬性预算。保留现有模型/PDF/采集/标签/存储组件，删除第二套 schema 模型和领域引擎；不为第三领域增加代码或配置。真实 API、PDF 转换、Health 标签批处理及 DB live 未运行，限制在 todo 如实记录。
 
 最终合并记录：2026-09-10 已将 `063c13e` → `a00a9044cc7d1495be6a71111946ef6dd0cba131` 快进推送到远端 main，并通过 `git ls-remote origin refs/heads/main` 核实。本文档、README 与 architecture 的完成记录随最终文档提交同步。
+
+<a id="english-version-text"></a>
+
+## English version
+
+Historical specification dated2026-09-08, implementation evidence updated Sept10: complete and merged into remote main. Intended for team development, experiments, review and demos; see linked todo. This replaces the heavier prior design and includes implementation ordering, not another plan file.
+
+### 1–2. Scope and complexity
+Unify Health/Travel on main through sample selection→discovery→consensus→human review→extraction→supported analysis. Global UI vertical selection; manifest/prompts express differences. Retain existing Streamlit/CLI/model/PDF/peripheral capabilities, not a rebuilt platform. Approximately5,000 lines is a rough intuition about core scale, never a cap or acceptance gate. Exclude prompt body/crawler from core comparisons, but prompt loading/composition/validation is code. No alias configuration/management/synonym merging; old aliases remain read-only. Third-vertical direction/config/prompts/samples/zero-code experiments are deferred.
+
+One implementation per operation and one authority per concept. No speculative registries/config layers/frameworks. Abstractions must solve existing Health/Travel duplication; prefer small existing-module functions for one caller without separate responsibility. Compatibility follows actual users, not two permanent engines. Keep validation/error handling/readability/tests; do not compress formatting or rewrite stable components for LOC. Optional before/after counts use one method, no per-module quotas or LOC platform. Initial reference:12,193 effective src lines,108 prompt,1,677 scraper,10,408 after subtraction includes PDF/model/DB support and is not directly comparable with “core”.
+
+### 3. Minimal design
+One configs/<vertical>/manifest.json plus discovery/patch/extraction prompts; retain Travel sources/approved canonical/storage config. Public contracts stay shared. Extend VerticalManifest for names/capabilities/document versus product categories/sampling/paths/prompts/consensus. Registry scans valid packages and loads text, CLI/UI reuse it. One legacy-default mapping is enough; no application.json, independent context/plugin/executable-rule system. Parse once per run; missing prompts, unknown capabilities, path escape and vertical conflicts fail before external calls. Prompt paths are package-relative; data/output follow explicit project/environment/CLI rules.
+
+One internal fields/product-types/identities/taxonomies model, classifier only once. Shared deterministic enum/uniqueness/applies_to/identity/cardinality rules take manifest parameters. Discovery still discovers business fields, not manually authored entire output schemas; retain list[object] limits. Convert existing two JSON shapes at one boundary; version only affected persistent contracts, not an entire v2 registry/envelope migration.
+
+Keep in-use old JSON and approved canonical via one small converter. Persistent conversions write new files/provenance without changing production approval hashes. Delete unused loaders/static models/validators after public-call audits; YAML/entity-v2 gets minimal compatibility only if used. Do not silently adopt unfinished old reviews with mismatched identities. Remove alias reads/merging/new add_alias; retain valid field-name checks. Old alias operations are audit-only, --alias-config errors explicitly, vote changes demonstrated on fixed fixtures.
+
+Reuse run.py/refine.loop/SchemaExtractor, not vertical-name switches. Thin UI: choose vertical→capability→documents/schema→execute→review; isolate forms/confirmations/queues/results by run and launch parameters. No new scheduler/history DB/snapshot framework. Reuse run/schema/review identities; supplement only affected contracts if needed.
+
+### 4. Boundary ownership
+B01 discovery/defaults: discover_manifests/resolve_manifest/OPERATION_CAPABILITIES(T03,T16).
+B02 config: VerticalManifest/resolve_manifest(T03,T11).
+B03 prompts: configs files+registry.get_prompt(T03–05,T18).
+B04 contracts: common.json_contracts/shared schema_refinement, old names read-only(T06–07).
+B05 schema shapes: normalize_schema fields+taxonomies(T06–09).
+B06 document/sample/product categories: distinct manifest declarations; sampler selects only(T03,T08,T11).
+B07 validation/identity: shared functions/config protection(T06,T09,T15).
+B08 cardinality: one compiler(T09).
+B09 paths/no-overwrite: manifest.path/json_artifacts/next_available_path, distinguish sources(T03,T08,T09).
+B10 cache: adapter receives resolved paths, parser retained(T09).
+B11 consensus: manifest.refinement+shared aggregator/renderer/apply(T10–12).
+B12 aliases: runtime removed, old read-only(T10–12,T18).
+B13 review/resume: shared identity/apply, no general migration(T11–12,T17).
+B14 analysis: common fields/trusted categories(T13).
+B15 Health labels: existing evaluation capability, no vertical-name branch(T13).
+B16 stability/cost/logs: common signatures/paths/existing usage(T14).
+B17 canonical/storage: shared candidate/compiler, approved contract authority(T15,T17).
+B18 UI: vertical/operation scope, command-bound confirmation, queue/source-bound review(T16–17).
+B19 old models: historical JSON and CLI ExtractionResult retained; unused loaders/static models/prompts/Travel wrapper removed(T01,T07,T18).
+B20 acquisition/docs: existing crawler retained behind capability, unified docs(T16,T19–20).
+
+Only proven legacy readers, Health labels/metrics and Travel crawling may remain domain-specific. Moving duplicate engines into adapters is not unification; retaining underlying components does not exempt their boundaries from review.
+
+### 5–6. Preserved behavior and verification
+Health single product/evaluation; Travel multiple products/acquisition/canonical/storage, no labelled evaluation. Canonical uses explicit existing mappings, unknown fields reviewed, no mapping platform/automatic approval/table changes. Keep identity uniqueness, content dedup, holdout isolation, bounded repairs, costs, failure stops and no-overwrite. Trusted labels determine denominators; no applicable sample=N/A, not verified Travel accuracy. No third domain, aliases, auth/deployment/multitenancy, arbitrary nested-schema DSL or LOC-driven rewrite.
+
+Existing Python3.10–3.13/venv/requirements/Streamlit/jsonschema/model/PDF/PostgreSQL dependencies only. Preserve module owners; common handles JSON/model/path/logs; unittest/specs/todo locations unchanged, no resurrection of src/extract. Type hints/small snake_case functions; the supports example and commands above apply unchanged. compileall is not packaging validation. Offline parameterised tests cover mixed verticals, cardinality, missing prompts, disabled capabilities, review resume, alias exit, paths/UI changes without live models/DB.
+
+Browser checks cover switches/review/error states. Authorised real samples require fresh outputs, budget and provenance; storage changes require an authorised disposable DB live test. Report offline/browser/model/DB evidence separately; unrun checks are not passes.
+
+### 7–8. Delivery and historical acceptance
+Order: T01–02 audit/baseline main→T03–09 config/model/discovery/extraction→T10–15 consensus/review/boundaries→T16–18 UI/cleanup→T19–20 acceptance/main. No separate platform-building phase.
+AC01 remote-main commit evidence; AC02 unique boundary owners; AC03 actual duplication reduction/no speculative platform or dual engines; AC04 both end-to-end single/multiple semantics; AC05 UI isolation; AC06 aliases removed/read-only history; AC07 old JSON/approved contracts preserved without overwrite/downgrade/fake approval; AC08 Health evaluation/Travel acquisition+storage retained, no third vertical and honest limits.
+
+Use rg/venv, preserve user edits, review deletions/tests/docs. New dependencies, out-of-scope DB/production changes or successful-file overwrite require authority; do not repeatedly ask for already-authorised actions. Never commit credentials/PDFs/raw labels/runtime outputs/usage or remove safeguards for LOC.
+
+Baseline HEAD012fdfe/main24f31ee differed43 commits; earlier370 passes/one skip. Recheck remote,187-file diff/old-data deletions/src init whitespace before merge. Missing process docs are not a reason to build four new workflows. Risks: framework growth, compatibility becoming a second engine, UI relabel without state isolation; test abstractions, minimal legacy fixtures and interaction. Third-domain direction does not block; real-smoke samples/budgets must be agreed. The todo directory was ignored; only explicitly selected files should be tracked.
+
+Implementation a00a904:388 tests,387 pass/one live-DB skip; both full offline flows, AppTest/browser switching/review/errors and seven CLI helps. Approved canonical unchanged; successful schema/extraction files not overwritten. Only optional vertical/schema_version added to extraction/feedback provenance; identity-less old feedback must be regenerated, not bulk-migrated. Existing support components retained, duplicate models/engines removed, no third-vertical code/config. Real API/PDF conversion/Health labels/DB live were not run.
+
+Sept10 remote main fast-forward063c13e→a00a9044cc7d1495be6a71111946ef6dd0cba131 verified by ls-remote; completion docs synchronised.

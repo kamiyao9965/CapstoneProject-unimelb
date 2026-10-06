@@ -1,5 +1,9 @@
 # Car Insurance vertical：项目计划与运行手册
 
+[中文原文 / Chinese original](#chinese-original) · [English version / 英文版](#english-version-text)
+
+<a id="chinese-original"></a>
+
 状态：第一阶段已完成，127 个相关离线回归测试通过；真实数据 discovery 和 benchmark 尚未开始。
 Started: 2026-09-21. Base: origin/main c439a95. Branch: feat/car-insurance.
 
@@ -258,3 +262,44 @@ Parser improvements should follow a traced error: PDF -> parsed table -> model
 JSON -> evaluation adapter -> gold comparison. Compare PDFingestor and optional
 MinerU only on fixed development examples before selecting a parser for the
 locked test run. Do not change the parser midway through the baseline.
+
+<a id="english-version-text"></a>
+
+## English translation of the Chinese execution plan and historical updates
+
+This supplements the English Scope/phase/runbook sections already present above. Historical status statements refer to their dated stages, not current acceptance. Latest completed targeted rerun: see [post-review run report](car-insurance-postreview-rerun-20261006.md); further runs are paused.
+
+Initial state,2026-09-21: phase1 complete,127 relevant offline regressions passed; real discovery/benchmark not started. Branch feat/car-insurance began from origin/main c439a95. Deliverables were runnable vertical integration and registration tools; real data, reviewed schema, accuracy reports and storage were future work. Only private_health downloads existed then. Open .worktrees/car-insurance as the independent IDE worktree.
+
+The Chinese phase table specifies:
+1. Engine integration: branch/manifest/three prompts/CLI+UI/multiproduct tests; mocked discovery/extraction and old regressions pass(completed).
+2. Dataset: official PDS/SPDS, version/source registration, table checks, grouped template/version splits; target15–25 independent PDS across at least five source/template families and three cover types, subject to availability. Source entry points/tools completed, downloads pending then.
+3. Development discovery, three consensus rounds, field/taxonomy review and independent holdout; retain decisions/versions/provenance, amount scope and options; waiting for data.
+4. Test-product labelling with second reviewer, evaluation mappings/metrics, locked test set, macro/micro/comparable counts/failure rate; waiting for schema/labels.
+5. Development optimisation, frozen baseline, canonical approval/storage, reproducible commands/reports/approved mappings; waiting for evaluation.
+
+Initial next task: collect official PDFs from source_register.json, fill intake CSV, run dataset tooling and table checks before paid discovery. No real calls, invented approval or accuracy claims then. The test command above uses the parent venv;127 passed. SQLAlchemy/psycopg declared in requirements were installed to run main's Travel regressions; no live DB.
+
+Oct1: eight PDS registered, five AAMI/QBE/Youi development, one NRMA holdout, two Allianz test. Originals retained/copies hashed,289 development pages parsed. Youi symbols and QBE callout truncation blocked discovery; phase2 partial, applicability/supplements still pending. This superseded the initial “downloads pending” state.
+
+Historical updates, newest-first as above:
+- Oct6 AAMI TP/Youi reruns passed then; extended liability checks flagged AAMI Comp; Youi lower tiers wrongly had no exclusions despite all-policy wording.195 tests.
+- Oct6 other four first runs: QBE/AAMI Comp passed, AAMI TP genuine exception/half-citation failures plus two fixed footer false positives, Youi~12h infrastructure abort/no response. AAMI20m missing pool;193 tests.
+- User-confirmed market_value→per_vehicle and three scope pairs entered GUIDANCE/path checks,191 tests; old two QBE runs now7/2 issues, expansion decision pending.
+- Missingness/uniqueness gained fields/IDs; AAMI numbered exclusions0→29 each, QBE unchanged,188 tests/no calls; basis/scope and expansion decisions pending.
+- Convention-A same-QBE runs2/2 passed10→1→0, S1–S5/pools/citations agreed; run1 condition semantic error and basis decisions remained, n=2/candidate only.
+- Oct5 conventionA retained full parent block, full cue sentence/bullet or complete continuation for exception, exact required text in errors;185 tests; r2 final replay5→4, real omission+two partial citations; no paid rerun yet.
+- v4+r2 three calls failed10→5→5, no product; table/pools/S1/S3/S4/S5 retained without regression; exception evidence convention and tyre/mechanical omission stalled. The detailed report distinguishes diagnostic counts from semantic issues.
+- r2 runtime clarified tables, bounded latest candidate/history, aggregate paths, evidence ownership and single-product shared relations; old failures replayed, v3 correct pools preserved, no calls/holdout/test; controlled same-sample run next.
+- v4 real three-call trial failed, no accepted output; S1–S5 improved partly but table/evidence/pools regressed; offline fixes before expansion.
+- v4 candidate added scoped exceptions/change-of-car/source checks for S1–S5, keeping v3, real verification pending then.
+- Oct3 v3 QBE sample passed one gpt-5 call/no repair, but content review found exception/global-rule/dedicated-field omissions; not approval/benchmark.
+- v3 review response added definitions/product pools/sub-limits/percentages/combinations/document schema/rules/excess scope, preserving v2, unapproved/no calls; its review entry supersedes v2.
+- v2 candidate established ownership/AUD scope/product-option boundaries/executable nesting; original draft unchanged, no call/approval.
+- First discovery after user accepted v8 trial risks produced31 fields/30 categories using gpt-5; fingerprint-bound parser permission retained warnings, not schema approval; no consensus/extraction yet.
+- Parser v9/parse_check_v8 restored overview/continuations and pre-call gate,146 tests;88 warning pages/five blocked documents, no discovery at that stage.
+- Third parser round: AAMI TP page5 restored and visually checked,parse_check_v6/v8,138 tests, no discovery.
+- Second: geometric AAMI sidebar recovery,parse_check_v5/v7,135 tests; v3 not schema input, continuation/overview still pending.
+- Oct2 first fixes: symbols/text truncation/contents order repaired,131 tests; degraded pages need review, paid discovery not started.
+
+All commands, templates, identifiers and English phase acceptance criteria earlier in this document remain unchanged.
