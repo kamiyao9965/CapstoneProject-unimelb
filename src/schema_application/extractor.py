@@ -107,6 +107,14 @@ class SchemaExtractor:
             )
             self.schema_prompt_label = "Discovered schema"
         self.extraction_prompt = get_prompt(manifest.prompt("extraction"))
+        if self.schema_data.get('validation_profile') == 'car_insurance.review_v4':
+            from src.car_insurance.schema_revision_v4 import GUIDANCE
+            self.extraction_prompt = self.extraction_prompt.replace(
+                'Return exactly "products" and "_document_notes" at top level.',
+                'Return exactly "products", "_document_notes", and "document_evidence" at top level.')
+            self.extraction_prompt += GUIDANCE
+            from src.car_insurance.extraction_diagnostics import GUIDANCE as DIAGNOSTIC_GUIDANCE
+            self.extraction_prompt += DIAGNOSTIC_GUIDANCE
         if self.schema_data.get('validation_profile') == 'car_insurance.review_v3':
             self.extraction_prompt = self.extraction_prompt.replace(
                 'Return exactly "products" and "_document_notes" at top level.',
@@ -177,6 +185,20 @@ class SchemaExtractor:
             markdown_dir=self.parsed_markdown_dir,
             enforce_quality=self.manifest.vertical == 'car_insurance',
         )
+        business_validator = self.extraction_business_validator
+        checklist_text = ''
+        if self.schema_data.get('validation_profile') == 'car_insurance.review_v4':
+            from src.car_insurance.source_coverage import inventory, prompt_inventory, source_blocks
+            if not source_blocks(document_text):
+                raise ValueError('review_v4 requires page/block-anchored source input for completeness checks')
+            clauses = inventory(document_text)
+            self._log(f'Source completeness checklist: {len(clauses)} high-signal blocks (not exhaustive).')
+            checklist_text = prompt_inventory(clauses)
+            base_validator = business_validator
+
+            def business_validator(payload):
+                from src.car_insurance.extraction_diagnostics import validate_runtime
+                validate_runtime(payload, base_validator, clauses, document_text)
         request = ProviderRequest(
             selection=self.selection,
             system_prompt=self.extraction_prompt,
@@ -186,7 +208,7 @@ class SchemaExtractor:
                 "Extract from this PDFingestor structured representation. "
                 "Text and Markdown tables are already in source reading order; "
                 "do not assume there is an attached raw PDF.\n\n"
-                f"{document_text}"
+                f"{document_text}{checklist_text}"
             ),
             document_paths=(),
             timeout_seconds=self.timeout_seconds,
@@ -206,8 +228,9 @@ class SchemaExtractor:
                 self.provider,
                 request,
                 data_contract_schema=self.extraction_contract,
-                business_validator=self.extraction_business_validator,
+                business_validator=business_validator,
                 drop_structural_noise=True,
+                retain_repair_context=self.schema_data.get('validation_profile') == 'car_insurance.review_v4',
             )
         except StructuredOutputFailure as exc:
             duration = round(time.perf_counter() - started, 3)

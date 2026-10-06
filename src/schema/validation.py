@@ -97,6 +97,9 @@ def validate_schema_mapping(payload: object, *, manifest: VerticalManifest | Non
     if payload.get('validation_profile') == 'car_insurance.review_v3':
         from src.car_insurance.schema_revision_v3 import validate_profile
         validate_profile(payload, manifest)
+    elif payload.get('validation_profile') == 'car_insurance.review_v4':
+        from src.car_insurance.schema_revision_v4 import validate_profile
+        validate_profile(payload, manifest)
     elif any(key in payload for key in ('$defs', 'document_evidence_schema', 'validation_rules')):
         raise ValueError('Local definitions/document rules currently require the car review_v3 profile')
     return normalize_schema(payload, manifest)
@@ -206,6 +209,9 @@ def validate_extraction_record(schema: dict[str, object], payload: object, *, ma
         validate_records(schema,payload)
     elif schema.get('validation_profile') == 'car_insurance.review_v3':
         from src.car_insurance.schema_revision_v3 import validate_records
+        validate_records(schema, payload)
+    elif schema.get('validation_profile') == 'car_insurance.review_v4':
+        from src.car_insurance.schema_revision_v4 import validate_records
         validate_records(schema, payload)
     records = payload["products"] if manifest.documents.output_cardinality == "multiple" else [payload]
     identities = set()

@@ -14,7 +14,7 @@
     "taxonomies"
   ],
   "properties": {
-    "validation_profile": {"enum": ["car_insurance.review_v2", "car_insurance.review_v3"]},
+    "validation_profile": {"enum": ["car_insurance.review_v2", "car_insurance.review_v3", "car_insurance.review_v4"]},
     "$defs": {"type": "object", "additionalProperties": {"type": "object"}},
     "document_evidence_schema": {"type": "object"},
     "validation_rules": {"type": "object", "additionalProperties": {"type": "string"}},

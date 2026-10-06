@@ -222,7 +222,9 @@ def require(condition, rule, detail):
 
 def unique(items, key, rule):
     values = [item[key] for item in items]
-    require(all(value.strip() for value in values) and len(values) == len(set(values)), rule, f'duplicate/blank {key}')
+    duplicates = sorted({v for v in values if values.count(v) > 1 and v.strip()})
+    require(all(value.strip() for value in values) and not duplicates, rule,
+            f'duplicate/blank {key}' + (f'; duplicates={duplicates}' if duplicates else '; blank value present'))
 
 
 def references(values, allowed, rule):
@@ -270,25 +272,28 @@ def fixed_amount(limit):
     return None
 
 
-def validate_records(schema, payload):
+def validate_records(schema, payload, *, owners=None):
     from src.common.json_contracts import validate_inline_contract
     from src.schema.contract import compile_extraction_contract
     validate_inline_contract(payload, compile_extraction_contract(schema))
-    for record in payload['products']:
+    for record_index, record in enumerate(payload['products']):
         for key in ('product_name', 'product_type', 'product_basis', 'product_identity_evidence'):
             require(bool(record[key]) and (not isinstance(record[key], str) or bool(record[key].strip())), 'identity', key)
-        benefits = [b for owner in OWNERS for b in record[owner] or []]
+        benefits = [b for owner in (OWNERS if owners is None else owners) for b in record[owner] or []]
         unique(benefits, 'benefit_id', 'benefit_uniqueness')
         by_id = {b['benefit_id']: b for b in benefits}
         addons = record['available_addons'] or []
         unique(addons, 'option_id', 'addon_links')
         by_option = {a['option_id']: a for a in addons}
-        variants = set()
+        variants = {}
         all_limits = []
         for b in benefits:
             key = (b['category'], ' '.join(b['variant'].casefold().split()), b['option_id'])
-            require(key not in variants and bool(key[1]) and bool(b['source_label'].strip()), 'benefit_uniqueness', 'duplicate/blank benefit identity')
-            variants.add(key)
+            require(key not in variants and bool(key[1]) and bool(b['source_label'].strip()), 'benefit_uniqueness',
+                    f"duplicate/blank benefit identity at $.products[{record_index}] benefit_id={b['benefit_id']}; "
+                    f"(category, variant, option_id)={key}" + (f'; same identity as benefit_id={variants[key]}' if key in variants else
+                    '; variant and source_label must be nonblank'))
+            variants[key] = b['benefit_id']
             option_id = b['option_id']
             require(b['status'] != 'optional' or option_id is not None, 'addon_links', 'optional requires option_id')
             if option_id is not None:
@@ -382,7 +387,10 @@ def validate_records(schema, payload):
             if 'quantities' in item:
                 for q in item['quantities']:
                     check_quantity(q)
-        require({f['name'] for f in schema['fields'] if record[f['name']] is None} == set(record['_unfilled']), 'missingness', '_unfilled/null mismatch')
+        nulls = {f['name'] for f in schema['fields'] if record[f['name']] is None}
+        listed = set(record['_unfilled'])
+        require(nulls == listed, 'missingness', f'_unfilled/null mismatch at $.products[{record_index}]; '
+                f'null but not in _unfilled={sorted(nulls - listed)}; in _unfilled but not null={sorted(listed - nulls)}')
     metadata = payload['document_evidence']['metadata']
     require(bool(metadata) and all(m['document_title'].strip() for m in metadata), 'evidence', 'document title/evidence required; version/date may be unknown')
     for item in v2._objects(payload):

@@ -385,6 +385,19 @@ class CarSchemaV3Test(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missingness'):
             validate_extraction_record(self.schema, self.data, manifest=self.manifest)
 
+    def test_missingness_and_duplicate_errors_name_the_fields(self):
+        self.fill_missing()
+        nulls = list(self.record['_unfilled'])
+        self.record['_unfilled'] = nulls[1:]
+        with self.assertRaisesRegex(ValueError, rf"\$\.products\[0\]; null but not in _unfilled=\['{nulls[0]}'\]"):
+            validate_extraction_record(self.schema, self.data, manifest=self.manifest)
+        self.record['_unfilled'] = nulls
+        self.add(identity='dup_benefit')
+        self.add(identity='dup_benefit')
+        self.fill_missing()
+        with self.assertRaisesRegex(ValueError, r"duplicates=\['dup_benefit'\]"):
+            validate_extraction_record(self.schema, self.data, manifest=self.manifest)
+
     def test_runtime_valid_and_semantically_invalid_provider_output(self):
         self.pool()
         self.fill_missing()

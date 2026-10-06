@@ -39,6 +39,33 @@ intake CSV 并运行 dataset 工具，先检查表格质量，再执行付费 di
 
 ## Scope
 
+2026-10-06 重跑：AAMI Third Party、Youi 均通过。全保单责任池检查已扩展（AAMI Comp 产物因此被标出）。Youi 两个低档位的一般除外被写成 []（原文写明适用于所有部分），检查器没有拦住，待定规则。195 项离线测试通过。
+
+2026-10-06 其余 4 份开发文档各跑一次：QBE Comprehensive、AAMI Comprehensive 通过；AAMI Third Party 失败（1 处真实例外遗漏、1 处半句引用，另有 2 条已修复的页码误报）；Youi 因请求卡住约 12 小时、无响应而中止。AAMI Comp 的 2,000 万责任上限没有建共享池，待处理。193 项离线测试通过。详见 [4 份开发文档报告](car-insurance-extraction-dev-v4r4.md)。
+
+2026-10-06 取值口径（用户确认）：含 market_value 的额度用 per_vehicle；例外范围只允许 (own_vehicle_damage, third_party_liability)/(both, none)/(source_defined, source_defined)。已加入 GUIDANCE 和路径化检查，191 项离线测试通过；两次复跑产物在新口径下各有 7、2 条不符。待决定：是否付费扩到其余 4 份开发文档。
+
+2026-10-06 离线改进：missingness/benefit_uniqueness 报错给出字段与 ID；一般除外检测器覆盖 AAMI 编号章节（AAMI 两份由 0 增至 29 条，QBE 清单不变）。188 项离线测试通过，零调用。待决定：池 basis 与例外 scope 口径；是否付费扩到其余 4 份开发文档。
+
+2026-10-06 方案 A 下同样本两次独立复跑：**2/2 通过**完整校验并生成产物（均 10→1→0），S1–S5、两个共享池和例外引用两次一致。run1 有 1 处例外 condition 语义错误；池 basis 等口径需人工确定。仍为候选 schema，n=2 单文档。详见 [两次复跑报告](car-insurance-extraction-sample-v4r3.md)。
+
+2026-10-05 例外证据方案 A：父规则保留完整原文块，例外只需逐字引用含提示的完整句子/条目（跨块时可引完整下一块），报错给出需引原句。185 项离线测试通过；r2 第 3 轮零调用回放 5→4 条，剩余为 1 处真实遗漏及 2 处半句引用。尚未付费复跑。
+
+2026-10-05 v4 + r2 同样本复跑：3 次生成后仍失败（10→5→5 条诊断），无成功产物。表格、共享责任池、Fire & Theft 共同赔付池、S1/S3/S4/S5 均修好并稳定保持，无回退；
+剩余为 4 条例外证据放置约定问题（语义正确）与 1 处真实例外遗漏（轮胎/机械故障），两轮修复未动。下一步需先决定例外证据约定。详见 [r2 复跑报告](car-insurance-extraction-sample-v4r2.md)。
+
+2026-10-05 运行时改进 r2：明确表格约定，v4 修复保留限长候选/错误历史，合并路径化诊断，改进证据归属检查，加入单产品共享额度关系回归。
+旧 v4 三轮失败均可离线重现并检出共享池缺失，v3 正确共享关系保留；零 API 调用，未动 holdout/test。
+当前下一步是同一开发样本受控复跑，详见 [诊断与修复 r2](car-insurance-extraction-diagnostics-r2.md)。
+
+2026-10-05 v4 真实重跑：同一 QBE TPPD 开发 PDF，3 次生成后校验仍失败，没有成功产品产物。
+S1–S5 部分内容改善，但表格/证据约定不稳定，且共享额度池回退；暂不扩大批量或使用 holdout/test。
+下一步先改进离线诊断、修复上下文和共享额度回归。详见 [v4 重跑与对照](car-insurance-extraction-sample-v4.md)。
+
+2026-10-05 修复更新：针对首次抽样 S1–S5，新增 review_v4 候选稿、例外范围、换车保障字段及
+与实际输入绑定的原文完整性检查。保留 v3 结果；真实重跑及效果确认尚待完成。
+详见 [抽样问题修复 v4](car-insurance-extraction-fixes-v4.md)。
+
 2026-10-03 真实抽样更新：review_v3 已对 QBE TPPD 开发文档试抽取成功，1 次 gpt-5 响应、无修复重试。
 结构与业务校验通过，但内容抽查发现除外例外条件、全局规则完整性及专用字段漏填等问题；
 不代表 schema 已批准或 benchmark 达标。详见 [首次抽样报告](car-insurance-extraction-sample-v3.md)。
