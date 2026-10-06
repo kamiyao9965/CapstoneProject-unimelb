@@ -187,12 +187,20 @@ def without_navigation(text):
     return NAV_FRAGMENTS.sub('', normalized(text)).strip()
 
 
+def table_cells(text):
+    """Cell text of a Markdown table row without the '|' layout markup; '' for non-rows."""
+    if not text.strip().startswith('|'):
+        return ''
+    return normalized(' '.join(cell for cell in text.strip().strip('|').split('|') if cell.strip()))
+
+
 def full_quote_present(item, clause):
     # Exact normalized source text is required for a coverage assertion; quoting
     # only the first sentence must not hide the exception in its last sentence.
-    # A trailing printed page number or glued navigation link is layout, not clause
-    # text, and may be omitted.
-    targets = {normalized(clause.text), normalized(without_page_footer(clause.text)), without_navigation(clause.text)}
+    # A trailing printed page number, glued navigation link or table '|' markup is
+    # layout, not clause text, and may be omitted.
+    targets = {normalized(clause.text), normalized(without_page_footer(clause.text)), without_navigation(clause.text),
+               table_cells(clause.text)}
     targets.discard('')
     return any(e['pdf_page'] == clause.pdf_page and any(t in normalized(e['quote']) for t in targets)
                for e in item.get('evidence', []))

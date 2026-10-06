@@ -195,6 +195,16 @@ class DiagnosticsTest(unittest.TestCase):
         rule['evidence'][0].update(quote='There is no cover for wear... and tear.', pdf_page=7)
         self.assertEqual(ellipsis_issues(self.data, text), [])
 
+    def test_table_row_markup_may_be_omitted_but_not_cell_words(self):
+        from src.car_insurance.source_coverage import SourceClause, full_quote_present
+        row = '|  |  | automatically transfer your cover to a replacement car for up to 14 days from when you sell |  |'
+        clause = SourceClause('row', 'change_of_vehicle', 16, row, 'Trailer cover')
+        item = dict(evidence=[dict(pdf_page=16, quote='automatically transfer your cover to a replacement car for up to '
+                                                       '14 days from when you sell or dispose of your car.')])
+        self.assertTrue(full_quote_present(item, clause))
+        item['evidence'][0]['quote'] = 'automatically transfer your cover to a replacement car from when you sell'
+        self.assertFalse(full_quote_present(item, clause))
+
     def test_shared_liability_relation_names_missing_member(self):
         self.liability()
         self.record['caravans_and_trailers_tppd_extension'] = None
