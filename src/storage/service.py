@@ -1,4 +1,4 @@
-"""Application service for validated PostgreSQL storage operations."""
+"""Validated artifact preparation and PostgreSQL storage operations."""
 
 from __future__ import annotations
 
@@ -64,6 +64,15 @@ class DirectoryLoadResult:
     artifact_path: Path
     insurer_code: str | None
     summary: StorageLoadSummary | None
+    error: str | None
+
+
+@dataclass(frozen=True)
+class DirectoryArtifact:
+    """One discovered extraction source, or its source/duplicate validation error."""
+
+    artifact_path: Path
+    insurer_code: str | None
     error: str | None
 
 
@@ -227,6 +236,32 @@ def load_extraction_directory(
     PDF cannot load conflicting product rows. ``errors/`` folders are skipped.
     """
     load = load_one or load_extraction_artifact
+    results: list[DirectoryLoadResult] = []
+    for entry in inspect_extraction_directory(manifest=manifest, artifact_dir=artifact_dir):
+        if entry.error is not None:
+            results.append(DirectoryLoadResult(entry.artifact_path, entry.insurer_code, None, entry.error))
+            continue
+        try:
+            summary = load(
+                database_url=database_url,
+                manifest=manifest,
+                schema_path=schema_path,
+                artifact_path=entry.artifact_path,
+                insurer_code=entry.insurer_code,
+            )
+        except Exception as exc:
+            results.append(
+                DirectoryLoadResult(entry.artifact_path, entry.insurer_code, None, str(exc) or type(exc).__name__)
+            )
+            continue
+        results.append(DirectoryLoadResult(entry.artifact_path, entry.insurer_code, summary, None))
+    return results
+
+
+def inspect_extraction_directory(
+    *, manifest: VerticalManifest, artifact_dir: str | Path,
+) -> list[DirectoryArtifact]:
+    """Discover ordered inputs and reject competing source results for DB/CSV loads."""
     directory = Path(artifact_dir)
     if not directory.is_dir():
         raise ValueError(f"Extraction results folder does not exist: {directory}")
@@ -247,38 +282,24 @@ def load_extraction_directory(
             errors[artifact_path] = str(exc)
     source_counts = Counter(sources.values())
 
-    results: list[DirectoryLoadResult] = []
+    results: list[DirectoryArtifact] = []
     for artifact_path in artifact_paths:
         if artifact_path in errors:
-            results.append(DirectoryLoadResult(artifact_path, None, None, errors[artifact_path]))
+            results.append(DirectoryArtifact(artifact_path, None, errors[artifact_path]))
             continue
         relative_source = sources[artifact_path]
         insurer_code = relative_source.parts[0]
         if source_counts[relative_source] > 1:
             results.append(
-                DirectoryLoadResult(
+                DirectoryArtifact(
                     artifact_path,
                     insurer_code,
-                    None,
                     f"{source_counts[relative_source]} results in this folder use "
                     f"{relative_source.as_posix()}; keep one and retry.",
                 )
             )
             continue
-        try:
-            summary = load(
-                database_url=database_url,
-                manifest=manifest,
-                schema_path=schema_path,
-                artifact_path=artifact_path,
-                insurer_code=insurer_code,
-            )
-        except Exception as exc:
-            results.append(
-                DirectoryLoadResult(artifact_path, insurer_code, None, str(exc) or type(exc).__name__)
-            )
-            continue
-        results.append(DirectoryLoadResult(artifact_path, insurer_code, summary, None))
+        results.append(DirectoryArtifact(artifact_path, insurer_code, None))
     return results
 
 
