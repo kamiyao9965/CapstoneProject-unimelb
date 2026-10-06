@@ -212,6 +212,9 @@ pair; there is no heuristic extraction or separate model-only report path.
 `src/evaluation/batch.py` owns per-document labelled matching, batch statistics,
 and diagnostics through the existing evaluator and reporter. The CLI passes each
 extraction to it after writing that extraction, then requests the final report pair.
+Resume retains the complete selected input set for evaluation and creates an
+extractor only when uncached documents remain. Validated cached records preserve
+their original metadata and files.
 
 - `configs/*/`: one manifest per vertical, including validated references to
   its model prompts.

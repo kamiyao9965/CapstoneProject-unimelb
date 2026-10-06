@@ -651,6 +651,9 @@ and successful envelopes are read through the same extraction boundary.
 matching diagnostics when needed. It no longer creates duplicate
 `report_model_only.*` or includes `fallback_documents` in the summary. Historical
 reports remain; readers of new reports should use `report.json`.
+Resume evaluation includes validated cached results as well as new extractions;
+the denominator is the complete selected PDF set. Fully cached evaluation creates
+no provider and does not rewrite extraction artifacts.
 
 Default discovery output is `outputs/<vertical>/schemas/schema.json`; global
 usage logs are `logs/discovery_usage.jsonl` and `logs/extraction_usage.jsonl` within

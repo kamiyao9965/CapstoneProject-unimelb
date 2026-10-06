@@ -72,6 +72,8 @@ authentication boundary. Use them on a trusted local machine.
 Batch `--output-dir` resumes only validated results matching the selected source,
 schema, model and parser. Invalid existing results stop before model calls; use
 a new folder for a different experiment. See the operator guide for recovery.
+`batch --output-dir --evaluate` evaluates the complete selected batch, including
+validated cached results; a fully cached evaluation makes no model requests.
 
 | Purpose | Entry point | External effects |
 | --- | --- | --- |

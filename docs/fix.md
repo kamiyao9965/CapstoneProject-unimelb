@@ -274,6 +274,14 @@ business rules. Invalid or incompatible results stop before provider creation
 without modifying files. Offline regressions cover corrupt JSON, directories,
 identity mismatches, invalid payloads, valid reuse and Canonical identity rules.
 
+### 4. Include cached documents in resumed batch evaluation (2026-10-06)
+
+Resume previously filtered completed documents out of the evaluation denominator,
+and a fully cached batch exited before writing reports. The complete selected PDF
+set now drives evaluation; validated cached and newly extracted records participate
+together. Fully cached evaluation creates no provider. Offline tests cover partial
+and fully cached batches, preservation of cached bytes, and new extraction failures.
+
 ### 1. Logged pre-validation cleanup of structural noise (2026-09-16)
 
 `run_structured_output(..., drop_structural_noise=True)` removes undeclared

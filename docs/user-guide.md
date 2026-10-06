@@ -320,6 +320,9 @@ extraction folder. It has no `--out-dir` option.
 
 Reports are `outputs/private_health/evaluation/report.json` and `report.md`.
 New runs do not generate duplicate `report_model_only.*`; historical copies remain.
+With `--output-dir --evaluate`, validated existing results and new results both
+participate in evaluation. A fully cached batch rebuilds reports without creating
+a provider. Totals cover all selected PDFs, including new extraction failures.
 
 ## 5. Travel: acquisition, schema review, extraction, and storage
 

@@ -445,6 +445,8 @@ def command_batch(args: argparse.Namespace) -> int:
     output_dir = Path(args.output_dir) if args.output_dir else None
     selection = resolve_selection(provider=args.provider, model=args.model)
     skipped_existing = 0
+    cached_results: dict[Path, ExtractionResult] = {}
+    pending_paths = pdf_paths
     if output_dir is not None:
         from src.schema_application.records import load_cached_extraction
 
@@ -453,7 +455,7 @@ def command_batch(args: argparse.Namespace) -> int:
             target = output_dir / _extraction_relative_path(pdf_path, input_root)
             if target.exists():
                 try:
-                    load_cached_extraction(
+                    cached_results[pdf_path] = load_cached_extraction(
                         target, pdf_path=pdf_path, schema=schema_data, manifest=manifest,
                         selection=selection, document_parser=args.document_parser,
                     )
@@ -464,18 +466,19 @@ def command_batch(args: argparse.Namespace) -> int:
             else:
                 pending_paths.append(pdf_path)
         skipped_existing = len(pdf_paths) - len(pending_paths)
-        pdf_paths = pending_paths
-        if not pdf_paths:
+        if not pending_paths and not args.evaluate:
             print(f"Nothing to extract: all {skipped_existing} results already exist in {output_dir}.")
             return 0
 
-    extractor = _build_schema_extractor(
-        manifest,
-        schema_data,
-        selection,
-        pdf_root=input_root,
-        document_parser=args.document_parser,
-    )
+    extractor = None
+    if pending_paths:
+        extractor = _build_schema_extractor(
+            manifest,
+            schema_data,
+            selection,
+            pdf_root=input_root,
+            document_parser=args.document_parser,
+        )
 
     provider_counts: dict[str, int] = {}
     extraction_errors = 0
@@ -488,29 +491,32 @@ def command_batch(args: argparse.Namespace) -> int:
         )
 
     for pdf_path in pdf_paths:
-        try:
-            record = extractor.extract_one(pdf_path)
-            result = ExtractionResult(
-                vertical=manifest.vertical,
-                schema_version=str(schema_data["version"]),
-                source_path=str(pdf_path),
-                provider=selection.provider,
-                model=selection.model,
-                document_parser=args.document_parser,
-                data=record,
+        result = cached_results.get(pdf_path)
+        if result is None:
+            assert extractor is not None
+            try:
+                record = extractor.extract_one(pdf_path)
+                result = ExtractionResult(
+                    vertical=manifest.vertical,
+                    schema_version=str(schema_data["version"]),
+                    source_path=str(pdf_path),
+                    provider=selection.provider,
+                    model=selection.model,
+                    document_parser=args.document_parser,
+                    data=record,
+                )
+            except Exception as exc:
+                extraction_errors += 1
+                print(f"Extraction failed for {pdf_path.name}: {exc}")
+                continue
+            output_path = (
+                output_dir / _extraction_relative_path(pdf_path, input_root)
+                if output_dir is not None
+                else default_output_path(manifest, pdf_path, input_root=input_root)
             )
-        except Exception as exc:
-            extraction_errors += 1
-            print(f"Extraction failed for {pdf_path.name}: {exc}")
-            continue
-        output_path = (
-            output_dir / _extraction_relative_path(pdf_path, input_root)
-            if output_dir is not None
-            else default_output_path(manifest, pdf_path, input_root=input_root)
-        )
-        result.write_json(output_path)
-        provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
-        print(f"Extracted {pdf_path.name} -> {output_path}")
+            result.write_json(output_path)
+            provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
+            print(f"Extracted {pdf_path.name} -> {output_path}")
 
         if evaluation is not None:
             evaluation.evaluate_one(pdf_path, result)
