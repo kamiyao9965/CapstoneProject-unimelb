@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
-from src.evaluation.quality import quality_queue_id
+from src.evaluation.quality import QUALITY_QUEUE_VERSION, quality_queue_id
 
 
 DECISIONS = frozenset({"issue_found", "no_issue", "uncertain"})
@@ -16,12 +16,36 @@ DECISIONS = frozenset({"issue_found", "no_issue", "uncertain"})
 def load_queue(path: str | Path) -> dict:
     queue = read_artifact(path, expected_type="quality_review_queue", data_contract="quality/review_queue")
     data = queue["data"]
+    if queue["contract_version"] not in {"1.0.0", QUALITY_QUEUE_VERSION}:
+        raise ValueError("Unsupported quality review queue contract version.")
     if quality_queue_id(data) != data["queue_id"]:
         raise ValueError("Quality review queue identity does not match its contents.")
     item_ids = [item["item_id"] for item in data["items"]]
     if len(item_ids) != len(set(item_ids)):
         raise ValueError("Quality review queue contains duplicate item identities.")
+    if not queue_is_read_only(queue):
+        inputs = data.get("audited_inputs", [])
+        by_path = {entry["source_artifact"]: entry for entry in inputs}
+        if not inputs or len(inputs) != data["audited_documents"] or len(by_path) != len(inputs):
+            raise ValueError("Quality review queue requires complete, unique audited inputs.")
+        source = queue["provenance"]
+        if (source.get("vertical") != data["vertical"]
+                or source.get("schema_version") != data["schema_version"]
+                or source["source_artifacts"] != [entry["source_artifact"] for entry in inputs]
+                or source["source_documents"] != [entry["source_document"] for entry in inputs]
+                or any((entry["provider"], entry["model"]) != (source["provider"], source["model"])
+                       for entry in inputs)):
+            raise ValueError("Quality review queue provenance does not match its audited inputs.")
+        for item in data["items"]:
+            entry = by_path.get(item["source_artifact"])
+            if entry is None or item["source_document"] != entry["source_document"]:
+                raise ValueError("Quality review item does not match an audited input.")
     return queue
+
+
+def queue_is_read_only(queue: dict) -> bool:
+    """Legacy queues can be inspected but lack bindings needed for new decisions."""
+    return queue["contract_version"] == "1.0.0"
 
 
 def load_decisions(queue_path: str | Path, decisions_path: str | Path) -> dict:
@@ -51,6 +75,8 @@ def save_decision(
 ) -> Path:
     """Update only human review data, never extraction or database records."""
     queue = load_queue(queue_path)
+    if queue_is_read_only(queue):
+        raise ValueError("Legacy quality review queues are read-only; regenerate from verified reports in a new output directory.")
     if item_id not in {item["item_id"] for item in queue["data"]["items"]}:
         raise ValueError("Unknown quality review queue item.")
     if decision not in DECISIONS:

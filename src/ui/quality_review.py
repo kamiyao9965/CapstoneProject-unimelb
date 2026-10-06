@@ -10,7 +10,7 @@ import streamlit as st
 
 from src.common.json_codec import dumps_json
 from src.evaluation.quality import load_quality_results
-from src.evaluation.quality_review import load_decisions, load_queue, quality_metrics, save_decision
+from src.evaluation.quality_review import load_decisions, load_queue, quality_metrics, queue_is_read_only, save_decision
 
 
 DECISION_LABELS = {
@@ -62,6 +62,9 @@ def main() -> None:
         st.stop()
 
     data = queue["data"]
+    read_only = queue_is_read_only(queue)
+    if read_only:
+        st.warning("This legacy queue is read-only because its identity does not bind the PDF and judge inputs. Existing decisions remain visible. Reuse verified reports in a new quality directory to create a current queue.")
     items = data["items"]
     prior = {entry["item_id"]: entry for entry in decisions["data"]["decisions"]}
     st.caption(
@@ -134,7 +137,7 @@ def main() -> None:
                              help="Required when an issue is found or the check remains uncertain.",
                              key=f"notes:{item_id}")
         reviewer = st.text_input("Reviewer name", key="reviewer")
-        if st.button("Save human decision", type="primary", key=f"save:{item_id}"):
+        if st.button("Save human decision", type="primary", key=f"save:{item_id}", disabled=read_only):
             try:
                 save_decision(queue_path, decisions_path, item_id,
                               DECISION_LABELS[label], notes, reviewer)

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,8 +14,8 @@ from src.common.json_artifacts import build_success_artifact, read_artifact, wri
 from src.common.json_codec import loads_json
 from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ModelUsage
-from src.evaluation.quality import audit_one, build_review_queue, load_quality_results, run_quality_audit
-from src.evaluation.quality_review import load_decisions, quality_metrics, save_decision
+from src.evaluation.quality import audit_one, build_review_queue, load_quality_results, quality_queue_id, run_quality_audit
+from src.evaluation.quality_review import load_decisions, load_queue, quality_metrics, save_decision
 from src.common.models import ExtractionResult
 from src.schema.canonical import compile_canonical_extraction_contract
 from src.verticals.manifest import resolve_manifest
@@ -252,6 +254,137 @@ class QualityAuditTests(unittest.TestCase):
         second["provenance"]["source_artifacts"][0] = str(self.root / "other.json")
         with self.assertRaisesRegex(ValueError, "same judge model and prompt"):
             build_review_queue([first, second], sample_rate=0.05, seed=42)
+
+    def test_changed_audit_inputs_reject_prior_human_decisions(self):
+        report = self.audit(FakeProvider(judge_response()))
+        original = build_review_queue([report], sample_rate=0.05, seed=42)
+        queue_path = self.root / "original_queue.json"
+        decisions_path = self.root / "decisions.json"
+        write_artifact(queue_path, original, data_contract="quality/review_queue")
+        save_decision(queue_path, decisions_path, original["data"]["items"][0]["item_id"],
+                      "no_issue", "Checked the original PDF", "Tester")
+        before = decisions_path.read_bytes()
+        changes = (
+            ("data", "pdf_sha256", "e" * 64),
+            ("data", "source_artifact_sha256", "f" * 64),
+            ("data", "prompt_bundle_sha256", "0" * 64),
+            ("provenance", "provider", "anthropic"),
+            ("provenance", "model", "gpt-5-mini"),
+            ("provenance", "document_parser", "mineru"),
+        )
+        for section, key, value in changes:
+            with self.subTest(changed=key):
+                changed = copy.deepcopy(report)
+                changed[section][key] = value
+                queue = build_review_queue([changed], sample_rate=0.05, seed=42)
+                self.assertNotEqual(original["data"]["queue_id"], queue["data"]["queue_id"])
+                changed_path = self.root / f"{key}_queue.json"
+                write_artifact(changed_path, queue, data_contract="quality/review_queue")
+                with self.assertRaisesRegex(ValueError, "different queue identity"):
+                    load_decisions(changed_path, decisions_path)
+                self.assertEqual(decisions_path.read_bytes(), before)
+
+    def test_unsampled_pass_inputs_are_bound_to_the_queue(self):
+        report = self.audit(FakeProvider(judge_response(verdict="pass")))
+        original = build_review_queue([report], sample_rate=0, seed=42)
+        self.assertEqual(original["data"]["items"], [])
+        for key in ("pdf_sha256", "source_artifact_sha256"):
+            with self.subTest(changed=key):
+                changed = copy.deepcopy(report)
+                changed["data"][key] = "0" * 64
+                queue = build_review_queue([changed], sample_rate=0, seed=42)
+                self.assertNotEqual(original["data"]["queue_id"], queue["data"]["queue_id"])
+
+    def test_legacy_quality_queue_remains_readable_but_cannot_record_decisions(self):
+        report = self.audit(FakeProvider(judge_response()))
+        queue = build_review_queue([report], sample_rate=0.05, seed=42)
+        queue_path = self.root / "queue.json"
+        decisions_path = self.root / "decisions.json"
+        write_artifact(queue_path, queue, data_contract="quality/review_queue")
+        item_id = queue["data"]["items"][0]["item_id"]
+        save_decision(queue_path, decisions_path, item_id, "no_issue", "Checked", "Tester")
+        decisions = load_decisions(queue_path, decisions_path)
+        queue["contract_version"] = "1.0.0"
+        queue["data"].pop("audited_inputs", None)
+        queue["data"]["queue_id"] = quality_queue_id(queue["data"])
+        decisions["data"]["queue_id"] = queue["data"]["queue_id"]
+        write_artifact(queue_path, queue, data_contract="quality/review_queue", overwrite=True)
+        write_artifact(decisions_path, decisions, data_contract="quality/review_decisions", overwrite=True)
+        before = decisions_path.read_bytes()
+        self.assertEqual(load_decisions(queue_path, decisions_path)["data"], decisions["data"])
+        for target in (decisions_path, self.root / "new_decisions.json"):
+            with self.subTest(target=target.name), self.assertRaisesRegex(ValueError, "read-only"):
+                save_decision(queue_path, target, item_id, "no_issue", "Changed", "Tester")
+        self.assertEqual(decisions_path.read_bytes(), before)
+        self.assertFalse((self.root / "new_decisions.json").exists())
+
+    def test_new_queue_requires_complete_audit_bindings_and_known_version(self):
+        report = self.audit(FakeProvider(judge_response()))
+        original = build_review_queue([report], sample_rate=0.05, seed=42)
+        for mismatch in ("missing_inputs", "count", "unknown_version", "duplicate_inputs",
+                         "provenance_model", "item_source"):
+            with self.subTest(mismatch=mismatch):
+                queue = copy.deepcopy(original)
+                queue["contract_version"] = "2.0.0"
+                if mismatch == "missing_inputs":
+                    queue["data"].pop("audited_inputs", None)
+                elif mismatch == "count":
+                    queue["data"]["audited_documents"] += 1
+                elif mismatch == "unknown_version":
+                    queue["contract_version"] = "99.0.0"
+                elif mismatch == "duplicate_inputs":
+                    queue["data"]["audited_inputs"] *= 2
+                    queue["data"]["audited_documents"] = 2
+                elif mismatch == "provenance_model":
+                    queue["provenance"]["model"] = "gpt-5-mini"
+                else:
+                    queue["data"]["items"][0]["source_document"] = str(self.root / "other.pdf")
+                queue["data"]["queue_id"] = quality_queue_id(queue["data"])
+                path = self.root / f"{mismatch}.json"
+                write_artifact(path, queue, data_contract="quality/review_queue")
+                with self.assertRaises(ValueError):
+                    load_queue(path)
+
+    def test_legacy_queue_resume_preserves_files_and_can_regenerate_from_reports(self):
+        out = self.root / "quality"
+        with patch("src.evaluation.quality.ingest_pdfs", return_value=(self.document,)):
+            initial = run_quality_audit(
+                manifest=self.manifest, schema_path=SCHEMA_PATH,
+                artifact_dir=self.artifact.parent, source_root=self.source_root,
+                output_dir=out, selection=self.selection, provider=FakeProvider(judge_response()),
+            )
+        queue = load_queue(initial.queue_path)
+        queue["contract_version"] = "1.0.0"
+        queue["data"].pop("audited_inputs", None)
+        queue["data"]["queue_id"] = quality_queue_id(queue["data"])
+        write_artifact(initial.queue_path, queue, data_contract="quality/review_queue", overwrite=True)
+        before_results = initial.results_path.read_bytes()
+        before_queue = initial.queue_path.read_bytes()
+        provider = FakeProvider(judge_response())
+        with self.assertRaisesRegex(ValueError, "read-only"):
+            run_quality_audit(
+                manifest=self.manifest, schema_path=SCHEMA_PATH,
+                artifact_dir=self.artifact.parent, source_root=self.source_root,
+                output_dir=out, selection=self.selection, provider=provider, resume=True,
+            )
+        self.assertEqual(initial.results_path.read_bytes(), before_results)
+        self.assertEqual(initial.queue_path.read_bytes(), before_queue)
+        summary = run_quality_audit(
+            manifest=self.manifest, schema_path=SCHEMA_PATH,
+            artifact_dir=self.artifact.parent, source_root=self.source_root,
+            output_dir=out, selection=self.selection, provider=None, summary_only=True,
+        )
+        self.assertIsNone(summary.queue_path)
+        fresh = self.root / "new_quality"
+        shutil.copytree(out / "reports", fresh / "reports")
+        regenerated = run_quality_audit(
+            manifest=self.manifest, schema_path=SCHEMA_PATH,
+            artifact_dir=self.artifact.parent, source_root=self.source_root,
+            output_dir=fresh, selection=self.selection, provider=provider, resume=True,
+        )
+        self.assertEqual(load_queue(regenerated.queue_path)["contract_version"], "2.0.0")
+        self.assertFalse(provider.requests)
+        self.assertEqual(initial.queue_path.read_bytes(), before_queue)
 
     def test_directory_run_writes_reports_and_queue_without_changing_extraction(self):
         before = self.artifact.read_bytes()

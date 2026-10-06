@@ -35,6 +35,11 @@ quality feedback, not a second extraction or a storage gate.
   quality defect. Existing storage identity behavior is a separate open issue.
 - Report judge alert rate, human confirmation/dismissal and sampled-pass misses.
   Without representative labels, do not label these numbers "accuracy".
+- Queue contract `2.0.0` binds every audited extraction/PDF path and hash, judge
+  provider/model, parser and prompt bundle, including unsampled passes. Matching
+  findings alone cannot authorize reuse of human decisions. Legacy `1.0.0`
+  queues and decisions stay readable but read-only; rebuild from verified reports
+  in a new directory without overwriting or transferring historical decisions.
 
 ## Interfaces
 

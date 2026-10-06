@@ -45,6 +45,7 @@ QUALITY_SHARED_PROMPTS = (
 )
 # Shared prompt text that produced reports before the optional bundle hash existed.
 LEGACY_QUALITY_SHARED_SHA256 = "4663c66a3594cfda06fb0f5480ab8adf765eb1c154177b6c418b2e1d9244a743"
+QUALITY_QUEUE_VERSION = "2.0.0"
 
 
 def _shared_quality_prompt_sha256() -> str:
@@ -271,6 +272,12 @@ def run_quality_audit(
         raise ValueError("Maximum document failures must be positive.")
     if not summary_only and provider is None:
         raise ValueError("A model provider is required unless --summary-only is selected.")
+    candidate = destination / "review_queue.json"
+    if candidate.exists() and not summary_only:
+        existing = read_artifact(candidate, expected_type="quality_review_queue",
+                                 data_contract="quality/review_queue")
+        if existing["contract_version"] != QUALITY_QUEUE_VERSION:
+            raise ValueError("Legacy quality review queues are read-only; reuse verified reports in a new output directory.")
     schema_file = Path(schema_path).resolve()
     schema_bytes = schema_file.read_bytes()
     schema = require_approved_canonical_schema(loads_json(schema_bytes.decode("utf-8")))
@@ -404,11 +411,11 @@ def run_quality_audit(
         reports = [read_artifact(entry["report_path"], expected_type="quality_audit",
                                  data_contract="quality/audit_report") for entry in entries]
         queue = build_review_queue(reports, sample_rate=sample_rate, seed=seed)
-        candidate = destination / "review_queue.json"
         if candidate.exists():
             existing = read_artifact(candidate, expected_type="quality_review_queue",
                                      data_contract="quality/review_queue")
-            if existing["data"]["queue_id"] != queue["data"]["queue_id"]:
+            if (existing["data"]["queue_id"] != queue["data"]["queue_id"]
+                    or quality_queue_id(existing["data"]) != existing["data"]["queue_id"]):
                 raise ValueError("Existing quality review queue does not match this completed batch.")
         else:
             write_artifact(candidate, queue, data_contract="quality/review_queue")
@@ -594,6 +601,7 @@ def build_review_queue(reports: Sequence[Mapping], *, sample_rate: float, seed: 
     if len(judge_ids) != 1:
         raise ValueError("Quality reports must use the same judge model and prompt bytes.")
     vertical, version, schema_sha = next(iter(schema_ids))
+    provider, model, prompt_bundle_sha = next(iter(judge_ids))
     ordered = sorted(reports, key=lambda r: r["provenance"]["source_artifacts"][0])
     paths = [r["provenance"]["source_artifacts"][0] for r in ordered]
     if len(paths) != len(set(paths)):
@@ -623,11 +631,23 @@ def build_review_queue(reports: Sequence[Mapping], *, sample_rate: float, seed: 
         "audited_documents": len(ordered),
         "judge_review_documents": sum(r["data"]["verdict"] == "review" for r in ordered),
         "judge_uncertain_documents": sum(r["data"]["verdict"] == "uncertain" for r in ordered),
+        "audited_inputs": [
+            {
+                "source_artifact": r["provenance"]["source_artifacts"][0],
+                "source_artifact_sha256": r["data"]["source_artifact_sha256"],
+                "source_document": r["provenance"]["source_documents"][0],
+                "pdf_sha256": r["data"]["pdf_sha256"],
+                "provider": provider, "model": model,
+                "document_parser": r["provenance"].get("document_parser"),
+                "prompt_bundle_sha256": prompt_bundle_sha,
+            }
+            for r in ordered
+        ],
         "items": items,
     }
     payload["queue_id"] = quality_queue_id(payload)
     return build_success_artifact(
-        artifact_type="quality_review_queue", contract_version="1.0.0",
+        artifact_type="quality_review_queue", contract_version=QUALITY_QUEUE_VERSION,
         data=payload, data_contract="quality/review_queue",
         provenance={
             "run_id": uuid4().hex, "vertical": vertical, "schema_version": version,

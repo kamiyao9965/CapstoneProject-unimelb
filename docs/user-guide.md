@@ -533,6 +533,18 @@ all judge alerts/uncertainties and a seeded sample of judge passes.
 and DB values are unchanged. Confirmed/dismissed alerts and sampled-pass misses
 are calibration signals, not accuracy.
 
+New quality queues use contract version `2.0.0`; decisions are bound to every
+audited PDF/extraction and the judge model, parser and prompt bundle. Even if
+findings stay the same, changed inputs require a new queue and fresh human checks.
+Old `1.0.0` queues and decisions remain visible in read-only mode. Normal
+`--resume` rejects these queues; `--summary-only` can still rebuild the overview.
+To regenerate without repeating completed judge requests, keep the original
+directory, create a separate quality directory, copy only its `reports/` tree
+to the new directory, then run the same audit parameters with `--resume` and
+the new `--output-dir`. The command verifies the original PDFs and report
+identities before reuse. Do not copy the old queue or decisions. If the source
+PDFs or judge inputs have changed, those reports cannot be reused.
+
 ## 6. Outputs, quality, and cost
 
 ### Finding artifacts

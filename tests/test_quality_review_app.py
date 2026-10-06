@@ -9,7 +9,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 
 from src.common.json_artifacts import build_success_artifact, write_artifact
-from src.evaluation.quality import build_review_queue
+from src.evaluation.quality import build_review_queue, quality_queue_id
 from src.evaluation.quality_review import load_decisions
 
 
@@ -18,6 +18,42 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class QualityReviewAppTests(unittest.TestCase):
     APP_PATH = ROOT / "src/ui/quality_review_app.py"
+
+    def test_legacy_queue_displays_read_only_and_disables_saving(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            quality_dir = Path(temporary)
+            report = build_success_artifact(
+                artifact_type="quality_audit", contract_version="1.0.0",
+                data={
+                    "source_artifact_sha256": "a" * 64, "schema_sha256": "b" * 64,
+                    "pdf_sha256": "c" * 64, "prompt_sha256": "d" * 64,
+                    "verdict": "uncertain", "correctness": "unknown",
+                    "evidence_support": "unknown", "uncertainty": "high",
+                    "summary": "Check the source PDF.", "findings": [],
+                }, data_contract="quality/audit_report",
+                provenance={
+                    "run_id": "test", "vertical": "travel_insurance", "schema_version": "1.0.0",
+                    "provider": "openai", "model": "gpt-5", "document_input": "markdown",
+                    "source_documents": [str(quality_dir / "synthetic.pdf")],
+                    "source_artifacts": [str(quality_dir / "synthetic.json")],
+                },
+            )
+            queue = build_review_queue([report], sample_rate=0, seed=7)
+            queue["contract_version"] = "1.0.0"
+            queue["data"].pop("audited_inputs", None)
+            queue["data"]["queue_id"] = quality_queue_id(queue["data"])
+            queue_path = quality_dir / "review_queue.json"
+            write_artifact(queue_path, queue, data_contract="quality/review_queue")
+            before = queue_path.read_bytes()
+            item_id = queue["data"]["items"][0]["item_id"]
+            with patch("src.ui.quality_review.parse_cli_args",
+                       return_value=argparse.Namespace(quality_dir=str(quality_dir))):
+                at = AppTest.from_file(str(self.APP_PATH), default_timeout=20).run()
+            self.assertFalse(at.exception)
+            self.assertTrue(any("read-only" in warning.value for warning in at.warning))
+            self.assertTrue(at.button(key=f"save:{item_id}").disabled)
+            self.assertFalse((quality_dir / "review_decisions.json").exists())
+            self.assertEqual(queue_path.read_bytes(), before)
 
     def test_review_ui_records_a_queue_bound_human_decision(self):
         with tempfile.TemporaryDirectory() as temporary:

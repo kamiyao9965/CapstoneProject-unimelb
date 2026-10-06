@@ -44,6 +44,11 @@ cannot silently change a queue already carrying human decisions.
 `src/schema/sampler.py` owns deterministic sampling of
 judge passes. `src/evaluation/quality_review.py` binds human decisions to the
 queue identity; `src/ui/quality_review.py` only presents and records those decisions.
+Queue version `2.0.0` includes every audited input's extraction/PDF hash and judge
+provider/model/parser/prompt bundle in its identity, including unsampled passes.
+`quality_review.py` validates these bindings and keeps legacy `1.0.0` queues
+read-only. Regeneration reuses verified reports in a new directory and preserves
+historical queues and decisions.
 Neither judge nor human review imports storage or mutates extraction output.
 This screen does not claim ground-truth accuracy; Health's labelled evaluation
 is separate.

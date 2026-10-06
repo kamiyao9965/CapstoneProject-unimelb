@@ -282,6 +282,16 @@ set now drives evaluation; validated cached and newly extracted records particip
 together. Fully cached evaluation creates no provider. Offline tests cover partial
 and fully cached batches, preservation of cached bytes, and new extraction failures.
 
+### 5. Bind quality decisions to every audited PDF and judge input (2026-10-06)
+
+Identical findings previously produced the same queue ID after a PDF or judge
+configuration changed. Queue version `2.0.0` now includes every extraction/PDF
+identity, provider/model, parser and prompt bundle, including unsampled passes.
+Changed inputs reject prior human decisions. Legacy queues remain read-only;
+verified reports can regenerate a queue in a new directory without paid calls.
+Offline regressions cover changed inputs, legacy decisions/file preservation,
+version/binding validation, report reuse and the review UI.
+
 ### 1. Logged pre-validation cleanup of structural noise (2026-09-16)
 
 `run_structured_output(..., drop_structural_noise=True)` removes undeclared

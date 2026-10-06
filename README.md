@@ -122,6 +122,10 @@ see [open issues](docs/fix.md). Valid structure or successful storage does not
 establish factual accuracy. Judge reports prioritize review and never modify
 extraction values, schemas, or the database.
 
+Quality review queues bind every audited PDF and judge input to human decisions.
+Legacy `1.0.0` quality queues remain readable but are read-only; see the
+[operator guide](docs/user-guide.md#f-optional-llm-judge-and-human-review) for regeneration from verified reports.
+
 Canonical approval requires a human reviewer and rationale. Never rewrite an
 approved schema in place. Runtime artifact formats and provenance requirements
 are documented in [API and file contracts](docs/api.md#10-json-file-boundaries).

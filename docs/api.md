@@ -494,6 +494,7 @@ run_quality_audit(*, manifest, schema_path, artifact_dir, source_root,
 load_quality_results(results_path) -> quality_batch_results envelope
 build_review_queue(reports, *, sample_rate, seed) -> quality_review_queue envelope
 load_queue(queue_path) -> quality_review_queue envelope
+queue_is_read_only(queue) -> bool
 load_decisions(queue_path, decisions_path) -> quality_review_decisions envelope
 save_decision(queue_path, decisions_path, item_id, decision, notes, reviewer) -> Path
 quality_metrics(queue, decisions) -> dict
@@ -510,6 +511,16 @@ pass samples. `src.evaluation.quality_review` binds human decisions to the queue
 and allows only independent `issue_found/no_issue/uncertain` records. It never
 changes extraction, schemas, or PostgreSQL. `quality_metrics` has workload and
 human-feedback signals, no accuracy field.
+
+New `quality_review_queue` envelopes use contract version `2.0.0`. Their
+`audited_inputs` bind every document's extraction path/hash, PDF path/hash,
+judge provider/model, parser and prompt bundle to `queue_id`, including passes
+not selected for review. `load_queue` validates version, bindings and provenance;
+changing an input invalidates prior decisions even when findings are identical.
+Version `1.0.0` queues and existing decisions remain readable, but
+`save_decision` rejects updates and normal audit resume stops before changing
+files or making requests. Summary-only remains available. Regenerate a queue
+in a separate directory using verified reports; do not transfer old decisions.
 
 `run_quality_audit` saves per-PDF progress to `results.json`; `QualityAuditRun`
 returns `results_path`, optional `queue_path`, and completed/failed/pending counts.
