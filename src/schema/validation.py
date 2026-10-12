@@ -6,13 +6,13 @@ import re
 from copy import deepcopy
 
 from src.common.json_contracts import validate_contract
-from src.schema.nested import item_fields_to_schema, validate_item_schema
+from src.schema.nested import item_fields_to_schema, validate_item_schema, validate_value_schema
 from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
 from collections.abc import Collection, Mapping
 from typing import TypeAlias
 
 SUPPORTED_FIELD_TYPES = frozenset(
-    {"string", "number", "boolean", "enum", "list[object]"}
+    {"string", "number", "boolean", "enum", "list[object]", "list[string]", "list[number]", "list[boolean]", "list[enum]"}
 )
 SNAKE_CASE_NAME = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
 JSONScalar: TypeAlias = str | int | float | bool
@@ -47,6 +47,9 @@ def normalize_schema(payload: object, manifest: VerticalManifest | None = None) 
             field.pop("item_fields")
         if field.get("item_schema"):
             field["item_schema"] = validate_item_schema(field["item_schema"], schema.get("$defs"))
+    if "document_fields" in schema:
+        schema["document_fields"] = {name: validate_value_schema(value, schema.get("$defs"))
+                                     for name, value in schema["document_fields"].items()}
     return schema
 
 
@@ -173,9 +176,9 @@ def validate_field_payload(
     values = payload.get("values")
     if not isinstance(values, list):
         raise ValueError(f"Schema field {name!r} values must be a list.")
-    if field_type == "enum" and not values:
+    if field_type in {"enum", "list[enum]"} and not values:
         raise ValueError(f"Schema enum field {name!r} must declare allowed values.")
-    if field_type == "enum" and any(
+    if field_type in {"enum", "list[enum]"} and any(
         not isinstance(value, (str, int, float, bool)) for value in values
     ):
         raise ValueError(f"Schema enum field {name!r} values must be scalar.")

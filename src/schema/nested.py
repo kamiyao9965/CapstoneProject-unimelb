@@ -43,6 +43,14 @@ def resolve_local_refs(schema: object, definitions: object = None) -> dict[str, 
 
 def validate_item_schema(schema: object, definitions: object = None) -> dict[str, Any]:
     """Validate the bounded JSON Schema dialect and return an expanded copy."""
+    result = validate_value_schema(schema, definitions)
+    if result.get("type") != "object":
+        raise ValueError("item_schema must describe an object.")
+    return result
+
+
+def validate_value_schema(schema: object, definitions: object = None) -> dict[str, Any]:
+    """Validate a declared closed value at product or document level."""
     schema = resolve_local_refs(schema, definitions)
     allowed = {"type", "properties", "required", "additionalProperties", "items", "enum",
                "minimum", "maximum", "minLength", "maxLength", "description", "title"}
@@ -67,8 +75,6 @@ def validate_item_schema(schema: object, definitions: object = None) -> dict[str
             walk(node.get("items"), depth + 1)
 
     Draft202012Validator.check_schema(schema)
-    if schema.get("type") != "object":
-        raise ValueError("item_schema must describe an object.")
     walk(schema)
     return schema
 

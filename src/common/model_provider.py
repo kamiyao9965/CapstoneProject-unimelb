@@ -619,7 +619,7 @@ def _count_optional_properties(schema: Any) -> int:
     if isinstance(schema, Mapping):
         count = 0
         properties = schema.get("properties")
-        if isinstance(properties, Mapping):
+        if schema.get("type") == "object" and isinstance(properties, Mapping):
             count += len(set(properties) - set(schema.get("required", [])))
         return count + sum(_count_optional_properties(value) for value in schema.values())
     if isinstance(schema, list):

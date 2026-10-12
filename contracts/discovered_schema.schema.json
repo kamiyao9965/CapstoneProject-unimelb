@@ -14,7 +14,12 @@
     "taxonomies"
   ],
   "properties": {
-    "$defs": {"type": "object", "additionalProperties": {"type": "object"}},
+    "$defs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
     "vertical": {
       "type": "string",
       "minLength": 1
@@ -54,6 +59,18 @@
       "additionalProperties": false,
       "properties": {},
       "required": []
+    },
+    "document_fields": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "validation_profile": {
+      "type": "string"
+    },
+    "validation_rules": {
+      "type": "object"
     }
   },
   "$defs": {
@@ -69,8 +86,15 @@
         "values"
       ],
       "properties": {
-        "item_schema": {"type": "object"},
-        "item_fields": {"type": "array", "items": {"type": "object"}},
+        "item_schema": {
+          "type": "object"
+        },
+        "item_fields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
@@ -81,7 +105,11 @@
             "number",
             "boolean",
             "enum",
-            "list[object]"
+            "list[object]",
+            "list[string]",
+            "list[number]",
+            "list[boolean]",
+            "list[enum]"
           ]
         },
         "description": {
@@ -109,6 +137,9 @@
               "boolean"
             ]
           }
+        },
+        "unique_items": {
+          "type": "boolean"
         }
       }
     },

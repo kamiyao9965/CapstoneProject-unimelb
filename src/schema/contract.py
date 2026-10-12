@@ -29,7 +29,8 @@ def compile_extraction_contract(
         business_validator(schema)
     else:
         validate_schema_mapping(schema, manifest=manifest)
-    product_contract = _compile_product_contract(normalize_schema(dict(schema), manifest))
+    normalized = normalize_schema(dict(schema), manifest)
+    product_contract = _compile_product_contract(normalized)
     if output_cardinality == "single":
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -40,7 +41,7 @@ def compile_extraction_contract(
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "additionalProperties": False,
-            "required": ["products", "_document_notes"],
+            "required": ["products", "_document_notes", *normalized.get("document_fields", {})],
             "properties": {
                 "products": {
                     "type": "array",
@@ -48,6 +49,7 @@ def compile_extraction_contract(
                     "items": product_contract,
                 },
                 "_document_notes": {"type": ["string", "null"]},
+                **deepcopy(normalized.get("document_fields", {})),
             },
         }
     raise ValueError(
@@ -89,6 +91,10 @@ def _field_contract(field: Mapping[str, object]) -> dict[str, object]:
         return {"type": ["boolean", "null"]}
     if field_type == "enum":
         return {"enum": [*field["values"], None]}
+    if field_type in {"list[string]", "list[number]", "list[boolean]", "list[enum]"}:
+        item = {"enum": list(field["values"])} if field_type == "list[enum]" else {"type": str(field_type)[5:-1]}
+        return {"type": ["array", "null"], "items": item,
+                **({"uniqueItems": True} if field.get("unique_items") else {})}
     if field_type == "list[object]":
         if "item_schema" in field:
             return {"type": ["array", "null"], "items": deepcopy(field["item_schema"])}

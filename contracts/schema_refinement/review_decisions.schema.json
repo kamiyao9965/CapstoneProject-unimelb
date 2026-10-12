@@ -21,7 +21,9 @@
         "values"
       ],
       "properties": {
-        "item_schema": {"type": "object"},
+        "item_schema": {
+          "type": "object"
+        },
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
@@ -32,7 +34,11 @@
             "number",
             "boolean",
             "enum",
-            "list[object]"
+            "list[object]",
+            "list[string]",
+            "list[number]",
+            "list[boolean]",
+            "list[enum]"
           ]
         },
         "description": {

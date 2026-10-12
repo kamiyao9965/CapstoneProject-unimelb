@@ -34,6 +34,7 @@ from src.common.structured_output import (
 from src.verticals.manifest import resolve_manifest, VerticalManifest
 from src.verticals.registry import get_prompt, get_schema_validator, get_shared_prompt
 from src.schema.validation import validate_schema_mapping
+from src.schema.generation import generation_contract, decode_generated_schema, decode_generated_patches
 from src.refine.candidates.patch import parse_patch_payload
 
 
@@ -93,9 +94,11 @@ class SchemaDiscovery:
         self.vertical = manifest.vertical
         self.discovery_contract = manifest.contract("discovered_schema")
         self.discovery_prompt = get_prompt(manifest.prompt("discovery"))
+        self.discovery_prompt += "\n\n" + get_shared_prompt("schema_generation")
         self.schema_validator = get_schema_validator(manifest)
         self.patch_contract = manifest.contract("candidate_patch_set")
         self.patch_prompt = get_prompt(manifest.prompt("patch"))
+        self.patch_prompt += "\n\n" + get_shared_prompt("schema_generation")
         self.patch_validator = lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types))
 
     def discover(
@@ -190,25 +193,23 @@ class SchemaDiscovery:
         structured_contract = {
             "schema_discovery": (
                 "discovered_schema",
-                self.discovery_contract,
-                self.schema_validator,
+                generation_contract(self.manifest),
+                lambda value: decode_generated_schema(value, self.manifest),
             ),
             "schema_consensus_patch": (
                 "candidate_patch_set",
-                self.patch_contract,
-                self.patch_validator,
+                generation_contract(self.manifest, patches=True),
+                lambda value: decode_generated_patches(value, self.manifest),
             ),
         }.get(usage_event)
         if structured_contract is not None:
-            output_name, contract_name, business_validator = structured_contract
+            output_name, wire_contract, decoder = structured_contract
             request = replace(
                 request,
                 structured_output=StructuredOutputSpec(
                     name=output_name,
-                    schema=load_contract(contract_name, manifest=self.manifest),
-                    # Nested schema descriptions have dynamic property names.
-                    # Local contract/business validation remains authoritative.
-                    strict=False,
+                    schema=wire_contract,
+                    strict=True,
                 ),
             )
             try:
@@ -216,7 +217,7 @@ class SchemaDiscovery:
                     self.provider,
                     request,
                     data_contract_schema=request.structured_output.schema,
-                    business_validator=business_validator,
+                    business_validator=decoder,
                 )
             except StructuredOutputFailure as exc:
                 self._log_usage(
@@ -246,7 +247,7 @@ class SchemaDiscovery:
                 resolved_output_path, usage_event, run_id=logical_run_id,
             )
             assert result.data is not None
-            return validate_schema_mapping(result.data, manifest=self.manifest) if usage_event == "schema_discovery" else result.data
+            return decoder(result.data)
 
         raise RuntimeError(f"No structured output contract configured for {usage_event}.")
 
