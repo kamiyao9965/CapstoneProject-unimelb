@@ -119,7 +119,7 @@ class BatchResumeTests(unittest.TestCase):
                 self.cached.unlink()
 
     def test_cached_canonical_results_keep_contract_and_identity_validation(self) -> None:
-        from tests.test_canonical_schema import approved_travel_schema
+        from tests.test_travel_schema_migration import closed_travel_schema
         from tests.test_canonical_storage import valid_extraction_payload
 
         self.args = cli.build_parser().parse_args([
@@ -128,7 +128,7 @@ class BatchResumeTests(unittest.TestCase):
             "--provider", "openai", "--model", "gpt-5",
         ])
         cli.configure_command(self.args)
-        self.schema = approved_travel_schema()
+        self.schema = closed_travel_schema()
         for case in ("valid", "invalid_type", "duplicate_identity"):
             with self.subTest(case=case):
                 data = valid_extraction_payload()
@@ -145,58 +145,3 @@ class BatchResumeTests(unittest.TestCase):
                 builder.assert_not_called()
                 self.assertEqual(self.cached.read_bytes(), before)
                 self.cached.unlink()
-
-    def test_resume_evaluation_includes_cached_results_even_when_all_are_cached(self) -> None:
-        from src.evaluation.metrics import ExtractionEvaluator
-        from src.evaluation.reporter import EvaluationReporter
-
-        pending = self.input_root / "pending.pdf"
-        pending.write_bytes(b"offline fixture")
-        self.result().write_json(self.cached)
-        before = self.cached.read_bytes()
-        self.args.evaluate = True
-        labels = mock.Mock()
-        labels.load_ground_truth.return_value = (None, {"hospital": {"product_name": "Example"}})
-        extractor = mock.Mock()
-        extractor.extract_one.return_value = VALID_RECORD
-        for attempt in ("partial", "all_cached"):
-            with self.subTest(attempt=attempt), \
-                 mock.patch.object(cli, "load_schema_data", return_value=self.schema), \
-                 mock.patch.object(cli, "_build_schema_extractor", return_value=extractor) as builder, \
-                 mock.patch("src.verticals.registry.get_evaluation_tools", return_value=(
-                     labels, ExtractionEvaluator(), EvaluationReporter(),
-                 )), mock.patch("builtins.print"):
-                self.assertEqual(cli.command_batch(self.args), 0)
-                if attempt == "partial":
-                    builder.assert_called_once()
-                    extractor.extract_one.assert_called_once_with(pending)
-                else:
-                    builder.assert_not_called()
-                report = json.loads((self.root / "outputs/evaluation/report.json").read_text())
-                self.assertEqual(report["summary"]["total_documents"], 2)
-                self.assertEqual(report["summary"]["matched_documents"], 2)
-                self.assertEqual({item["source_path"] for item in report["reports"]},
-                                 {str(self.pdf), str(pending)})
-                self.assertEqual(self.cached.read_bytes(), before)
-
-    def test_cached_documents_remain_in_evaluation_when_new_extraction_fails(self) -> None:
-        from src.evaluation.metrics import ExtractionEvaluator
-        from src.evaluation.reporter import EvaluationReporter
-
-        (self.input_root / "pending.pdf").write_bytes(b"offline fixture")
-        self.result().write_json(self.cached)
-        self.args.evaluate = True
-        labels = mock.Mock()
-        labels.load_ground_truth.return_value = (None, {"hospital": {"product_name": "Example"}})
-        extractor = mock.Mock()
-        extractor.extract_one.side_effect = ValueError("invalid output")
-        with mock.patch.object(cli, "load_schema_data", return_value=self.schema), \
-             mock.patch.object(cli, "_build_schema_extractor", return_value=extractor), \
-             mock.patch("src.verticals.registry.get_evaluation_tools", return_value=(
-                 labels, ExtractionEvaluator(), EvaluationReporter(),
-             )), mock.patch("builtins.print"):
-            self.assertEqual(cli.command_batch(self.args), 1)
-        report = json.loads((self.root / "outputs/evaluation/report.json").read_text())
-        self.assertEqual(report["summary"]["total_documents"], 2)
-        self.assertEqual(report["summary"]["matched_documents"], 1)
-        self.assertEqual(report["summary"]["extraction_errors"], 1)

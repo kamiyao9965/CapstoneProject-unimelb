@@ -48,6 +48,9 @@ def normalize_schema(payload: object, manifest: VerticalManifest | None = None) 
         if field.get("item_schema"):
             field["item_schema"] = validate_item_schema(field["item_schema"], schema.get("$defs"))
     if "document_fields" in schema:
+        if any(not SNAKE_CASE_NAME.fullmatch(name) or name in {"products", "_document_notes"}
+               for name in schema["document_fields"]):
+            raise ValueError("Document field names must be snake_case and cannot replace reserved extraction fields.")
         schema["document_fields"] = {name: validate_value_schema(value, schema.get("$defs"))
                                      for name, value in schema["document_fields"].items()}
     return schema
@@ -97,7 +100,12 @@ def validate_schema_mapping(payload: object, *, manifest: VerticalManifest | Non
             raise ValueError(f"Schema taxonomy {name!r} entries need canonical_name.")
         if len(names) != len(set(names)):
             raise ValueError(f"Duplicate taxonomy category in {name!r}.")
-    return normalize_schema(payload, manifest)
+    normalized = normalize_schema(payload, manifest)
+    from src.verticals.registry import get_business_rules
+    rules = get_business_rules(manifest)
+    if rules is not None:
+        rules.validate_schema(normalized, manifest)
+    return normalized
 
 
 def validate_product_type_field(
@@ -198,11 +206,13 @@ def validate_field_payload(
     return payload
 
 
-def validate_extraction_record(schema: dict[str, object], payload: object, *, manifest: VerticalManifest) -> None:
+def validate_extraction_record(schema: dict[str, object], payload: object, *, manifest: VerticalManifest, document_count: int = 1) -> None:
     """Check applicability and document-local product identities after JSON validation."""
     records = payload["products"] if manifest.documents.output_cardinality == "multiple" else [payload]
     identities = set()
     for record in records:
+        if set(record.get("_unfilled", [])) != {field["name"] for field in schema["fields"] if record.get(field["name"]) is None}:
+            raise ValueError("_unfilled must enumerate null product fields exactly.")
         product_type = record.get("product_type")
         for field in schema["fields"]:
             if product_type is not None and product_type not in field["applies_to"] and record.get(field["name"]) is not None:
@@ -215,3 +225,7 @@ def validate_extraction_record(schema: dict[str, object], payload: object, *, ma
             if identity in identities:
                 raise ValueError("Duplicate product identity within one document.")
             identities.add(identity)
+    from src.verticals.registry import get_business_rules
+    rules = get_business_rules(manifest)
+    if rules is not None:
+        rules.validate_records(schema, payload, document_count=document_count)

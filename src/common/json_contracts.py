@@ -24,6 +24,7 @@ _CONTRACT_PATHS = {
     "quality/batch_results": "quality/batch_results.schema.json",
     "quality/review_queue": "quality/review_queue.schema.json",
     "quality/review_decisions": "quality/review_decisions.schema.json",
+    "quality/delivery_approval": "quality/delivery_approval.schema.json",
     "private_health/discovered_schema": (
         "private_health/discovered_schema.schema.json"
     ),

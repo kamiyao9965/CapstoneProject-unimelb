@@ -59,7 +59,7 @@ def product_for_schema() -> dict:
             value = "Fixture"
         product[field["name"]] = value
     product["product_name"] = "Fixture Basic"
-    product["_unfilled"] = []
+    product["_unfilled"] = [name for name, value in product.items() if value is None]
     product["_notes"] = None
     return product
 
@@ -519,6 +519,7 @@ class QualityAuditTests(unittest.TestCase):
                 self.assertFalse(provider.requests)
                 self.assertEqual(initial.results_path.read_bytes(), before)
 
+    @patch("src.evaluation.quality._shared_quality_prompt_sha256", new=lambda: "4663c66a3594cfda06fb0f5480ab8adf765eb1c154177b6c418b2e1d9244a743")
     def test_resume_accepts_legacy_reports_with_unchanged_shared_prompts(self):
         out = self.root / "quality"
         with patch("src.evaluation.quality.ingest_pdfs", return_value=(self.document,)):
@@ -550,12 +551,11 @@ class QualityAuditTests(unittest.TestCase):
         self.assertEqual(resumed.completed_documents, 1)
         self.assertFalse(provider.requests)
 
-    def test_summary_only_materializes_legacy_partial_without_model_call(self):
+    def test_summary_only_materializes_partial_reports_without_model_call(self):
         out = self.root / "quality"
         report_path = out / "reports" / "fixture.json"
         with patch("src.evaluation.quality.ingest_pdfs", return_value=(self.document,)):
             report = self.audit(FakeProvider(judge_response()))
-        report["data"].pop("prompt_bundle_sha256")
         write_artifact(report_path, report, data_contract="quality/audit_report")
         later = self.artifact.parent / "later.json"
         later.write_bytes(self.artifact.read_bytes())

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import datetime, timezone
 from functools import partial
@@ -20,7 +21,7 @@ from src.common.json_artifacts import (
     write_artifact,
     write_failure_artifact,
 )
-from src.common.model_config import ModelSelection, resolve_selection
+from src.common.model_config import ModelSelection, resolve_selection, require_structured_output_capability
 from src.common.model_provider import (
     ModelProvider,
     ProviderRequest,
@@ -42,12 +43,14 @@ from src.schema.canonical import (
     validate_canonical_extraction_identities,
 )
 from src.verticals.manifest import VerticalManifest, resolve_manifest
-from src.verticals.registry import get_prompt, get_shared_prompt
+from src.verticals.registry import get_prompt, get_shared_prompt, get_business_rules, business_validation_summary
+from src.verticals.documents import DocumentGroup, resolve_document_groups
+from src.schema_application.records import extraction_binding
 from src.schema.validation import validate_schema_mapping, validate_extraction_record
 
 
 class SchemaExtractor:
-    """Extract one validated, enveloped JSON record per PDF."""
+    """Extract one validated record per explicitly linked document group."""
 
     def __init__(
         self,
@@ -72,6 +75,7 @@ class SchemaExtractor:
         if schema_data.get("vertical") != manifest.vertical:
             raise ValueError("Schema vertical does not match manifest.")
         self.manifest = manifest
+        self.business_rules = get_business_rules(manifest)
         output_cardinality = manifest.documents.output_cardinality
         self.schema_data = dict(schema_data)
         self.extraction_business_validator: Callable[[object], object] | None = None
@@ -103,8 +107,13 @@ class SchemaExtractor:
             )
             self.schema_prompt_label = "Discovered schema"
         self.extraction_contract = closed_extraction_contract(self.extraction_contract)
+        if self.business_rules is not None:
+            self.business_rules.validate_schema(self.schema_data, manifest)
         self.structured_output_strict = True
         self.extraction_prompt = get_prompt(manifest.prompt("extraction"))
+        if self.business_rules is not None and hasattr(self.business_rules, "extraction_guidance"):
+            self.extraction_prompt += self.business_rules.extraction_guidance(self.schema_data)
+        self.binding = extraction_binding(self.schema_data, manifest)
         self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
             raise ValueError(
@@ -112,6 +121,7 @@ class SchemaExtractor:
                 "set LLM_DOCUMENT_INPUT=markdown."
             )
         self.model = self.selection.model
+        require_structured_output_capability(self.selection, strict=True)
         self.provider = provider or create_provider(self.selection)
         self.document_parser = require_document_parser(document_parser)
         self.pdf_root = Path(pdf_root) if pdf_root else None
@@ -130,21 +140,59 @@ class SchemaExtractor:
         *,
         run_id: str | None = None,
     ) -> dict[str, object]:
-        pdf_path = Path(pdf_path)
-        if not pdf_path.exists():
-            raise FileNotFoundError(pdf_path)
+        group = self._groups([pdf_path])[0]
+        return self.extract_group(group, run_id=run_id)
+
+    def _groups(self, pdf_paths: list[str | Path]) -> list[DocumentGroup]:
+        if not pdf_paths:
+            return []
+        paths = [Path(path).resolve() for path in pdf_paths]
+        root = self.pdf_root
+        if root is None:
+            root = self.manifest.path("input_root") if self.manifest.documents.inventory else Path(os.path.commonpath([path.parent for path in paths]))
+        return resolve_document_groups(self.manifest, paths, input_root=root)
+
+    def extract_group(self, group: DocumentGroup, *, run_id: str | None = None) -> dict[str, object]:
+        """Send the base PDFs and their explicit amendments in one request."""
+        current = self._groups(list(group.pdf_paths))
+        if len(current) != 1 or current[0].provenance() != group.provenance():
+            raise ValueError("Document group changed before extraction; resolve it again.")
+        pdf_path = group.primary_path
         started = time.perf_counter()
         logical_run_id = run_id or uuid4().hex
         self._log(f"Extracting {pdf_path.name} with {self.selection.provider}/{self.model}...")
         if self.document_parser == "mineru":
             self._log("Parsing the PDF locally with MinerU; an uncached document can take several minutes.")
+        source_index: dict[str, dict] = {}
+        parser_quality = self.manifest.adapters.get("parser_quality")
+        if parser_quality not in {None, "car_parser_quality_v1"}:
+            raise ValueError("Unknown parser quality adapter.")
         document_text = render_pdf_paths_for_prompt(
-            (pdf_path,),
+            group.pdf_paths,
             cache_dir=self.pdfingestor_cache_dir,
             pdf_root=self.pdf_root,
             document_parser=self.document_parser,
             markdown_dir=self.parsed_markdown_dir,
+            document_refs=[ref.to_dict() for ref in group.documents],
+            source_index=source_index if self.business_rules is not None else None,
+            parser_quality_gate=parser_quality is not None,
+            parser_review_path=self.manifest.path("parser_review") if "parser_review" in self.manifest.paths else None,
         )
+        context = None
+        if self.business_rules is not None:
+            addendum, context = self.business_rules.source_context(self.schema_data, source_index)
+            document_text += addendum
+
+        def validate_result(payload: object) -> object:
+            if is_canonical_schema(self.schema_data):
+                self.extraction_business_validator(payload)
+            else:
+                validate_extraction_record(self.schema_data, payload, manifest=self.manifest, document_count=len(group.documents))
+            if self.business_rules is not None:
+                if is_canonical_schema(self.schema_data):
+                    self.business_rules.validate_records(self.schema_data, payload, document_count=len(group.documents))
+                self.business_rules.validate_sources(self.schema_data, payload, source_index, context)
+            return payload
         request = ProviderRequest(
             selection=self.selection,
             system_prompt=self.extraction_prompt,
@@ -171,13 +219,13 @@ class SchemaExtractor:
                 self.provider,
                 request,
                 data_contract_schema=self.extraction_contract,
-                business_validator=self.extraction_business_validator,
+                business_validator=validate_result,
                 drop_structural_noise=False,
             )
         except StructuredOutputFailure as exc:
-            self._log_usage(exc.result, pdf_path, started, logical_run_id)
+            self._log_usage(exc.result, group, started, logical_run_id)
             raise
-        self._log_usage(result, pdf_path, started, logical_run_id)
+        self._log_usage(result, group, started, logical_run_id)
         assert result.data is not None
         return result.data
 
@@ -186,16 +234,21 @@ class SchemaExtractor:
         out_dir.mkdir(parents=True, exist_ok=True)
         written: list[Path] = []
         reserved_targets: set[Path] = set()
-        for pdf_value in pdf_paths:
-            pdf_path = Path(pdf_value)
+        groups = self._groups(pdf_paths)
+        order: dict[Path, int] = {}
+        for index, value in enumerate(pdf_paths):
+            order.setdefault(Path(value).resolve(), index)
+        groups.sort(key=lambda group: min(order[path] for path in group.pdf_paths if path in order))
+        for group in groups:
+            pdf_path = group.primary_path
             logical_run_id = uuid4().hex
             try:
-                record = self.extract_one(pdf_path, run_id=logical_run_id)
+                record = self.extract_group(group, run_id=logical_run_id)
             except Exception as exc:
                 failure = build_failure_artifact(
                     artifact_type="extraction_error",
                     contract_version="1.0.0",
-                    provenance=self._provenance(pdf_path, logical_run_id),
+                    provenance=self._provenance(group, logical_run_id),
                     error_code=(
                         "structured_output_exhausted"
                         if isinstance(exc, StructuredOutputFailure)
@@ -219,14 +272,15 @@ class SchemaExtractor:
                 artifact_type="extraction_result",
                 contract_version="1.0.0",
                 data=record,
-                provenance=self._provenance(pdf_path, logical_run_id),
+                provenance=self._provenance(group, logical_run_id),
                 data_contract_schema=self.extraction_contract,
             )
             write_artifact(target, artifact, data_contract_schema=self.extraction_contract)
             written.append(target)
         return written
 
-    def _provenance(self, pdf_path: Path, run_id: str) -> dict[str, object]:
+    def _provenance(self, group: DocumentGroup, run_id: str) -> dict[str, object]:
+        summary = business_validation_summary(self.manifest, self.schema_data, document_count=len(group.documents))
         return {
             "vertical": self.schema_data["vertical"],
             "schema_version": str(self.schema_data["version"]),
@@ -234,7 +288,8 @@ class SchemaExtractor:
             "model": self.selection.model,
             "document_input": self.selection.document_input,
             "document_parser": self.document_parser,
-            "source_documents": [pdf_path.as_posix()], "source_artifacts": [],
+            **group.provenance(), **self.binding, "source_artifacts": [],
+            **({"validation_checks": summary} if summary is not None else {}),
         }
 
     def _log(self, message: str) -> None:
@@ -242,7 +297,7 @@ class SchemaExtractor:
             self.log(message)
 
     def _log_usage(
-        self, result: StructuredOutputResult, pdf_path: Path,
+        self, result: StructuredOutputResult, group: DocumentGroup,
         started: float, run_id: str,
     ) -> None:
         duration = round(time.perf_counter() - started, 3)
@@ -256,7 +311,9 @@ class SchemaExtractor:
                     "event": "extraction", "provider": response.provider,
                     "model": response.model, "document_input": self.selection.document_input,
                     "document_parser": self.document_parser,
-                    "api_key_env": response.api_key_env, "source_pdf": pdf_path.as_posix(),
+                    "api_key_env": response.api_key_env, "source_pdf": group.primary_path.as_posix(),
+                    **group.provenance(), **self.binding,
+                    "validation_plan": business_validation_summary(self.manifest, self.schema_data, document_count=len(group.documents)),
                     "duration_seconds": duration, "run_id": run_id,
                     "attempt_number": attempt.number,
                     "validation_succeeded": not attempt.errors,

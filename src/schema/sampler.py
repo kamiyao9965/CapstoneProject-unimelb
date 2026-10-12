@@ -24,9 +24,20 @@ def sample_quality_passes(identities: Iterable[str], *, rate: float, seed: int) 
 def category_from_path(
     path: str | Path,
     categories: tuple[str, ...] | None = None,
+    *, manifest=None,
 ) -> str | None:
     """Return the single authoritative dataset category encoded in a path."""
     categories = categories if categories is not None else resolve_manifest().documents.categories
+    if manifest is not None and manifest.documents.inventory:
+        root = manifest.path("input_root")
+        candidate = Path(path)
+        candidate = (candidate if candidate.is_absolute() else root / candidate).resolve()
+        for entry in manifest.documents.inventory:
+            source = Path(entry["source_path"])
+            if (source if source.is_absolute() else root / source).resolve() == candidate:
+                category = entry.get("metadata", {}).get("sampling_category", entry["document_role"])
+                return category if category in categories else None
+        return None
     parts = {part.lower() for part in Path(path).parts}
     matches = [category for category in categories if category.lower() in parts]
     return matches[0] if len(matches) == 1 else None
@@ -38,6 +49,7 @@ def select_samples(
     per_category: int = 5,
     seed: int | None = None,
     exclude_paths: Iterable[str | Path] = (),
+    *, manifest=None,
 ) -> list[str]:
     categories = categories if categories is not None else resolve_manifest().documents.categories
     if per_category <= 0:
@@ -46,8 +58,20 @@ def select_samples(
         raise ValueError(f"Input root does not exist: {input_root}")
 
     rng = random.Random(seed)
-    candidates = collect_candidates(input_root, categories)
+    candidates = collect_candidates(input_root, categories, manifest=manifest)
+    identities_by_path = {}
+    if manifest is not None and manifest.documents.inventory:
+        from src.verticals.documents import resolve_document_groups
+        all_paths = {path for companies in candidates.values() for paths in companies.values() for path in paths}
+        identities_by_path = {group.primary_path: frozenset(ref.sha256 for ref in group.documents)
+                              for group in resolve_document_groups(manifest, all_paths, input_root=input_root)}
+
+    def identities(path: Path) -> frozenset[str]:
+        return identities_by_path.get(path, frozenset({document_identity(path)}))
     excluded = {Path(path).resolve() for path in exclude_paths}
+    if manifest is not None and manifest.documents.inventory and excluded:
+        from src.verticals.documents import resolve_document_groups
+        excluded = {path for group in resolve_document_groups(manifest, excluded, input_root=input_root) for path in group.pdf_paths}
     excluded_identities = {
         document_identity(path)
         for path in excluded
@@ -63,7 +87,7 @@ def select_samples(
                 path
                 for path in paths
                 if path.resolve() not in excluded
-                and document_identity(path) not in excluded_identities
+                and not identities(path).intersection(excluded_identities)
             ]
             for company, paths in candidates[category].items()
         }
@@ -73,13 +97,14 @@ def select_samples(
             per_category,
             rng,
             selected_identities,
+            identities_by_path,
         )
         if category_selection is None:
             unique_documents = {
                 document_identity(path)
                 for paths in by_company.values()
                 for path in paths
-                if document_identity(path) not in selected_identities
+                if not identities(path).intersection(selected_identities)
             }
             errors.append(
                 f"{category}: found {len(unique_documents)} unique documents across "
@@ -89,7 +114,7 @@ def select_samples(
 
         for path in category_selection:
             selected.append(path)
-            selected_identities.add(document_identity(path))
+            selected_identities.update(identities(path))
 
     if errors:
         raise ValueError(
@@ -121,6 +146,7 @@ def _select_unique_documents(
     count: int,
     rng: random.Random,
     unavailable_identities: set[str],
+    identities_by_path: dict[Path, frozenset[str]] | None = None,
 ) -> list[Path] | None:
     """Choose distinct companies and content identities, or report impossibility."""
     companies = sorted(by_company)
@@ -144,13 +170,13 @@ def _select_unique_documents(
         for index in range(company_index, len(companies)):
             company = companies[index]
             for path in choices[company]:
-                identity = document_identity(path)
-                if identity in used_identities or identity in unavailable_identities:
+                identities = (identities_by_path or {}).get(path, frozenset({document_identity(path)}))
+                if identities.intersection(used_identities | unavailable_identities):
                     continue
                 result = search(
                     index + 1,
                     [*chosen, path],
-                    used_identities | {identity},
+                    used_identities | identities,
                 )
                 if result is not None:
                     return result
@@ -162,13 +188,31 @@ def _select_unique_documents(
 def collect_candidates(
     input_root: Path,
     categories: tuple[str, ...],
+    *, manifest=None,
 ) -> dict[str, dict[str, list[Path]]]:
     candidates: dict[str, dict[str, list[Path]]] = {
         category: defaultdict(list) for category in categories
     }
 
+    if manifest is not None and manifest.documents.inventory:
+        from src.verticals.documents import resolve_document_groups
+        eligible = []
+        for entry in manifest.documents.inventory:
+            if entry.get("metadata", {}).get("discovery_eligible", True) and not entry.get("amends_document_ids"):
+                source = Path(entry["source_path"])
+                path = (source if source.is_absolute() else input_root / source).resolve()
+                if path.is_file() and entry["document_role"] not in {"spds", "update", "supplementary_pds"}:
+                    eligible.append(path)
+        for group in resolve_document_groups(manifest, eligible, input_root=input_root):
+            primary = group.documents[0]
+            category = primary.metadata.get("sampling_category", primary.document_role)
+            if category in categories:
+                company = str(primary.metadata.get("insurer_code") or primary.metadata.get("brand_hint") or group.primary_path.parent.name)
+                candidates[category][company].append(group.primary_path)
+        return candidates
+
     for pdf_path in sorted(input_root.rglob("*.pdf")):
-        category = category_from_path(pdf_path, categories)
+        category = category_from_path(pdf_path, categories, manifest=manifest)
         if category:
             candidates[category][company_from_path(pdf_path, input_root, category)].append(pdf_path)
 

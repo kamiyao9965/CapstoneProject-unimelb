@@ -23,12 +23,12 @@ OPERATION_LABELS = {
     "Export product CSV": "csv_export",
     "Export extraction folder to product CSV": "csv_export_batch",
     "Quality audit (LLM judge)": "quality_audit",
+    "Approve extraction delivery (human review)": "delivery_approve",
 }
 PROVIDER_LABELS = {
     "Environment default": None,
     "OpenAI": "openai",
     "Anthropic": "anthropic",
-    "DeepSeek": "deepseek",
 }
 DOCUMENT_PARSER_LABELS = {
     "PDFingestor (current route)": "pdfingestor",
@@ -59,6 +59,7 @@ def render_operation_form(operation_label: str, manifest: VerticalManifest) -> F
         "csv_export": _csv_export,
         "csv_export_batch": _csv_export_batch,
         "quality_audit": _quality_audit,
+        "delivery_approve": _delivery_approve,
     }[operation]
     options, confirmation = renderer(manifest)
     options.update(vertical=manifest.vertical, manifest=str(manifest.source_path))
@@ -146,12 +147,6 @@ def _batch(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
             ),
             key="_form:output_dir",
         )
-        evaluate = st.checkbox(
-            "Evaluate against labels",
-            disabled=not manifest.supports("evaluation"),
-            help="Requires the selected manifest to enable labelled evaluation.",
-            key="_form:evaluate",
-        )
     with right:
         provider = _provider(manifest)
         model = st.text_input("Model override (optional)", key="_form:model")
@@ -161,7 +156,6 @@ def _batch(manifest: VerticalManifest) -> tuple[dict[str, object], str]:
         "input_root": input_root,
         "categories": categories,
         "output_dir": output_dir,
-        "evaluate": evaluate,
         "provider": provider,
         "model": model,
         "document_parser": document_parser,
@@ -320,7 +314,11 @@ def _csv_export(manifest: VerticalManifest) -> tuple[dict[str, object], None]:
     with right:
         schema = st.text_input("Canonical schema override (optional)", key="_form:schema")
         output = st.text_input("Product CSV output path *", key="_form:output")
-    return {"artifact": artifact, "insurer_code": insurer_code, "schema": schema, "output": output}, None
+    quality = st.text_input("Judge results.json (or provide human approval)", key="_form:quality_results")
+    approval = st.text_input("Human delivery approval JSON (optional)", key="_form:delivery_approval")
+    st.caption("Delivery requires a current judge pass or an explicit human approval bound to the exact schema, result and PDF group.")
+    return {"artifact": artifact, "insurer_code": insurer_code, "schema": schema, "output": output,
+            "quality_results": quality, "delivery_approval": approval}, None
 
 
 def _csv_export_batch(manifest: VerticalManifest) -> tuple[dict[str, object], None]:
@@ -331,7 +329,21 @@ def _csv_export_batch(manifest: VerticalManifest) -> tuple[dict[str, object], No
         schema = st.text_input("Canonical schema override (optional)", key="_form:schema")
     with right:
         output = st.text_input("Product CSV output path *", key="_form:output")
-    return {"artifact_dir": artifact_dir, "schema": schema, "output": output}, None
+    quality = st.text_input("Judge results.json (optional with approvals)", key="_form:quality_results")
+    approvals = st.text_input("Human delivery approval folder (optional)", key="_form:approval_dir")
+    return {"artifact_dir": artifact_dir, "schema": schema, "output": output,
+            "quality_results": quality, "approval_dir": approvals}, None
+
+
+def _delivery_approve(manifest: VerticalManifest) -> tuple[dict[str, object], None]:
+    st.caption("Human approval releases this exact result. It does not approve a schema, change extraction or write to PostgreSQL.")
+    options = {name: st.text_input(label, key=f"_form:{name}") for name, label in (
+        ("schema", "Approved Canonical Schema *"), ("artifact", "Extraction artifact *"),
+        ("output", "New delivery approval JSON *"), ("reviewer", "Human reviewer *"),
+    )}
+    options["rationale"] = st.text_area("Delivery rationale *", key="_form:rationale")
+    options["reviewer_confirmed"] = st.checkbox("I reviewed this final result against every source PDF and approve delivery.", key="_form:reviewer_confirmed")
+    return options, None
 
 
 def _quality_audit(manifest: VerticalManifest) -> tuple[dict[str, object], str | None]:

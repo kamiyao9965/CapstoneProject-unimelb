@@ -16,8 +16,9 @@ actionable concern is found; `pass` must have an empty findings array. Do not
 invent a correction, page, or quotation. A source quote must be a short
 verbatim phrase on the numbered parsed page. Set page and quote to null when
 you cannot cite them. Product indexes are zero-based indexes in `products`.
-Field names must exactly match a Canonical Schema field; use both null for a
-document-level concern. Limit the findings to the most important 25.
+Field names must exactly match a Canonical Schema product or document field.
+Document-level concerns use null product_index and may name a document field,
+or null field_name for a general issue. Limit findings to the most important 25.
 
 `correctness` and `evidence_support` are qualitative judgements, not measured
 accuracy. Use `unknown` when evidence is insufficient. `uncertainty` describes

@@ -17,7 +17,7 @@ class QualityAuditCliTests(unittest.TestCase):
         ])
         configure_command(args)
         self.assertEqual(args.vertical, "travel_insurance")
-        self.assertEqual(args.schema.name, "canonical_schema_v1.json")
+        self.assertEqual(args.schema.name, "canonical_schema_approved.json")
         self.assertEqual(args.source_root, args.vertical_manifest.path("input_root"))
         with patch("src.common.model_provider.create_provider", return_value=object()), patch(
             "src.evaluation.quality.run_quality_audit",

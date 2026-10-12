@@ -23,7 +23,10 @@
       "minLength": 1
     },
     "status": {
-      "enum": ["success", "failed"]
+      "enum": [
+        "success",
+        "failed"
+      ]
     },
     "created_at": {
       "type": "string",
@@ -33,31 +36,58 @@
       "$ref": "#/$defs/provenance"
     },
     "data": {
-      "type": ["object", "null"]
+      "type": [
+        "object",
+        "null"
+      ]
     },
     "error": {
       "oneOf": [
-        {"type": "null"},
-        {"$ref": "#/$defs/error"}
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/error"
+        }
       ]
     }
   },
   "allOf": [
     {
-      "if": {"properties": {"status": {"const": "success"}}},
+      "if": {
+        "properties": {
+          "status": {
+            "const": "success"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "data": {"type": "object"},
-          "error": {"type": "null"}
+          "data": {
+            "type": "object"
+          },
+          "error": {
+            "type": "null"
+          }
         }
       }
     },
     {
-      "if": {"properties": {"status": {"const": "failed"}}},
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        }
+      },
       "then": {
         "properties": {
-          "data": {"type": "null"},
-          "error": {"$ref": "#/$defs/error"}
+          "data": {
+            "type": "null"
+          },
+          "error": {
+            "$ref": "#/$defs/error"
+          }
         }
       }
     }
@@ -75,45 +105,203 @@
         "source_artifacts"
       ],
       "properties": {
-        "run_id": {"type": ["string", "null"]},
-        "vertical": {"type": "string", "minLength": 1},
-        "schema_version": {"type": "string", "minLength": 1},
-        "provider": {"type": ["string", "null"]},
-        "model": {"type": ["string", "null"]},
-        "document_input": {"type": ["string", "null"]},
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "document_input": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "document_parser": {
-          "type": ["string", "null"],
-          "enum": ["pdfingestor", "mineru", null]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "pdfingestor",
+            "mineru",
+            null
+          ]
         },
         "source_documents": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "source_artifacts": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
+        },
+        "document_group_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "schema_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_document_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "document_id",
+              "source_path",
+              "document_role",
+              "amends_document_ids",
+              "sha256",
+              "metadata"
+            ],
+            "properties": {
+              "document_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "document_role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amends_document_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "metadata": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "validation_checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile",
+            "applied_rules",
+            "not_applicable_rules"
+          ],
+          "properties": {
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "applied_rules": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "not_applicable_rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "rule",
+                  "reason"
+                ],
+                "properties": {
+                  "rule": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
     "error": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "message", "details"],
+      "required": [
+        "code",
+        "message",
+        "details"
+      ],
       "properties": {
         "code": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]*$"
         },
-        "message": {"type": "string", "minLength": 1},
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
         "details": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["path", "message"],
+            "required": [
+              "path",
+              "message"
+            ],
             "properties": {
-              "path": {"type": "string"},
-              "message": {"type": "string", "minLength": 1}
+              "path": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }

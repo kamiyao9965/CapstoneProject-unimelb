@@ -125,7 +125,7 @@ class SchemaPatch:
                 )
             if self.required is None:
                 raise ValueError("add_field patch must declare required as true or false.")
-            if self.field_type == "enum" and not self.values:
+            if self.field_type in {"enum", "list[enum]"} and not self.values:
                 raise ValueError("add_field enum patch must declare allowed values.")
         if self.patch_type == "update_description" and not self.description:
             raise ValueError("update_description patch must include a description.")

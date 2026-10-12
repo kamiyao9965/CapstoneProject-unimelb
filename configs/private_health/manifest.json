@@ -6,8 +6,10 @@
     "discovery": true,
     "refinement": true,
     "extraction": true,
-    "evaluation": true,
-    "storage": false
+    "storage": false,
+    "canonical_review": true,
+    "csv_export": true,
+    "quality_audit": true
   },
   "documents": {
     "categories": [
@@ -21,7 +23,7 @@
       "phis"
     ],
     "extraction_unit": "document",
-    "output_cardinality": "single",
+    "output_cardinality": "multiple",
     "category_product_types": {
       "combined": "combined",
       "extras": "extras",
@@ -32,18 +34,14 @@
   "paths": {
     "input_root": "data/pdf/private_health",
     "output_root": "outputs/private_health",
-    "labelled_root": "data/labelled/private_health",
     "markdown_root": "data/markdown/private_health",
-    "cache_root": ".cache/pdf/private_health"
+    "cache_root": ".cache/pdf/private_health",
+    "canonical_schema": "outputs/private_health/schemas/canonical_schema_approved.json"
   },
   "path_environment": {
     "input_root": {
       "variable": "KONKRD_DATA_ROOT",
       "suffix": "pdf/private_health"
-    },
-    "labelled_root": {
-      "variable": "KONKRD_DATA_ROOT",
-      "suffix": "labelled/private_health"
     },
     "markdown_root": {
       "variable": "KONKRD_DATA_ROOT",
@@ -58,10 +56,10 @@
   "prompts": {
     "discovery": "../../prompts/private_health/discovery.md",
     "patch": "../../prompts/private_health/patch.md",
-    "extraction": "../../prompts/private_health/extraction.md"
+    "extraction": "../../prompts/private_health/extraction.md",
+    "quality_audit": "../../prompts/private_health/quality_audit.md"
   },
   "adapters": {
-    "evaluator": "private_health_labelled_v1",
     "acquisition": null
   },
   "display_name": "Health insurance",
@@ -76,7 +74,9 @@
       "hospital_categories",
       "extras_services"
     ],
-    "identity_fields": []
+    "identity_fields": [
+      "product_name"
+    ]
   },
   "refinement": {
     "consensus_runs": 1,

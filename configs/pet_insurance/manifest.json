@@ -1,0 +1,1449 @@
+{
+  "manifest_version": "1.0",
+  "vertical": "pet_insurance",
+  "capabilities": {
+    "acquisition": false,
+    "discovery": true,
+    "refinement": true,
+    "extraction": true,
+    "storage": false,
+    "canonical_review": true,
+    "csv_export": true,
+    "quality_audit": true
+  },
+  "documents": {
+    "categories": [
+      "pds"
+    ],
+    "document_types": [
+      "pds",
+      "update",
+      "combined_fsg_pds",
+      "supplementary_pds",
+      "policy_booklet",
+      "renewal_pds"
+    ],
+    "extraction_unit": "document",
+    "output_cardinality": "multiple",
+    "category_product_types": {},
+    "inventory": [
+      {
+        "document_id": "bow_wow_meow_accident_plus_pds_2023_06_14",
+        "source_path": "01_Bow_Wow_Meow_Accident_Plus_PDS_2023-06-14.pdf",
+        "document_role": "pds",
+        "sha256": "74a1af18c97ac2bbf11bd6cc6819ff98dd8de4cbdafbd3cbfb38cf101b98713b",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2023-06-14",
+          "document_family_id": "bow_wow_meow_accident_plus",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "bow_wow_meow_accident_plus",
+              "product_name_hint": "Accident Plus",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": "specified_conditions_only"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bow_wow_meow_accident_plus_update_2024_05_21",
+        "source_path": "01_Bow_Wow_Meow_Accident_Plus_Update_2024-05-21.pdf",
+        "document_role": "update",
+        "sha256": "18c1bcfd1dc780439800fcbec029b26be7d75752b549e49575a8a57a2ae15886",
+        "amends_document_ids": [
+          "bow_wow_meow_accident_plus_pds_2023_06_14"
+        ],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2024-05-21",
+          "document_family_id": "bow_wow_meow_accident_plus",
+          "multi_product": false,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow"
+        }
+      },
+      {
+        "document_id": "bow_wow_meow_indoor_cat_pds_2023_06_14",
+        "source_path": "01_Bow_Wow_Meow_Indoor_Cat_PDS_2023-06-14.pdf",
+        "document_role": "pds",
+        "sha256": "54a71165e4c814100d80473e72508c1b5b2ad2d96b5b7c9d780528249b0d74b8",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2023-06-14",
+          "document_family_id": "bow_wow_meow_indoor_cat",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "bow_wow_meow_indoor_cat",
+              "product_name_hint": "Indoor Cat",
+              "plan_tier": null,
+              "species_eligibility": [
+                "cat"
+              ],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bow_wow_meow_indoor_cat_update_2024_05_21",
+        "source_path": "01_Bow_Wow_Meow_Indoor_Cat_Update_2024-05-21.pdf",
+        "document_role": "update",
+        "sha256": "361aca6d27c63d79dfeb6dbd711d52806c9cce308b812d7c0de932c653df812c",
+        "amends_document_ids": [
+          "bow_wow_meow_indoor_cat_pds_2023_06_14"
+        ],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2024-05-21",
+          "document_family_id": "bow_wow_meow_indoor_cat",
+          "multi_product": false,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow"
+        }
+      },
+      {
+        "document_id": "bow_wow_meow_nose_to_tail_pds_2024_11_06",
+        "source_path": "01_Bow_Wow_Meow_Nose-to-Tail_PDS_2024-11-06.pdf",
+        "document_role": "pds",
+        "sha256": "3961c1e96a92fb70dbb8854bdf745acd98f28a9a18a252710a7d80811c6eaaa8",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2024-11-06",
+          "document_family_id": "bow_wow_meow_nose_to_tail",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "bow_wow_meow_nose_to_tail",
+              "product_name_hint": "Nose-to-Tail",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bow_wow_meow_peace_of_mind_pds_2023_06_14",
+        "source_path": "01_Bow_Wow_Meow_Peace_of_Mind_Ultimate_Care_PDS_2023-06-14.pdf",
+        "document_role": "pds",
+        "sha256": "993c8f1333d4185271b27db51eacddf4e0ebefaa884be135f3b64e59d2b7b90a",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2023-06-14",
+          "document_family_id": "bow_wow_meow_peace_of_mind_ultimate_care",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "bow_wow_meow_peace_of_mind_ultimate_care",
+              "product_name_hint": "Peace of Mind Ultimate Care",
+              "plan_tier": "ultimate",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bow_wow_meow_peace_of_mind_update_2024_05_21",
+        "source_path": "01_Bow_Wow_Meow_Peace_Ultimate_Update_2024-05-21.pdf",
+        "document_role": "update",
+        "sha256": "0eb8f777e986b2d4a3b5de7b442b147687395ae75c88288197c02818fa36542a",
+        "amends_document_ids": [
+          "bow_wow_meow_peace_of_mind_pds_2023_06_14"
+        ],
+        "metadata": {
+          "brand_hint": "Bow Wow Meow",
+          "document_date": "2024-05-21",
+          "document_family_id": "bow_wow_meow_peace_of_mind_ultimate_care",
+          "multi_product": false,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "bow_wow_meow"
+        }
+      },
+      {
+        "document_id": "medibank_pet_combined_fsg_pds_2024_12_10",
+        "source_path": "02_Medibank_Combined_FSG_PDS_2024-12-10.pdf",
+        "document_role": "combined_fsg_pds",
+        "sha256": "ed5e369d55b14159d658af7d2c65216b1833c5a9cfff5d954e188ca4530189ee",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Medibank",
+          "document_date": "2024-12-10",
+          "document_family_id": "medibank_pet",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "medibank_pet_protect",
+              "product_name_hint": "Pet Protect Cover",
+              "plan_tier": "protect",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "medibank_pet_plus",
+              "product_name_hint": "Pet Plus Cover",
+              "plan_tier": "plus",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "medibank_pet_max",
+              "product_name_hint": "Pet Max Cover",
+              "plan_tier": "max",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "medibank",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "medibank_pet_update_2024_07_17",
+        "source_path": "02_Medibank_PDS_Update_2024-07-17.pdf",
+        "document_role": "update",
+        "sha256": "cf8d9514b46b94974f3c95bba551a37a3cf8ede8edb785169acc93de8d2f5bdd",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Medibank",
+          "document_date": "2024-07-17",
+          "document_family_id": "medibank_pet",
+          "multi_product": null,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "medibank"
+        }
+      },
+      {
+        "document_id": "insurance_com_au_pet_pds",
+        "source_path": "03_Insurance_com_au_Pet_PDS.pdf",
+        "document_role": "pds",
+        "sha256": "89107ea1fc66bdbdd8b0b701225605ad5e944b314df0e52c6b5cc9ecbf55f9b5",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Insurance.com.au",
+          "document_date": null,
+          "document_family_id": "insurance_com_au_pet",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "insurance_com_au_pet",
+              "product_name_hint": "Pet",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "insurance_com_au",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "knose_pds_2024_11_15",
+        "source_path": "03_Knose_PDS_2024-11-15.pdf",
+        "document_role": "pds",
+        "sha256": "fa63cf474313ed77cf001ca6c831db25f52aae024f517478e0ed6e18ba571d36",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Knose",
+          "document_date": "2024-11-15",
+          "document_family_id": "knose_pet",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "knose_pet",
+              "product_name_hint": "Knose Pet",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "knose",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petsy_kitten_protection_plus_pds",
+        "source_path": "04_Petsy_Kitten_Protection_Plus_PDS.pdf",
+        "document_role": "pds",
+        "sha256": "51570c891a81eb7e3a62cde01df293ac336125f988442712eed82420952ee273",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petsy",
+          "document_date": null,
+          "document_family_id": "petsy_protection_plus",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "petsy_kitten_protection_plus",
+              "product_name_hint": "Kitten Protection Plus",
+              "plan_tier": null,
+              "species_eligibility": [
+                "cat"
+              ],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petsy",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petsy_pet_protection_plus_pds",
+        "source_path": "04_Petsy_Pet_Protection_Plus_PDS.pdf",
+        "document_role": "pds",
+        "sha256": "e7301a1daf93d98dde2c2d8f534b7762f4660e1ab087c9b43c9f5e5f6bbb0f5d",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petsy",
+          "document_date": null,
+          "document_family_id": "petsy_protection_plus",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "petsy_pet_protection_plus",
+              "product_name_hint": "Pet Protection Plus",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petsy",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petsy_puppy_protection_plus_pds",
+        "source_path": "04_Petsy_Puppy_Protection_Plus_PDS.pdf",
+        "document_role": "pds",
+        "sha256": "48b170c483f0176c886109481121262ae18f0d763c563a785fa5f75264ccccaf",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petsy",
+          "document_date": null,
+          "document_family_id": "petsy_protection_plus",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "petsy_puppy_protection_plus",
+              "product_name_hint": "Puppy Protection Plus",
+              "plan_tier": null,
+              "species_eligibility": [
+                "dog"
+              ],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petsy",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "pia_select_and_protect_pds_2025_10_22",
+        "source_path": "05_PIA_Select_and_Protect_PDS_2025-10-22.pdf",
+        "document_role": "pds",
+        "sha256": "26f38cc0d11696f581237e09b2d2e395e6d4d0b710554adca49c07fd7d5dcebb",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "PIA",
+          "document_date": "2025-10-22",
+          "document_family_id": "pia_select_and_protect",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "pia_select_and_protect",
+              "product_name_hint": "Select and Protect",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "pia",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "rspca_petflex_pds_2026_06_30",
+        "source_path": "06_RSPCA_PetFlex_PDS_2026-06-30.pdf",
+        "document_role": "pds",
+        "sha256": "a96840d2c9cf214a6b3f8e35eff8f5365b42135d20ac4b2f51bb2032a6021a7d",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "RSPCA",
+          "document_date": "2026-06-30",
+          "document_family_id": "rspca_petflex",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "rspca_petflex",
+              "product_name_hint": "PetFlex",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "rspca",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "rspca_petshield_pds_2026_06_30",
+        "source_path": "06_RSPCA_PetShield_PDS_2026-06-30.pdf",
+        "document_role": "pds",
+        "sha256": "a007359aecad8404bf4ff8cb200e8fb6b6c03d482f61014791f75bbe414eb6f6",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "RSPCA",
+          "document_date": "2026-06-30",
+          "document_family_id": "rspca_petshield",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "rspca_petshield",
+              "product_name_hint": "PetShield",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "rspca",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "hcf_happy_tails_pds_2026_07_03",
+        "source_path": "07_HCF_Happy_Tails_PDS_2026-07-03.pdf",
+        "document_role": "pds",
+        "sha256": "080df7fbe5c0c818b90ab155b376c76e1e736152b50815b319e5bf4520ef4ac3",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "HCF",
+          "document_date": "2026-07-03",
+          "document_family_id": "hcf_happy_tails",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "hcf_happy_tails",
+              "product_name_hint": "Happy Tails",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "hcf",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "budget_direct_pet_pds_2024_07_22",
+        "source_path": "08_Budget_Direct_Pet_PDS_2024-07-22.pdf",
+        "document_role": "pds",
+        "sha256": "9dc463e992c2f2064485eabf52584743f2fd9dfa14b84fd05601e2f5ad680a3d",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Budget Direct",
+          "document_date": "2024-07-22",
+          "document_family_id": "budget_direct_pet",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "budget_direct_pet",
+              "product_name_hint": "Pet",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "budget_direct",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "commonwealth_bank_pet_combined_fsg_pds_2023_12_05",
+        "source_path": "09_Commonwealth_Bank_Pet_Combined_FSG_PDS_2023-12-05.pdf",
+        "document_role": "combined_fsg_pds",
+        "sha256": "96229f9ca9a49ec0e4789e26ccfad2bb2b9b9f1e5beaabb52de9c8be6bad4b6d",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Commonwealth Bank",
+          "document_date": "2023-12-05",
+          "document_family_id": "commonwealth_bank_pet",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "commonwealth_bank_pet_classic",
+              "product_name_hint": "Classic Cover",
+              "plan_tier": "classic",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "commonwealth_bank_pet_plus",
+              "product_name_hint": "Plus Cover",
+              "plan_tier": "plus",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "commonwealth_bank",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bupa_signature_cover_pds_2026_04_29",
+        "source_path": "10_Bupa_Signature_Cover_PDS_2026-04-29.pdf",
+        "document_role": "pds",
+        "sha256": "d11fb5b96dd86253b3449cffc6e9650d0d09d4be8afe7a2891480bfee150b426",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Bupa",
+          "document_date": "2026-04-29",
+          "document_family_id": "bupa_signature_cover",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "bupa_signature_cover",
+              "product_name_hint": "Signature Cover",
+              "plan_tier": "signature",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "bupa",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bupa_standard_ultimate_basic_pds_2024_04_18",
+        "source_path": "10_Bupa_Standard_Ultimate_Basic_PDS_2024-04-18.pdf",
+        "document_role": "pds",
+        "sha256": "ea7405dc026267f5259197a3da5161478ae3b5183044e8d5748c39fdbeb3a128",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Bupa",
+          "document_date": "2024-04-18",
+          "document_family_id": "bupa_standard_ultimate_basic",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "bupa_basic",
+              "product_name_hint": "Basic",
+              "plan_tier": "basic",
+              "species_eligibility": [],
+              "product_type": null
+            },
+            {
+              "product_id": "bupa_standard",
+              "product_name_hint": "Standard",
+              "plan_tier": "standard",
+              "species_eligibility": [],
+              "product_type": null
+            },
+            {
+              "product_id": "bupa_ultimate",
+              "product_name_hint": "Ultimate",
+              "plan_tier": "ultimate",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "bupa",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "bupa_standard_ultimate_basic_spds_sfsg_2026_04_29",
+        "source_path": "10_Bupa_Standard_Ultimate_Basic_SPDS_SFSG_2026-04-29.pdf",
+        "document_role": "supplementary_pds",
+        "sha256": "498bcff284358e722374f2e94189a9a47c3e2b3b46d18442108a390455387443",
+        "amends_document_ids": [
+          "bupa_standard_ultimate_basic_pds_2024_04_18"
+        ],
+        "metadata": {
+          "brand_hint": "Bupa",
+          "document_date": "2026-04-29",
+          "document_family_id": "bupa_standard_ultimate_basic",
+          "multi_product": true,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "bupa"
+        }
+      },
+      {
+        "document_id": "buddy_gold_silver_bronze_pds_2025_06_21",
+        "source_path": "11_Buddy_Gold_Silver_Bronze_PDS_2025-06-21.pdf",
+        "document_role": "pds",
+        "sha256": "6f37f5bfa861b130ec847ceff1e52f160f6d6313d88bcfbeed4cb8062bbaf0ac",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Buddy",
+          "document_date": "2025-06-21",
+          "document_family_id": "buddy_gold_silver_bronze",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "buddy_bronze",
+              "product_name_hint": "Bronze",
+              "plan_tier": "bronze",
+              "species_eligibility": [],
+              "product_type": null
+            },
+            {
+              "product_id": "buddy_silver",
+              "product_name_hint": "Silver",
+              "plan_tier": "silver",
+              "species_eligibility": [],
+              "product_type": null
+            },
+            {
+              "product_id": "buddy_gold",
+              "product_name_hint": "Gold",
+              "plan_tier": "gold",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "buddy",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "pets_on_me_combined_fsg_pds_v5_2025_10_28",
+        "source_path": "12_PetsOnMe_Combined_FSG_PDS_V5_2025-10-28.pdf",
+        "document_role": "combined_fsg_pds",
+        "sha256": "e9eeb9cf1d84d43e8c977aea0d28787eda780cd46d03dd4040ee48b80bcfde09",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "PetsOnMe",
+          "document_date": "2025-10-28",
+          "document_family_id": "pets_on_me_pet",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "pets_on_me_accident",
+              "product_name_hint": "Accident Plan",
+              "plan_tier": "accident",
+              "species_eligibility": [],
+              "product_type": "accident_only"
+            },
+            {
+              "product_id": "pets_on_me_classic",
+              "product_name_hint": "Classic Plan",
+              "plan_tier": "classic",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "pets_on_me_deluxe",
+              "product_name_hint": "Deluxe Plan",
+              "plan_tier": "deluxe",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petsonme",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "real_pet_accidental_premium_standard_policy_booklet",
+        "source_path": "13_Real_Pet_Accidental_Premium_Standard_Policy_Booklet.pdf",
+        "document_role": "policy_booklet",
+        "sha256": "1f646ac806a0ef4d6e65dd5d811c2c068c5d52372df0239a0a5227101857e533",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Real Pet",
+          "document_date": null,
+          "document_family_id": "real_pet_accidental_premium_standard",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "real_pet_accidental_premium",
+              "product_name_hint": "Accidental Premium",
+              "plan_tier": "premium",
+              "species_eligibility": [],
+              "product_type": "accident_only"
+            },
+            {
+              "product_id": "real_pet_accidental_standard",
+              "product_name_hint": "Accidental Standard",
+              "plan_tier": "standard",
+              "species_eligibility": [],
+              "product_type": "accident_only"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "real_pet",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "real_pet_accidental_premium_standard_update_2024_10_21",
+        "source_path": "13_Real_Pet_Accidental_Premium_Standard_Update_2024-10-21.pdf",
+        "document_role": "update",
+        "sha256": "1e559404c149d85c6c6c2481992eea130275127de2056cafa094b6acaee96371",
+        "amends_document_ids": [
+          "real_pet_accidental_premium_standard_policy_booklet"
+        ],
+        "metadata": {
+          "brand_hint": "Real Pet",
+          "document_date": "2024-10-21",
+          "document_family_id": "real_pet_accidental_premium_standard",
+          "multi_product": true,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "real_pet"
+        }
+      },
+      {
+        "document_id": "real_pet_classic_accident_illness_pds",
+        "source_path": "13_Real_Pet_Classic_Accident_Illness_PDS.pdf",
+        "document_role": "pds",
+        "sha256": "bcb826b4a020471fe384188756fdc84e41d86a9ef8cf4595e9b3ff845a3cfaf0",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Real Pet",
+          "document_date": null,
+          "document_family_id": "real_pet_classic_accident_illness",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "real_pet_classic",
+              "product_name_hint": "Classic",
+              "plan_tier": "classic",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "real_pet",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "real_pet_classic_update_2024_10_21",
+        "source_path": "13_Real_Pet_Classic_Update_2024-10-21.pdf",
+        "document_role": "update",
+        "sha256": "429e0161ec8dedb34a57f40f1d943aab748db7d694e8b8c07ddcb31d75379c14",
+        "amends_document_ids": [
+          "real_pet_classic_accident_illness_pds"
+        ],
+        "metadata": {
+          "brand_hint": "Real Pet",
+          "document_date": "2024-10-21",
+          "document_family_id": "real_pet_classic_accident_illness",
+          "multi_product": false,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "real_pet"
+        }
+      },
+      {
+        "document_id": "coles_essential_pet_pds_2025_06",
+        "source_path": "14_Coles_Essential_Pet_PDS_2025-06.pdf",
+        "document_role": "pds",
+        "sha256": "bea0a116a98407163d6f780b8713e92cac5ce46cefb8b61b8c49bd0d8e7f3462",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Coles",
+          "document_date": "2025-06",
+          "document_family_id": "coles_pet",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "coles_essential",
+              "product_name_hint": "Essential",
+              "plan_tier": "essential",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "coles",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "coles_ultimate_pet_pds_2025_06",
+        "source_path": "14_Coles_Ultimate_Pet_PDS_2025-06.pdf",
+        "document_role": "pds",
+        "sha256": "28625cedd776a6cf39c64c95414ac37f75eec5d8febb2bf3b01217c4dcabbdaa",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Coles",
+          "document_date": "2025-06",
+          "document_family_id": "coles_pet",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "coles_ultimate",
+              "product_name_hint": "Ultimate",
+              "plan_tier": "ultimate",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "coles",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "australian_seniors_basic_policy_booklet",
+        "source_path": "15_Australian_Seniors_Basic_Policy_Booklet_current.pdf",
+        "document_role": "policy_booklet",
+        "sha256": "646566958d8800cfb6c337e914a955c8301a190bd7757d3d9df3f079f61cc593",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Australian Seniors",
+          "document_date": null,
+          "document_family_id": "australian_seniors_basic",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "australian_seniors_basic",
+              "product_name_hint": "Basic",
+              "plan_tier": "basic",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "australian_seniors",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "australian_seniors_basic_update_2024_10_21",
+        "source_path": "15_Australian_Seniors_Basic_Update_2024-10-21.pdf",
+        "document_role": "update",
+        "sha256": "c4d43b6ef30867713d599df593ef7fd52035630913153211aa5afddde0a77307",
+        "amends_document_ids": [
+          "australian_seniors_basic_policy_booklet"
+        ],
+        "metadata": {
+          "brand_hint": "Australian Seniors",
+          "document_date": "2024-10-21",
+          "document_family_id": "australian_seniors_basic",
+          "multi_product": false,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "australian_seniors"
+        }
+      },
+      {
+        "document_id": "australian_seniors_top_essential_accident_only_policy_booklet",
+        "source_path": "15_Australian_Seniors_Top_Essential_Accident_Only_Policy_Booklet_current.pdf",
+        "document_role": "policy_booklet",
+        "sha256": "e7a7b2416422c8c30ee82c5483f87849ddf2b3123453cec3cc64ddd59d4e6f7d",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Australian Seniors",
+          "document_date": null,
+          "document_family_id": "australian_seniors_top_essential_accident_only",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "australian_seniors_top",
+              "product_name_hint": "Top",
+              "plan_tier": "top",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "australian_seniors_essential",
+              "product_name_hint": "Essential",
+              "plan_tier": "essential",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "australian_seniors_accident_only",
+              "product_name_hint": "Accident Only",
+              "plan_tier": "accident_only",
+              "species_eligibility": [],
+              "product_type": "accident_only"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "australian_seniors",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "australian_seniors_top_essential_accident_only_update_2024_10_21",
+        "source_path": "15_Australian_Seniors_Top_Essential_Accident_Only_Update_2024-10-21.pdf",
+        "document_role": "update",
+        "sha256": "40f872c25f4bd9c8d961e99bd348f0c2c0486eb17ecc287d9eab7c772185a32e",
+        "amends_document_ids": [
+          "australian_seniors_top_essential_accident_only_policy_booklet"
+        ],
+        "metadata": {
+          "brand_hint": "Australian Seniors",
+          "document_date": "2024-10-21",
+          "document_family_id": "australian_seniors_top_essential_accident_only",
+          "multi_product": true,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "australian_seniors"
+        }
+      },
+      {
+        "document_id": "guardian_bronze_policy_booklet",
+        "source_path": "17_Guardian_Bronze_Policy_Booklet.pdf",
+        "document_role": "policy_booklet",
+        "sha256": "27ca94594e8a2d0ce744b34d90706f31c02b632a8b4c1cd6777e1c7e8e8d29b3",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Guardian",
+          "document_date": null,
+          "document_family_id": "guardian_bronze",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "guardian_bronze",
+              "product_name_hint": "Bronze",
+              "plan_tier": "bronze",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "guardian",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "guardian_bronze_update_2024_10_21",
+        "source_path": "17_Guardian_Bronze_Update_2024-10-21.pdf",
+        "document_role": "update",
+        "sha256": "1beb61920dbd6a54293617eb818f5059571c1d657b1d32ecea14b54a70974b4a",
+        "amends_document_ids": [
+          "guardian_bronze_policy_booklet"
+        ],
+        "metadata": {
+          "brand_hint": "Guardian",
+          "document_date": "2024-10-21",
+          "document_family_id": "guardian_bronze",
+          "multi_product": false,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "guardian"
+        }
+      },
+      {
+        "document_id": "guardian_gold_platinum_policy_booklet",
+        "source_path": "17_Guardian_Gold_Platinum_Policy_Booklet.pdf",
+        "document_role": "policy_booklet",
+        "sha256": "0aec5c8213b697da3fa189fc2a2ad72dd3ad890a689fe75301709e316edaf539",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Guardian",
+          "document_date": null,
+          "document_family_id": "guardian_silver_gold_platinum",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "guardian_gold",
+              "product_name_hint": "Gold",
+              "plan_tier": "gold",
+              "species_eligibility": [],
+              "product_type": null
+            },
+            {
+              "product_id": "guardian_platinum",
+              "product_name_hint": "Platinum",
+              "plan_tier": "platinum",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "guardian",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "guardian_silver_gold_platinum_update_2024_10_21",
+        "source_path": "17_Guardian_Silver_Gold_Platinum_Update_2024-10-21.pdf",
+        "document_role": "update",
+        "sha256": "4d4ff788d84f440ec830999fa16d4f791d240104065505a16594a5ca0a06344e",
+        "amends_document_ids": [
+          "guardian_gold_platinum_policy_booklet"
+        ],
+        "metadata": {
+          "brand_hint": "Guardian",
+          "document_date": "2024-10-21",
+          "document_family_id": "guardian_silver_gold_platinum",
+          "multi_product": true,
+          "products": [],
+          "discovery_eligible": false,
+          "needs_review": true,
+          "insurer_code": "guardian"
+        }
+      },
+      {
+        "document_id": "pd_insurance_pet_pds_v6_6_2025_11_04",
+        "source_path": "18_PD_Insurance_Pet_PDS_V6.6_2025-11-04.pdf",
+        "document_role": "pds",
+        "sha256": "44ca7f87d825bf125bef3be37114a8aceb8eaf369d7143d0d65f986ff5986287",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "PD Insurance",
+          "document_date": "2025-11-04",
+          "document_family_id": "pd_insurance_pet",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "pd_insurance_accident",
+              "product_name_hint": "Accident Plan",
+              "plan_tier": "accident",
+              "species_eligibility": [],
+              "product_type": "accident_only"
+            },
+            {
+              "product_id": "pd_insurance_classic",
+              "product_name_hint": "Classic Plan",
+              "plan_tier": "classic",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            },
+            {
+              "product_id": "pd_insurance_deluxe",
+              "product_name_hint": "Deluxe Plan",
+              "plan_tier": "deluxe",
+              "species_eligibility": [],
+              "product_type": "accident_and_illness"
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "pd_insurance",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petcover_catastrophe_1_2_pds_2024_09_06",
+        "source_path": "19_Petcover_Catastrophe_1_2_PDS_2024-09-06.pdf",
+        "document_role": "pds",
+        "sha256": "034022fbd0b2e90e2bbc0e086240e35906bab53d87256a76f00492e592e2092e",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petcover",
+          "document_date": "2024-09-06",
+          "document_family_id": "petcover_catastrophe",
+          "multi_product": true,
+          "products": [
+            {
+              "product_id": "petcover_catastrophe_1",
+              "product_name_hint": "Catastrophe 1",
+              "plan_tier": "catastrophe_1",
+              "species_eligibility": [],
+              "product_type": null
+            },
+            {
+              "product_id": "petcover_catastrophe_2",
+              "product_name_hint": "Catastrophe 2",
+              "plan_tier": "catastrophe_2",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petcover",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petcover_economy_pds_2025_03_18",
+        "source_path": "19_Petcover_Economy_PDS_2025-03-18.pdf",
+        "document_role": "pds",
+        "sha256": "df434e664afe9635b7b259cd5e0f28f7de400a6f6ab4d80552e604fc81f5327f",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petcover",
+          "document_date": "2025-03-18",
+          "document_family_id": "petcover_economy",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "petcover_economy",
+              "product_name_hint": "Economy",
+              "plan_tier": "economy",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petcover",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petcover_mid_range_pds_2025_03_17",
+        "source_path": "19_Petcover_Mid_Range_PDS_2025-03-17.pdf",
+        "document_role": "pds",
+        "sha256": "06a887e356ea8589ea8d77939fbc06588d71d1f2d69ae97dd813827febffb227",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petcover",
+          "document_date": "2025-03-17",
+          "document_family_id": "petcover_mid_range",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "petcover_mid_range",
+              "product_name_hint": "Mid Range",
+              "plan_tier": "mid_range",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petcover",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "petcover_superior_pds_2025_03_18",
+        "source_path": "19_Petcover_Superior_PDS_2025-03-18.pdf",
+        "document_role": "pds",
+        "sha256": "0dc66a1c54cf4e2a2153d7cfac28fcff3e74f6b6d51f5a630fef952b34c566f7",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Petcover",
+          "document_date": "2025-03-18",
+          "document_family_id": "petcover_superior",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "petcover_superior",
+              "product_name_hint": "Superior",
+              "plan_tier": "superior",
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "petcover",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "stella_pet_insurance_pds_current",
+        "source_path": "20_Stella_Pet_Insurance_PDS_current.pdf",
+        "document_role": "pds",
+        "sha256": "031c4380a4fc9519be0f0751f9e8e1edad1f6bfe864e28e1f0c78b4b66f8f92e",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Stella",
+          "document_date": null,
+          "document_family_id": "stella_pet_insurance",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "stella_pet_insurance",
+              "product_name_hint": "Pet Insurance",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "stella",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "kogan_potiki_best_in_show_pds_2026_09_01",
+        "source_path": "21_Kogan_Potiki_shared_Petinsurance_Best_in_Show_PDS_2026-09-01.pdf",
+        "document_role": "pds",
+        "sha256": "65b5381854bd4a9aeb6c5ccc4f3ae193a7cb10cec4235d83ae233cf993b0cac5",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Kogan / Potiki",
+          "document_date": "2026-09-01",
+          "document_family_id": "kogan_potiki_best_in_show",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "kogan_potiki_best_in_show",
+              "product_name_hint": "Best in Show",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "kogan_potiki",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "aami_best_in_show_pds_2026_09_01",
+        "source_path": "22_AAMI_Best_in_Show_PDS_2026-09-01.pdf",
+        "document_role": "pds",
+        "sha256": "02296b3c1af487c806dd77b23f1c0bd38c70ce7d07ca66cefe1228ec80226ae0",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "AAMI",
+          "document_date": "2026-09-01",
+          "document_family_id": "aami_best_in_show",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "aami_best_in_show",
+              "product_name_hint": "Best in Show",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "aami",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "trupanion_free_trucover_pds_2026_03_23",
+        "source_path": "23_Trupanion_Free_TruCover_PDS_2026-03-23.pdf",
+        "document_role": "pds",
+        "sha256": "7fa5b1bd03a7b2114962c938fdfc27dba949fe3625ab1124729c69da233e2f40",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Trupanion",
+          "document_date": "2026-03-23",
+          "document_family_id": "trupanion_free_trucover",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "trupanion_free_trucover",
+              "product_name_hint": "Free TruCover",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "trupanion",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "trupanion_hollard_renewal_pds_2026_03_21",
+        "source_path": "23_Trupanion_Hollard_Renewal_PDS_2026-03-21.pdf",
+        "document_role": "renewal_pds",
+        "sha256": "e719e9dcdbb931b78f7ca10206ac4ec6540ea4eeb8638fc74be9430953b969d4",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Trupanion / Hollard",
+          "document_date": "2026-03-21",
+          "document_family_id": "trupanion_hollard_renewal",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "trupanion_hollard_renewal",
+              "product_name_hint": "Hollard Renewal",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "trupanion_hollard",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "trupanion_petsure_pds_2026_03_23",
+        "source_path": "23_Trupanion_PetSure_PDS_2026-03-23.pdf",
+        "document_role": "pds",
+        "sha256": "8f49f9c9f13ea3382612d332911513fc36b7ba164be7690a12d3ad8e32d7818a",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Trupanion / PetSure",
+          "document_date": "2026-03-23",
+          "document_family_id": "trupanion_petsure",
+          "multi_product": false,
+          "products": [
+            {
+              "product_id": "trupanion_petsure",
+              "product_name_hint": "PetSure",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "trupanion_petsure",
+          "sampling_category": "pds"
+        }
+      },
+      {
+        "document_id": "pet_circle_insurance_pds_2024_05",
+        "source_path": "24_Pet_Circle_Insurance_PDS_2024-05.pdf",
+        "document_role": "pds",
+        "sha256": "4bc4332ac7c04682ad1488cc6db06bd609d81945fa6f68e32b7f1a35cfd4aafa",
+        "amends_document_ids": [],
+        "metadata": {
+          "brand_hint": "Pet Circle",
+          "document_date": "2024-05",
+          "document_family_id": "pet_circle_insurance",
+          "multi_product": null,
+          "products": [
+            {
+              "product_id": "pet_circle_insurance",
+              "product_name_hint": "Pet Insurance",
+              "plan_tier": null,
+              "species_eligibility": [],
+              "product_type": null
+            }
+          ],
+          "discovery_eligible": true,
+          "needs_review": true,
+          "insurer_code": "pet_circle",
+          "sampling_category": "pds"
+        }
+      }
+    ]
+  },
+  "paths": {
+    "input_root": "data/pdf/pet_insurance",
+    "output_root": "outputs/pet_insurance",
+    "markdown_root": "data/markdown/pet_insurance",
+    "cache_root": ".cache/pdf/pet_insurance",
+    "canonical_schema": "outputs/pet_insurance/schemas/canonical_schema_approved.json"
+  },
+  "path_environment": {},
+  "contracts": {
+    "discovered_schema": "pet_insurance/discovered_schema",
+    "candidate_patch_set": "schema_refinement/candidate_patch_set",
+    "refinement_feedback": "schema_refinement/refinement_feedback"
+  },
+  "prompts": {
+    "discovery": "../../prompts/pet_insurance/discovery.md",
+    "patch": "../../prompts/pet_insurance/patch.md",
+    "extraction": "../../prompts/pet_insurance/extraction.md",
+    "quality_audit": "../../prompts/pet_insurance/quality_audit.md"
+  },
+  "adapters": {
+    "acquisition": null,
+    "business_rules": "pet_insurance_v1"
+  },
+  "display_name": "Pet insurance",
+  "schema": {
+    "product_types": [
+      "accident_only",
+      "specified_conditions_only",
+      "accident_and_illness"
+    ],
+    "taxonomies": [
+      "benefit_categories"
+    ],
+    "identity_fields": [
+      "product_id",
+      "product_name",
+      "insurer_name"
+    ]
+  },
+  "refinement": {
+    "consensus_runs": 3,
+    "promoted_decisions": [
+      "core"
+    ],
+    "manual_only_queue": true,
+    "protected_fields": [
+      "product_id",
+      "product_name",
+      "insurer_name",
+      "product_type"
+    ]
+  }
+}

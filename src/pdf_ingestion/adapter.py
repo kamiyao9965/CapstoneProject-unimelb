@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from src.common.data_paths import PROJECT_ROOT
 from src.common.json_artifacts import write_text_output
@@ -56,15 +57,21 @@ def ingest_pdfs(
     )
 
 
-def render_documents_for_prompt(documents: Iterable[ParsedPDF]) -> str:
+def render_documents_for_prompt(
+    documents: Iterable[ParsedPDF], *, document_refs: Iterable[Mapping[str, object]] = (),
+) -> str:
     sections: list[str] = []
+    refs = {str(Path(str(ref["source_path"])).resolve()): ref for ref in document_refs}
     for document in documents:
+        ref = refs.get(str(Path(document.source_path).resolve()))
         sections.append(
             "\n".join(
                 [
                     f"# PDF: {document.pdf_id}",
                     f"Source path: {document.source_path}",
                     f"PDF hash: {document.pdf_hash}",
+                    *([f"Document ID: {ref['document_id']}", f"Document role: {ref['document_role']}",
+                       f"Amends document IDs: {list(ref['amends_document_ids'])}"] if ref else []),
                     "",
                     "\n\n".join(render_page(page) for page in document.pages),
                 ]
@@ -81,6 +88,10 @@ def render_pdf_paths_for_prompt(
     camelot_enabled: bool = True,
     document_parser: str = DEFAULT_DOCUMENT_PARSER,
     markdown_dir: str | Path | None = None,
+    document_refs: Iterable[Mapping[str, object]] = (),
+    parser_quality_gate: bool = False,
+    parser_review_path: str | Path | None = None,
+    source_index: dict[str, dict] | None = None,
 ) -> str:
     documents = ingest_pdfs(
         pdf_paths,
@@ -89,6 +100,39 @@ def render_pdf_paths_for_prompt(
         camelot_enabled=camelot_enabled,
         document_parser=document_parser,
     )
+    refs = tuple(document_refs)
+    if refs:
+        if len(refs) != len(documents) or any(
+            Path(str(reference["source_path"])).resolve() != Path(document.source_path).resolve()
+            or reference["sha256"] != document.pdf_hash
+            for reference, document in zip(refs, documents)
+        ):
+            raise ValueError("Parsed PDFs must match the source document references and hashes.")
+    if source_index is not None:
+        if len(refs) != len(documents):
+            raise ValueError("Source index requires an explicit reference for each parsed PDF.")
+        for reference, document in zip(refs, documents):
+            blocks, pages, ordered_blocks = {}, {}, []
+            for page in document.pages:
+                texts = []
+                for block in page.blocks:
+                    text = block.markdown if block.type == "table" else block.content
+                    block_id = block.table_id if block.type == "table" else block.block_id
+                    if block_id in blocks:
+                        raise ValueError("Parsed source block IDs must be unique within each PDF.")
+                    blocks[block_id] = {"page": page.page_num, "text": text}
+                    texts.append(text)
+                    if block.type == "table":
+                        for row_index, row in enumerate(line.strip() for line in text.splitlines() if line.strip().startswith("|")):
+                            if not re.fullmatch(r"[|:\s-]+", row):
+                                ordered_blocks.append((page.page_num, f"{block_id}_row_{row_index}", row))
+                    elif text.strip():
+                        ordered_blocks.append((page.page_num, block_id, text))
+                pages[page.page_num] = "\n".join(texts)
+            source_index[str(reference["document_id"])] = {
+                "pages": pages, "blocks": blocks, "ordered_blocks": ordered_blocks,
+                "prompt_text": render_documents_for_prompt([document], document_refs=[reference]),
+            }
     if markdown_dir is not None:
         for document in documents:
             save_document_markdown(
@@ -97,7 +141,10 @@ def render_pdf_paths_for_prompt(
                 document_parser=document_parser,
                 pdf_root=pdf_root,
             )
-    return render_documents_for_prompt(documents)
+    if parser_quality_gate:
+        from src.pdf_ingestion.quality import require_quality
+        require_quality(documents, parser_review_path)
+    return render_documents_for_prompt(documents, document_refs=refs)
 
 
 def document_markdown_path(
@@ -135,6 +182,8 @@ def save_document_markdown(
 
 def render_page(page: PageRepresentation) -> str:
     chunks = [f"<!-- page {page.page_num} -->"]
+    chunks.extend(f"[Parser warning: {warning}]" for warning in page.warnings)
+    chunks.extend(f"[Continuation evidence: {link}]" for link in page.continuations)
     for block in page.blocks:
         if block.type == "text":
             chunks.append(f"<!-- text block_id={block.block_id} -->")

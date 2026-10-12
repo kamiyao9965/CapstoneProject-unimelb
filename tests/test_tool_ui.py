@@ -38,8 +38,8 @@ class ToolCommandBuilderTests(unittest.TestCase):
                 del options["output"]
                 with self.assertRaisesRegex(ValueError, "CSV output path"):
                     build_command(CommandRequest(operation, options))
-                with self.assertRaisesRegex(ValueError, "does not support"):
-                    build_command(CommandRequest(operation, {"vertical": "private_health"}))
+                health = build_command(CommandRequest(operation, {"vertical": "private_health", **inputs, "output": "exports/health.csv"}))
+                self.assertIn(str(PROJECT_ROOT / "configs/private_health/manifest.json"), health)
 
     def test_builds_manifest_driven_travel_discovery_command(self) -> None:
         command = build_command(
@@ -199,13 +199,13 @@ class ToolCommandBuilderTests(unittest.TestCase):
             build_command(CommandRequest("quality_audit", {
                 "vertical": "travel_insurance", "artifact_dir": "extractions",
             }))
-        with self.assertRaisesRegex(ValueError, "does not support"):
-            build_command(CommandRequest("quality_audit", {
-                "vertical": "private_health", "artifact_dir": "extractions", "output_dir": "quality",
-            }))
+        health = build_command(CommandRequest("quality_audit", {
+            "vertical": "private_health", "artifact_dir": "extractions", "output_dir": "quality",
+        }))
+        self.assertEqual(health[2], "quality-audit")
 
     def test_disabled_capabilities_fail_before_execution(self):
-        for operation in ("crawl", "storage_init", "canonical_compile", "storage_load_batch"):
+        for operation in ("crawl", "storage_init", "storage_load_batch"):
             with self.subTest(operation=operation), self.assertRaisesRegex(ValueError, "does not support"):
                 build_command(CommandRequest(operation, {"vertical": "private_health"}))
         with self.assertRaisesRegex(ValueError, "evaluation"):

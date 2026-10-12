@@ -64,6 +64,14 @@ class StructuredBusinessValidationError(ValueError):
         super().__init__(message)
 
 
+class BusinessDiagnostics(ValueError):
+    """Path-addressed business diagnostics; callers must provide safe messages."""
+
+    def __init__(self, errors: list[dict[str, str]]) -> None:
+        self.errors = tuple(errors)
+        super().__init__("; ".join(f"{item['path']}: {item['message']}" for item in self.errors))
+
+
 def run_structured_output(
     provider: ModelProvider,
     request: ProviderRequest,
@@ -176,6 +184,8 @@ def _validate_response(
             business_validator(payload)
         except ValueError as exc:
             code = exc.code if isinstance(exc, StructuredBusinessValidationError) else None
+            if isinstance(exc, BusinessDiagnostics):
+                return None, list(exc.errors), "business_validation", code
             return None, [{"path": "$", "message": str(exc)}], "business_validation", code
     if not isinstance(payload, dict):
         return None, [{"path": "$", "message": "Output must be a JSON object."}], "schema_validation", None

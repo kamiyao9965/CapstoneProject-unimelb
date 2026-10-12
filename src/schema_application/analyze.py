@@ -85,7 +85,9 @@ def load_records(
             source_document = extraction.source_document
             payload = extraction.data
             validate_inline_contract(payload, extraction_contract, "runtime_extraction_result")
-            source_category = category_from_path(source_document, manifest.documents.categories)
+            if manifest.documents.output_cardinality == "multiple" and not isinstance(payload.get("products"), list):
+                raise ValueError("New extraction results require a products array.")
+            source_category = category_from_path(source_document, manifest.documents.categories, manifest=manifest)
             if source_category is None:
                 raise ValueError(
                     "Extraction source document must identify exactly one supported "

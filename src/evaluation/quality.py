@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 import time
+from copy import deepcopy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -29,9 +30,9 @@ from src.common.structured_output import (
     StructuredOutputFailure,
     run_structured_output,
 )
-from src.schema.canonical import compile_canonical_extraction_contract, require_approved_canonical_schema
+from src.schema.canonical import compile_canonical_extraction_contract, require_approved_canonical_schema, validate_canonical_extraction_identities
 from src.schema.sampler import sample_quality_passes
-from src.schema_application.records import parse_extraction_artifact
+from src.schema_application.records import parse_extraction_artifact, resolve_extraction_sources
 from src.verticals.manifest import VerticalManifest
 from src.verticals.registry import get_shared_prompt
 
@@ -83,7 +84,7 @@ def audit_one(
     manifest.require_capability("quality_audit")
     if selection.document_input != "markdown":
         raise ValueError("Quality audit requires markdown document input; no PDF upload is used.")
-    require_structured_output_capability(selection)
+    require_structured_output_capability(selection, strict=True)
     if max_document_chars <= 0 or max_extraction_chars <= 0:
         raise ValueError("Context maximum lengths must be positive.")
 
@@ -102,55 +103,64 @@ def audit_one(
     )
     extraction_contract = compile_canonical_extraction_contract(schema)
     validate_inline_contract(parsed.data, extraction_contract, "canonical_extraction")
+    validate_canonical_extraction_identities(schema, parsed.data)
     extraction_text = dumps_json(parsed.data, ensure_ascii=False, sort_keys=True)
     if len(extraction_text) > max_extraction_chars:
         raise ValueError("Extraction exceeds the configured maximum context length.")
 
     root = Path(source_root).resolve()
-    pdf_path = Path(parsed.source_document)
-    pdf_path = (pdf_path if pdf_path.is_absolute() else Path.cwd() / pdf_path).resolve()
-    if not pdf_path.is_relative_to(root):
-        raise ValueError("Extraction source PDF escapes the configured source root.")
-    if pdf_path.suffix.lower() != ".pdf" or not pdf_path.is_file():
-        raise ValueError("Extraction source must be an existing PDF under the source root.")
-    if pdf_path.stat().st_size > MAX_PDF_BYTES:
-        raise ValueError("Source PDF exceeds the quality audit size limit.")
+    group = resolve_extraction_sources(parsed, manifest, input_root=root)
+    for pdf_path in group.pdf_paths:
+        if not pdf_path.is_file() or pdf_path.stat().st_size > MAX_PDF_BYTES:
+            raise ValueError("Source PDF is missing or exceeds the quality audit size limit.")
     parser = require_document_parser(
         document_parser or parsed.artifact.get("provenance", {}).get("document_parser")
         or parsed.artifact.get("document_parser")
         or DEFAULT_DOCUMENT_PARSER
     )
     documents = ingest_pdfs(
-        (pdf_path,), pdf_root=root,
+        group.pdf_paths, pdf_root=root,
         cache_dir=manifest.path("cache_root"),
         document_parser=parser,
     )
-    if len(documents) != 1 or not documents[0].pages:
+    if len(documents) != len(group.documents) or any(not document.pages for document in documents):
         raise ValueError("Source PDF yielded no parseable pages.")
-    document = documents[0]
-    pdf_sha = _file_sha256(pdf_path)
-    if document.pdf_hash != pdf_sha:
-        raise ValueError("Parsed PDF hash differs from the source PDF bytes.")
-    document_text = render_documents_for_prompt(documents)
+    for document, reference in zip(documents, group.documents):
+        if document.pdf_hash != reference.sha256:
+            raise ValueError("Parsed PDF hash differs from the source PDF bytes.")
+    pdf_sha = group.documents[0].sha256
+    document_text = render_documents_for_prompt(documents, document_refs=[ref.to_dict() for ref in group.documents])
     if not document_text.strip() or len(document_text) > max_document_chars:
         raise ValueError("Parsed PDF is empty or exceeds the configured maximum context length.")
 
     prompt = Path(manifest.prompt("quality_audit")).read_text(encoding="utf-8")
     fields = [
         {"name": field["name"], "description": field["description"],
-         "type": field["type"], "values": field["values"]}
+         "type": field["type"], "values": field["values"], "scope": "product",
+         **({"item_schema": field["item_schema"]} if field.get("item_schema") else {})}
         for field in schema["fields"]
     ]
+    fields.extend({"name": name, "scope": "document", "schema": definition}
+                  for name, definition in schema.get("document_fields", {}).items())
     user_text = get_shared_prompt("quality_audit_request").format(
         fields_json=dumps_json(fields, ensure_ascii=False),
         extraction_text=extraction_text,
         document_text=document_text,
     )
     field_names = {field["name"] for field in schema["fields"]}
+    document_field_names = set(schema.get("document_fields", {}))
     output = schema["output"]
     collection = parsed.data[output["collection"]]
     products = collection if isinstance(collection, list) else [collection]
-    page_numbers = {page.page_num for page in document.pages}
+    page_numbers = {ref.document_id: {page.page_num for page in document.pages}
+                    for ref, document in zip(group.documents, documents)}
+    judge_contract = deepcopy(load_contract("quality/judge_result"))
+    if len(group.documents) > 1:
+        finding_schema = judge_contract["properties"]["findings"]["items"]
+        finding_schema["required"].append("source_document_id")
+        finding_schema["properties"]["source_document_id"] = {
+            "type": ["string", "null"], "enum": [*page_numbers, None],
+        }
 
     def validate_judgement(value: object) -> object:
         assert isinstance(value, dict)
@@ -168,16 +178,20 @@ def audit_one(
         for index, finding in enumerate(findings):
             product_index = finding["product_index"]
             field_name = finding["field_name"]
-            if (product_index is None) != (field_name is None):
+            document_field = product_index is None and field_name in document_field_names
+            if not document_field and (product_index is None) != (field_name is None):
                 raise StructuredBusinessValidationError("incomplete_field_identity", f"Finding {index} must identify both product and field, or neither.")
             if product_index is not None and product_index >= len(products):
                 raise StructuredBusinessValidationError("invalid_product_index", f"Finding {index} product index is out of range.")
-            if field_name is not None and field_name not in field_names:
+            if field_name is not None and field_name not in (document_field_names if document_field else field_names):
                 raise StructuredBusinessValidationError("invalid_field_name", f"Finding {index} field name is not in the Canonical Schema.")
-            if finding["source_page"] is not None and finding["source_page"] not in page_numbers:
+            document_id = finding.get("source_document_id", group.documents[0].document_id)
+            if finding["source_page"] is not None and finding["source_page"] not in page_numbers.get(document_id, set()):
                 raise StructuredBusinessValidationError("invalid_source_page", f"Finding {index} page is not in the source PDF.")
             if (finding["source_page"] is None) != (finding["source_quote"] is None):
                 raise StructuredBusinessValidationError("incomplete_citation", f"Finding {index} requires both a page and quote, or neither.")
+            if len(group.documents) > 1 and (document_id is None) != (finding["source_page"] is None):
+                raise StructuredBusinessValidationError("incomplete_document_citation", f"Finding {index} requires document ID with its page and quote.")
         return value
 
     run_id = uuid4().hex
@@ -186,14 +200,14 @@ def audit_one(
         document_paths=(), timeout_seconds=600.0, cleanup_documents=True,
         request_params={}, background=False, poll_interval=5.0,
         structured_output=StructuredOutputSpec(
-            name="quality_judge_result", schema=load_contract("quality/judge_result"),
+            name="quality_judge_result", schema=judge_contract,
             strict=True,
         ),
     )
     started = time.perf_counter()
     try:
         result = run_structured_output(
-            provider, request, data_contract="quality/judge_result",
+            provider, request, data_contract_schema=judge_contract,
             business_validator=validate_judgement,
         )
     except StructuredOutputFailure as exc:
@@ -202,14 +216,16 @@ def audit_one(
     _log_attempts(usage_log_path, result.attempts, run_id, time.perf_counter() - started)
     assert result.data is not None
     judged = result.data
-    page_text = {page.page_num: render_page(page) for page in document.pages}
+    page_text = {(ref.document_id, page.page_num): render_page(page)
+                 for ref, document in zip(group.documents, documents) for page in document.pages}
     findings = []
     for finding in judged["findings"]:
         page = finding["source_page"]
         quote = finding["source_quote"]
-        verified = bool(page is not None and quote and _normalise(quote) in _normalise(page_text[page]))
+        document_id = finding.get("source_document_id", group.documents[0].document_id)
+        verified = bool(page is not None and quote and _normalise(quote) in _normalise(page_text[(document_id, page)]))
         product_index, field_name = finding["product_index"], finding["field_name"]
-        extracted_value = products[product_index].get(field_name) if product_index is not None else None
+        extracted_value = products[product_index].get(field_name) if product_index is not None else parsed.data.get(field_name)
         findings.append({**finding, "citation_verified": verified, "extracted_value": extracted_value})
 
     prompt_sha = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
@@ -217,6 +233,8 @@ def audit_one(
         "source_artifact_sha256": hashlib.sha256(artifact_bytes).hexdigest(),
         "schema_sha256": hashlib.sha256(schema_bytes).hexdigest(),
         "pdf_sha256": pdf_sha,
+        "source_document_refs": [ref.to_dict() for ref in group.documents],
+        "document_group_id": group.group_id,
         "prompt_sha256": prompt_sha,
         "prompt_bundle_sha256": _prompt_bundle_sha256(
             prompt_sha, _shared_quality_prompt_sha256()
@@ -233,7 +251,7 @@ def audit_one(
             "run_id": run_id, "vertical": manifest.vertical,
             "schema_version": str(schema["version"]), "provider": selection.provider,
             "model": selection.model, "document_input": "markdown",
-            "document_parser": parser, "source_documents": [str(pdf_path)],
+            "document_parser": parser, **group.provenance(),
             "source_artifacts": [str(source_file), str(schema_file)],
         },
     )
@@ -319,6 +337,7 @@ def run_quality_audit(
                 selection=selection, source_root=Path(source_root), check_pdf=not summary_only,
                 vertical=manifest.vertical, schema_version=str(schema["version"]),
                 document_parser=document_parser,
+                manifest=manifest,
             )
             entries.append({
                 "source_artifact": str(artifact_path),
@@ -516,6 +535,7 @@ def _verify_reusable_report(
     prompt_bundle_sha: str, shared_prompt_sha: str,
     selection: ModelSelection, source_root: Path, check_pdf: bool,
     vertical: str, schema_version: str, document_parser: str | None,
+    manifest: VerticalManifest | None = None,
 ) -> None:
     source = report["provenance"]
     data = report["data"]
@@ -537,23 +557,31 @@ def _verify_reusable_report(
         raise ValueError("Existing quality report used different shared prompt templates.")
     if report_bundle_sha is None and shared_prompt_sha != LEGACY_QUALITY_SHARED_SHA256:
         raise ValueError("Legacy quality report cannot resume after shared prompt changes.")
-    if len(source["source_documents"]) != 1:
-        raise ValueError("Existing quality report must identify exactly one source PDF.")
     parsed = parse_extraction_artifact(
         artifact_path.read_bytes(), vertical=vertical,
         schema_version=schema_version, require_identity=True,
     )
-    expected_pdf = Path(parsed.source_document)
-    if not expected_pdf.is_absolute():
-        expected_pdf = Path.cwd() / expected_pdf
-    if Path(source["source_documents"][0]).resolve() != expected_pdf.resolve():
-        raise ValueError("Existing quality report source PDF does not match its extraction artifact.")
+    expected_paths = [Path(path).resolve() for path in parsed.source_documents]
+    if [Path(path).resolve() for path in source["source_documents"]] != expected_paths:
+        raise ValueError("Existing quality report source PDFs do not match its extraction artifact.")
+    if len(expected_paths) > 1 and not data.get("source_document_refs"):
+        raise ValueError("Multi-document quality report requires complete source receipts.")
+    if data.get("source_document_refs") and parsed.source_document_refs and (
+        data["source_document_refs"] != list(parsed.source_document_refs)
+        or data.get("document_group_id") != parsed.document_group_id
+    ):
+        raise ValueError("Quality report document receipts differ from its extraction artifact.")
     if check_pdf:
-        pdf_path = Path(source["source_documents"][0]).resolve()
-        if not pdf_path.is_relative_to(source_root.resolve()) or not pdf_path.is_file():
-            raise ValueError("Existing quality report source PDF is outside the configured root or missing.")
-        if _file_sha256(pdf_path) != data["pdf_sha256"]:
-            raise ValueError("Existing quality report source PDF changed since judging.")
+        if manifest is not None:
+            group = resolve_extraction_sources(parsed, manifest, input_root=source_root)
+            if data.get("source_document_refs") and data["source_document_refs"] != [ref.to_dict() for ref in group.documents]:
+                raise ValueError("Quality report source receipts changed since judging.")
+        for index, pdf_path in enumerate(expected_paths):
+            if not pdf_path.is_relative_to(source_root.resolve()) or not pdf_path.is_file():
+                raise ValueError("Existing quality report source PDF is outside the configured root or missing.")
+            expected_sha = data["source_document_refs"][index]["sha256"] if data.get("source_document_refs") else data["pdf_sha256"]
+            if _file_sha256(pdf_path) != expected_sha:
+                raise ValueError("Existing quality report source PDF changed since judging.")
 
 
 _SAFE_JUDGE_PATH = re.compile(
@@ -640,6 +668,8 @@ def build_review_queue(reports: Sequence[Mapping], *, sample_rate: float, seed: 
                 "provider": provider, "model": model,
                 "document_parser": r["provenance"].get("document_parser"),
                 "prompt_bundle_sha256": prompt_bundle_sha,
+                **({"source_document_refs": r["data"]["source_document_refs"],
+                    "document_group_id": r["data"]["document_group_id"]} if r["data"].get("source_document_refs") else {}),
             }
             for r in ordered
         ],
@@ -653,7 +683,7 @@ def build_review_queue(reports: Sequence[Mapping], *, sample_rate: float, seed: 
             "run_id": uuid4().hex, "vertical": vertical, "schema_version": version,
             "provider": ordered[0]["provenance"]["provider"],
             "model": ordered[0]["provenance"]["model"], "document_input": "markdown",
-            "source_documents": [r["provenance"]["source_documents"][0] for r in ordered],
+            "source_documents": [path for r in ordered for path in r["provenance"]["source_documents"]],
             "source_artifacts": [r["provenance"]["source_artifacts"][0] for r in ordered],
         },
     )
@@ -666,6 +696,12 @@ def quality_queue_id(payload: Mapping) -> str:
 
 def _queue_item(data: Mapping, common: Mapping, kind: str, index: int, finding: Mapping | None, reason: str) -> dict:
     identity = f"{data['source_artifact_sha256']}:{common['source_artifact']}:{kind}:{index}"
+    common = dict(common)
+    if finding and finding.get("source_document_id"):
+        reference = next((ref for ref in data.get("source_document_refs", []) if ref["document_id"] == finding["source_document_id"]), None)
+        if reference is None:
+            raise ValueError("Quality finding document ID does not belong to its audited source group.")
+        common["source_document"] = reference["source_path"]
     return {
         "item_id": hashlib.sha256(identity.encode("utf-8")).hexdigest(),
         "kind": kind, **common,
@@ -677,6 +713,7 @@ def _queue_item(data: Mapping, common: Mapping, kind: str, index: int, finding: 
         "source_quote": finding["source_quote"] if finding else None,
         "citation_verified": finding["citation_verified"] if finding else False,
         "extracted_value": finding["extracted_value"] if finding else None,
+        **({"source_document_id": finding["source_document_id"]} if finding and "source_document_id" in finding else {}),
     }
 
 

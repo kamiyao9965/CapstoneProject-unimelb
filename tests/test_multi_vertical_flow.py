@@ -25,6 +25,7 @@ from src.schema_application.analyze import load_records, load_field_specs, analy
 from src.stability.signature import signature_from_artifact
 from src.verticals.manifest import resolve_manifest
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
+from tests.schema_fixtures import descriptor, patch_descriptor
 from tests.test_travel_consensus import travel_schema
 
 
@@ -38,14 +39,14 @@ class FixtureProvider:
         self.requests.append(request)
         name = request.structured_output.name
         if name == "discovered_schema":
-            payload = self.schema
+            payload = descriptor(self.schema)
         elif name == "candidate_patch_set":
             self.patch_calls += 1
             proposal = {"patch_type": "add_field", "target_group": "cover", "field_name": "annual_limit",
                         "canonical_name": "annual_limit", "type": "number", "description": "Annual benefit limit",
                         "applies_to": self.schema["product_types"], "required": False, "values": [],
                         "evidence_documents": [], "confidence": 0.9, "rationale": "Document evidence"}
-            payload = {"patches": [proposal] if self.patch_calls <= 3 else []}
+            payload = patch_descriptor({"patches": [proposal] if self.patch_calls <= 3 else []})
         else:
             fields = request.structured_output.schema["properties"]
             product_contract = fields["products"]["items"] if "products" in fields else request.structured_output.schema
@@ -53,6 +54,7 @@ class FixtureProvider:
                 record = {name: None for name in product_contract["properties"]}
                 record.update(product_type=self.schema["product_types"][0], product_name=f"Plan {index}",
                               annual_limit=1000, _unfilled=[], _notes=None)
+                record["_unfilled"] = [field["name"] for field in self.schema["fields"] if record[field["name"]] is None]
                 return record
             payload = {"products": [product(1), product(2)], "_document_notes": None} if "products" in fields else product(1)
         return ModelResponse(text=json.dumps(payload), provider=request.selection.provider, model=request.selection.model)
@@ -65,6 +67,10 @@ class MultiVerticalFlowTests(unittest.TestCase):
                 root = Path(tmp)
                 manifest = resolve_manifest(vertical=vertical)
                 schema = normalize_schema(deepcopy(legacy), manifest)
+                for field in schema["fields"]:
+                    if field["type"] == "list[object]" and "item_schema" not in field:
+                        field["item_schema"] = {"type": "object", "additionalProperties": False,
+                                                "required": ["source"], "properties": {"source": {"type": "string"}}}
                 provider = FixtureProvider(schema)
                 pdf = root / ("hospital" if vertical == "private_health" else "pds") / "sample.pdf"
                 pdf.parent.mkdir(); pdf.write_bytes(b"offline fixture, not a real PDF")
@@ -140,7 +146,7 @@ class MultiVerticalFlowTests(unittest.TestCase):
         manifest = replace(resolve_manifest(vertical="private_health"), taxonomies=("benefit_groups",))
         schema = normalize_schema(deepcopy(VALID_DISCOVERED_SCHEMA))
         schema["taxonomies"] = {"benefit_groups": [{"canonical_name":"dental", "description":"Dental services"}]}
-        self.assertIn("product_type", compile_extraction_contract(schema, manifest=manifest)["properties"])
+        self.assertIn("product_type", compile_extraction_contract(schema, manifest=manifest)["properties"]["products"]["items"]["properties"])
         artifact = build_success_artifact(artifact_type="discovered_schema", contract_version="1.0.0", data=schema,
             provenance={"run_id":None,"provider":None,"model":None,"document_input":None,"source_documents":[],"source_artifacts":[]},
             data_contract_schema=load_contract(manifest.contract("discovered_schema"), manifest=manifest))

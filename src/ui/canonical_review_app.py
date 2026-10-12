@@ -18,7 +18,7 @@ from sqlalchemy.schema import CreateTable
 
 from src.common.json_artifacts import write_text_output
 from src.common.json_codec import dumps_json
-from src.schema.canonical import approve_canonical_schema, build_canonical_candidate
+from src.schema.canonical import approve_canonical_schema, build_canonical_candidate, is_canonical_schema
 from src.schema.loader import load_schema_data
 from src.verticals.manifest import discover_manifests
 from src.storage.canonical import preview_vertical_storage_metadata
@@ -46,18 +46,20 @@ def main() -> None:
         "This page makes no LLM or database call. Approval creates a new JSON file; "
         "it does not execute the DDL."
     )
-    manifests = {code: m for code, m in discover_manifests().items() if m.supports("storage")}
+    manifests = {code: m for code, m in discover_manifests().items() if m.supports("canonical_review")}
     if args.manifest:
         from src.verticals.manifest import resolve_manifest
         selected = resolve_manifest(args.manifest, operation="canonical_compile")
         manifests = {selected.vertical: selected}
     if not manifests:
-        st.info("No configured vertical supports Canonical storage.")
+        st.info("No configured vertical supports Canonical review.")
         st.stop()
-    vertical = st.sidebar.selectbox("Insurance vertical", list(manifests), format_func=lambda code: manifests[code].display_name)
+    vertical = st.sidebar.selectbox("Insurance vertical", list(manifests), format_func=lambda code: manifests[code].display_name,
+                                   index=list(manifests).index("travel_insurance") if "travel_insurance" in manifests else 0)
     manifest = manifests[vertical]
     root = manifest.path("output_root")
-    schema_path = Path(st.sidebar.text_input("Reviewed schema", value=args.schema or str(root / "experiments/refinement/round_1/consensus/reviewed_schema.json"), key=f"schema:{vertical}"))
+    default_source = manifest.path("canonical_candidate") if "canonical_candidate" in manifest.paths else root / "experiments/refinement/round_1/consensus/reviewed_schema.json"
+    schema_path = Path(st.sidebar.text_input("Reviewed schema", value=args.schema or str(default_source), key=f"schema:{vertical}"))
     output_path = Path(st.sidebar.text_input("Approved output", value=args.output or str(root / "schemas/canonical_schema_approved.json"), key=f"output:{vertical}"))
     storage_label = st.sidebar.radio(
         "Storage for fields without an approved mapping",
@@ -67,7 +69,12 @@ def main() -> None:
     )
     try:
         discovered = load_schema_data(schema_path, manifest)
-        candidate = build_canonical_candidate(discovered, manifest, unmapped_storage=UNMAPPED_STORAGE_LABELS[storage_label])
+        if is_canonical_schema(discovered):
+            if discovered["status"] != "candidate":
+                raise ValueError("Open a new candidate for review; approved schemas cannot be edited in place.")
+            candidate = discovered
+        else:
+            candidate = build_canonical_candidate(discovered, manifest, unmapped_storage=UNMAPPED_STORAGE_LABELS[storage_label])
     except (OSError, ValueError) as exc:
         st.error(str(exc))
         st.stop()

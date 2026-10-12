@@ -62,6 +62,9 @@ def validate_value_schema(schema: object, definitions: object = None) -> dict[st
         types = types if isinstance(types, list) else [types]
         if not types or any(t not in {"object", "array", "string", "number", "integer", "boolean", "null"} for t in types):
             raise ValueError("Nested schemas require explicit JSON types.")
+        for lower, upper in (("minimum", "maximum"), ("minLength", "maxLength")):
+            if lower in node and upper in node and node[lower] > node[upper]:
+                raise ValueError("Nested schema lower bound must not exceed its upper bound.")
         if "object" in types:
             properties = node.get("properties")
             required = node.get("required")

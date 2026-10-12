@@ -1,15 +1,22 @@
 # Model prompt catalogue
 
-All editable text sent to a model by the Health and Travel pipelines lives under
+All editable text sent to a model by the Health, Pet, Travel and Car pipelines lives under
 this directory. The per-vertical files are the main **system prompts**; the
 `shared/` files are request, feedback, repair, and provider-format templates.
 
-| Stage | Private Health | Travel insurance | Shared request template |
-| --- | --- | --- | --- |
-| Discover a schema | `private_health/discovery.md` | `travel_insurance/discovery.md` | `shared/discovery_request.md` |
-| Propose schema patches | `private_health/patch.md` | `travel_insurance/patch.md` | `shared/patch_request.md` |
-| Extract records | `private_health/extraction.md` | `travel_insurance/extraction.md` | `shared/extraction_request.md` |
-| Judge an extraction | — | `travel_insurance/quality_audit.md` | `shared/quality_audit_request.md` |
+Each of `private_health/`, `pet_insurance/`, `travel_insurance/` and
+`car_insurance/` supplies `discovery.md`, `patch.md`, `extraction.md` and
+`quality_audit.md`. Shared templates are `discovery_request.md`, `patch_request.md`,
+`extraction_request.md` and `quality_audit_request.md` in `shared/`.
+`schema_generation.md` explains the strict node descriptor: dynamic field names
+are values compiled locally to closed `item_schema`, not an operator-maintained
+field list. Native-schema/domain validation shares the bounded repair cycle.
+
+Car's `review_v5.md` / `diagnostics_v5.md` reference guidance is appended only for
+schemas declaring the complete compatible layout. Checklist completeness and
+text-inference instructions apply only to compatible single-PDF extraction;
+explicit amendment groups use references only and defer effective terms to judge.
+Earlier v4 reference files remain available for historical explanation.
 
 The remaining `shared/` files support refinement and common call behavior:
 
@@ -32,9 +39,9 @@ rejects missing, empty, cross-vertical, and other out-of-scope prompt paths.
 
 Changing a prompt can change model output even if the JSON contract stays the
 same. Run a new experiment/output directory after editing a prompt, especially
-for Travel quality audits: `--resume` is for the **same** prompt version. New
+for quality audits: `--resume` is for the **same** prompt version. New
 judge reports record both the main system-prompt hash and a bundle hash covering
 the shared request, repair and DeepSeek format templates; resume rejects a
-changed bundle. Older reports lack that optional bundle hash and may be reused
-only while the shared templates retain their original text. Use offline tests
+changed bundle. Older reports lacking that bundle hash cannot be reused after shared templates
+change; regenerate reports under the current workflow. Use offline tests
 before any approved, paid model run.

@@ -17,6 +17,7 @@ from tests.test_canonical_schema import approved_travel_schema
 from tests.test_travel_schema_migration import (
     VALID_TRAVEL_EXTRACTION,
     VALID_TRAVEL_SCHEMA,
+    closed_discovered_travel_schema,
 )
 
 
@@ -38,105 +39,12 @@ class RunParserTest(unittest.TestCase):
                     command, *inputs, "--output", "products.csv", "--manifest",
                     str(PROJECT_ROOT / "configs/private_health/manifest.json"),
                 ])
-                with self.assertRaisesRegex(ValueError, "does not support"):
-                    configure_command(args)
+                selected = configure_command(args)
+                self.assertEqual(selected.vertical, "private_health")
+                self.assertTrue(selected.supports("csv_export"))
+                self.assertFalse(selected.supports("storage"))
 
-    def test_batch_evaluation_preserves_matching_diagnostics_and_error_counts(self) -> None:
-        from src.common.models import ProductMatch
-        from src.evaluation.metrics import ExtractionEvaluator
-        from src.evaluation.reporter import EvaluationReporter
-        from tests.test_extractor import VALID_RECORD
 
-        with tempfile.TemporaryDirectory(dir=PROJECT_ROOT) as tmp:
-            root = Path(tmp)
-            input_root = root / "input"
-            input_root.mkdir()
-            for name in ("a_matched", "b_unmatched", "c_failed"):
-                (input_root / f"{name}.pdf").touch()
-            output_dir = root / "extractions"
-            args = build_parser().parse_args([
-                "batch", "--schema", "schema.json", "--evaluate",
-                "--input-root", str(input_root), "--output-dir", str(output_dir),
-            ])
-            manifest = configure_command(args)
-            args.vertical_manifest = replace(manifest, paths={
-                **manifest.paths, "output_root": str(root / "outputs"),
-            })
-            match = ProductMatch(
-                pdf_path=str(input_root / "a_matched.pdf"), id_master="example",
-                fund_code="EX", brand_code="EX", name_master="Example",
-                product_type="hospital", match_score=0.75,
-                low_confidence_match=True, ambiguous_match=True,
-                candidate_matches=[{"id_master": "alternative", "score": 0.73}],
-            )
-
-            def load_ground_truth(pdf_path):
-                self.assertTrue((output_dir / pdf_path.with_suffix(".json").name).exists())
-                if pdf_path.stem == "a_matched":
-                    return match, {"hospital": {"product_name": "Example"}}
-                return None, None
-
-            labels = mock.Mock()
-            labels.load_ground_truth.side_effect = load_ground_truth
-            labels.rank_pdf_candidates.return_value = []
-            extractor = mock.Mock()
-            extractor.extract_one.side_effect = [VALID_RECORD, VALID_RECORD, ValueError("invalid output")]
-            with mock.patch.object(run_module, "load_schema_data", return_value={
-                "vertical": "private_health", "version": "test",
-            }), mock.patch.object(run_module, "_build_schema_extractor", return_value=extractor), \
-                 mock.patch("src.verticals.registry.get_evaluation_tools", return_value=(
-                     labels, ExtractionEvaluator(), EvaluationReporter(),
-                 )), mock.patch("builtins.print"):
-                self.assertEqual(run_module.command_batch(args), 1)
-            report_root = root / "outputs" / "evaluation"
-            report = json.loads((report_root / "report.json").read_text())
-            for key, expected in {
-                "total_documents": 3, "matched_documents": 1, "unmatched_documents": 1,
-                "low_confidence_matches": 1, "ambiguous_matches": 1, "extraction_errors": 1,
-            }.items():
-                self.assertEqual(report["summary"][key], expected)
-            self.assertEqual(report["reports"][0]["match_score"], 0.75)
-            self.assertTrue(report["reports"][0]["low_confidence_match"])
-            diagnostics = json.loads((report_root / "ground_truth_match_diagnostics.json").read_text())
-            self.assertEqual([item["issue"] for item in diagnostics], ["ambiguous", "unmatched"])
-            self.assertEqual(labels.load_ground_truth.call_count, 2)
-
-    def test_batch_evaluation_writes_one_report_pair(self) -> None:
-        from src.evaluation.metrics import ExtractionEvaluator
-        from src.evaluation.reporter import EvaluationReporter
-        from tests.test_extractor import VALID_RECORD
-
-        with tempfile.TemporaryDirectory(dir=PROJECT_ROOT) as tmp:
-            root = Path(tmp)
-            input_root = root / "input"
-            input_root.mkdir()
-            (input_root / "sample.pdf").write_bytes(b"offline fixture")
-            args = build_parser().parse_args([
-                "batch", "--schema", "schema.json", "--evaluate",
-                "--input-root", str(input_root),
-            ])
-            manifest = configure_command(args)
-            args.vertical_manifest = replace(manifest, paths={
-                **manifest.paths, "output_root": str(root / "outputs"),
-            })
-            extractor = mock.Mock()
-            extractor.extract_one.return_value = VALID_RECORD
-            labels = mock.Mock()
-            labels.load_ground_truth.return_value = (None, {
-                "hospital": {"product_name": "Example"},
-            })
-            with mock.patch.object(run_module, "load_schema_data", return_value={
-                "vertical": "private_health", "version": "test",
-            }), mock.patch.object(run_module, "_build_schema_extractor", return_value=extractor), \
-                 mock.patch("src.verticals.registry.get_evaluation_tools", return_value=(
-                     labels, ExtractionEvaluator(), EvaluationReporter(),
-                 )):
-                self.assertEqual(run_module.command_batch(args), 0)
-            reports = root / "outputs" / "evaluation"
-            self.assertEqual({path.name for path in reports.iterdir()}, {"report.json", "report.md"})
-            report = json.loads((reports / "report.json").read_text())
-            self.assertEqual(report["summary"]["field_precision"], 1.0)
-            self.assertNotIn("fallback_documents", report["summary"])
 
     def test_batch_returns_failure_when_extraction_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,7 +54,8 @@ class RunParserTest(unittest.TestCase):
                 "batch", "--schema", "schema.json", "--input-root", tmp])
             configure_command(args)
             extractor = mock.Mock()
-            extractor.extract_one.side_effect = ValueError("invalid output")
+            extractor.binding = {}
+            extractor.extract_group.side_effect = ValueError("invalid output")
             with mock.patch.object(run_module, "load_schema_data", return_value={
                 "vertical": "private_health", "version": "test"}), mock.patch.object(
                     run_module, "_build_schema_extractor", return_value=extractor):
@@ -179,18 +88,18 @@ class RunParserTest(unittest.TestCase):
             ])
             configure_command(args)
             extractor = mock.Mock()
-            extractor.extract_one.return_value = VALID_TRAVEL_EXTRACTION
-            with mock.patch.object(run_module, "load_schema_data", return_value=normalize_schema(
-                VALID_TRAVEL_SCHEMA, args.vertical_manifest)), mock.patch.object(
+            extractor.binding = {}
+            extractor.extract_group.return_value = VALID_TRAVEL_EXTRACTION
+            with mock.patch.object(run_module, "load_schema_data", return_value=closed_discovered_travel_schema()), mock.patch.object(
                     run_module, "_build_schema_extractor", return_value=extractor), \
                  mock.patch("builtins.print"):
                 exit_code = run_module.command_batch(args)
 
             self.assertEqual(exit_code, 0)
             single_pdf = input_root / "tick" / "pds" / "single.pdf"
-            extractor.extract_one.assert_called_once_with(single_pdf)
+            self.assertEqual(extractor.extract_group.call_args.args[0].primary_path, single_pdf.resolve())
             written = json.loads((output_dir / "tick" / "pds" / "single.json").read_text(encoding="utf-8"))
-            self.assertEqual(written["source_path"], str(single_pdf))
+            self.assertEqual(Path(written["source_path"]).resolve(), single_pdf.resolve())
             self.assertEqual(existing.read_bytes(), existing_bytes)
             self.assertFalse((output_dir / "tick" / "tmd").exists())
 
@@ -398,7 +307,7 @@ class RunParserTest(unittest.TestCase):
         self.assertEqual(manifest.vertical, "travel_insurance")
         self.assertEqual(
             args.schema,
-            PROJECT_ROOT / "configs/travel_insurance/canonical_schema_v1.json",
+            PROJECT_ROOT / "outputs/travel_insurance/schemas/canonical_schema_approved.json",
         )
         self.assertEqual(args.database_url_env, "KONKRD_DATABASE_URL")
         self.assertFalse(hasattr(args, "database_url"))
@@ -575,7 +484,8 @@ class RunParserTest(unittest.TestCase):
             schema_path.write_text(json.dumps(VALID_TRAVEL_SCHEMA), encoding="utf-8")
             output_path = root / "extraction.json"
             extractor = mock.Mock()
-            extractor.extract_one.return_value = VALID_TRAVEL_EXTRACTION
+            extractor.binding = {}
+            extractor.extract_group.return_value = VALID_TRAVEL_EXTRACTION
             argv = [
                 "run.py",
                 "extract",

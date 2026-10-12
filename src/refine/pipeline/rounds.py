@@ -75,13 +75,13 @@ def run_round(args, round_index: int, feedback_in: str | None) -> str | None:
         _print_review_stop(round_dir, round_dir / "consensus" / QUEUE_FILENAME)
         return None
 
-    if not _manifest(args).supports("evaluation"):
+    if not _manifest(args).contracts.get("refinement_feedback"):
         final_schema_path = publish_final_schema(
             schema_path,
             Path(args.out_dir),
             data_contract=_schema_contract(args), manifest=_manifest(args),
         )
-        print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
+        print(f"[final-schema] wrote {final_schema_path} (refinement feedback not configured)")
         return ""
 
     print("[schema-application] extracting holdout PDFs and discovering failures")
@@ -198,13 +198,13 @@ def resume_review(args) -> int:
     write_artifact(schema_path, artifact,
         data_contract_schema=load_contract(_schema_contract(args), manifest=manifest))
     print(f"[resume-review] wrote reviewed schema to {schema_path}")
-    if not _manifest(args).supports("evaluation"):
+    if not _manifest(args).contracts.get("refinement_feedback"):
         final_schema_path = publish_final_schema(
             schema_path,
             Path(args.out_dir),
             data_contract=_schema_contract(args), manifest=_manifest(args),
         )
-        print(f"[final-schema] wrote {final_schema_path} (evaluation not configured)")
+        print(f"[final-schema] wrote {final_schema_path} (refinement feedback not configured)")
         print(
             "Review the deterministic Canonical mapping next:\n"
             f"  streamlit run src/ui/canonical_review_app.py -- --manifest {shlex.quote(str(manifest.source_path))} --schema {shlex.quote(str(reviewed_path))}"

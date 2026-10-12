@@ -118,6 +118,7 @@ product_releases = Table(
     Column("release_id", String(71), primary_key=True),
     Column("product_id", String(71), ForeignKey("products.product_id"), nullable=False),
     Column("document_id", String(71), ForeignKey("documents.document_id"), nullable=False),
+    Column("release_source_id", String(71), nullable=False),
     Column(
         "schema_version_id",
         String(71),
@@ -127,7 +128,7 @@ product_releases = Table(
     Column("source_product_type", String(64), nullable=False),
     Column("effective_from", Date),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
-    UniqueConstraint("product_id", "document_id", name="uq_release_product_document"),
+    UniqueConstraint("product_id", "release_source_id", name="uq_release_product_source"),
 )
 
 product_release_documents = Table(

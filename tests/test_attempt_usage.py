@@ -12,6 +12,7 @@ from src.common.structured_output import StructuredOutputFailure
 from src.schema.discovery import SchemaDiscovery
 from src.schema_application.extractor import SchemaExtractor
 from tests.test_extractor import VALID_RECORD
+from tests.schema_fixtures import descriptor
 from tests.test_model_provider import VALID_SCHEMA_TEXT
 
 
@@ -33,7 +34,7 @@ class SequenceProvider:
 class AttemptUsageTests(unittest.TestCase):
     def test_every_attempt_is_logged_once_on_success_repair_and_exhaustion(self) -> None:
         for operation in ("discovery", "extraction"):
-            valid_text = VALID_SCHEMA_TEXT if operation == "discovery" else json.dumps(VALID_RECORD)
+            valid_text = json.dumps(descriptor(json.loads(VALID_SCHEMA_TEXT))) if operation == "discovery" else json.dumps(VALID_RECORD)
             for responses, expected_validity in (
                 ([valid_text], [True]),
                 (["{}", valid_text], [False, True]),

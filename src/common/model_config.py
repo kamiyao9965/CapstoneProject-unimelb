@@ -41,6 +41,7 @@ class StructuredOutputCapability:
 
 def require_structured_output_capability(
     selection: ModelSelection,
+    *, strict: bool = False,
 ) -> StructuredOutputCapability:
     """Resolve an approved provider/model structured-output capability."""
     path = Path(__file__).resolve().parents[2] / "configs" / "model_capabilities.json"
@@ -70,6 +71,8 @@ def require_structured_output_capability(
         raise ValueError(
             f"Invalid structured output capability for {selection.provider}."
         )
+    if strict and mode != "json_schema":
+        raise ValueError("This workflow requires provider-native strict JSON Schema output; select an approved json_schema model.")
     return StructuredOutputCapability(mode=mode)
 
 

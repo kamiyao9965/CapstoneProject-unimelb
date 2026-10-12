@@ -175,7 +175,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
             def generate(self, request: ProviderRequest) -> ModelResponse:
                 self.request = request
                 return ModelResponse(
-                    text=json.dumps(normalize_schema(VALID_TRAVEL_SCHEMA)),
+                    text=json.dumps(__import__("tests.schema_fixtures", fromlist=["descriptor"]).descriptor(closed_discovered_travel_schema())),
                     provider=request.selection.provider,
                     model=request.selection.model,
                 )
@@ -196,7 +196,7 @@ class TravelDiscoveryMigrationTest(unittest.TestCase):
                     manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
                 ).discover([str(pdf_path)])
 
-        self.assertEqual(result, normalize_schema(VALID_TRAVEL_SCHEMA))
+        self.assertEqual(result, closed_discovered_travel_schema())
         self.assertIsNotNone(provider.request)
         self.assertIn("travel insurance", provider.request.system_prompt.lower())
         self.assertEqual(

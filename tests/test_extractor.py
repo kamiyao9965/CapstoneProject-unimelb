@@ -11,12 +11,12 @@ from src.common.model_provider import ModelResponse, ProviderRequest
 from src.schema_application.extractor import SchemaExtractor
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
 
-VALID_RECORD = {
+VALID_RECORD = {"products": [{
     "product_type": "hospital",
     "product_name": "Example",
     "_unfilled": [],
     "_notes": None,
-}
+}], "_document_notes": None}
 
 
 class ExtractManyOutputTest(unittest.TestCase):
@@ -28,21 +28,24 @@ class ExtractManyOutputTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             first_pdf = Path(tmp) / "FundA" / "hospital" / "product.pdf"
             second_pdf = Path(tmp) / "FundB" / "hospital" / "product.pdf"
+            for pdf in (first_pdf, second_pdf):
+                pdf.parent.mkdir(parents=True, exist_ok=True)
+                pdf.write_bytes(b"offline fixture")
             out_dir = Path(tmp) / "extractions"
             extractor = SchemaExtractor(schema_data=VALID_DISCOVERED_SCHEMA, log=None)
 
             with mock.patch.object(
                 extractor,
-                "extract_one",
+                "extract_group",
                 side_effect=[
-                    {
+                    {"products": [{
                         "product_type": "hospital", "product_name": "A",
                         "_unfilled": [], "_notes": None,
-                    },
-                    {
+                    }], "_document_notes": None},
+                    {"products": [{
                         "product_type": "hospital", "product_name": "B",
                         "_unfilled": [], "_notes": None,
-                    },
+                    }], "_document_notes": None},
                 ],
             ):
                 written = extractor.extract_many([first_pdf, second_pdf], out_dir)
@@ -50,29 +53,32 @@ class ExtractManyOutputTest(unittest.TestCase):
             self.assertEqual(len(set(written)), 2)
             artifacts = [json.loads(path.read_text(encoding="utf-8")) for path in written]
             self.assertCountEqual(
-                [artifact["data"]["product_name"] for artifact in artifacts],
+                [artifact["data"]["products"][0]["product_name"] for artifact in artifacts],
                 ["A", "B"],
             )
 
     def test_failure_stops_remaining_documents_and_preserves_prior_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             pdfs = [Path(tmp) / f"{name}.pdf" for name in ("one", "two", "three")]
+            for pdf in pdfs:
+                pdf.write_bytes(pdf.name.encode())
             out_dir = Path(tmp) / "extractions"
             extractor = SchemaExtractor(schema_data=VALID_DISCOVERED_SCHEMA, log=None)
             calls: list[str] = []
 
             def extract(path: Path, *, run_id: str | None = None) -> dict:
+                path = path.primary_path
                 calls.append(Path(path).name)
                 if Path(path).name == "two.pdf":
                     raise RuntimeError("provider failed")
-                return {
+                return {"products": [{
                     "product_type": "hospital",
                     "product_name": Path(path).stem,
                     "_unfilled": [],
                     "_notes": None,
-                }
+                }], "_document_notes": None}
 
-            with mock.patch.object(extractor, "extract_one", side_effect=extract):
+            with mock.patch.object(extractor, "extract_group", side_effect=extract):
                 with self.assertRaisesRegex(RuntimeError, "provider failed"):
                     extractor.extract_many(pdfs, out_dir)
 
@@ -224,13 +230,13 @@ class ExtractManyOutputTest(unittest.TestCase):
                 self.request = request
                 return ModelResponse(
                     text=json.dumps(
-                        {
+                        {"products": [{
                             "product_type": "extras",
                             "product_name": "Example",
                             "benefits": [{"label": "Dental", "limit": 500}],
                             "_unfilled": [],
                             "_notes": None,
-                        }
+                        }], "_document_notes": None}
                     ),
                     provider=request.selection.provider,
                     model=request.selection.model,
@@ -291,7 +297,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             ):
                 record = SchemaExtractor(
                     schema_data=VALID_DISCOVERED_SCHEMA,
-                    selection=ModelSelection("anthropic", "claude-test", "markdown"),
+                    selection=ModelSelection("anthropic", "claude-sonnet-4-5", "markdown"),
                     provider=provider,
                     pdf_root=pdf_root,
                     usage_log_path=usage_log,
@@ -302,7 +308,7 @@ class ExtractManyOutputTest(unittest.TestCase):
             self.assertEqual(provider.request.document_paths, ())
             self.assertIn("PDFingestor structured representation", provider.request.user_text)
             logged = json.loads(usage_log.read_text(encoding="utf-8"))
-            self.assertEqual(logged["source_pdf"], pdf_path.as_posix())
+            self.assertEqual(Path(logged["source_pdf"]).resolve(), pdf_path.resolve())
             self.assertEqual(logged["document_input"], "markdown")
 
 

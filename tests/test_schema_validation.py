@@ -47,9 +47,16 @@ class SchemaValidationTest(unittest.TestCase):
         from src.schema.validation import normalize_schema, validate_extraction_record
         from src.verticals.manifest import default_manifest_path, load_vertical_manifest
         manifest = load_vertical_manifest(default_manifest_path("travel_insurance"))
+        schema = normalize_schema(VALID_TRAVEL_SCHEMA)
+        products = []
+        for name in ("Comprehensive", " comprehensive "):
+            product = {field["name"]: None for field in schema["fields"]}
+            product.update(product_name=name, _notes=None)
+            product["_unfilled"] = [key for key, value in product.items() if value is None and key != "_notes"]
+            products.append(product)
         with self.assertRaisesRegex(ValueError, "Duplicate product identity"):
-            validate_extraction_record(normalize_schema(VALID_TRAVEL_SCHEMA),
-                {"products": [{"product_name": "Comprehensive"}, {"product_name": " comprehensive "}]},
+            validate_extraction_record(schema,
+                {"products": products, "_document_notes": None},
                 manifest=manifest)
 
     def test_both_legacy_formats_enter_one_model_without_mutating_source(self) -> None:

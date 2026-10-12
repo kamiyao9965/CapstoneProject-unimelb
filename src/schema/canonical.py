@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 
 from src.common.json_contracts import validate_contract
-from src.schema.nested import validate_item_schema
+from src.schema.nested import validate_item_schema, validate_value_schema
 
 
 _PRODUCT_NAME_TARGET = "products.canonical_name"
@@ -45,6 +45,10 @@ def is_canonical_schema(payload: object) -> bool:
 def validate_canonical_schema(payload: object) -> dict[str, object]:
     """Validate lifecycle, identity, and storage invariants without approving."""
     validate_contract(payload, "canonical_schema")
+    for name, value in payload.get("document_fields", {}).items():
+        if name in {"products", "_document_notes", "_unfilled", "_notes"}:
+            raise ValueError("Document-level schema field conflicts with the extraction envelope.")
+        validate_value_schema(value, payload.get("$defs"))
     if not isinstance(payload, dict):
         raise ValueError("Canonical Schema must be an object.")
 
@@ -86,7 +90,7 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
                 raise ValueError("item_schema is only allowed on list[object] fields.")
             validate_item_schema(field["item_schema"], payload.get("$defs"))
         values = list(field["values"])
-        if field_type == "enum" and not values:
+        if field_type in {"enum", "list[enum]"} and not values:
             raise ValueError(f"Canonical enum field {name!r} requires values.")
         if field_type != "enum" and values:
             raise ValueError(
@@ -101,7 +105,7 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
         if not isinstance(storage, Mapping):
             raise ValueError(f"Canonical field {name!r} storage must be an object.")
         strategy = storage["strategy"]
-        if field_type == "list[object]" and strategy != "jsonb":
+        if field_type.startswith("list[") and strategy != "jsonb":
             raise ValueError(
                 f"Canonical list[object] field {name!r} must use jsonb storage."
             )
@@ -238,10 +242,12 @@ def compile_canonical_extraction_contract(
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "additionalProperties": False,
-        "required": [collection, document_notes_field],
+        "required": [collection, document_notes_field, *schema.get("document_fields", {})],
         "properties": {
             collection: collection_contract,
             document_notes_field: {"type": ["string", "null"]},
+            **{name: validate_value_schema(value, schema.get("$defs"))
+               for name, value in schema.get("document_fields", {}).items()},
         },
     }
 
@@ -274,6 +280,9 @@ def validate_canonical_extraction_identities(
     for product in products:
         if not isinstance(product, Mapping):
             raise ValueError("Canonical extracted product must be an object.")
+        unfilled_name = str(output.get("unfilled_field", "_unfilled"))
+        if set(product.get(unfilled_name, [])) != {field["name"] for field in schema["fields"] if product.get(field["name"]) is None}:
+            raise ValueError("_unfilled must enumerate null Canonical product fields exactly.")
         product_name = product.get(product_name_field)
         if not isinstance(product_name, str) or not product_name.strip():
             raise ValueError("Canonical product-name identity must be non-empty.")
@@ -304,6 +313,10 @@ def _canonical_field_contract(field: Mapping[str, object]) -> dict[str, object]:
     if json_type is not None:
         return {"type": [json_type, "null"] if nullable else json_type}
 
+    if str(field_type).startswith("list[") and field_type != "list[object]":
+        item = {"enum": list(field["values"])} if field_type == "list[enum]" else {"type": str(field_type)[5:-1]}
+        return {"type": ["array", "null"] if nullable else "array", "items": item,
+                **({"uniqueItems": True} if field.get("unique_items") else {})}
     array_contract: dict[str, object] = {
         "type": "array",
         "items": deepcopy(field.get("item_schema", {"type": "object", "additionalProperties": True})),
@@ -387,13 +400,30 @@ def build_canonical_candidate(
             f"Unsupported storage for unmapped fields {unmapped_storage!r}; "
             f"choose one of: {', '.join(UNMAPPED_STORAGE_STRATEGIES)}."
         )
-    manifest.require_capability("storage")
+    manifest.require_capability("canonical_review")
     schema = validate_schema_mapping(payload, manifest=manifest)
-    template = require_approved_canonical_schema(loads_json(manifest.path("canonical_schema").read_text(encoding="utf-8")))
+    if manifest.supports("storage"):
+        template_key = "canonical_template" if "canonical_template" in manifest.paths else "canonical_schema"
+        template = require_approved_canonical_schema(loads_json(manifest.path(template_key).read_text(encoding="utf-8")))
+    else:
+        template = {
+            "contract_version": "1.0.0", "vertical": manifest.vertical,
+            "version": str(schema["version"]), "status": "candidate", "review": None,
+            "description": str(schema["description"]),
+            "output": {"collection": "products", "cardinality": manifest.documents.output_cardinality,
+                       "document_notes_field": "_document_notes"},
+            "identity": {"product_name_field": "product_name", "product_type_field": "product_type"},
+            "extension": {"entity": f"{manifest.vertical}_product_details", "table": f"{manifest.vertical}_product_details",
+                          "attributes_column": "attributes"},
+            "fields": [
+                {"name": "product_name", "type": "string", "storage": {"strategy": "core_column", "target": "products.canonical_name"}},
+                {"name": "product_type", "type": "enum", "storage": {"strategy": "core_column", "target": "product_releases.source_product_type"}},
+            ],
+        }
     if template["vertical"] != manifest.vertical or template["output"]["cardinality"] != manifest.documents.output_cardinality:
         raise ValueError("Approved mapping does not match selected manifest.")
     mapped = {field["name"]: field for field in template["fields"]}
-    identities = set(template["identity"].values())
+    identities = set(template["identity"].values()) | set(manifest.identity_fields)
     reused: dict[str, dict[str, object]] = {}
     for field in schema["fields"]:
         name = field["name"]
@@ -412,19 +442,24 @@ def build_canonical_candidate(
         storage = reused.get(name)
         if storage is None:
             storage = {"strategy": "jsonb"}
-            if unmapped_storage == "extension_column" and field["type"] != "list[object]" and name not in taken_columns:
+            if unmapped_storage == "extension_column" and not field["type"].startswith("list[") and name not in taken_columns:
                 storage = {"strategy": "extension_column", "column": name}
                 taken_columns.add(name)
         fields.append({
             **({"item_schema": deepcopy(field["item_schema"])} if "item_schema" in field else {}),
+            **({"unique_items": field["unique_items"]} if "unique_items" in field else {}),
             "name": name, "type": field["type"], "description": field["description"],
             "required": True if name in identities else field["required"],
             "nullable": name not in identities,
-            "values": list(field["values"]) if field["type"] == "enum" else [],
+            "values": list(field["values"]) if field["type"] in {"enum", "list[enum]"} else [],
+            "applies_to": list(field["applies_to"]),
             "aliases": [],
             "storage": storage,
         })
     candidate = deepcopy(template)
     candidate.update(version=f"{schema['version']}-canonical-candidate", status="candidate", review=None,
                      description=f"Canonical candidate derived from {schema['version']}: {schema['description']}", fields=fields)
+    for key in ("product_types", "taxonomies", "document_fields", "validation_profile", "validation_rules", "$defs"):
+        if key in schema:
+            candidate[key] = deepcopy(schema[key])
     return validate_canonical_schema(candidate)

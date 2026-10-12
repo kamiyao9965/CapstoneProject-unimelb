@@ -32,6 +32,7 @@ SUPPORTED_OPERATIONS = frozenset(
         "csv_export",
         "csv_export_batch",
         "quality_audit",
+        "delivery_approve",
     }
 )
 ENVIRONMENT_NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,127}$")
@@ -90,7 +91,7 @@ def build_command(
     options = dict(request.options)
     manifest = resolve_manifest(options.get("manifest"), vertical=options.get("vertical"), operation=operation)
     if options.get("evaluate"):
-        manifest.require_capability("evaluation")
+        raise ValueError("Labelled evaluation was removed from the shared pipeline.")
     _add(command, "--manifest", manifest.source_path)
 
     if operation == "discover":
@@ -123,7 +124,6 @@ def build_command(
             raise ValueError(f"Unknown categories for this vertical: {unknown_categories}.")
         _add_many(command, "--categories", categories)
         _add(command, "--output-dir", options.get("output_dir"))
-        _add_flag(command, "--evaluate", options.get("evaluate"))
         _add_provider(command, options.get("provider"))
         _add(command, "--model", options.get("model"))
         _add_document_parser(command, options.get("document_parser"))
@@ -179,18 +179,27 @@ def build_command(
         _add_database_environment(command, options.get("database_url_env"))
     elif operation in {"csv_export", "csv_export_batch"}:
         _add(command, "--schema", options.get("schema"))
+        _add(command, "--quality-results", options.get("quality_results"))
         if operation == "csv_export":
             _add_required(command, "--artifact", options.get("artifact"), "artifact path")
             insurer_code = _required_text(options.get("insurer_code"), "insurer code")
             if not INSURER_CODE.fullmatch(insurer_code):
                 raise ValueError(f"Invalid insurer code: {insurer_code!r}.")
             _add(command, "--insurer-code", insurer_code)
+            _add(command, "--delivery-approval", options.get("delivery_approval"))
         else:
             _add_required(command, "--artifact-dir", options.get("artifact_dir"), "extraction results folder")
+            _add(command, "--approval-dir", options.get("approval_dir"))
         output = _required_text(options.get("output"), "CSV output path")
         if Path(output).suffix.casefold() != ".csv":
             raise ValueError("CSV output path must end in .csv.")
         _add(command, "--output", output)
+    elif operation == "delivery_approve":
+        for name, flag in (("schema", "--schema"), ("artifact", "--artifact"), ("output", "--output"),
+                           ("reviewer", "--reviewer"), ("rationale", "--rationale")):
+            _add_required(command, flag, options.get(name), name)
+        if not options.get("reviewer_confirmed"):
+            raise ValueError("Confirm that you reviewed the final extraction and its complete PDF group before delivery approval.")
     elif operation == "quality_audit":
         _add_required(command, "--artifact-dir", options.get("artifact_dir"), "extraction artifacts folder")
         _add_required(command, "--output-dir", options.get("output_dir"), "quality output folder")

@@ -18,7 +18,7 @@ from src.common.json_artifacts import (
     write_failure_artifact,
 )
 from src.common.json_contracts import load_contract
-from src.common.model_config import ModelSelection, resolve_selection
+from src.common.model_config import ModelSelection, resolve_selection, require_structured_output_capability
 from src.common.model_provider import (
     ModelProvider,
     ProviderRequest,
@@ -35,6 +35,8 @@ from src.verticals.manifest import resolve_manifest, VerticalManifest
 from src.verticals.registry import get_prompt, get_schema_validator, get_shared_prompt
 from src.schema.validation import validate_schema_mapping
 from src.schema.generation import generation_contract, decode_generated_schema, decode_generated_patches
+from src.verticals.documents import resolve_document_groups
+from src.verticals.registry import get_business_rules
 from src.refine.candidates.patch import parse_patch_payload
 
 
@@ -68,6 +70,7 @@ class SchemaDiscovery:
                 "set LLM_DOCUMENT_INPUT=markdown or pass --document-input markdown."
             )
         self.model = self.selection.model
+        require_structured_output_capability(self.selection, strict=True)
         self.provider = provider or create_provider(self.selection)
         # Discovery consumes the shared Silver-layer text/table representation
         # (parsed by PDFingestor or MinerU) and sends it inline as text.
@@ -100,6 +103,11 @@ class SchemaDiscovery:
         self.patch_prompt = get_prompt(manifest.prompt("patch"))
         self.patch_prompt += "\n\n" + get_shared_prompt("schema_generation")
         self.patch_validator = lambda payload: parse_patch_payload(payload, allowed_product_types=set(manifest.product_types))
+        rules = get_business_rules(manifest)
+        if rules is not None and hasattr(rules, "schema_context"):
+            context = rules.schema_context()
+            self.discovery_prompt += "\n\n" + context
+            self.patch_prompt += "\n\n" + context
 
     def discover(
         self,
@@ -156,6 +164,11 @@ class SchemaDiscovery:
         started_at = datetime.now(timezone.utc)
         started_perf = time.perf_counter()
         pdf_paths = [Path(path) for path in sample_pdfs]
+        refs = []
+        if self.manifest.documents.inventory:
+            groups = resolve_document_groups(self.manifest, pdf_paths, input_root=self.pdf_root)
+            pdf_paths = [path for group in groups for path in group.pdf_paths]
+            refs = [ref.to_dict() for group in groups for ref in group.documents]
         resolved_output_path = Path(output_path) if output_path else None
         self._log(f"{progress_message} with {self.selection.provider}/{self.model}. This can take a few minutes...")
         if self.extra_instructions:
@@ -172,6 +185,9 @@ class SchemaDiscovery:
                 pdf_root=self.pdf_root,
                 document_parser=self.document_parser,
                 markdown_dir=self.parsed_markdown_dir,
+                document_refs=refs,
+                parser_quality_gate=self.manifest.adapters.get("parser_quality") == "car_parser_quality_v1",
+                parser_review_path=self.manifest.path("parser_review") if "parser_review" in self.manifest.paths else None,
             )
         except Exception as exc:
             self._write_failure(

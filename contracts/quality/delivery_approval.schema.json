@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Explicit human approval for delivery of one extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "vertical": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source_artifact_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source_document_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document_id",
+          "source_path",
+          "document_role",
+          "amends_document_ids",
+          "sha256",
+          "metadata"
+        ],
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "document_role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amends_document_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "document_group_id": {
+      "type": "string",
+      "pattern": "^group_[a-f0-9]{24}$"
+    },
+    "decision": {
+      "const": "approved"
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "vertical",
+    "schema_version",
+    "schema_sha256",
+    "source_artifact_sha256",
+    "source_document_refs",
+    "document_group_id",
+    "decision",
+    "reviewer",
+    "rationale",
+    "reviewed_at"
+  ]
+}

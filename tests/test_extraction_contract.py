@@ -24,7 +24,8 @@ class ExtractionContractTest(unittest.TestCase):
 
     def test_enum_allows_configured_value_or_null_only(self) -> None:
         schema = dict(VALID_DISCOVERED_SCHEMA)
-        schema["fields"] = [{
+        schema["fields"] = [{"name": "product_name", "type": "string", "description": "Product name",
+                             "applies_to": ["hospital"], "required": True, "values": [], "aliases": []}, {
             "name": "product_type", "type": "enum",
             "description": "Product classification",
             "applies_to": ["hospital"], "required": True,
@@ -40,16 +41,18 @@ class ExtractionContractTest(unittest.TestCase):
 
         validate_inline_contract(
             {
-                "product_type": "hospital", "cover_status": None,
+                "products": [{"product_name": "Synthetic", "product_type": "hospital", "cover_status": None,
                 "_unfilled": ["cover_status"], "_notes": None,
+                }], "_document_notes": None,
             },
             contract,
         )
         with self.assertRaises(ValueError):
             validate_inline_contract(
                 {
-                    "product_type": "hospital", "cover_status": "maybe",
+                    "products": [{"product_name": "Synthetic", "product_type": "hospital", "cover_status": "maybe",
                     "_unfilled": [], "_notes": None,
+                    }], "_document_notes": None,
                 },
                 contract,
             )

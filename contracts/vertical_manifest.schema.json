@@ -33,7 +33,6 @@
         "discovery",
         "refinement",
         "extraction",
-        "evaluation",
         "storage"
       ],
       "properties": {
@@ -50,12 +49,18 @@
           "type": "boolean"
         },
         "evaluation": {
-          "type": "boolean"
+          "const": false
         },
         "storage": {
           "type": "boolean"
         },
         "quality_audit": {
+          "type": "boolean"
+        },
+        "canonical_review": {
+          "type": "boolean"
+        },
+        "csv_export": {
           "type": "boolean"
         }
       }
@@ -71,6 +76,51 @@
         "category_product_types"
       ],
       "properties": {
+        "inventory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "document_id",
+              "source_path",
+              "document_role",
+              "amends_document_ids"
+            ],
+            "properties": {
+              "document_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "document_role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amends_document_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "metadata": {
+                "type": "object"
+              }
+            }
+          }
+        },
         "categories": {
           "type": "array",
           "items": {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from copy import deepcopy
 import os
 from pathlib import Path
 from types import MappingProxyType
@@ -16,10 +17,11 @@ from src.common.json_codec import loads_json
 DEFAULT_VERTICAL = "private_health"
 OPERATION_CAPABILITIES = {
     "discover": "discovery", "extract": "extraction", "batch": "extraction",
-    "crawl": "acquisition", "refine": "refinement", "canonical_compile": "storage",
+    "crawl": "acquisition", "refine": "refinement", "canonical_compile": "canonical_review",
     "storage_init": "storage", "storage_load": "storage", "storage_load_batch": "storage",
-    "csv_export": "storage", "csv_export_batch": "storage",
+    "csv_export": "csv_export", "csv_export_batch": "csv_export",
     "quality_audit": "quality_audit",
+    "delivery_approve": "csv_export",
 }
 
 
@@ -34,6 +36,7 @@ class DocumentModel:
     extraction_unit: str
     output_cardinality: str
     category_product_types: Mapping[str, str]
+    inventory: tuple[dict[str, object], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -58,7 +61,8 @@ class VerticalManifest:
     source_path: Path
 
     def supports(self, capability: str) -> bool:
-        return bool(self.capabilities.get(capability, False))
+        fallback = self.capabilities.get("storage", False) if capability in {"canonical_review", "csv_export"} else False
+        return bool(self.capabilities.get(capability, fallback))
 
     def require_capability(self, capability: str) -> None:
         if not self.supports(capability):
@@ -162,7 +166,8 @@ def resolve_manifest(path=None, *, vertical=None, operation=None) -> VerticalMan
         manifests = discover_manifests()
         if vertical is None:
             eligible = [m for m in manifests.values() if not capability or m.supports(capability)]
-            manifest = next((m for m in eligible if m.vertical == DEFAULT_VERTICAL), None)
+            preferred = "travel_insurance" if capability in {"canonical_review", "csv_export", "quality_audit", "storage"} else DEFAULT_VERTICAL
+            manifest = next((m for m in eligible if m.vertical == preferred), None)
             if manifest is None:
                 if len(eligible) != 1:
                     raise ManifestValidationError("Select a manifest supporting this operation.")
@@ -209,6 +214,7 @@ def load_vertical_manifest(path: str | Path) -> VerticalManifest:
             extraction_unit=str(documents["extraction_unit"]),
             output_cardinality=str(documents["output_cardinality"]),
             category_product_types=MappingProxyType(dict(documents["category_product_types"])),
+            inventory=tuple(deepcopy(documents.get("inventory", []))),
         ),
         paths=MappingProxyType(dict(payload["paths"])),
         path_environment=MappingProxyType(

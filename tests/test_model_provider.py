@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.schema_fixtures import descriptor
+
 import json
 import tempfile
 import unittest
@@ -79,7 +81,7 @@ class RecordingProvider:
     def generate(self, request: ProviderRequest) -> ModelResponse:
         self.requests.append(request)
         return ModelResponse(
-            text=VALID_SCHEMA_TEXT,
+            text=json.dumps(descriptor(json.loads(VALID_SCHEMA_TEXT))) if request.structured_output and request.structured_output.name == "discovered_schema" else VALID_SCHEMA_TEXT,
             provider=request.selection.provider,
             model=request.selection.model,
             response_id="response_001",
@@ -89,13 +91,13 @@ class RecordingProvider:
 class ProviderContractTest(unittest.TestCase):
     def test_engines_use_environment_selection_unless_explicitly_overridden(self) -> None:
         factories = (SchemaDiscovery, lambda **kwargs: SchemaExtractor(json.loads(VALID_SCHEMA_TEXT), **kwargs))
-        environment = {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-test", "LLM_DOCUMENT_INPUT": "markdown"}
+        environment = {"LLM_PROVIDER": "anthropic", "LLM_MODEL": "claude-sonnet-4-5", "LLM_DOCUMENT_INPUT": "markdown"}
         explicit = ModelSelection("openai", "gpt-5", "markdown")
         with mock.patch.dict(os.environ, environment, clear=True):
             for factory in factories:
                 with self.subTest(factory=factory):
                     engine = factory(provider=RecordingProvider(), log=None)
-                    self.assertEqual(engine.selection, ModelSelection("anthropic", "claude-test", "markdown"))
+                    self.assertEqual(engine.selection, ModelSelection("anthropic", "claude-sonnet-4-5", "markdown"))
                     overridden = factory(selection=explicit, provider=RecordingProvider(), log=None)
                     self.assertEqual(overridden.selection, explicit)
 
@@ -151,7 +153,7 @@ class ProviderContractTest(unittest.TestCase):
             pdf_path.parent.mkdir(parents=True)
             pdf_path.touch()
             usage_log = Path(tmp) / "usage.jsonl"
-            selection = ModelSelection("anthropic", "claude-test", "markdown")
+            selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
             provider = RecordingProvider()
 
             discovery = SchemaDiscovery(
@@ -184,7 +186,7 @@ class ProviderContractTest(unittest.TestCase):
             provider = RecordingProvider()
 
             discovery = SchemaDiscovery(
-                    selection=ModelSelection("anthropic", "claude-test", "markdown"),
+                    selection=ModelSelection("anthropic", "claude-sonnet-4-5", "markdown"),
                     provider=provider,
                     pdf_root=pdf_root,
                     usage_log_path=None,
@@ -321,12 +323,12 @@ class ProviderContractTest(unittest.TestCase):
             messages = FakeMessages()
             with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
                 provider = create_provider(
-                    ModelSelection("anthropic", "claude-test", "pdf"),
+                    ModelSelection("anthropic", "claude-sonnet-4-5", "pdf"),
                     client=SimpleNamespace(messages=messages),
                 )
                 response = provider.generate(
                     ProviderRequest(
-                        selection=ModelSelection("anthropic", "claude-test", "pdf"),
+                        selection=ModelSelection("anthropic", "claude-sonnet-4-5", "pdf"),
                         system_prompt="system",
                         user_text="read this",
                         document_paths=(pdf_path,),
@@ -680,7 +682,7 @@ class ProviderContractTest(unittest.TestCase):
                 )
             )
 
-        selection = ModelSelection("anthropic", "claude-test", "markdown")
+        selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
         environment = {
             "ANTHROPIC_API_KEY": "test-key",
             "ANTHROPIC_BASE_URL": "https://anthropic-proxy.local",
@@ -727,11 +729,11 @@ class ProviderContractTest(unittest.TestCase):
             markdown_path.write_text("# source\n", encoding="utf-8")
             with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
                 response = create_provider(
-                    ModelSelection("anthropic", "claude-test", "markdown"),
+                    ModelSelection("anthropic", "claude-sonnet-4-5", "markdown"),
                     client=SimpleNamespace(messages=messages),
                 ).generate(
                     ProviderRequest(
-                        selection=ModelSelection("anthropic", "claude-test", "markdown"),
+                        selection=ModelSelection("anthropic", "claude-sonnet-4-5", "markdown"),
                         system_prompt="system", user_text="read this", document_paths=(markdown_path,),
                         timeout_seconds=1, cleanup_documents=True, request_params={},
                         background=False, poll_interval=0, log=None,
@@ -751,7 +753,7 @@ class ProviderContractTest(unittest.TestCase):
         client = SimpleNamespace(
             messages=SimpleNamespace(create=lambda **_: response)
         )
-        selection = ModelSelection("anthropic", "claude-test", "markdown")
+        selection = ModelSelection("anthropic", "claude-sonnet-4-5", "markdown")
 
         with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "truncated"):

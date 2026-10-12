@@ -105,6 +105,8 @@ def main() -> None:
     with left:
         st.subheader("Evidence and extracted value")
         st.write(f"**Source PDF:** `{item['source_document']}`")
+        if item.get("source_document_id"):
+            st.write(f"**Document ID:** `{item['source_document_id']}`")
         st.write(f"**Page:** {item['source_page'] or 'not supplied'}")
         st.write(f"**Judge concern:** {item['reason']}")
         if item["issue_type"]:

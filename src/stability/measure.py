@@ -68,7 +68,10 @@ def main() -> int:
         categories=manifest.documents.categories,
         per_category=args.per_category,
         seed=args.seed,
+        manifest=manifest,
     )
+    from src.verticals.documents import expand_document_paths
+    sample_paths = expand_document_paths(manifest, sample_paths, input_root=args.input_root)
     print(f"Fixed sample of {len(sample_paths)} PDFs (seed={args.seed}). "
           f"Running discovery {args.runs}x...\n")
 

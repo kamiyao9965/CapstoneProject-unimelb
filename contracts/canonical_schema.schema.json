@@ -17,38 +17,108 @@
     "fields"
   ],
   "properties": {
-    "$defs": {"type": "object", "additionalProperties": {"type": "object"}},
-    "contract_version": {"const": "1.0.0"},
+    "$defs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "contract_version": {
+      "const": "1.0.0"
+    },
     "vertical": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
     },
-    "version": {"type": "string", "minLength": 1, "maxLength": 128},
-    "status": {"enum": ["candidate", "approved"]},
-    "description": {"type": "string", "minLength": 1},
-    "review": {
-      "oneOf": [
-        {"type": "null"},
-        {"$ref": "#/$defs/review"}
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "approved"
       ]
     },
-    "output": {"$ref": "#/$defs/output"},
-    "identity": {"$ref": "#/$defs/identity"},
-    "extension": {"$ref": "#/$defs/extension"},
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/review"
+        }
+      ]
+    },
+    "output": {
+      "$ref": "#/$defs/output"
+    },
+    "identity": {
+      "$ref": "#/$defs/identity"
+    },
+    "extension": {
+      "$ref": "#/$defs/extension"
+    },
     "fields": {
       "type": "array",
       "minItems": 1,
-      "items": {"$ref": "#/$defs/field"}
+      "items": {
+        "$ref": "#/$defs/field"
+      }
+    },
+    "document_fields": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "validation_profile": {
+      "type": "string"
+    },
+    "product_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "taxonomies": {
+      "type": "object"
+    },
+    "validation_rules": {
+      "type": "object"
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": {"status": {"const": "approved"}},
-        "required": ["status"]
+        "properties": {
+          "status": {
+            "const": "approved"
+          }
+        },
+        "required": [
+          "status"
+        ]
       },
-      "then": {"properties": {"review": {"$ref": "#/$defs/review"}}},
-      "else": {"properties": {"review": {"type": "null"}}}
+      "then": {
+        "properties": {
+          "review": {
+            "$ref": "#/$defs/review"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "review": {
+            "type": "null"
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -60,40 +130,83 @@
     "review": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reviewed_by", "reviewed_at", "rationale"],
+      "required": [
+        "reviewed_by",
+        "reviewed_at",
+        "rationale"
+      ],
       "properties": {
-        "reviewed_by": {"type": "string", "minLength": 1},
-        "reviewed_at": {"type": "string", "format": "date-time"},
-        "rationale": {"type": "string", "minLength": 1}
+        "reviewed_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "output": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["collection", "cardinality", "document_notes_field"],
+      "required": [
+        "collection",
+        "cardinality",
+        "document_notes_field"
+      ],
       "properties": {
-        "collection": {"$ref": "#/$defs/identifier"},
-        "cardinality": {"enum": ["single", "multiple"]},
-        "document_notes_field": {"const": "_document_notes"}
+        "collection": {
+          "$ref": "#/$defs/identifier"
+        },
+        "cardinality": {
+          "enum": [
+            "single",
+            "multiple"
+          ]
+        },
+        "document_notes_field": {
+          "const": "_document_notes"
+        }
       }
     },
     "identity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["product_name_field", "product_type_field"],
+      "required": [
+        "product_name_field",
+        "product_type_field"
+      ],
       "properties": {
-        "product_name_field": {"$ref": "#/$defs/identifier"},
-        "product_type_field": {"$ref": "#/$defs/identifier"}
+        "product_name_field": {
+          "$ref": "#/$defs/identifier"
+        },
+        "product_type_field": {
+          "$ref": "#/$defs/identifier"
+        }
       }
     },
     "extension": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["entity", "table", "attributes_column"],
+      "required": [
+        "entity",
+        "table",
+        "attributes_column"
+      ],
       "properties": {
-        "entity": {"$ref": "#/$defs/identifier"},
-        "table": {"$ref": "#/$defs/identifier"},
-        "attributes_column": {"$ref": "#/$defs/identifier"}
+        "entity": {
+          "$ref": "#/$defs/identifier"
+        },
+        "table": {
+          "$ref": "#/$defs/identifier"
+        },
+        "attributes_column": {
+          "$ref": "#/$defs/identifier"
+        }
       }
     },
     "field": {
@@ -110,25 +223,62 @@
         "storage"
       ],
       "properties": {
-        "item_schema": {"type": "object"},
-        "name": {"$ref": "#/$defs/identifier"},
-        "type": {
-          "enum": ["string", "number", "boolean", "enum", "list[object]"]
+        "item_schema": {
+          "type": "object"
         },
-        "description": {"type": "string", "minLength": 1},
-        "required": {"type": "boolean"},
-        "nullable": {"type": "boolean"},
+        "name": {
+          "$ref": "#/$defs/identifier"
+        },
+        "type": {
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "enum",
+            "list[object]",
+            "list[string]",
+            "list[number]",
+            "list[boolean]",
+            "list[enum]"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "nullable": {
+          "type": "boolean"
+        },
         "values": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "aliases": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "storage": {"$ref": "#/$defs/storage"}
+        "storage": {
+          "$ref": "#/$defs/storage"
+        },
+        "unique_items": {
+          "type": "boolean"
+        },
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "storage": {
@@ -136,9 +286,14 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["strategy", "target"],
+          "required": [
+            "strategy",
+            "target"
+          ],
           "properties": {
-            "strategy": {"const": "core_column"},
+            "strategy": {
+              "const": "core_column"
+            },
             "target": {
               "enum": [
                 "products.canonical_name",
@@ -150,18 +305,29 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["strategy", "column"],
+          "required": [
+            "strategy",
+            "column"
+          ],
           "properties": {
-            "strategy": {"const": "extension_column"},
-            "column": {"$ref": "#/$defs/identifier"}
+            "strategy": {
+              "const": "extension_column"
+            },
+            "column": {
+              "$ref": "#/$defs/identifier"
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["strategy"],
+          "required": [
+            "strategy"
+          ],
           "properties": {
-            "strategy": {"const": "jsonb"}
+            "strategy": {
+              "const": "jsonb"
+            }
           }
         }
       ]

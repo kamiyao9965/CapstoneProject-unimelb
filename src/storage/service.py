@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url
 
 from src.common.json_codec import dumps_json, loads_json
 from src.schema.canonical import require_approved_canonical_schema
-from src.schema_application.records import parse_extraction_artifact
+from src.schema_application.records import parse_extraction_artifact, resolve_extraction_sources
 from src.storage.canonical import (
     CanonicalLoadPlan,
     compile_canonical_load_plan,
@@ -34,6 +34,18 @@ _DATABASE_IDENTIFIER = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _ENVIRONMENT_NAME = re.compile(r"^[A-Z][A-Z0-9_]{0,127}$")
 _MAX_ARTIFACT_BYTES = 16 * 1024 * 1024
 _MAX_PDF_BYTES = 50 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class PreparedSourceDocument:
+    """One verified source PDF in a prepared release."""
+
+    document_id: str
+    pdf_sha256: str
+    document_type: str
+    document_title: str
+    source_path: str
+    metadata: dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -55,6 +67,10 @@ class PreparedStorageLoad:
     raw_artifact: dict[str, Any]
     payload_sha256: str
     plan: CanonicalLoadPlan
+    source_documents: tuple[PreparedSourceDocument, ...] = ()
+    source_document_refs: tuple[dict[str, object], ...] = ()
+    document_group_id: str | None = None
+    release_source_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -105,9 +121,10 @@ def prepare_storage_load(
     schema_path: str | Path,
     artifact_path: str | Path,
     insurer_code: str,
+    for_csv: bool = False,
 ) -> PreparedStorageLoad:
     """Validate source boundaries and compile one deterministic load request."""
-    manifest.require_capability("storage")
+    manifest.require_capability("csv_export" if for_csv else "storage")
     normalized_insurer = insurer_code.strip()
     if not _DATABASE_IDENTIFIER.fullmatch(normalized_insurer):
         raise ValueError(
@@ -138,27 +155,39 @@ def prepare_storage_load(
     provider = _non_empty(extraction.provider, "provider", maximum=64)
     model = _non_empty(extraction.model, "model", maximum=128)
     run_id = _non_empty(extraction.run_id, "run ID", maximum=128)
-    source_path, relative_source, pdf_sha256 = _validate_source_document(
-        extraction.source_document,
-        manifest=manifest,
-        insurer_code=normalized_insurer,
-    )
-    document_type = relative_source.parts[1]
+    group = resolve_extraction_sources(extraction, manifest)
+    source_documents = []
+    for reference in group.documents:
+        source_path, relative_source, pdf_sha256 = _validate_source_document(
+            reference.source_path, manifest=manifest, insurer_code=normalized_insurer,
+            for_csv=for_csv, metadata=dict(reference.metadata),
+        )
+        document_type = reference.document_role if manifest.documents.inventory or len(relative_source.parts) < 3 else relative_source.parts[1]
+        title_match = _HASHED_FILENAME.fullmatch(source_path.stem)
+        document_title = (title_match.group(1) if title_match else source_path.stem).replace("_", " ")
+        source_documents.append(PreparedSourceDocument(
+            document_id=f"sha256:{pdf_sha256}", pdf_sha256=pdf_sha256,
+            document_type=document_type, document_title=document_title, source_path=str(source_path),
+            metadata={**dict(reference.metadata), "inventory_document_id": reference.document_id,
+                      "amends_document_ids": list(reference.amends_document_ids)},
+        ))
+    primary = source_documents[0]
     schema_version_id = _content_id(approved_schema)
     plan = compile_canonical_load_plan(approved_schema, extraction.data)
 
-    title_match = _HASHED_FILENAME.fullmatch(source_path.stem)
-    document_title = (title_match.group(1) if title_match else source_path.stem).replace(
-        "_", " "
-    )
+    refs = tuple(ref.to_dict() for ref in group.documents)
+    release_source_id = primary.document_id if len(refs) == 1 else _content_id([
+        {"document_id": ref["document_id"], "sha256": ref["sha256"],
+         "amends_document_ids": ref["amends_document_ids"]} for ref in refs
+    ])
     return PreparedStorageLoad(
         vertical=manifest.vertical,
         insurer_code=normalized_insurer,
-        document_id=f"sha256:{pdf_sha256}",
-        pdf_sha256=pdf_sha256,
-        document_type=document_type,
-        document_title=document_title,
-        source_path=source_path.as_posix(),
+        document_id=primary.document_id,
+        pdf_sha256=primary.pdf_sha256,
+        document_type=primary.document_type,
+        document_title=primary.document_title,
+        source_path=primary.source_path,
         schema_version_id=schema_version_id,
         schema_payload=approved_schema,
         run_id=run_id,
@@ -167,6 +196,8 @@ def prepare_storage_load(
         raw_artifact=extraction.artifact,
         payload_sha256=_sha256_bytes(artifact_bytes),
         plan=plan,
+        source_documents=tuple(source_documents), source_document_refs=refs,
+        document_group_id=group.group_id, release_source_id=release_source_id,
     )
 
 
@@ -259,7 +290,7 @@ def load_extraction_directory(
 
 
 def inspect_extraction_directory(
-    *, manifest: VerticalManifest, artifact_dir: str | Path,
+    *, manifest: VerticalManifest, artifact_dir: str | Path, for_csv: bool = False,
 ) -> list[DirectoryArtifact]:
     """Discover ordered inputs and reject competing source results for DB/CSV loads."""
     directory = Path(artifact_dir)
@@ -273,29 +304,39 @@ def inspect_extraction_directory(
     if not artifact_paths:
         raise ValueError(f"No extraction artifacts found under {directory}.")
 
-    sources: dict[Path, Path] = {}
+    sources: dict[Path, tuple[str, str]] = {}
     errors: dict[Path, str] = {}
     for artifact_path in artifact_paths:
         try:
-            sources[artifact_path] = _artifact_source_document(artifact_path, manifest)
+            extraction = parse_extraction_artifact(
+                _read_limited_bytes(artifact_path, label="Extraction artifact", maximum_bytes=_MAX_ARTIFACT_BYTES),
+                vertical=manifest.vertical,
+            )
+            group = resolve_extraction_sources(extraction, manifest)
+            _, relative_source = _source_below_input_root(extraction.source_document, manifest)
+            insurer = group.documents[0].metadata.get("insurer_code") if for_csv else None
+            if not insurer:
+                if len(relative_source.parts) < (2 if for_csv else 3):
+                    raise ValueError("Source layout requires an insurer folder or inventory insurer_code for CSV.")
+                insurer = relative_source.parts[0]
+            sources[artifact_path] = (group.group_id, str(insurer))
         except ValueError as exc:
-            errors[artifact_path] = str(exc)
-    source_counts = Counter(sources.values())
+            errors[artifact_path] = f"Could not read extraction artifact: {exc}"
+    source_counts = Counter(value[0] for value in sources.values())
 
     results: list[DirectoryArtifact] = []
     for artifact_path in artifact_paths:
         if artifact_path in errors:
             results.append(DirectoryArtifact(artifact_path, None, errors[artifact_path]))
             continue
-        relative_source = sources[artifact_path]
-        insurer_code = relative_source.parts[0]
-        if source_counts[relative_source] > 1:
+        source_id, insurer_code = sources[artifact_path]
+        if source_counts[source_id] > 1:
             results.append(
                 DirectoryArtifact(
                     artifact_path,
                     insurer_code,
-                    f"{source_counts[relative_source]} results in this folder use "
-                    f"{relative_source.as_posix()}; keep one and retry.",
+                    f"{source_counts[source_id]} results in this folder use "
+                    f"the same document group; keep one and retry.",
                 )
             )
             continue
@@ -347,15 +388,19 @@ def _validate_source_document(
     *,
     manifest: VerticalManifest,
     insurer_code: str,
+    for_csv: bool = False,
+    metadata: dict[str, object] | None = None,
 ) -> tuple[Path, Path, str]:
     resolved_source, relative_source = _source_below_input_root(source_value, manifest)
-    if len(relative_source.parts) < 3:
+    if not for_csv and len(relative_source.parts) < 3:
         raise ValueError(
             "Source document must use the <insurer>/<document_type>/<file>.pdf layout."
         )
-    if relative_source.parts[0] != insurer_code:
+    configured_insurer = (metadata or {}).get("insurer_code")
+    path_insurer = relative_source.parts[0] if len(relative_source.parts) >= 2 else None
+    if (configured_insurer or path_insurer) and (configured_insurer or path_insurer) != insurer_code:
         raise ValueError("Insurer code does not match the source document path.")
-    if relative_source.parts[1] not in manifest.documents.document_types:
+    if not for_csv and relative_source.parts[1] not in manifest.documents.document_types:
         raise ValueError("Source document type is not allowed by the vertical manifest.")
     if resolved_source.suffix.casefold() != ".pdf":
         raise ValueError("Storage source document must be a PDF.")

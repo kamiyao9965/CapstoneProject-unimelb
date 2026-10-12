@@ -37,7 +37,7 @@ class AllExtractionFailuresTest(unittest.TestCase):
             root = Path(tmp)
             success = build_success_artifact(
                 artifact_type="extraction_result", contract_version="1.0.0",
-                data={"product_type": "hospital"}, provenance=provenance,
+                data={"products": [{"product_type": "hospital"}], "_document_notes": None}, provenance=provenance,
                 data_contract_schema={"type": "object"},
             )
             failure = build_failure_artifact(
@@ -169,7 +169,9 @@ class ProductApplicabilityTest(unittest.TestCase):
         product_type = dict(VALID_DISCOVERED_SCHEMA["fields"][0])
         product_type["applies_to"] = ["hospital", "combined"]
         product_type["values"] = ["hospital", "combined"]
-        schema["fields"] = [product_type, {
+        product_name = dict(next(field for field in VALID_DISCOVERED_SCHEMA["fields"] if field["name"] == "product_name"))
+        product_name["applies_to"] = ["hospital", "combined"]
+        schema["fields"] = [product_type, product_name, {
             "name": "hospital_excess", "type": "number",
             "description": "Hospital excess", "applies_to": ["hospital", "combined"],
             "required": False, "values": [],

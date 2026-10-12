@@ -5,9 +5,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
+from hashlib import sha256
 
 from src.common.json_artifacts import build_success_artifact, read_artifact, write_artifact
 from src.evaluation.quality import QUALITY_QUEUE_VERSION, quality_queue_id
+from src.verticals.manifest import VerticalManifest
 
 
 DECISIONS = frozenset({"issue_found", "no_issue", "uncertain"})
@@ -32,13 +34,19 @@ def load_queue(path: str | Path) -> dict:
         if (source.get("vertical") != data["vertical"]
                 or source.get("schema_version") != data["schema_version"]
                 or source["source_artifacts"] != [entry["source_artifact"] for entry in inputs]
-                or source["source_documents"] != [entry["source_document"] for entry in inputs]
+                or source["source_documents"] != [path for entry in inputs for path in (
+                    [ref["source_path"] for ref in entry["source_document_refs"]]
+                    if entry.get("source_document_refs") else [entry["source_document"]])]
                 or any((entry["provider"], entry["model"]) != (source["provider"], source["model"])
                        for entry in inputs)):
             raise ValueError("Quality review queue provenance does not match its audited inputs.")
         for item in data["items"]:
             entry = by_path.get(item["source_artifact"])
-            if entry is None or item["source_document"] != entry["source_document"]:
+            expected_source = entry and entry["source_document"]
+            if entry and item.get("source_document_id"):
+                reference = next((ref for ref in entry.get("source_document_refs", []) if ref["document_id"] == item["source_document_id"]), None)
+                expected_source = reference and reference["source_path"]
+            if entry is None or item["source_document"] != expected_source:
                 raise ValueError("Quality review item does not match an audited input.")
     return queue
 
@@ -136,3 +144,111 @@ def _empty_decisions(queue: dict, queue_path: Path) -> dict:
             "source_documents": [], "source_artifacts": [str(queue_path.resolve())],
         },
     )
+
+
+def _delivery_identity(
+    manifest: VerticalManifest, schema_path: str | Path, artifact_path: str | Path,
+) -> dict:
+    from src.common.json_codec import loads_json
+    from src.common.json_contracts import validate_inline_contract
+    from src.schema.canonical import (
+        require_approved_canonical_schema, compile_canonical_extraction_contract,
+        validate_canonical_extraction_identities,
+    )
+    from src.schema_application.records import parse_extraction_artifact, resolve_extraction_sources
+
+    schema_bytes = Path(schema_path).read_bytes()
+    schema = require_approved_canonical_schema(loads_json(schema_bytes.decode("utf-8")))
+    if schema["vertical"] != manifest.vertical:
+        raise ValueError("Delivery schema vertical does not match the selected manifest.")
+    artifact_bytes = Path(artifact_path).read_bytes()
+    if len(artifact_bytes) > 16 * 1024 * 1024:
+        raise ValueError("Delivery extraction exceeds the artifact size limit.")
+    parsed = parse_extraction_artifact(
+        artifact_bytes, vertical=manifest.vertical, schema_version=str(schema["version"]), require_identity=True,
+    )
+    validate_inline_contract(parsed.data, compile_canonical_extraction_contract(schema), "delivery_extraction")
+    validate_canonical_extraction_identities(schema, parsed.data)
+    group = resolve_extraction_sources(parsed, manifest)
+    return {
+        "vertical": manifest.vertical, "schema_version": str(schema["version"]),
+        "schema_sha256": sha256(schema_bytes).hexdigest(),
+        "source_artifact_sha256": sha256(artifact_bytes).hexdigest(),
+        "document_group_id": group.group_id,
+        "source_document_refs": [ref.to_dict() for ref in group.documents],
+    }
+
+
+def write_delivery_approval(
+    *, manifest: VerticalManifest, schema_path: str | Path, artifact_path: str | Path,
+    output_path: str | Path, reviewer: str, rationale: str, reviewed_at: str | None = None,
+) -> Path:
+    """Record an explicit human delivery decision without changing schema or extraction."""
+    if not reviewer.strip() or not rationale.strip():
+        raise ValueError("Delivery approval requires a reviewer and rationale.")
+    timestamp = reviewed_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    try:
+        parsed_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        if parsed_time.tzinfo is None:
+            raise ValueError("Missing timezone")
+    except (ValueError, TypeError) as exc:
+        raise ValueError("Delivery approval timestamp must be an ISO datetime with timezone.") from exc
+    identity = _delivery_identity(manifest, schema_path, artifact_path)
+    artifact = build_success_artifact(
+        artifact_type="delivery_approval", contract_version="1.0.0",
+        data={**identity, "decision": "approved", "reviewer": reviewer.strip(),
+              "rationale": rationale.strip(), "reviewed_at": timestamp},
+        data_contract="quality/delivery_approval",
+        provenance={
+            "run_id": uuid4().hex, "vertical": manifest.vertical,
+            "schema_version": identity["schema_version"], "provider": None, "model": None,
+            "document_input": None,
+            "source_documents": [ref["source_path"] for ref in identity["source_document_refs"]],
+            "source_artifacts": [str(Path(artifact_path).resolve()), str(Path(schema_path).resolve())],
+        },
+    )
+    return write_artifact(output_path, artifact, data_contract="quality/delivery_approval")
+
+
+def require_delivery_approval(
+    *, manifest: VerticalManifest, schema_path: str | Path, artifact_path: str | Path,
+    quality_results_path: str | Path | None = None, approval_path: str | Path | None = None,
+) -> dict:
+    """Require a current judge pass or an immutable human approval for this exact result."""
+    identity = _delivery_identity(manifest, schema_path, artifact_path)
+    artifact_file, schema_file = Path(artifact_path).resolve(), Path(schema_path).resolve()
+    if approval_path is not None:
+        approval = read_artifact(approval_path, expected_type="delivery_approval", data_contract="quality/delivery_approval")
+        if any(approval["data"].get(key) != value for key, value in identity.items()):
+            raise ValueError("Delivery approval no longer matches the schema, extraction or complete PDF group.")
+        if approval["provenance"]["source_artifacts"] != [str(artifact_file), str(schema_file)]:
+            raise ValueError("Delivery approval belongs to different input files.")
+        return {"status": "human_approved", "proof_path": str(Path(approval_path).resolve())}
+    if quality_results_path is None:
+        raise ValueError("CSV delivery requires a judge pass or explicit human delivery approval.")
+    from src.common.model_config import ModelSelection
+    from src.evaluation.quality import (
+        load_quality_results, _verify_reusable_report, _prompt_bundle_sha256, _shared_quality_prompt_sha256,
+    )
+    batch = load_quality_results(quality_results_path)["data"]
+    entry = next((entry for entry in batch["documents"] if Path(entry["source_artifact"]).resolve() == artifact_file), None)
+    if entry is None or entry["status"] != "completed":
+        raise ValueError("This extraction has no completed judge report.")
+    report = read_artifact(entry["report_path"], expected_type="quality_audit", data_contract="quality/audit_report")
+    if report["data"] != entry["report"]:
+        raise ValueError("Judge report differs from the batch delivery proof.")
+    data = report["data"]
+    if (data["verdict"] != "pass" or data["findings"] or data["correctness"] != "supported"
+            or data["evidence_support"] != "supported" or data["uncertainty"] != "low"):
+        raise ValueError("Judge did not pass this extraction; explicit human delivery approval is required.")
+    prompt_sha = sha256(Path(manifest.prompt("quality_audit")).read_bytes()).hexdigest()
+    shared_sha = _shared_quality_prompt_sha256()
+    _verify_reusable_report(
+        report, artifact_path=artifact_file, artifact_sha=identity["source_artifact_sha256"],
+        schema_file=schema_file, schema_sha=identity["schema_sha256"], prompt_sha=prompt_sha,
+        prompt_bundle_sha=_prompt_bundle_sha256(prompt_sha, shared_sha), shared_prompt_sha=shared_sha,
+        selection=ModelSelection(provider=batch["provider"], model=batch["model"], document_input="markdown"),
+        source_root=manifest.path("input_root"), check_pdf=True,
+        vertical=manifest.vertical, schema_version=identity["schema_version"], document_parser=None, manifest=manifest,
+    )
+    return {"status": "judge_pass", "proof_path": str(Path(quality_results_path).resolve())}

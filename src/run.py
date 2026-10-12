@@ -27,6 +27,7 @@ from src.pdf_ingestion.adapter import DEFAULT_DOCUMENT_PARSER, DOCUMENT_PARSERS
 from src.schema.sampler import category_from_path, print_samples, select_samples
 from src.schema.loader import load_schema_data
 from src.verticals.manifest import ManifestValidationError, VerticalManifest, resolve_manifest
+from src.verticals.registry import business_validation_summary
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -93,7 +94,6 @@ def build_parser() -> argparse.ArgumentParser:
             "already exists there, so an interrupted run can be resumed"
         ),
     )
-    batch.add_argument("--evaluate", action="store_true")
     batch.add_argument("--provider", default=None)
     batch.add_argument("--model", default=None)
     batch.add_argument(
@@ -196,8 +196,20 @@ def build_parser() -> argparse.ArgumentParser:
         csv_export.add_argument("--schema", help="Approved Canonical Schema override")
         csv_export.add_argument(input_flag, required=True)
         csv_export.add_argument("--output", required=True, help="New .csv path; existing files are not overwritten")
+        csv_export.add_argument("--quality-results", help="Verified quality-audit results.json containing this extraction")
         if command == "csv-export":
             csv_export.add_argument("--insurer-code", required=True)
+            csv_export.add_argument("--delivery-approval", help="Exact human delivery approval for this extraction")
+        else:
+            csv_export.add_argument("--approval-dir", help="Delivery approvals mirroring extraction relative paths")
+
+    delivery = subparsers.add_parser("delivery-approve", help="Record an explicit human approval to deliver an existing extraction")
+    delivery.add_argument("--manifest")
+    delivery.add_argument("--schema", required=True, help="Human-approved Canonical Schema")
+    delivery.add_argument("--artifact", required=True)
+    delivery.add_argument("--output", required=True, help="New immutable approval .json")
+    delivery.add_argument("--reviewer", required=True)
+    delivery.add_argument("--rationale", required=True, help="Human review rationale for releasing this result")
 
     quality_audit = subparsers.add_parser(
         "quality-audit", help="Screen extraction artifacts against source PDFs with an LLM judge",
@@ -230,9 +242,6 @@ def configure_command(args: argparse.Namespace) -> VerticalManifest:
     manifest = resolve_manifest(args.manifest, vertical=getattr(args, "vertical", None), operation=args.command)
     args.vertical = manifest.vertical
     args.vertical_manifest = manifest
-
-    if args.command == "batch" and args.evaluate:
-        manifest.require_capability("evaluation")
 
     if args.command == "discover":
         args.input_root = Path(args.input_root) if args.input_root else manifest.path("input_root")
@@ -298,9 +307,12 @@ def command_discover(args: argparse.Namespace) -> int:
                 categories=categories,
                 per_category=args.per_category,
                 seed=args.seed,
+                manifest=manifest,
             )
             print_samples(sample_paths, input_root, categories)
 
+        from src.verticals.documents import expand_document_paths
+        sample_paths = expand_document_paths(manifest, sample_paths, input_root=input_root)
         schema_data = SchemaDiscovery(
             selection=selection,
             cleanup_uploaded_files=not args.keep_uploaded_files,
@@ -382,7 +394,10 @@ def command_discover(args: argparse.Namespace) -> int:
 
 def command_extract(args: argparse.Namespace) -> int:
     manifest = args.vertical_manifest
-    output_path = Path(args.output) if args.output else default_output_path(manifest, Path(args.pdf))
+    from src.verticals.documents import resolve_document_groups
+    input_root = manifest.path("input_root") if manifest.documents.inventory else Path(args.pdf).resolve().parent
+    group = resolve_document_groups(manifest, [args.pdf], input_root=input_root)[0]
+    output_path = Path(args.output) if args.output else default_output_path(manifest, group.primary_path)
     if output_path.exists():
         print(f"Output already exists; choose a new path: {output_path}")
         return 1
@@ -399,15 +414,18 @@ def command_extract(args: argparse.Namespace) -> int:
         manifest,
         schema_data,
         selection,
-        pdf_root=manifest.path("input_root"),
+        pdf_root=input_root,
         document_parser=args.document_parser,
     )
 
-    record = extractor.extract_one(args.pdf)
+    record = extractor.extract_group(group)
     result = ExtractionResult(
         vertical=manifest.vertical,
         schema_version=str(schema_data["version"]),
-        source_path=str(args.pdf),
+        source_path=str(group.primary_path),
+        **group.provenance(),
+        **extractor.binding,
+        validation_checks=business_validation_summary(manifest, schema_data, document_count=len(group.documents)),
         provider=selection.provider,
         model=selection.model,
         document_parser=args.document_parser,
@@ -420,8 +438,6 @@ def command_extract(args: argparse.Namespace) -> int:
 
 
 def command_batch(args: argparse.Namespace) -> int:
-    from src.verticals.registry import get_evaluation_tools
-
     manifest = args.vertical_manifest
     categories = tuple(category.lower() for category in args.categories or ())
     unknown_categories = sorted(set(categories) - set(manifest.documents.categories))
@@ -449,7 +465,7 @@ def command_batch(args: argparse.Namespace) -> int:
         pdf_paths = [
             path
             for path in pdf_paths
-            if category_from_path(path.relative_to(input_root), categories)
+            if category_from_path(path, categories, manifest=manifest)
         ]
     if not pdf_paths:
         in_categories = f" in categories {', '.join(categories)}" if categories else ""
@@ -460,32 +476,35 @@ def command_batch(args: argparse.Namespace) -> int:
     selection = resolve_selection(provider=args.provider, model=args.model)
     skipped_existing = 0
     cached_results: dict[Path, ExtractionResult] = {}
-    pending_paths = pdf_paths
+    from src.verticals.documents import resolve_document_groups
+    groups = resolve_document_groups(manifest, pdf_paths, input_root=input_root)
+    pending_groups = groups
     if output_dir is not None:
         from src.schema_application.records import load_cached_extraction
 
-        pending_paths = []
-        for pdf_path in pdf_paths:
+        pending_groups = []
+        for group in groups:
+            pdf_path = group.primary_path
             target = output_dir / _extraction_relative_path(pdf_path, input_root)
             if target.exists():
                 try:
                     cached_results[pdf_path] = load_cached_extraction(
                         target, pdf_path=pdf_path, schema=schema_data, manifest=manifest,
-                        selection=selection, document_parser=args.document_parser,
+                        selection=selection, document_parser=args.document_parser, document_group=group, input_root=input_root,
                     )
                 except (OSError, ValueError) as exc:
                     print(f"Cannot reuse existing extraction {target}: {exc}")
                     return 1
                 print(f"Skipping {pdf_path.name}: result already exists at {target}")
             else:
-                pending_paths.append(pdf_path)
-        skipped_existing = len(pdf_paths) - len(pending_paths)
-        if not pending_paths and not args.evaluate:
+                pending_groups.append(group)
+        skipped_existing = len(groups) - len(pending_groups)
+        if not pending_groups:
             print(f"Nothing to extract: all {skipped_existing} results already exist in {output_dir}.")
             return 0
 
     extractor = None
-    if pending_paths:
+    if pending_groups:
         extractor = _build_schema_extractor(
             manifest,
             schema_data,
@@ -496,24 +515,19 @@ def command_batch(args: argparse.Namespace) -> int:
 
     provider_counts: dict[str, int] = {}
     extraction_errors = 0
-    evaluation = None
-    if args.evaluate:
-        from src.evaluation.batch import BatchEvaluation
-
-        evaluation = BatchEvaluation(
-            *get_evaluation_tools(manifest, manifest.path("labelled_root"))
-        )
-
-    for pdf_path in pdf_paths:
+    for group in groups:
+        pdf_path = group.primary_path
         result = cached_results.get(pdf_path)
         if result is None:
             assert extractor is not None
             try:
-                record = extractor.extract_one(pdf_path)
+                record = extractor.extract_group(group)
                 result = ExtractionResult(
                     vertical=manifest.vertical,
                     schema_version=str(schema_data["version"]),
                     source_path=str(pdf_path),
+                    **group.provenance(), **extractor.binding,
+                    validation_checks=business_validation_summary(manifest, schema_data, document_count=len(group.documents)),
                     provider=selection.provider,
                     model=selection.model,
                     document_parser=args.document_parser,
@@ -531,21 +545,6 @@ def command_batch(args: argparse.Namespace) -> int:
             result.write_json(output_path)
             provider_counts[result.provider] = provider_counts.get(result.provider, 0) + 1
             print(f"Extracted {pdf_path.name} -> {output_path}")
-
-        if evaluation is not None:
-            evaluation.evaluate_one(pdf_path, result)
-
-    if evaluation is not None:
-        report_root = manifest.path("output_root") / "evaluation"
-        evaluation.write_reports(
-            report_root, total_documents=len(pdf_paths), extraction_errors=extraction_errors,
-        )
-        print(f"Wrote evaluation reports to {report_root}")
-        if evaluation.diagnostics:
-            print(
-                "Evaluation warning: wrote ground-truth match diagnostics for unmatched "
-                "or ambiguous PDFs."
-            )
 
     print("\nBatch extraction summary:")
     print(
@@ -748,13 +747,15 @@ def command_csv_export(args: argparse.Namespace) -> int:
     options = {
         "manifest": args.vertical_manifest, "schema_path": args.schema,
         "output_path": args.output,
+        "quality_results_path": args.quality_results,
     }
     try:
         if args.command == "csv-export-batch":
-            summary = export_extraction_directory(**options, artifact_dir=args.artifact_dir)
+            summary = export_extraction_directory(**options, artifact_dir=args.artifact_dir, approval_dir=args.approval_dir)
         else:
             summary = export_extraction_artifact(
                 **options, artifact_path=args.artifact, insurer_code=args.insurer_code,
+                approval_path=args.delivery_approval,
             )
     except (OSError, ValueError) as exc:
         print(f"Product CSV export failed: {exc}")
@@ -763,6 +764,20 @@ def command_csv_export(args: argparse.Namespace) -> int:
         f"Product CSV export complete: {summary.output_path} "
         f"(artifacts={summary.artifacts_exported}, products={summary.products_exported})"
     )
+    return 0
+
+
+def command_delivery_approve(args: argparse.Namespace) -> int:
+    from src.evaluation.quality_review import write_delivery_approval
+    try:
+        path = write_delivery_approval(
+            manifest=args.vertical_manifest, schema_path=args.schema, artifact_path=args.artifact,
+            output_path=args.output, reviewer=args.reviewer, rationale=args.rationale,
+        )
+    except (OSError, ValueError) as exc:
+        print(f"Delivery approval failed: {exc}")
+        return 1
+    print(f"Human delivery approval written to {path}")
     return 0
 
 
@@ -857,6 +872,8 @@ def main() -> int:
         return command_csv_export(args)
     if args.command == "quality-audit":
         return command_quality_audit(args)
+    if args.command == "delivery-approve":
+        return command_delivery_approve(args)
     parser.error(f"Unknown command: {args.command}")
     return 2
 

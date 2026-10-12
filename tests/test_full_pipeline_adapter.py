@@ -82,6 +82,7 @@ class FullPipelineAdapterTest(unittest.TestCase):
             schema = load_schema_data(schema_path)
 
         contract = compile_extraction_contract(schema)
+        contract = contract["properties"]["products"]["items"]
 
         self.assertIn("product_type", contract["properties"])
         self.assertIn("product_name", contract["properties"])
@@ -89,7 +90,8 @@ class FullPipelineAdapterTest(unittest.TestCase):
         self.assertNotIn("hospital", contract["properties"])
         self.assertNotIn("extras", contract["properties"])
         with self.assertRaisesRegex(ValueError, "not applicable"):
-            validate_extraction_record(schema, {"product_type": "extras", "hospital_tier": "Gold"},
+            validate_extraction_record(schema, {"products": [{"product_type": "extras", "hospital_tier": "Gold",
+                                      "product_name": "Synthetic", "_unfilled": [], "_notes": None}], "_document_notes": None},
                 manifest=load_vertical_manifest(default_manifest_path("private_health")))
 
     def test_unified_cli_exposes_full_pipeline_commands(self) -> None:

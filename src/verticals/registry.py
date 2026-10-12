@@ -31,6 +31,27 @@ def get_schema_validator(manifest) -> SchemaValidator:
     return partial(validate_schema_mapping, manifest=manifest)
 
 
+def get_business_rules(manifest):
+    """Resolve vertical semantics without copying the shared request or repair flow."""
+    adapter = manifest.adapters.get("business_rules")
+    if adapter is None:
+        return None
+    if adapter == "pet_insurance_v1":
+        from src.verticals import pet_insurance
+        return pet_insurance
+    if adapter == "car_insurance_v6":
+        from src.verticals.car_insurance import rules
+        return rules
+    raise ManifestValidationError(f"Unregistered business-rules adapter {adapter!r}.")
+
+
+def business_validation_summary(manifest, schema, *, document_count=1) -> dict | None:
+    rules = get_business_rules(manifest)
+    if rules is not None and hasattr(rules, "validation_summary"):
+        return rules.validation_summary(schema, document_count=document_count)
+    return None
+
+
 def get_prompt(prompt_path: str) -> str:
     """Read a path already validated by the manifest or shared-prompt loader."""
 
@@ -52,12 +73,3 @@ def get_shared_prompt(name: str) -> str:
     if not root.is_relative_to(PROJECT_ROOT) or not candidate.is_relative_to(root):
         raise ManifestValidationError(f"Unsafe shared prompt {name!r}.")
     return get_prompt(str(candidate))
-
-
-def get_evaluation_tools(manifest, labelled_root):
-    manifest.require_capability("evaluation")
-    if manifest.adapter("evaluator") != "private_health_labelled_v1":
-        raise ManifestValidationError("Unregistered labelled evaluator.")
-    from src.evaluation.metrics import ExtractionEvaluator, PrivateHealthGroundTruthStore
-    from src.evaluation.reporter import EvaluationReporter
-    return PrivateHealthGroundTruthStore(labelled_root), ExtractionEvaluator(), EvaluationReporter()

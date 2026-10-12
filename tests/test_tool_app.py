@@ -18,7 +18,7 @@ class ToolAppTests(unittest.TestCase):
 
     def test_product_csv_forms_preview_single_and_folder_export_without_paid_confirmation(self):
         at = self.app()
-        self.assertNotIn("Export product CSV", at.selectbox(key="operation").options)
+        self.assertIn("Export product CSV", at.selectbox(key="operation").options)
         at.selectbox(key="vertical").set_value("travel_insurance").run()
         for label, flag, path in (
             ("Export product CSV", "--artifact", "extraction.json"),
@@ -44,7 +44,7 @@ class ToolAppTests(unittest.TestCase):
         self.assertEqual(at.title[0].value, "Insurance schema operations")
         self.assertIn("Schema discovery", at.selectbox(key="operation").options)
         self.assertIn("Schema refinement", at.selectbox(key="operation").options)
-        self.assertNotIn("Compile Canonical Schema", at.selectbox(key="operation").options)
+        self.assertIn("Compile Canonical Schema", at.selectbox(key="operation").options)
         self.assertTrue(at.button(key="run-command").disabled)
         self.assertIn("src/run.py discover", at.code[0].value)
         self.assertIn("--document-parser pdfingestor", at.code[0].value)

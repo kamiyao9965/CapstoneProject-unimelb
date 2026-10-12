@@ -115,7 +115,8 @@ class SchemaConsensusRefinement:
 
         current_schema = load_schema_data(base_schema, self.manifest)
         all_patches = []
-        schema_build_samples = list(dict.fromkeys(str(path) for path in base_sample_paths))
+        from src.verticals.documents import expand_document_paths
+        schema_build_samples = list(dict.fromkeys(expand_document_paths(self.manifest, base_sample_paths, input_root=input_root)))
 
         for run_number in range(1, runs + 1):
             run_seed = _run_seed(seed, run_number)
@@ -125,9 +126,11 @@ class SchemaConsensusRefinement:
                 categories=categories,
                 per_category=per_category,
                 seed=run_seed,
+                manifest=self.manifest,
             )
             if not samples:
                 print_samples(sample_paths, Path(input_root), categories)
+            sample_paths = expand_document_paths(self.manifest, sample_paths, input_root=input_root)
             for sample_path in sample_paths:
                 if sample_path not in schema_build_samples:
                     schema_build_samples.append(sample_path)

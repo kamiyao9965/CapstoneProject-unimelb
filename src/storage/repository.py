@@ -46,7 +46,7 @@ def deterministic_product_id(vertical: str, insurer: str, product_name: str) -> 
 
 
 def deterministic_release_id(product_id: str, document_id: str) -> str:
-    """Identify the release represented by one product/document pairing."""
+    """Identify a release using its primary PDF or complete grouped-source digest."""
     return _content_id("\x1f".join((product_id, document_id)))
 
 
@@ -62,24 +62,21 @@ def write_prepared_load(
         insurers,
         {"code": prepared.insurer_code, "display_name": None},
     )
-    _insert_and_verify(
-        connection,
-        documents,
-        {
-            "document_id": prepared.document_id,
-            "insurer_code": prepared.insurer_code,
-            "sha256": prepared.pdf_sha256,
-            "document_type": prepared.document_type,
-            "title": prepared.document_title,
-            "source_path": prepared.source_path,
-            "source_url": None,
-            "effective_from": None,
-            "metadata_json": {},
-        },
-        lookup={"document_id": prepared.document_id},
-        immutable=("insurer_code", "sha256"),
-        collision_label="document identity collision",
-    )
+    from src.storage.service import PreparedSourceDocument
+    sources = prepared.source_documents or (PreparedSourceDocument(
+        prepared.document_id, prepared.pdf_sha256, prepared.document_type,
+        prepared.document_title, prepared.source_path, {},
+    ),)
+    for source in sources:
+        _insert_and_verify(
+            connection, documents,
+            {"document_id": source.document_id, "insurer_code": prepared.insurer_code,
+             "sha256": source.pdf_sha256, "document_type": source.document_type,
+             "title": source.document_title, "source_path": source.source_path,
+             "source_url": None, "effective_from": None, "metadata_json": source.metadata},
+            lookup={"document_id": source.document_id}, immutable=("insurer_code", "sha256"),
+            collision_label="document identity collision",
+        )
     _insert_and_verify(
         connection,
         schema_versions,
@@ -138,7 +135,7 @@ def write_prepared_load(
             prepared.insurer_code,
             canonical_name,
         )
-        release_id = deterministic_release_id(product_id, prepared.document_id)
+        release_id = deterministic_release_id(product_id, prepared.release_source_id or prepared.document_id)
         _insert_and_verify(
             connection,
             products,
@@ -156,6 +153,7 @@ def write_prepared_load(
             "release_id": release_id,
             "product_id": product_id,
             "document_id": prepared.document_id,
+            "release_source_id": prepared.release_source_id or prepared.document_id,
             "schema_version_id": prepared.schema_version_id,
             "source_product_type": product.product_type,
             "effective_from": None,
@@ -173,21 +171,18 @@ def write_prepared_load(
             expected=(
                 "product_id",
                 "document_id",
+                "release_source_id",
                 "schema_version_id",
                 "source_product_type",
                 "effective_from",
             ),
             collision_label="product release identity collision",
         )
-        _insert_ignore(
-            connection,
-            product_release_documents,
-            {
-                "release_id": release_id,
-                "document_id": prepared.document_id,
-                "document_role": prepared.document_type,
-            },
-        )
+        for source in sources:
+            _insert_ignore(connection, product_release_documents, {
+                "release_id": release_id, "document_id": source.document_id,
+                "document_role": source.document_type,
+            })
         extension_config = prepared.schema_payload["extension"]
         assert isinstance(extension_config, dict)
         attributes_column = str(extension_config["attributes_column"])

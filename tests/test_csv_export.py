@@ -54,6 +54,8 @@ class CsvExportTests(unittest.TestCase):
         )
 
     def _write_artifact(self) -> None:
+        for product in self.artifact["data"]["products"]:
+            product["_unfilled"] = [field["name"] for field in self.schema["fields"] if product.get(field["name"]) is None]
         self.artifact_path.parent.mkdir(parents=True, exist_ok=True)
         self.artifact_path.write_text(json.dumps(self.artifact), encoding="utf-8")
 
@@ -64,7 +66,31 @@ class CsvExportTests(unittest.TestCase):
             manifest=self.manifest, schema_path=self.schema_path,
             artifact_path=self.artifact_path, insurer_code="cover_more",
             output_path=self.output,
+            approval_path=self._approve(self.artifact_path),
         )
+
+    def _approve(self, artifact_path):
+        from src.evaluation.quality_review import write_delivery_approval
+        from src.common.json_artifacts import next_available_path
+        return write_delivery_approval(
+            manifest=self.manifest, schema_path=self.schema_path, artifact_path=artifact_path,
+            output_path=next_available_path(self.root / "approvals" / Path(artifact_path).name),
+            reviewer="synthetic reviewer", rationale="Reviewed synthetic CSV fixture only.",
+        )
+
+    def _approve_directory(self):
+        directory = self.root / "folder_approvals"
+        for path in self.artifact_path.parent.rglob("*.json"):
+            if "errors" in path.relative_to(self.artifact_path.parent).parts:
+                continue
+            try:
+                approval = self._approve(path)
+            except ValueError:
+                continue  # Leave the export owner to report this invalid input by path.
+            destination = directory / path.relative_to(self.artifact_path.parent)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(approval.read_bytes())
+        return directory
 
     def _read_rows(self) -> list[dict[str, str]]:
         with self.output.open(encoding="utf-8-sig", newline="") as handle:
@@ -76,6 +102,7 @@ class CsvExportTests(unittest.TestCase):
         return export_extraction_directory(
             manifest=self.manifest, schema_path=self.schema_path,
             artifact_dir=self.artifact_path.parent, output_path=self.output,
+            approval_dir=self._approve_directory(),
         )
 
     def _second_artifact(self) -> Path:
@@ -160,6 +187,8 @@ class CsvExportTests(unittest.TestCase):
         self._export()
         current = self._read_rows()[0]
         legacy.pop("run_id")
+        legacy.pop("delivery_proof")
+        current.pop("delivery_proof")
         self.assertEqual(current.pop("run_id"), "fixture-run")
         self.assertEqual(current, legacy)
 
@@ -259,6 +288,7 @@ class CsvExportTests(unittest.TestCase):
 
     def test_bundled_travel_schema_exports_every_typed_column_and_json_attribute(self) -> None:
         schema = json.loads((PROJECT_ROOT / "configs/travel_insurance/canonical_schema_v1.json").read_text(encoding="utf-8"))
+        self.schema = schema
         self.schema_path.write_text(json.dumps(schema), encoding="utf-8")
         product = {field["name"]: None for field in schema["fields"]}
         product.update(
@@ -289,7 +319,8 @@ class CsvExportTests(unittest.TestCase):
         ):
             with self.subTest(command=command):
                 self.output = self.root / f"{command}.csv"
-                argv = ["run.py", command, "--schema", str(self.schema_path), *inputs, "--output", str(self.output)]
+                proof_flags = ["--delivery-approval", str(self._approve(self.artifact_path))] if command == "csv-export" else ["--approval-dir", str(self._approve_directory())]
+                argv = ["run.py", command, "--schema", str(self.schema_path), *inputs, "--output", str(self.output), *proof_flags]
                 stdout = io.StringIO()
                 with mock.patch("sys.argv", argv), \
                      mock.patch("src.run.resolve_manifest", return_value=self.manifest), \

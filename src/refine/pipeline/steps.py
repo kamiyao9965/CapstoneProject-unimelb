@@ -37,6 +37,7 @@ def select_discovery_samples(args) -> tuple[str, ...]:
             categories=_manifest(args).documents.categories,
             per_category=args.per_category,
             seed=args.seed,
+            manifest=_manifest(args),
         )
     )
 
@@ -68,6 +69,8 @@ def generate_schema(
     resolved_sample_paths = [str(path) for path in sample_paths]
     selection = _selection(args)
     manifest = _manifest(args)
+    from src.verticals.documents import expand_document_paths
+    resolved_sample_paths = expand_document_paths(manifest, resolved_sample_paths, input_root=args.input_root)
     run_id = uuid4().hex
     schema_data = SchemaDiscovery(
         selection=selection,
@@ -141,6 +144,7 @@ def evaluate_schema(
         per_category=args.eval_per_category,
         seed=args.eval_seed,
         exclude_paths=exclude_paths,
+        manifest=_manifest(args),
     )
     extractions_dir = round_dir / "extractions"
     SchemaExtractor(
