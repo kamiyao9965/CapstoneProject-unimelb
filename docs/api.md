@@ -73,7 +73,7 @@ ambiguous selection fails. Automation should always pass a manifest.
 - `vertical`, `display_name`, `manifest_version`, `source_path`.
 - `product_types`, `taxonomies`, `identity_fields`.
 - `documents.categories`, `document_types`, `extraction_unit`,
-  `output_cardinality`, `category_product_types`.
+  `output_cardinality`, `category_product_types`, `inventory`.
 - `consensus_runs`, `promoted_decisions`, `manual_only_queue`, `protected_fields`.
 - `supports(capability) -> bool` and `require_capability(capability) -> None`.
 - `path(name) -> Path`, `contract(name) -> str`, `adapter(name) -> str`.
@@ -86,7 +86,12 @@ Required paths are `input_root`, `markdown_root`, `cache_root`, and `output_root
 The bundled layouts are `data/pdf/<vertical>`, `data/markdown/<vertical>`,
 `.cache/pdf/<vertical>`, and `outputs/<vertical>`. Health's optional
 `KONKRD_DATA_ROOT` points directly to a data root with `pdf/`, `markdown/`, and
-`labelled/` subdirectories. See [layout migration](project-layout.md).
+historical `labelled/` subdirectory (unused by the unified engine). See [layout migration](project-layout.md).
+
+`documents.inventory` entries contain `document_id`, `source_path`,
+`document_role`, `amends_document_ids`, optional SHA-256 and metadata. Only explicit
+links join PDFs; document/product/brand/family hints do not. Paths must remain
+inside the selected root. Declared SPDS/Update without parents fail for review.
 
 Missing resources, wrong verticals, path escapes, and unsupported operations raise
 `ManifestValidationError`, a `ValueError` subclass. Adapters are limited to
@@ -140,7 +145,7 @@ normalize_schema(payload, manifest=None) -> dict
 validate_schema_mapping(payload, *, manifest=None) -> dict
 compile_extraction_contract(schema, *, data_contract=None,
     business_validator=None, output_cardinality=None, manifest=None) -> dict
-validate_extraction_record(schema, payload, *, manifest) -> None
+validate_extraction_record(schema, payload, *, manifest, document_count=1) -> None
 ```
 
 - `load_schema_data` accepts standalone schema JSON or a successful discovered
@@ -158,13 +163,24 @@ validate_extraction_record(schema, payload, *, manifest) -> None
 - `validate_extraction_record` checks identity, applicability, and duplicate
   identities in multi-product output. Pair it with JSON Schema validation.
 
-Health returns one object. Travel returns `{"products": [...], "_document_notes": null}`
+All four verticals return `{"products": [...], "_document_notes": null}`
 with at least one product. Each product contains all schema fields, `_unfilled`,
 and `_notes`, with no extra top-level fields. Discovered fields allow `null`;
 business `required: true` does not necessarily compile to non-null values and
 also drives missingness analysis. Manifest identity fields have separate nonempty
-constraints. Objects inside `list[object]` remain open; there is no recursive
-field DSL yet.
+constraints. New `list[object]` fields declare closed `item_schema`; local `$defs`
+are resolved without remote access, cycles or unbounded expansion. Optional
+`document_fields` declare closed group-level values. Old open schemas remain
+readable but fail before new extraction requests. `unique_items` is retained
+through Canonical candidate compilation when explicitly declared.
+
+Generation requests use a fixed strict descriptor (`src/schema/generation.py`):
+`fields[].item_node_id`, `document_fields[].node_id` and bounded `schema_nodes`
+whose property names are string values. The local compiler produces native
+`item_schema`; it never asks operators to maintain dynamic fields. Descriptor,
+native-schema and business errors share one request plus at most two repairs.
+Strict generation/extraction/judge require a `json_schema` model capability;
+JSON-object-only adapters are rejected before calls.
 
 When product type is known, inapplicable fields cannot have non-null values.
 Multi-product identities are compared after trimming and case folding; this
@@ -174,8 +190,8 @@ comparison does not rewrite the returned values.
 
 ```text
 select_samples(input_root: Path, categories=None, per_category=5,
-               seed=None, exclude_paths=()) -> list[str]
-category_from_path(path, categories=None) -> str | None
+               seed=None, exclude_paths=(), *, manifest=None) -> list[str]
+category_from_path(path, categories=None, *, manifest=None) -> str | None
 document_identity(path) -> str
 ```
 
@@ -278,7 +294,8 @@ and is passed as renderer `markdown_dir`. Explicit directory arguments still win
 | Method | Return | Files and failures |
 | --- | --- | --- |
 | `extract_one(pdf_path, *, run_id=None)` | Extraction `dict` | Does not save success; not an `ExtractionResult` or envelope |
-| `extract_many(pdf_paths, out_dir)` | `list[Path]` of successes | Writes per-PDF extraction envelopes with collision-safe names; on failure, writes diagnostics, raises, and stops later documents |
+| `extract_group(group, *, run_id=None)` | Extraction `dict` | Revalidates every source receipt; sends the complete explicit amendment group |
+| `extract_many(pdf_paths, out_dir)` | `list[Path]` of successes | Writes one extraction envelope per group with collision-safe names; on failure, writes diagnostics, raises, and stops later groups |
 
 Accepts a shared discovered schema or approved Canonical Schema. Model output
 must pass structural and business checks. Set `usage_log_path` when costs must
@@ -289,6 +306,16 @@ use an absolute path or one resolvable from the working directory, not only
 Legacy independent `model`, `vertical`, prompt, contract, validator, and cardinality
 overrides are no longer accepted. Pass `selection` and `manifest`, and inject a
 provider for tests. Keep vertical rules in manifests/contracts.
+
+`src.verticals.documents.resolve_document_groups(manifest, pdf_paths, *, input_root=None)`
+returns ordered `DocumentGroup` values with `group_id`, `documents`, `pdf_paths`
+and `primary_path`. Each reference records document ID/path/role/hash/parents and
+metadata. Group provenance preserves every PDF. Source citations use the same
+document ID; equal page numbers in different PDFs remain distinct.
+Car/Pet business adapters run through the shared validator/repair owner. Car
+records applied and not-applicable rules in `validation_checks`; full single-PDF
+text/completeness checks are skipped for amendment groups and unsupported dynamic
+layouts. Multi-PDF reference membership still validates; judge reviews effective terms.
 
 ## 6. Providers and bounded structural repair
 
@@ -457,9 +484,16 @@ load_extraction_directory(*, database_url, manifest, schema_path,
 inspect_extraction_directory(*, manifest, artifact_dir) -> list[DirectoryArtifact]
 ```
 
-`prepare_storage_load` reads the approved schema, artifact, and source PDF, checks
+`prepare_storage_load` reads the approved schema, artifact, and every source PDF, checks
 boundaries, and compiles a load plan without connecting to PostgreSQL. The PDF
 must exist and satisfy manifest input-root, insurer, and document-type constraints.
+`for_csv=True` checks independent CSV capability. `PreparedStorageLoad` includes
+all `PreparedSourceDocument` values, complete receipts, `document_group_id` and
+`release_source_id`. Travel transactions persist all documents and release links.
+Single-PDF release identity is unchanged; grouped release identity binds the
+ordered document IDs/hashes/amendment links, so an updated SPDS creates a new release.
+Existing databases require [the release migration](migrations/001-grouped-release-identity.sql);
+no migration or real database operation runs during compilation/offline tests.
 
 Both extraction formats must carry `vertical` and `schema_version` matching the
 manifest/approved schema, plus provider/model/run identity. Historical envelopes
@@ -488,9 +522,11 @@ and optional `error`. Source/duplicate failures are reported without DB access.
 
 ```text
 export_extraction_artifact(*, manifest, schema_path, artifact_path,
-                           insurer_code, output_path) -> CsvExportSummary
+                           insurer_code, output_path, quality_results_path=None,
+                           approval_path=None) -> CsvExportSummary
 export_extraction_directory(*, manifest, schema_path, artifact_dir,
-                            output_path) -> CsvExportSummary
+                            output_path, quality_results_path=None,
+                            approval_dir=None) -> CsvExportSummary
 ```
 
 `src.storage.csv_export` reuses storage preparation and approved Canonical
@@ -502,7 +538,8 @@ One row represents one product release, ordered by artifact path then extraction
 product order. Fixed columns, in order, are `product_id`, `release_id`,
 `vertical_code`, `insurer_code`, `canonical_name`, `source_product_type`,
 `document_id`, `document_type`, `title`, `source_path`, `sha256`,
-`schema_version_id`, `version`, `run_id`, `provider`, `model`. Typed detail
+`schema_version_id`, `version`, `run_id`, `provider`, `model`, `source_documents`,
+`document_group_id`, `quality_status`, `delivery_proof`, `document_fields`. Typed detail
 columns follow in Canonical field order, followed by the configured attributes
 column containing compact JSON. Names/IDs/values match PostgreSQL preparation;
 database-generated timestamps and database history are omitted. Conflicting
@@ -518,10 +555,33 @@ than a lossless PostgreSQL backup/import format.
 Output must end in `.csv`; the shared atomic text writer refuses existing paths
 with `FileExistsError`. Directory export skips `errors/` and reports all input
 preparation errors as `ValueError`, with no partial output. No output is written
-unless every input and row validates. Current support follows the `storage`
-capability (Travel); Private Health requires an approved mapping first.
+unless every input, delivery proof and row validates. Support follows independent
+`csv_export` capability (all four), with an approved Canonical mapping. Document
+fields and all source receipts remain JSON; no secondary PDF is lost.
+`approval_dir` mirrors extraction relative JSON paths and must not overlap the
+extraction directory. Each result needs a current judge pass or explicit human
+approval; neither a stale pass nor an unresolved review queue unlocks delivery.
 
-### Optional Travel quality audit
+### Final-result quality audit and delivery
+
+Judge accepts only human-approved Canonical Schemas, treating their definitions
+as trusted. It checks final values against all original PDFs, including amendment
+precedence. Findings can cite `source_document_id`; document-level findings can
+name a declared `document_fields` entry without a product index.
+
+```text
+write_delivery_approval(*, manifest, schema_path, artifact_path, output_path,
+                        reviewer, rationale, reviewed_at=None) -> Path
+require_delivery_approval(*, manifest, schema_path, artifact_path,
+                          quality_results_path=None, approval_path=None) -> dict
+```
+
+These `src.evaluation.quality_review` functions bind approvals/passes to exact
+artifact/schema bytes, current complete source receipts and group identity.
+Writing approval is an explicit human action with reviewer/rationale and timezone;
+it never approves or changes a schema/result. Returns status `human_approved` or
+`judge_pass` and its proof path. Changed source bytes, links or judge prompts
+invalidate reused judge passes. Approval artifacts are immutable.
 
 ```text
 audit_one(*, manifest, schema_path, artifact_path, source_root,
@@ -713,13 +773,12 @@ and `--schema`, and default to the storage-capable Travel configuration. They
 accept no database URL or provider options. Success returns 0 with file/counts;
 validation or output failures return 1 without a partial CSV.
 
-`batch --evaluate` writes `evaluation/report.json`, `evaluation/report.md`, and
-matching diagnostics when needed. It no longer creates duplicate
-`report_model_only.*` or includes `fallback_documents` in the summary. Historical
-reports remain; readers of new reports should use `report.json`.
-Resume evaluation includes validated cached results as well as new extractions;
-the denominator is the complete selected PDF set. Fully cached evaluation creates
-no provider and does not rewrite extraction artifacts.
+`batch --evaluate` is removed. Labelled metrics/reporters remain only in historical
+Health work; historical artifacts are preserved. New runs use structural/source
+checks and final-result judge, without claiming ground-truth accuracy.
+`delivery-approve --artifact ... --reviewer ... --rationale ... --output ...`
+records explicit human delivery approval. CSV uses `--quality-results` or
+`--delivery-approval` (one result), or `--approval-dir` (directory).
 
 Default discovery output is `outputs/<vertical>/schemas/schema.json`; global
 usage logs are `logs/discovery_usage.jsonl` and `logs/extraction_usage.jsonl` within

@@ -1,4 +1,4 @@
-# Health / Travel operator guide
+# Health / Pet / Travel / Car operator guide
 
 For project development, experiments, and demonstrations. Run commands from the
 repository root and replace example PDF paths with your own files. See the
@@ -16,30 +16,36 @@ repository root and replace example PDF paths with your own files. See the
 | Inspect existing extraction issues | `src/schema_application/analyze.py` | None |
 | Compare existing schemas | `src/stability/compare.py` | None |
 | Acquire public Travel documents | `src/run.py crawl` | Insurer websites |
-| Approve a Travel storage contract | `src/ui/canonical_review_app.py` | None |
+| Approve a Canonical contract | `src/ui/canonical_review_app.py` | None; all four verticals |
 | Preview SQL / initialize or load tables | `canonical-compile` / `storage-init`, `storage-load`, `storage-load-batch` | Only initialization/loading connects to PostgreSQL |
-| Screen Travel extraction quality | `src/run.py quality-audit` + `src/ui/quality_review_app.py` | Judge calls a model; human review does not |
+| Screen final extraction quality | `src/run.py quality-audit` + `src/ui/quality_review_app.py` | Judge calls a model after Canonical approval |
+| Approve/export final delivery | `delivery-approve`, `csv-export`, `csv-export-batch` | Local files; explicit human approval or current judge pass |
 
 The project has one Python engine, four local Streamlit pages, and file artifacts.
 It has no REST service.
 
 ### Differences between verticals
 
-| Configuration | Health | Travel |
-| --- | --- | --- |
-| Vertical code | `private_health` | `travel_insurance` |
-| Manifest | `configs/private_health/manifest.json` | `configs/travel_insurance/manifest.json` |
-| Sampling categories | `combined`, `extras`, `generalhealth`, `hospital` | `pds` |
-| Extraction unit | One object per document | Multiple products/product releases per document |
-| Product types | `hospital`, `extras`, `generalhealth`, `combined` | `international_single_trip`, `international_multi_trip`, `domestic`, `inbound`, `business`, `cruise` |
-| Taxonomies | `hospital_categories`, `extras_services` | `coverage_categories` |
-| Default proposal runs | 1 | 5 |
-| Automatic loop holdout/feedback | Supported | Not configured |
-| Labelled batch evaluation | Supported with local labels | Unsupported |
-| PDF-evidence quality screening | Disabled | Supported; not an accuracy evaluation |
-| Acquisition / Canonical / PostgreSQL | Disabled | Supported |
+| Configuration | Health | Pet | Travel | Car |
+| --- | --- | --- | --- | --- |
+| Vertical code | `private_health` | `pet_insurance` | `travel_insurance` | `car_insurance` |
+| Manifest | `configs/private_health/manifest.json` | `configs/pet_insurance/manifest.json` | `configs/travel_insurance/manifest.json` | `configs/car_insurance/manifest.json` |
+| Sampling categories | `combined`, `extras`, `generalhealth`, `hospital` | `pds` / inventory metadata | `pds` | `pds` |
+| Taxonomies | `hospital_categories`, `extras_services` | `benefit_categories` | `coverage_categories` | `coverage_categories` |
+| Default proposal runs | 1 | 3 | 5 | 3 |
+| Canonical review / judge / CSV | Supported | Supported | Supported | Supported |
+| Acquisition / PostgreSQL | Disabled | Disabled | Supported | Disabled |
+
+All new outputs are `products` arrays. All classifiers are `product_type`; Pet's
+values describe cover scope. Labelled evaluation is removed. Refinement uses
+holdout structural/source checks, not gold-label accuracy. Each vertical keeps
+its own prompts, identity fields, taxonomy and applicable business rules.
 
 Travel's `pds` is a document category, not a product-type ground-truth label.
+Car's full v6 layout is a starting candidate, not a mandatory field list. Dynamic
+schemas can adapt; artifacts state which domain rules applied and which did not.
+For linked PDS/SPDS, judge determines effective final terms using all PDFs;
+single-PDF Car text-completeness rules do not demand superseded clauses.
 
 ## 2. Installation and environment
 
@@ -169,8 +175,15 @@ Holdout also excludes content used by discovery/proposals.
 
 Travel is independent of `KONKRD_DATA_ROOT`. Use `--input-root` for a particular
 discovery/batch/loop run. For later storage, the manifest input root must agree
-with the actual source location. Optional Health labels belong under
-`data/labelled/private_health/`; this migration does not create missing labels.
+with the actual source location. Historical Health labels remain under
+`data/labelled/private_health/` but are unused by the unified workflow.
+
+Use `documents.inventory` in the manifest to register source IDs, relative PDF
+paths, roles, optional hashes/metadata and `amends_document_ids`. Selecting either
+a base or its amendment includes the complete linked group. One PDF can contain
+several products. Similar brands, names or product IDs never link PDFs. An SPDS
+or Update without explicit parents stops for review. Pet's existing inventory
+paths/hashes must match the local source root; integration does not move raw data.
 
 ## 3. Extract with an existing schema
 
@@ -191,7 +204,7 @@ Canonical contract:
 ```bash
 .venv/bin/python src/run.py extract \
   --manifest configs/travel_insurance/manifest.json \
-  --schema configs/travel_insurance/canonical_schema_v1.json \
+  --schema outputs/travel_insurance/schemas/canonical_schema_approved.json \
   --pdf data/pdf/travel_insurance/allianz/pds/example.pdf
 ```
 
@@ -210,7 +223,7 @@ that already exists is rejected; choose another name.
 .venv/bin/python -m streamlit run src/ui/tool_app.py --server.address 127.0.0.1
 ```
 
-1. Select Health or Travel.
+1. Select Health, Pet, Travel or Car.
 2. Select an operation and fill PDF, schema, model, and output settings; choose
    MinerU in “PDF parsing route” when needed.
 3. Review the command and vertical, then confirm operations that require it.
@@ -226,7 +239,7 @@ Output collected before timeout remains visible and redacted. This ends local
 work; an already submitted remote model request may still run. Check saved
 artifacts and usage before retrying a paid workflow.
 
-## 4. Health: discovery, review, holdout, and feedback
+## 4. Shared discovery, review, holdout, and feedback
 
 ### A. Discover a draft
 
@@ -308,26 +321,27 @@ Feedback must be a successful current-format artifact with matching vertical
 provenance. The default is one round; `--autonomous --rounds N` runs N rounds and
 increases model calls. `--autonomous` and `--review-ui` cannot be combined.
 
-### D. Batch extraction and labelled evaluation
+### D. Batch extraction
 
 ```bash
 .venv/bin/python src/run.py batch \
   --manifest configs/private_health/manifest.json \
   --schema outputs/private_health/experiments/review-demo/final_schema.json \
-  --evaluate
+  --output-dir outputs/private_health/extractions/review-demo
 ```
 
-Use the actual printed final-schema filename. `--evaluate` requires local Health
-labels under `data/labelled/private_health/` (or the explicit external data root).
-Omit it when labels are unavailable. Batch calls a model for input PDFs and writes
-extractions under the vertical output root; `--output-dir` selects a separate
-extraction folder. It has no `--out-dir` option.
+Use the actual printed final-schema filename. The same commands work with each
+vertical's manifest and paths. Batch writes one result per complete explicit
+document group; `--output-dir` selects a separate extraction folder. It has no
+`--out-dir` or `--evaluate` option. Fully cached valid batches create no provider.
+Resume checks all group sources, schema/prompt identity and applicable business
+rules. Choose a new folder when changing schema, prompts or experiment settings.
 
-Reports are `outputs/private_health/evaluation/report.json` and `report.md`.
-New runs do not generate duplicate `report_model_only.*`; historical copies remain.
-With `--output-dir --evaluate`, validated existing results and new results both
-participate in evaluation. A fully cached batch rebuilds reports without creating
-a provider. Totals cover all selected PDFs, including new extraction failures.
+Discovery/patches generate dynamic schemas through a strict descriptor compiled
+locally into closed nested fields, with at most two repairs. No operator needs
+to maintain field definitions manually. Historical open schemas cannot start new
+extraction; generate a new candidate and review it. Before judge/CSV, approve the
+new Canonical version in the shared Canonical review page.
 
 ## 5. Travel: acquisition, schema review, extraction, and storage
 
@@ -382,6 +396,15 @@ approval for database storage.
 
 ### C. Approve the storage contract
 
+Canonical review is shared by all four verticals. Select the relevant manifest.
+Car can start with `configs/car_insurance/canonical_candidate.json`, a new
+unapproved v6 candidate. Review nested fields, product/document-level scope,
+source_document_id and applicable business rules, then write approval to a new
+file with reviewer/rationale. Historical approved schemas are never edited.
+Travel's old v1 is a storage-mapping template only; its open nested fields do not
+authorize new strict extraction. The new default approved path is
+`outputs/<vertical>/schemas/canonical_schema_approved.json`.
+
 ```bash
 .venv/bin/python -m streamlit run src/ui/canonical_review_app.py \
   --server.address 127.0.0.1 --server.port 8503 -- \
@@ -408,6 +431,11 @@ Compatible fields retain their approved mappings. For unmapped fields:
 
 Counts above the table show each storage strategy. More columns mean more future
 schema migration work; `storage-init` does not alter existing tables.
+Existing Travel databases also require the reviewed
+`docs/migrations/001-grouped-release-identity.sql` migration before grouped loads.
+It backfills single-PDF identity and permits new releases when a linked SPDS
+changes, while preserving all document links. Migration and real database tests
+must be explicitly authorized; offline SQL/transaction tests do not execute it.
 Compile the extraction contract and SQL preview offline:
 
 ```bash
@@ -457,7 +485,7 @@ Equivalent commands are:
 ```bash
 .venv/bin/python src/run.py batch \
   --manifest configs/travel_insurance/manifest.json \
-  --schema configs/travel_insurance/canonical_schema_v1.json \
+  --schema outputs/travel_insurance/schemas/canonical_schema_approved.json \
   --categories pds \
   --output-dir outputs/travel_insurance/extractions/run20
 
@@ -491,11 +519,13 @@ single-result export also requires the insurer code. Equivalent commands:
   --manifest configs/travel_insurance/manifest.json \
   --artifact outputs/travel_insurance/extractions/allianz/pds/example.json \
   --insurer-code allianz \
+  --quality-results outputs/travel_insurance/quality/run20/results.json \
   --output outputs/travel_insurance/exports/csv/example-products.csv
 
 .venv/bin/python src/run.py csv-export-batch \
   --manifest configs/travel_insurance/manifest.json \
   --artifact-dir outputs/travel_insurance/extractions/run20 \
+  --quality-results outputs/travel_insurance/quality/run20/results.json \
   --output outputs/travel_insurance/exports/csv/run20-products.csv
 ```
 
@@ -503,13 +533,32 @@ Replace the example input with existing results. `--schema` overrides the
 manifest's approved Canonical Schema; it must match every result's identity.
 The same PDF/source/product checks apply as PostgreSQL loading. This is a local
 export of those artifacts and does not call a model or connect to PostgreSQL.
-Private Health is unavailable until it has an approved storage mapping.
+All four verticals support CSV independently of database support. Every result
+requires a current judge pass, or your explicit human delivery approval:
 
-Each row represents a product version in one PDF, with `product_id`, `release_id`,
+```bash
+.venv/bin/python src/run.py delivery-approve \
+  --manifest configs/travel_insurance/manifest.json \
+  --artifact outputs/travel_insurance/extractions/allianz/pds/example.json \
+  --reviewer "Human reviewer" --rationale "Checked final terms against all source PDFs" \
+  --output outputs/travel_insurance/delivery/allianz/pds/example.json
+```
+
+This is a human action after inspecting the result; it does not approve a schema
+or change values. Use `--delivery-approval` instead of `--quality-results` for
+single export. For batches, `--approval-dir` mirrors each extraction's relative
+JSON path and must be outside the extraction folder. Artifact/schema/PDF or link
+changes invalidate approval. Review/uncertain/error/missing judge outcomes need
+human approval to deliver; a completed queue alone is insufficient.
+
+Each row represents a product version in one document group, with `product_id`, `release_id`,
 product name/type, typed detail columns, source PDF/hash and schema/run provenance.
 The column names and IDs follow PostgreSQL; `attributes` contains JSON for the
 nested fields. Different PDFs retain their own `document_id`. Database-generated
 timestamps and historical database state are not part of this view.
+`source_documents` retains all document receipts; `document_fields` retains
+shared document-level values. `quality_status` and `delivery_proof` record the
+checked delivery route. Secondary PDFs are not reduced to the primary PDF column.
 
 Open the UTF-8 CSV in Excel; the BOM preserves Chinese text
 ([Microsoft guidance](https://support.microsoft.com/en-us/excel/opening-csv-utf-8-files-correctly-in-excel)). Booleans are
@@ -526,11 +575,11 @@ export with exit code 1 and no new CSV. Correct/select inputs and retry with a
 new output path. Existing outputs are never overwritten. Successful exports
 print the file path and artifact/product counts.
 
-### F. Optional LLM judge and human review
+### F. Final-result LLM judge and human review
 
 This independent post-extraction step screens PDF evidence and values. Successful
 storage means structure/mapping was acceptable, not that facts are correct. The
-judge receives parsed pages, approved field definitions, and extraction JSON,
+judge receives all grouped PDF pages, approved field definitions, and extraction JSON,
 and prioritizes possible errors or unsupported claims for humans. It does not
 change values, re-extract, approve schemas, or block loading. Initial gold labels
 are not required.
@@ -546,7 +595,7 @@ are not required.
   --quality-dir outputs/travel_insurance/quality/run20
 ```
 
-In Travel's “Quality audit (LLM judge)” form, set the extraction artifacts folder
+In any vertical's “Quality audit (LLM judge)” form, set the extraction artifacts folder
 to batch `--output-dir` and choose a new, nonexistent quality folder for a first
 run. Audit mode offers new run, resume, or JSON-only rebuilding without model
 calls. Blank Schema/Source PDF root uses manifest defaults. Provider/model follow
@@ -679,14 +728,14 @@ configs/<vertical>/manifest.json
 prompts/<vertical>/discovery.md
 prompts/<vertical>/patch.md
 prompts/<vertical>/extraction.md
-prompts/travel_insurance/quality_audit.md
+prompts/<vertical>/quality_audit.md
 prompts/shared/*.md
 ```
 
 Manifests define paths, capabilities, document categories, product types,
 taxonomies, identity fields, and consensus/review policy. Discovery prompts
 propose the shared schema; patch prompts propose changes; extraction prompts
-explain domain semantics. Travel quality prompts define judge rules;
+explain domain semantics. Each quality prompt defines judge rules;
 `shared/quality_audit_request.md` arranges field definitions, values, and pages.
 
 Inspect the existing manifests first; do not add duplicate Python vertical/prompt
@@ -696,8 +745,7 @@ relax contracts. Preserve runtime `{name}` placeholders in shared templates.
 Use new experiment directories after prompt changes; resuming old results does
 not evaluate a new prompt.
 
-There is no alias-management/synonym-merging feature or third vertical in this
-scope. A future vertical fitting the existing data/workflow model can use another
+There is no alias-management/synonym-merging feature. A future vertical fitting the existing data/workflow model can use another
 configuration package; new acquisition protocols, evaluators, or stages may still
 need code. Do not build a general rule language solely to claim zero-code extension.
 
@@ -705,7 +753,7 @@ need code. Do not build a general rule language solely to claim zero-code extens
 
 | Symptom | Action |
 | --- | --- |
-| Operation absent from UI | Check vertical capability; Health has no storage, Travel has no labelled evaluation |
+| Operation absent from UI | Check vertical capability; only Travel has database/acquisition, all four have Canonical/judge/CSV; labelled evaluation is removed |
 | Key missing after editing `.env` | Inject the environment into the launching process; the CLI does not read `.env`; do not print keys |
 | Model/input rejected | Check local capability configuration; use Markdown input and explicit non-OpenAI model names |
 | `Not enough unique PDFs` | Check category folders, insurer count, content deduplication, and holdout exclusions; reduce sample size or add data |

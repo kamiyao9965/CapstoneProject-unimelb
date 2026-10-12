@@ -4,88 +4,6 @@ Confirmed issues that remain unresolved. Each entry records symptoms, causes,
 recommended changes, and acceptance criteria. Move completed items to **Resolved**.
 Directory migration does not imply that unrelated business-logic issues are fixed.
 
-## 1. Enable strict OpenAI structured output for extraction
-
-**Status:** Open, recorded 2026-09-16. See Resolved item 1 for the temporary mitigation.
-
-**Symptoms**
-
-- The complete 2026-09-15 batch in
-  `outputs/travel_insurance/logs/extraction_usage.jsonl` used GPT-5, MinerU, and
-  `canonical_approved.json` for 19 PDS files. It made 61 model calls: 19 eventually
-  passed validation and 42 did not. At the then-standard uncached prices, failed
-  calls accounted for about 68% of estimated total model cost.
-- Earlier figures of 47 calls, 33 format failures, and five missing PDS results
-  described an intermediate state before follow-up runs. There are now 19 results
-  in `outputs/travel_insurance/extractions/run-gpt5`; use the complete log as baseline.
-- Failures were structural, not judgments about extracted values: extra top-level
-  `__typename` / `__proto__`, `__document_notes__` instead of `_document_notes`,
-  and duplicate field names in `_unfilled`.
-
-**Causes**
-
-`strict` is wired through `SchemaExtractor` to `StructuredOutputSpec`, but
-`src/schema_application/extractor.py` sets it false whenever it sees a
-`list[object]` or a field with `required: false`. Travel has 13 lists and many
-optional fields, so these requests were non-strict.
-
-List contracts compile to `oneOf: [null, array of {"type": "object", "additionalProperties": true}]`.
-Those open items do not meet strict-mode requirements. This is not a JSON parser
-corrupting a Canonical Schema: the field model stores only `type: list[object]`
-and a natural-language description, without item properties, types, or required
-rules. `compile_canonical_extraction_contract` lacks the information needed to
-close nested objects. Both Canonical representation and runtime compilation need work.
-
-With strict mode disabled, a schema is guidance rather than enforced generation.
-The extraction prompt already says `Never output "__typename"`, asserted by
-`tests/test_travel_schema_migration.py`, but that instruction alone is insufficient.
-
-**Recommended changes**
-
-1. Extend `contracts/canonical_schema.schema.json` so `list[object]` carries an
-   explicit item contract (implementation may call it `item_schema`). Include
-   fixed properties, types, and nullability instead of prose alone.
-2. Define closed item shapes in a new Travel Canonical candidate for all 13 lists:
-   `waiting_period_rules`, `excess_rules`, `cruise_benefits`, `optional_add_ons`,
-   `coverage_benefits`, `sub_limits`, `included_activities`, `optional_activity_cover`,
-   `excluded_activities`, `depreciation_rules`, `general_exclusions`,
-   `benefit_exclusions`, and `source_evidence`. Use `additionalProperties: false`,
-   list every child in runtime `required`, and use null for absent source values.
-3. Compile scalar fields as before and list `items` from the explicit item contract.
-   Runtime requiredness includes every property, while nullable types represent
-   business optionality. Business `required` flags need not all become true.
-4. Stop silently disabling strict mode based on lists/optional fields. Compile
-   the full contract, then check OpenAI projection compatibility. Approved Travel
-   contracts must yield `strict: true`; incompatible contracts fail before calls
-   rather than falling back to non-strict generation.
-5. Preserve `_project_openai_schema` rejection of open objects, non-required
-   properties, and unsupported keywords in `src/common/model_provider.py`.
-6. Create a new candidate/version and obtain human review; never alter an approved
-   schema in place. Re-extract representative PDS files with the changed runtime
-   contract. List storage can remain JSONB; closed item shapes do not require tables.
-
-**Prompt strategy after strict mode**
-
-- Use prompts to explain field meaning. Retain one object per independent plan,
-  null for missing values, and no inference beyond the source.
-- Following issue 2, remove document-local `product_name` uniqueness, tier suffixes,
-  and the incorrect `plan_tier` requirement; distinguish family name from `plan_name`.
-- Use evaluation to identify repeated semantic confusion before adding few-shot
-  examples. A small Gold/Silver or aggregate/sub-limit example may help; do not
-  add complete JSON examples containing dozens of fields.
-- Compare zero, one, and two micro-examples on a fixed sample. Record first-pass
-  validity, field correctness, input/output tokens, and per-document cost. Keep
-  examples only when consistent quality gains justify the extra token cost.
-
-**Acceptance**
-
-- Offline tests assert Travel `StructuredOutputSpec.strict is True`, every nested
-  object is closed, and no item structure is unspecified.
-- Trial 3–5 diverse PDS files, targeting at least 95% first-call validity and
-  19–23 model calls for a comparable 19-document batch.
-- Average retries and output tokens per document fall materially versus `run-gpt5`.
-- Offline tests cover strict compilation, list item fields, and OpenAI projection.
-
 ## 2. Simplify Travel extraction identity and loading rules
 
 **Status:** Open, reviewed again 2026-09-20. Supersedes the 2026-09-16 proposal to
@@ -248,9 +166,120 @@ analyze only selected holdout documents. Preflight feedback destinations before
 paid calls or implement identity-checked safe resume. Tests should seed old success
 and feedback files and prove no mixing and no late discovery of output conflicts.
 
-## 5. Do not silently omit list items in Health labelled evaluation
+## Resolved
 
-**Status:** Open. Carried forward from [review R3](reviews/main-review-2026-09-13.md);
+### 1. Strict dynamic generation and extraction (2026-10-12)
+
+The runtime defect is fixed offline: new discovery/patch requests use a strict
+fixed descriptor, local compilation preserves explicit closed nested schemas,
+and extraction requires strict capability and a closed contract before model
+calls. Optional business fields remain nullable. Structural-noise cleanup is no
+longer used in extraction. Earlier approved open schemas remain unchanged and
+cannot start new extraction; generate/review a new candidate. Regression tests
+cover nested propagation, strict requests, repair budgets and provider projection.
+The historical 19-document cost baseline and proposed 3–5-PDS trial below remain
+unverified for the new workflow; no live accuracy/retry-rate claim is made.
+
+<details>
+<summary>Historical symptoms and proposed live acceptance trial</summary>
+
+#### Historical issue 1
+
+**Status:** Historical runtime description, recorded 2026-09-16. Superseded by the runtime fix above; live measurements remain pending.
+
+**Symptoms**
+
+- The complete 2026-09-15 batch in
+  `outputs/travel_insurance/logs/extraction_usage.jsonl` used GPT-5, MinerU, and
+  `canonical_approved.json` for 19 PDS files. It made 61 model calls: 19 eventually
+  passed validation and 42 did not. At the then-standard uncached prices, failed
+  calls accounted for about 68% of estimated total model cost.
+- Earlier figures of 47 calls, 33 format failures, and five missing PDS results
+  described an intermediate state before follow-up runs. There are now 19 results
+  in `outputs/travel_insurance/extractions/run-gpt5`; use the complete log as baseline.
+- Failures were structural, not judgments about extracted values: extra top-level
+  `__typename` / `__proto__`, `__document_notes__` instead of `_document_notes`,
+  and duplicate field names in `_unfilled`.
+
+**Causes**
+
+`strict` is wired through `SchemaExtractor` to `StructuredOutputSpec`, but
+`src/schema_application/extractor.py` sets it false whenever it sees a
+`list[object]` or a field with `required: false`. Travel has 13 lists and many
+optional fields, so these requests were non-strict.
+
+List contracts compile to `oneOf: [null, array of {"type": "object", "additionalProperties": true}]`.
+Those open items do not meet strict-mode requirements. This is not a JSON parser
+corrupting a Canonical Schema: the field model stores only `type: list[object]`
+and a natural-language description, without item properties, types, or required
+rules. `compile_canonical_extraction_contract` lacks the information needed to
+close nested objects. Both Canonical representation and runtime compilation need work.
+
+With strict mode disabled, a schema is guidance rather than enforced generation.
+The extraction prompt already says `Never output "__typename"`, asserted by
+`tests/test_travel_schema_migration.py`, but that instruction alone is insufficient.
+
+**Recommended changes**
+
+1. Extend `contracts/canonical_schema.schema.json` so `list[object]` carries an
+   explicit item contract (implementation may call it `item_schema`). Include
+   fixed properties, types, and nullability instead of prose alone.
+2. Define closed item shapes in a new Travel Canonical candidate for all 13 lists:
+   `waiting_period_rules`, `excess_rules`, `cruise_benefits`, `optional_add_ons`,
+   `coverage_benefits`, `sub_limits`, `included_activities`, `optional_activity_cover`,
+   `excluded_activities`, `depreciation_rules`, `general_exclusions`,
+   `benefit_exclusions`, and `source_evidence`. Use `additionalProperties: false`,
+   list every child in runtime `required`, and use null for absent source values.
+3. Compile scalar fields as before and list `items` from the explicit item contract.
+   Runtime requiredness includes every property, while nullable types represent
+   business optionality. Business `required` flags need not all become true.
+4. Stop silently disabling strict mode based on lists/optional fields. Compile
+   the full contract, then check OpenAI projection compatibility. Approved Travel
+   contracts must yield `strict: true`; incompatible contracts fail before calls
+   rather than falling back to non-strict generation.
+5. Preserve `_project_openai_schema` rejection of open objects, non-required
+   properties, and unsupported keywords in `src/common/model_provider.py`.
+6. Create a new candidate/version and obtain human review; never alter an approved
+   schema in place. Re-extract representative PDS files with the changed runtime
+   contract. List storage can remain JSONB; closed item shapes do not require tables.
+
+**Prompt strategy after strict mode**
+
+- Use prompts to explain field meaning. Retain one object per independent plan,
+  null for missing values, and no inference beyond the source.
+- Following issue 2, remove document-local `product_name` uniqueness, tier suffixes,
+  and the incorrect `plan_tier` requirement; distinguish family name from `plan_name`.
+- Use evaluation to identify repeated semantic confusion before adding few-shot
+  examples. A small Gold/Silver or aggregate/sub-limit example may help; do not
+  add complete JSON examples containing dozens of fields.
+- Compare zero, one, and two micro-examples on a fixed sample. Record first-pass
+  validity, field correctness, input/output tokens, and per-document cost. Keep
+  examples only when consistent quality gains justify the extra token cost.
+
+**Acceptance**
+
+- Offline tests assert Travel `StructuredOutputSpec.strict is True`, every nested
+  object is closed, and no item structure is unspecified.
+- Trial 3–5 diverse PDS files, targeting at least 95% first-call validity and
+  19–23 model calls for a comparable 19-document batch.
+- Average retries and output tokens per document fall materially versus `run-gpt5`.
+- Offline tests cover strict compilation, list item fields, and OpenAI projection.
+
+</details>
+
+### 5. Remove labelled evaluation from unified main (2026-10-12)
+
+The user explicitly chose to remove labelled evaluation, its matching/metrics/
+reporter modules and CLI/UI entry points from unified main. The omitted-list-item
+risk is therefore absent from the active engine through feature removal, not an
+algorithm repair. Historical Health branches/artifacts retain the earlier behavior.
+
+<details>
+<summary>Historical labelled evaluation defect</summary>
+
+#### Historical issue 5
+
+**Status:** Historical. Carried forward from [review R3](reviews/main-review-2026-09-13.md);
 the code path was reconfirmed on 2026-09-30.
 
 **Symptoms and cause:** `_flatten` in `src/evaluation/metrics.py` skips object-list
@@ -263,7 +292,7 @@ duplicate entries or reject them with a validation error. Never silently discard
 items. Offline regressions must show a visible comparison outcome or error for
 every original entry in both cases.
 
-## Resolved
+</details>
 
 ### 3. Validate batch resume results before provider creation (2026-10-06)
 

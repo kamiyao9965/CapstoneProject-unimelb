@@ -33,13 +33,18 @@ claim of extraction accuracy.
   migration and preservation of historical provenance.
 - [ADR-006: Product CSV export](decisions/006-product-csv-export.md) explains the
   joined product view, shared validation/IDs and atomic export behavior.
+- [ADR-007: Unified insurance workflow](decisions/007-unified-insurance-workflow.md)
+  records strict dynamic schemas, explicit document groups, Car check applicability,
+  approved-only judge, delivery gates and Travel grouped database identity.
+- [Unified workflow specification](specs/vertical-unification.md) records the
+  confirmed four-vertical integration scope and verification boundaries.
 - [Approved Canonical Schema PRD](specs/approved-canonical-schema-prd.md) provides
   the requirements behind candidates, approval, and storage mappings.
 - [Relational storage PRD](specs/relational-storage-prd.md) provides storage
   requirements; pending identity and idempotency changes are tracked in [fix.md](fix.md).
 - [Extraction quality audit PRD](specs/extraction-quality-audit-prd.md) defines
-  Travel quality-screening scope; current usage is in the
-  [operator guide](user-guide.md#f-optional-llm-judge-and-human-review).
+  original Travel quality-screening scope; ADR-007 extends it to all four verticals.
+  Current usage is in the [operator guide](user-guide.md#f-final-result-llm-judge-and-human-review).
 - [Travel consensus and Canonical review](specs/travel-consensus-canonical-review.md)
   records the five-proposal review workflow.
 - [Travel document acquisition PRD](specs/travel-insurance-document-acquisition-prd.md)

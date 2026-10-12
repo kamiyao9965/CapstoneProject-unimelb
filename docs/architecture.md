@@ -1,9 +1,9 @@
 # Architecture
 
 This project is a Python CLI for discovering, evaluating, and refining a
-versioned JSON extraction contract for Australian Health and Travel documents.
+versioned JSON extraction contract for Australian Health, Pet, Travel and Car documents.
 The same engine consumes a validated manifest plus discovery, patch and extraction
-prompts per vertical; Travel also supplies a post-extraction quality prompt.
+prompts per vertical; each supplies a post-extraction quality prompt.
 
 ## Runtime flows
 
@@ -32,12 +32,12 @@ the authoritative parsers and orchestrators, so every UI action is reproducible
 as the command preview shown on the page. The console is local-only and has no
 authentication boundary.
 
-The Travel-only `quality-audit` operation is an explicit, post-extraction
+The shared `quality-audit` operation is an explicit, post-extraction
 screen. `src/evaluation/quality.py` validates the exact approved Canonical
-Schema and extraction identity, resolves the PDF within an allowed source root,
-renders its pages through `src/pdf_ingestion/adapter.py`, and sends those pages,
+Schema and extraction identity, resolves the complete document group within an
+allowed source root, renders every PDF through `src/pdf_ingestion/adapter.py`, and sends those pages,
 field definitions and values through the shared structured-output model
-boundary. It writes immutable per-PDF reports, an atomically refreshed,
+boundary. It writes immutable per-extraction-group reports, an atomically refreshed,
 contract-validated `results.json` that embeds complete reports or safe typed
 failure diagnostics, and an independent usage log. Existing reports are reused
 only after artifact/schema/prompt-bundle/model/PDF identity checks; summary-only mode
@@ -54,8 +54,11 @@ provider/model/parser/prompt bundle in its identity, including unsampled passes.
 read-only. Regeneration reuses verified reports in a new directory and preserves
 historical queues and decisions.
 Neither judge nor human review imports storage or mutates extraction output.
-This screen does not claim ground-truth accuracy; Health's labelled evaluation
-is separate.
+The approved schema is trusted; judge reviews final extraction usability rather
+than schema design. No labelled evaluation remains in the unified engine.
+`quality_review.py` also owns immutable explicit human delivery approvals and
+the CSV gate: a current judge pass or an approval bound to exact artifact/schema
+bytes and every source PDF. Queue findings alone do not approve delivery.
 
 ### One-shot discovery
 
@@ -67,6 +70,11 @@ PDF sample -> document preparation -> provider-native structured output
 
 `src/run.py` owns the CLI and final envelope. `src/schema/discovery.py` owns the
 request and bounded repair cycle. `src/schema/sampler.py` is the only sampler.
+Generation uses `src/schema/generation.py`'s fixed strict node descriptor. Dynamic
+field/property names are values, then compile locally to `item_schema` and
+`document_fields`. Native schema validation remains inside the shared repair
+budget. Closed nested schemas and bounded local `$defs` are owned by
+`src/schema/nested.py`; no field names are inferred from existing outputs.
 
 ### Document preparation
 
@@ -91,6 +99,15 @@ PDF's prompt text below `<markdown_root>/<document_parser>/`, normally
 mirroring the input tree, for side-by-side comparison. These Markdown files are
 derived views, not runtime artifacts.
 
+`src/verticals/documents.py` resolves connected components only through explicit
+`amends_document_ids`, orders parents before amendments, validates paths/hashes,
+and supplies document-qualified source receipts. Empty inventories create
+independent single-PDF groups; declared amendment roles/folders without links
+fail. Sampling excludes the contents of every group member from holdout.
+The renderer builds evidence indexes from parsed pages/blocks, verifies source
+hashes, and uses document IDs to disambiguate equal page numbers. Car's additional
+table/continuation parsing and optional parser quality gate extend this owner.
+
 ### Refinement loop
 
 ```text
@@ -110,9 +127,22 @@ before analysis or later documents.
 
 The shared schema has `fields` (including the classifier) and a `taxonomies` map.
 `src/schema/validation.py` validates and normalizes actual historical JSON shapes;
-`src/schema/contract.py` compiles single or multiple product outputs. Product types,
+`src/schema/contract.py` compiles a `products` array for all new outputs. Product types,
 identity fields, cardinality and taxonomy names come from manifest. Existing
-approved Canonical contracts retain their own strict storage contract.
+approved Canonical contracts retain their own storage mapping. New extraction
+requires every object to be closed and every property declared, using nullable
+values for unknowns; historical open schemas remain readable but cannot start
+new extraction. Extraction no longer drops structural noise.
+
+Allowlisted domain adapters extend validation through `src/verticals/registry.py`.
+Pet preserves comparison fields and document/block/page evidence. Car's v6
+candidate supplies the complete former layout as a starting point, while dynamic
+schemas can change their fields. Supported declared structures get applicable
+rules; artifacts/usage record applied and not-applicable rules. Full compatible
+single-PDF Car schemas retain source completeness and text checks. Multi-PDF
+amendment groups validate references/structure/relationships and defer clause
+supersession/completeness to judge. Unsupported dynamic structures do not claim
+to have passed the former full semantic suite.
 
 Holdout applicability uses trusted sampling-category/product mappings declared in
 manifest and each field's `applies_to`. Model classification never controls the
@@ -153,7 +183,9 @@ reviewed discovered schema -> deterministic Canonical candidate
 
 The candidate builder reuses field/storage mappings from the selected manifest's
 approved contract, proposes unknown fields as JSONB, and deep-copies the source.
-The UI is shared by all configured storage-capable verticals (currently Travel).
+The UI is shared by all `canonical_review` verticals (all four). Travel reuses
+its immutable approved mapping template; non-database verticals propose name/type
+core identities and JSONB attributes for CSV. This does not enable their database capability.
 Candidate preview does not authorize extraction compilation, table creation, or
 loading. Production paths continue to require an approved review record.
 
@@ -172,12 +204,23 @@ duplicate-source checks for both destinations. CSV joins product/release values,
 typed vertical details and source/run provenance; nested attributes stay JSON.
 It validates all inputs before using the existing atomic text writer, refuses
 overwrites, and creates no database engine or model provider. CLI and console
-controls call this owner. See [ADR-006](decisions/006-product-csv-export.md).
+controls call this owner. CSV capability is independent of PostgreSQL. Each row
+also includes all source receipts, document fields and the validated delivery
+proof. See [ADR-006](decisions/006-product-csv-export.md) and
+[ADR-007](decisions/007-unified-insurance-workflow.md).
+
+Travel PostgreSQL preparation and repository transactions persist every group
+document and release link. Single-PDF releases retain their identity; grouped
+releases bind every PDF hash, alias and amendment link. SPDS changes create a new
+release. Existing databases require the static reviewed migration; `create_all`
+does not migrate existing tables. Live migration/loading is separately authorized.
 
 ## Structured-output boundary
 
 - `src/common/model_config.py` resolves provider/model/input selection and the
   approved structured-output capability registry.
+  Shared generation, extraction and judge require strict JSON Schema capability;
+  the retained DeepSeek JSON-object adapter is unsuitable for these workflows.
 - `src/common/model_provider.py` translates one neutral output specification to
   OpenAI Responses JSON Schema, Anthropic `output_config.format`, or DeepSeek
   JSON object mode. Workflow modules contain no provider branches.
@@ -227,21 +270,17 @@ are derived from the manifest, with no constructor overrides. Both engines use
 `resolve_selection()` when no selection is supplied. PDF preparation has one
 entry with two parser routes (PDFingestor by default, MinerU opt-in); the unused
 AppConfig and the old Markdown-mirror MinerU preprocessor remain retired.
-Batch evaluation aggregates once and produces one `report.json` / `report.md`
-pair; there is no heuristic extraction or separate model-only report path.
-`src/evaluation/batch.py` owns per-document labelled matching, batch statistics,
-and diagnostics through the existing evaluator and reporter. The CLI passes each
-extraction to it after writing that extraction, then requests the final report pair.
-Resume retains the complete selected input set for evaluation and creates an
-extractor only when uncached documents remain. Validated cached records preserve
-their original metadata and files.
+Batch resume creates a provider only when uncached groups remain. Cached results
+revalidate the selected contract, domain/source rules and complete receipt set;
+their original files are never modified. Labelled batch metrics/reporters and
+the CLI/UI `--evaluate` entry are removed; historical Health work remains on its branch.
 
 - `configs/*/`: one manifest per vertical, including validated references to
   its model prompts.
 - `prompts/`: all model-facing text; per-vertical system prompts plus shared
   request, feedback, repair, and provider-format templates. Manifests may
   resolve only their own central prompt directory or package-local prompts.
-- `src/verticals/`: validated manifest resolution and existing executable adapters.
+- `src/verticals/`: validated manifests, explicit document groups, allowlisted Pet/Car business adapters.
 - `src/pdf_ingestion/`: PDF-to-prompt entry, pdfplumber parser, MinerU route and parse cache.
 - `src/schema/`: discovery, sampling, schema loader/validation/compiler and Canonical candidate.
 - `src/refine/candidates/`: patch parsing, normalization, voting, stability.
@@ -249,8 +288,8 @@ their original metadata and files.
 - `src/refine/human_review/`: queue, decisions, reviewed schema.
 - `src/refine/pipeline/`: outer round and resume orchestration.
 - `src/schema_application/`: shared extraction and applicability analysis.
-- `src/evaluation/`: existing Health labelled matching/metrics, plus optional
-  Travel PDF-evidence quality screening and queue-bound human review.
+- `src/evaluation/`: final-result PDF-evidence quality screening, queue-bound
+  human review and delivery approvals for all verticals.
 - `src/storage/`: approved Canonical compilation, shared artifact preparation,
   PostgreSQL transactions/idempotency, and joined product CSV output.
 - `src/scraper/`: existing Travel acquisition; no new crawler framework.
@@ -274,11 +313,7 @@ their original metadata and files.
 
 - Offline workflow tests use injected provider fakes. They do not establish live
   provider accuracy or parsing quality on real insurance documents.
-- `list[object]` extraction fields have intentionally open item shapes because
-  the discovered schema does not define nested properties; local validation
-  still enforces the top-level extraction contract. OpenAI requests use strict
-  JSON Schema for every other contract; this open-item extraction shape uses
-  non-strict JSON Schema mode plus the same local validation and bounded repair
-  loop because OpenAI strict mode requires a closed nested object contract.
+- The bundled historical Travel v1 schema has open nested fields and cannot
+  start new extraction. Generate a new closed candidate and obtain human review.
 - Rename/merge/move patch types remain audit-only and require explicit
   schema-level editing.
