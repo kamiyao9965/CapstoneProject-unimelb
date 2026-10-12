@@ -6,6 +6,7 @@ import re
 from copy import deepcopy
 
 from src.common.json_contracts import validate_contract
+from src.schema.nested import item_fields_to_schema, validate_item_schema
 from src.verticals.manifest import VerticalManifest, default_manifest_path, load_vertical_manifest
 from collections.abc import Collection, Mapping
 from typing import TypeAlias
@@ -37,6 +38,15 @@ def normalize_schema(payload: object, manifest: VerticalManifest | None = None) 
         for entries in schema["taxonomies"].values():
             for entry in entries:
                 entry.pop("aliases", None)
+    for field in schema["fields"]:
+        if field.get("item_fields"):
+            converted = item_fields_to_schema(field["item_fields"], schema)
+            if field.get("item_schema") and validate_item_schema(field["item_schema"], schema.get("$defs")) != converted:
+                raise ValueError("item_fields and item_schema disagree.")
+            field["item_schema"] = converted
+            field.pop("item_fields")
+        if field.get("item_schema"):
+            field["item_schema"] = validate_item_schema(field["item_schema"], schema.get("$defs"))
     return schema
 
 
@@ -64,7 +74,7 @@ def validate_schema_mapping(payload: object, *, manifest: VerticalManifest | Non
     fields = [*([payload["product_type_field"]] if "product_type_field" in payload else []), *fields]
     by_name = {}
     for index, field in enumerate(fields):
-        validated = validate_field_payload(field, product_types, index=index)
+        validated = validate_field_payload(field, product_types, index=index, definitions=payload.get("$defs"))
         name = str(validated["name"])
         if name in by_name:
             raise ValueError(f"Schema contains duplicate field name: {name}")
@@ -125,6 +135,7 @@ def validate_field_payload(
     allowed_product_types: Collection[str],
     *,
     index: int | None = None,
+    definitions: object = None,
 ) -> Mapping[str, object]:
     """Validate one schema field without silently repairing external data."""
     label = f"field {index}" if index is not None else "field"
@@ -170,6 +181,12 @@ def validate_field_payload(
         raise ValueError(f"Schema enum field {name!r} values must be scalar.")
 
     aliases = payload.get("aliases", [])
+    if "item_schema" in payload:
+        if field_type != "list[object]":
+            raise ValueError("item_schema is only allowed on list[object] fields.")
+        validate_item_schema(payload["item_schema"], definitions)
+    if payload.get("item_fields") and field_type != "list[object]":
+        raise ValueError("item_fields is only allowed on list[object] fields.")
     if (
         not isinstance(aliases, list)
         or any(not isinstance(alias, str) or not alias.strip() for alias in aliases)

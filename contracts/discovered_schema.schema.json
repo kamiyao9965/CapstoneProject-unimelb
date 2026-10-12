@@ -14,6 +14,7 @@
     "taxonomies"
   ],
   "properties": {
+    "$defs": {"type": "object", "additionalProperties": {"type": "object"}},
     "vertical": {
       "type": "string",
       "minLength": 1
@@ -68,6 +69,8 @@
         "values"
       ],
       "properties": {
+        "item_schema": {"type": "object"},
+        "item_fields": {"type": "array", "items": {"type": "object"}},
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"

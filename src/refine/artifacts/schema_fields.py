@@ -1,6 +1,7 @@
 """Shared helpers for writing field proposals into schema JSON data."""
 
 from __future__ import annotations
+from copy import deepcopy
 
 from src.refine.candidates.aggregator import FieldDecision
 from src.refine.candidates.patch import MANUAL_EDIT_PATCH_TYPES
@@ -69,6 +70,8 @@ def field_payload_from_decision(
                 "values": payload.get("values") or decision.values,
             }
         )
+        if decision.item_schema is not None and "item_schema" not in payload:
+            payload["item_schema"] = deepcopy(decision.item_schema)
     payload.pop("aliases", None)
     return payload
 

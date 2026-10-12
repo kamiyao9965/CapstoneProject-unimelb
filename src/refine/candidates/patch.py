@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -67,6 +68,7 @@ class SchemaPatch:
     applies_to: tuple[str, ...] = field(default_factory=tuple)
     required: bool | None = None
     values: tuple[JSONScalar, ...] = field(default_factory=tuple)
+    item_schema: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any], source_run: str = "") -> "SchemaPatch":
@@ -95,9 +97,15 @@ class SchemaPatch:
                 else None
             ),
             values=_scalar_tuple(value.get("values"), "values"),
+            item_schema=deepcopy(value.get("item_schema")),
         )
 
     def validate(self, allowed_product_types: set[str] | frozenset[str] | None = None) -> None:
+        if self.item_schema is not None:
+            if self.field_type != "list[object]":
+                raise ValueError("item_schema is only allowed on list[object] patches.")
+            from src.schema.nested import validate_item_schema
+            validate_item_schema(self.item_schema)
         if self.patch_type not in SUPPORTED_PATCH_TYPES:
             raise ValueError(f"Unsupported patch_type: {self.patch_type}")
         if not self.field_name and not self.canonical_name:
@@ -124,6 +132,7 @@ class SchemaPatch:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            **({"item_schema": deepcopy(self.item_schema)} if self.item_schema is not None else {}),
             "patch_type": self.patch_type,
             "target_group": self.target_group,
             "field_name": self.field_name,

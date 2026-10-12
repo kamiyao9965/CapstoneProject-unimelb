@@ -187,7 +187,7 @@ class ExtractManyOutputTest(unittest.TestCase):
         self.assertEqual(provider.request.structured_output.name, "extraction_result")
         self.assertTrue(provider.request.structured_output.strict)
 
-    def test_extract_one_drops_structural_noise_from_model_output(self) -> None:
+    def test_extract_one_rejects_structural_noise_after_bounded_repair(self) -> None:
         class NoisyProvider:
             def generate(self, request: ProviderRequest) -> ModelResponse:
                 return ModelResponse(
@@ -204,18 +204,18 @@ class ExtractManyOutputTest(unittest.TestCase):
                 "src.schema_application.extractor.render_pdf_paths_for_prompt",
                 return_value="# PDF: example\nstructured content",
             ):
-                record = SchemaExtractor(
-                    schema_data=VALID_DISCOVERED_SCHEMA,
-                    selection=ModelSelection("openai", "gpt-5", "markdown"),
-                    provider=NoisyProvider(),
-                    usage_log_path=None,
-                    log=messages.append,
-                ).extract_one(pdf_path)
+                from src.common.structured_output import StructuredOutputFailure
+                with self.assertRaises(StructuredOutputFailure) as caught:
+                    SchemaExtractor(
+                        schema_data=VALID_DISCOVERED_SCHEMA,
+                        selection=ModelSelection("openai", "gpt-5", "markdown"),
+                        provider=NoisyProvider(), usage_log_path=None, log=messages.append,
+                    ).extract_one(pdf_path)
 
-        self.assertEqual(record, VALID_RECORD)
-        self.assertTrue(any("removed '__typename'" in message for message in messages))
+        self.assertEqual(len(caught.exception.result.attempts), 3)
+        self.assertFalse(any("Removed structural noise" in message for message in messages))
 
-    def test_open_list_object_field_uses_non_strict_provider_schema(self) -> None:
+    def test_open_list_object_field_stops_before_provider_request(self) -> None:
         class RecordingProvider:
             def __init__(self) -> None:
                 self.request: ProviderRequest | None = None
@@ -256,16 +256,14 @@ class ExtractManyOutputTest(unittest.TestCase):
                 "src.schema_application.extractor.render_pdf_paths_for_prompt",
                 return_value="# PDF: example\nstructured content",
             ):
-                SchemaExtractor(
-                    schema_data=schema,
-                    selection=ModelSelection("openai", "gpt-5", "markdown"),
-                    provider=provider,
-                    usage_log_path=None,
-                    log=None,
-                ).extract_one(pdf_path)
+                with self.assertRaisesRegex(ValueError, "closed objects"):
+                    SchemaExtractor(
+                        schema_data=schema,
+                        selection=ModelSelection("openai", "gpt-5", "markdown"),
+                        provider=provider, usage_log_path=None, log=None,
+                    ).extract_one(pdf_path)
 
-        self.assertIsNotNone(provider.request)
-        self.assertFalse(provider.request.structured_output.strict)
+        self.assertIsNone(provider.request)
 
     def test_extract_one_uses_pdfingestor_text_and_logs_source_pdf(self) -> None:
         class RecordingProvider:

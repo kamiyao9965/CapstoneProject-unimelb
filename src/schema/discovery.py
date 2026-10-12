@@ -206,6 +206,9 @@ class SchemaDiscovery:
                 structured_output=StructuredOutputSpec(
                     name=output_name,
                     schema=load_contract(contract_name, manifest=self.manifest),
+                    # Nested schema descriptions have dynamic property names.
+                    # Local contract/business validation remains authoritative.
+                    strict=False,
                 ),
             )
             try:

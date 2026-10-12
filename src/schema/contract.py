@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from copy import deepcopy
 
 from src.common.json_contracts import validate_contract
 from src.schema.validation import normalize_schema, validate_schema_mapping
@@ -89,6 +90,8 @@ def _field_contract(field: Mapping[str, object]) -> dict[str, object]:
     if field_type == "enum":
         return {"enum": [*field["values"], None]}
     if field_type == "list[object]":
+        if "item_schema" in field:
+            return {"type": ["array", "null"], "items": deepcopy(field["item_schema"])}
         return {
             "oneOf": [
                 {"type": "null"},

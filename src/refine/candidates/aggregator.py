@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from copy import deepcopy
+
+from src.common.json_codec import dumps_json
 
 from src.refine.candidates.patch import EvidenceDocument, SchemaPatch
 from src.schema.validation import JSONScalar
@@ -32,6 +35,7 @@ class FieldDecision:
     required: bool | None = None
     values: list[JSONScalar] = field(default_factory=list)
     has_conflict: bool = False
+    item_schema: dict[str, object] | None = None
 
     @property
     def frequency_label(self) -> str:
@@ -43,6 +47,7 @@ class FieldDecision:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            **({"item_schema": deepcopy(self.item_schema)} if self.item_schema is not None else {}),
             "field": self.canonical_name,
             "group": self.target_group,
             "type": self.field_type,
@@ -148,13 +153,15 @@ def _build_decision(
         required=_most_common_bool([patch.required for patch in patches]),
         values=list(_most_common_tuple([patch.values for patch in patches])),
         has_conflict=_has_field_contract_conflict(patches),
+        item_schema=deepcopy(next((patch.item_schema for patch in patches if patch.item_schema is not None), None)),
     )
 
 
 def _has_field_contract_conflict(patches: list[SchemaPatch]) -> bool:
     """Detect incompatible field contracts hidden by majority selection."""
     signatures = {
-        (patch.field_type, patch.applies_to, patch.required, patch.values)
+        (patch.field_type, patch.applies_to, patch.required, patch.values,
+         dumps_json(patch.item_schema, sort_keys=True))
         for patch in patches
         if patch.patch_type == "add_field"
     }

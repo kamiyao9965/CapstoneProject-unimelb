@@ -13,6 +13,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "item_schema": {"type": "object"},
         "name": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"

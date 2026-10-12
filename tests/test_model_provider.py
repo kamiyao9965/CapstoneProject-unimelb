@@ -107,7 +107,7 @@ class ProviderContractTest(unittest.TestCase):
         ):
             with self.subTest(contract=contract_name, provider="openai"):
                 projected = model_provider._project_openai_schema(
-                    load_contract(contract_name), strict=True
+                        load_contract(contract_name), strict=not contract_name.endswith(("/discovered_schema", "/candidate_patch_set"))
                 )
                 self.assertEqual(projected["type"], "object")
             with self.subTest(contract=contract_name, provider="anthropic"):

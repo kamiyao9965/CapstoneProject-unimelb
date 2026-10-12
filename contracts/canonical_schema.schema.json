@@ -17,6 +17,7 @@
     "fields"
   ],
   "properties": {
+    "$defs": {"type": "object", "additionalProperties": {"type": "object"}},
     "contract_version": {"const": "1.0.0"},
     "vertical": {
       "type": "string",
@@ -109,6 +110,7 @@
         "storage"
       ],
       "properties": {
+        "item_schema": {"type": "object"},
         "name": {"$ref": "#/$defs/identifier"},
         "type": {
           "enum": ["string", "number", "boolean", "enum", "list[object]"]

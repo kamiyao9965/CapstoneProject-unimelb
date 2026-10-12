@@ -21,6 +21,7 @@
         "reject_votes", "reject_rationale_samples", "evidence_documents"
       ],
       "properties": {
+        "item_schema": {"type": "object"},
         "field": {"type": "string", "minLength": 1},
         "group": {"type": "string"},
         "type": {"enum": ["string", "number", "boolean", "enum", "list[object]"]},

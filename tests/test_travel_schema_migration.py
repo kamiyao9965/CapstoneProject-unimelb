@@ -20,6 +20,15 @@ from src.verticals.registry import (
     get_schema_validator,
 )
 from tests.test_canonical_schema import approved_travel_schema
+
+def closed_travel_schema():
+    schema = approved_travel_schema()
+    schema["fields"][-1]["item_schema"] = {
+        "type": "object", "additionalProperties": False, "required": ["name", "limit"],
+        "properties": {"name": {"type": "string"}, "limit": {"type": "string"}},
+    }
+    return schema
+
 from tests.test_canonical_storage import valid_extraction_payload
 
 
@@ -107,6 +116,15 @@ VALID_TRAVEL_EXTRACTION = {
     ],
     "_document_notes": "One PDS describes two plans.",
 }
+
+
+def closed_discovered_travel_schema():
+    schema = normalize_schema(VALID_TRAVEL_SCHEMA)
+    schema["fields"][-1]["item_schema"] = {
+        "type": "object", "additionalProperties": False, "required": ["benefit", "limit"],
+        "properties": {"benefit": {"type": "string"}, "limit": {"type": "string"}},
+    }
+    return schema
 
 
 class TravelSchemaContractTest(unittest.TestCase):
@@ -241,7 +259,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 return_value="# PDF: travel-pds\nbenefit tables",
             ):
                 result = SchemaExtractor(
-                    schema_data=VALID_TRAVEL_SCHEMA,
+                    schema_data=closed_discovered_travel_schema(),
                     selection=ModelSelection("openai", "gpt-5", "markdown"),
                     provider=provider,
                     usage_log_path=None,
@@ -275,7 +293,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 return_value="# PDF: travel-pds\nbenefit tables",
             ):
                 result = SchemaExtractor(
-                    schema_data=approved_travel_schema(),
+                    schema_data=closed_travel_schema(),
                     selection=ModelSelection("openai", "gpt-5", "markdown"),
                     provider=provider,
                     usage_log_path=None,
@@ -322,7 +340,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 return_value="# PDF: travel-pds\nbenefit tables",
             ):
                 result = SchemaExtractor(
-                    schema_data=approved_travel_schema(),
+                    schema_data=closed_travel_schema(),
                     selection=ModelSelection("openai", "gpt-5", "markdown"),
                     provider=provider,
                     usage_log_path=None,
@@ -349,7 +367,7 @@ class TravelExtractionMigrationTest(unittest.TestCase):
                 manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
             )
 
-    def test_optional_canonical_scalar_disables_provider_strict_mode(self) -> None:
+    def test_optional_canonical_scalar_remains_required_nullable_in_strict_mode(self) -> None:
         schema = approved_travel_schema()
         schema["fields"] = [
             field for field in schema["fields"] if field["name"] != "benefits"
@@ -365,7 +383,10 @@ class TravelExtractionMigrationTest(unittest.TestCase):
             manifest=load_vertical_manifest(default_manifest_path("travel_insurance")),
         )
 
-        self.assertFalse(extractor.structured_output_strict)
+        self.assertTrue(extractor.structured_output_strict)
+        product = extractor.extraction_contract["properties"]["products"]["items"]
+        self.assertIn("geographic_scope", product["required"])
+        self.assertIn(None, product["properties"]["geographic_scope"]["enum"])
 
 
 if __name__ == "__main__":

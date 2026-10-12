@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 
 from src.common.json_contracts import validate_contract
+from src.schema.nested import validate_item_schema
 
 
 _PRODUCT_NAME_TARGET = "products.canonical_name"
@@ -80,6 +81,10 @@ def validate_canonical_schema(payload: object) -> dict[str, object]:
         field_by_name[name] = field
 
         field_type = str(field["type"])
+        if "item_schema" in field:
+            if field_type != "list[object]":
+                raise ValueError("item_schema is only allowed on list[object] fields.")
+            validate_item_schema(field["item_schema"], payload.get("$defs"))
         values = list(field["values"])
         if field_type == "enum" and not values:
             raise ValueError(f"Canonical enum field {name!r} requires values.")
@@ -194,7 +199,10 @@ def compile_canonical_extraction_contract(
             raise ValueError("Canonical Schema field must be an object.")
         name = str(field["name"])
         field_names.append(name)
-        product_properties[name] = _canonical_field_contract(field)
+        compiled_field = dict(field)
+        if "item_schema" in field:
+            compiled_field["item_schema"] = validate_item_schema(field["item_schema"], schema.get("$defs"))
+        product_properties[name] = _canonical_field_contract(compiled_field)
         if field["required"] is True:
             required_fields.append(name)
 
@@ -298,7 +306,7 @@ def _canonical_field_contract(field: Mapping[str, object]) -> dict[str, object]:
 
     array_contract: dict[str, object] = {
         "type": "array",
-        "items": {"type": "object", "additionalProperties": True},
+        "items": deepcopy(field.get("item_schema", {"type": "object", "additionalProperties": True})),
     }
     if nullable:
         return {"oneOf": [{"type": "null"}, array_contract]}
@@ -408,6 +416,7 @@ def build_canonical_candidate(
                 storage = {"strategy": "extension_column", "column": name}
                 taken_columns.add(name)
         fields.append({
+            **({"item_schema": deepcopy(field["item_schema"])} if "item_schema" in field else {}),
             "name": name, "type": field["type"], "description": field["description"],
             "required": True if name in identities else field["required"],
             "nullable": name not in identities,

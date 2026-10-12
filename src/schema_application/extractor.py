@@ -34,6 +34,7 @@ from src.common.structured_output import (
     run_structured_output,
 )
 from src.schema.contract import compile_extraction_contract
+from src.schema.nested import closed_extraction_contract
 from src.schema.canonical import (
     compile_canonical_extraction_contract,
     is_canonical_schema,
@@ -88,10 +89,6 @@ class SchemaExtractor:
             )
             canonical_fields = canonical_schema["fields"]
             assert isinstance(canonical_fields, list)
-            self.structured_output_strict = not any(
-                field["type"] == "list[object]" or field["required"] is False
-                for field in canonical_fields
-            )
             self.extraction_business_validator = partial(
                 validate_canonical_extraction_identities,
                 canonical_schema,
@@ -104,11 +101,9 @@ class SchemaExtractor:
                 self.schema_data,
                 manifest=manifest,
             )
-            self.structured_output_strict = not any(
-                field["type"] == "list[object]"
-                for field in self.schema_data["fields"]
-            )
             self.schema_prompt_label = "Discovered schema"
+        self.extraction_contract = closed_extraction_contract(self.extraction_contract)
+        self.structured_output_strict = True
         self.extraction_prompt = get_prompt(manifest.prompt("extraction"))
         self.selection = selection or resolve_selection()
         if self.selection.document_input != "markdown":
@@ -177,7 +172,7 @@ class SchemaExtractor:
                 request,
                 data_contract_schema=self.extraction_contract,
                 business_validator=self.extraction_business_validator,
-                drop_structural_noise=True,
+                drop_structural_noise=False,
             )
         except StructuredOutputFailure as exc:
             self._log_usage(exc.result, pdf_path, started, logical_run_id)
