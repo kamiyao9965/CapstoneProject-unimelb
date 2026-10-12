@@ -7,7 +7,7 @@ and exports product CSV. Travel also supports PostgreSQL. There is no REST API.
 
 Start with the [operator guide](docs/user-guide.md), [API and file contracts](docs/api.md),
 and [documentation index](docs/README.md). See the [project layout](docs/project-layout.md)
-for directory rules and the migration from the former paths.
+for input, output and cache directory rules.
 
 ## Project structure
 
@@ -149,9 +149,9 @@ Legacy `1.0.0` quality queues remain readable but are read-only; see the
 Canonical review is available for all four verticals. A new unapproved Car
 candidate is at [configs/car_insurance/canonical_candidate.json](configs/car_insurance/canonical_candidate.json).
 Travel's earlier approved schema is retained as a mapping template, not a new-run
-default. Existing Travel databases need the reviewed
-[release identity migration](docs/migrations/001-grouped-release-identity.sql);
-`storage-init` does not migrate existing tables.
+default. For a new Travel database, `storage-init` creates the current tables.
+It does not upgrade existing tables; prepare and review migration SQL against
+an existing database's actual schema before using current storage operations.
 
 Canonical approval requires a human reviewer and rationale. Never rewrite an
 approved schema in place. Runtime artifact formats and provenance requirements
@@ -168,5 +168,5 @@ git diff --check
 ```
 
 Module ownership is documented in [architecture](docs/architecture.md), dependency
-rules in [dependency policy](docs/dependency-policy.md), and design rationale in
-[ADRs](docs/README.md#design-decisions-and-historical-material).
+rules in [dependency policy](docs/dependency-policy.md), and current references in
+the [documentation index](docs/README.md).

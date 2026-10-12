@@ -206,14 +206,15 @@ It validates all inputs before using the existing atomic text writer, refuses
 overwrites, and creates no database engine or model provider. CLI and console
 controls call this owner. CSV capability is independent of PostgreSQL. Each row
 also includes all source receipts, document fields and the validated delivery
-proof. See [ADR-006](decisions/006-product-csv-export.md) and
-[ADR-007](decisions/007-unified-insurance-workflow.md).
+proof. See the [CSV interface](api.md#product-csv-export) for columns, validation
+and delivery requirements.
 
 Travel PostgreSQL preparation and repository transactions persist every group
 document and release link. Single-PDF releases retain their identity; grouped
 releases bind every PDF hash, alias and amendment link. SPDS changes create a new
-release. Existing databases require the static reviewed migration; `create_all`
-does not migrate existing tables. Live migration/loading is separately authorized.
+release. `create_all` creates missing tables but does not upgrade existing ones.
+For an existing database, prepare and review migration SQL against its actual
+schema. Live migration/loading is separately authorized.
 
 ## Structured-output boundary
 

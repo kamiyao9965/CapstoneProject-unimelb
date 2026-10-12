@@ -1,70 +1,38 @@
 # Documentation index
 
-Use this index to distinguish current operating instructions from design history.
-Project documentation is in English. Source PDFs and their derived Markdown are
-data, not project documentation; they retain their original content and language.
+These documents describe the current Health, Pet, Travel and Car workflow.
+Choose the reference for your task. Project documentation is in English;
+source PDFs and parsed Markdown retain their original content and language.
 
-## Current reference
+## What to read
 
-| Document | Purpose |
+| Task | Document |
 | --- | --- |
-| [Root README](../README.md) | Project overview, installation, and entry points |
-| [Project layout](project-layout.md) | Directory rules, new paths, and migration inventory |
-| [Operator guide](user-guide.md) | Step-by-step CLI and UI workflows, recovery, and output locations |
-| [API and file contracts](api.md) | Supported Python integration boundaries, CLI behavior, and artifact formats |
-| [Architecture](architecture.md) | Runtime flows and module ownership |
-| [Dependency policy](dependency-policy.md) | Approved dependencies and rules for additions |
-| [Open issues](fix.md) | Confirmed unresolved defects and acceptance criteria |
-| [Prompt guide](../prompts/README.md) | Existing model-prompt layout and editing rules |
+| Understand the project and start it locally | [Root README](../README.md) |
+| Run CLI/UI workflows, find outputs and recover failures | [Operator guide](user-guide.md) |
+| Use Python interfaces or inspect CLI and JSON contracts | [API and file contracts](api.md) |
+| Understand runtime flows, module ownership and design constraints | [Architecture](architecture.md) |
+| Choose input, output and cache directories | [Project layout](project-layout.md) |
+| Check dependency constraints before adding a package | [Dependency policy](dependency-policy.md) |
+| Edit model prompts and shared templates | [Prompt guide](../prompts/README.md) |
 
-For behavior that differs from a historical proposal, consult the current code,
-contracts, operator guide, and open-issue list. Structural validity is not a
-claim of extraction accuracy.
+The operator guide explains how to use the system. The API reference defines
+supported interfaces and validation boundaries. Use current code and contracts
+to verify behavior; successful validation or offline tests do not establish
+extraction accuracy.
 
-## Design decisions and historical material
+## Keeping documentation current
 
-- [ADR-001: PostgreSQL hybrid storage](decisions/001-postgresql-hybrid-storage.md)
-  explains core relational tables and JSONB storage.
-- [ADR-002: Approved Canonical Schema authority](decisions/002-approved-canonical-schema-authority.md)
-  explains human approval and the extraction/storage gate.
-- [ADR-003: Central model prompts](decisions/003-central-model-prompts.md)
-  explains the existing prompt ownership and resolution rules.
-- [ADR-004: Project layout](decisions/004-project-layout.md) explains the directory
-  migration and preservation of historical provenance.
-- [ADR-006: Product CSV export](decisions/006-product-csv-export.md) explains the
-  joined product view, shared validation/IDs and atomic export behavior.
-- [ADR-007: Unified insurance workflow](decisions/007-unified-insurance-workflow.md)
-  records strict dynamic schemas, explicit document groups, Car check applicability,
-  approved-only judge, delivery gates and Travel grouped database identity.
-- [Unified workflow specification](specs/vertical-unification.md) records the
-  confirmed four-vertical integration scope and verification boundaries.
-- [Approved Canonical Schema PRD](specs/approved-canonical-schema-prd.md) provides
-  the requirements behind candidates, approval, and storage mappings.
-- [Relational storage PRD](specs/relational-storage-prd.md) provides storage
-  requirements; pending identity and idempotency changes are tracked in [fix.md](fix.md).
-- [Extraction quality audit PRD](specs/extraction-quality-audit-prd.md) defines
-  original Travel quality-screening scope; ADR-007 extends it to all four verticals.
-  Current usage is in the [operator guide](user-guide.md#f-final-result-llm-judge-and-human-review).
-- [Travel consensus and Canonical review](specs/travel-consensus-canonical-review.md)
-  records the five-proposal review workflow.
-- [Travel document acquisition PRD](specs/travel-insurance-document-acquisition-prd.md)
-  is an early August 2026 draft. Its original branch names, three-insurer scope,
-  data model, and implementation suggestions are historical proposals. Current
-  sources and acquisition behavior come from [configuration](../configs/travel_insurance/)
-  and the operator guide.
-- [September 2026 code review](reviews/main-review-2026-09-13.md) records historical
-  findings and line references. Remaining R2/R3 risks are in [fix.md](fix.md);
-  old line numbers do not identify current code locations.
-- [Confirmed layout scope](ideas/project-layout.md) records the user's directory,
-  retention, language, and compatibility choices.
-- [Confirmed product CSV scope](ideas/csv-product-export.md) records the user's
-  Excel use case and selected product-release row grain.
+- Keep the root README focused on setup and entry points.
+- Put procedures, command examples and recovery steps in the operator guide.
+- Document interfaces and file formats in the API reference.
+- Record module owners, design constraints and their rationale in architecture.
+- Keep directory rules in project layout and dependency approvals in dependency policy.
+- Update the affected references when behavior changes; verify local links.
 
-Completed cross-vertical implementation plans have been removed from the working
-tree. Their durable conclusions—one engine, manifest-owned vertical differences,
-CLI-backed UI, and one prompt/validation boundary—are covered by the current
-architecture and ADRs. Git history retains the implementation record.
+Travel PostgreSQL initialization creates missing tables in a new database; it
+does not upgrade existing tables. If an existing database needs upgrading,
+prepare and review migration SQL against its actual schema before execution.
+See the [storage workflow](user-guide.md#c-approve-the-storage-contract).
 
-Keep quick entry points in the root README, procedures in the operator guide,
-interfaces in `api.md`, rationale in ADRs, and unresolved defects in `fix.md`.
-Do not commit experimental outputs, credentials, or source PDFs as documentation.
+Do not commit source PDFs, credentials or experimental outputs as documentation.

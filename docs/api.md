@@ -86,7 +86,7 @@ Required paths are `input_root`, `markdown_root`, `cache_root`, and `output_root
 The bundled layouts are `data/pdf/<vertical>`, `data/markdown/<vertical>`,
 `.cache/pdf/<vertical>`, and `outputs/<vertical>`. Health's optional
 `KONKRD_DATA_ROOT` points directly to a data root with `pdf/`, `markdown/`, and
-historical `labelled/` subdirectory (unused by the unified engine). See [layout migration](project-layout.md).
+historical `labelled/` subdirectory (unused by the unified engine). See [directory conventions](project-layout.md).
 
 `documents.inventory` entries contain `document_id`, `source_path`,
 `document_role`, `amends_document_ids`, optional SHA-256 and metadata. Only explicit
@@ -492,8 +492,9 @@ all `PreparedSourceDocument` values, complete receipts, `document_group_id` and
 `release_source_id`. Travel transactions persist all documents and release links.
 Single-PDF release identity is unchanged; grouped release identity binds the
 ordered document IDs/hashes/amendment links, so an updated SPDS creates a new release.
-Existing databases require [the release migration](migrations/001-grouped-release-identity.sql);
-no migration or real database operation runs during compilation/offline tests.
+Existing databases need separately prepared and reviewed migration SQL if their
+tables do not match the current storage schema. Compilation and offline tests
+do not run database migrations or real database operations.
 
 Both extraction formats must carry `vertical` and `schema_version` matching the
 manifest/approved schema, plus provider/model/run identity. Historical envelopes

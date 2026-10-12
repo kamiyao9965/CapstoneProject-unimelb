@@ -127,14 +127,14 @@ prompt, validation, and storage boundaries.
 - Discovery and extraction save the per-PDF text sent to the model under
   `data/markdown/<vertical>/pdfingestor/` or `.../mineru/`, mirroring the input
   tree. Outside-root PDFs use `<stem>_<path-hash>.md`. Unchanged text is not
-  rewritten. These are derived views that can be regenerated; this migration
-  preserves all existing copies.
+  rewritten. These are derived views that can be regenerated. Preserve existing
+  views when their provenance is needed for an older run.
 - MinerU fails before model calls when it finds no text or tables. PDFingestor
   does not currently have this empty-content check, so inspect scanned PDFs first.
 
 ### Upgrading from earlier layouts
 
-Use the [migration map](project-layout.md#migration-map). Python PDF imports now
+Use the [current directory conventions](project-layout.md). Python PDF imports
 use `src.pdf_ingestion`, shared result types use `src.common.models`, and Streamlit
 entry points live in `src/ui/`. Manifests now require `markdown_root` and `cache_root`.
 `KONKRD_DATA_ROOT` denotes the data root itself; migrate external data to the
@@ -148,8 +148,8 @@ accept duplicate prompt/contract/vertical overrides. See the
 The unused `src.config.AppConfig` and former `common.document_preprocessor` were
 retired earlier. The implicit neighboring `konkrd-data` search is also retired.
 MinerU remains an explicit parser route, not the old `raw/Markdown` mirror utility.
-Historical Markdown, schemas, and results are retained. Health evaluation writes
-one report set: use `report.json`, not `report_model_only.json`.
+Historical Markdown, schemas, and results are retained. Labelled evaluation
+is removed from the unified workflow; older reports remain historical artifacts.
 `--no-fallback` is accepted for compatibility but does not change behavior.
 
 ### Preparing data
@@ -431,11 +431,12 @@ Compatible fields retain their approved mappings. For unmapped fields:
 
 Counts above the table show each storage strategy. More columns mean more future
 schema migration work; `storage-init` does not alter existing tables.
-Existing Travel databases also require the reviewed
-`docs/migrations/001-grouped-release-identity.sql` migration before grouped loads.
-It backfills single-PDF identity and permits new releases when a linked SPDS
-changes, while preserving all document links. Migration and real database tests
-must be explicitly authorized; offline SQL/transaction tests do not execute it.
+For a new Travel database, initialization creates the current storage tables.
+For an existing database, compare its actual schema with the current storage
+schema and prepare reviewed migration SQL before loading. Grouped releases use
+`release_source_id`, so an older table with only `document_id` needs upgrading.
+Migration and real database tests must be explicitly authorized; offline
+SQL/transaction tests do not execute them.
 Compile the extraction contract and SQL preview offline:
 
 ```bash
@@ -617,7 +618,7 @@ After failure, keep the same directory and use matching schema/provider/model
 and parameters with `--resume`. It verifies and skips completed reports, retrying
 unfinished ones. `--summary-only` can rebuild `results.json` without API credentials
 or calls; absent historical failure reasons remain pending instead of being guessed.
-These resume rules apply to identity-consistent runs; see the migration limitation
+These resume rules apply to identity-consistent runs; see the identity requirements
 for [relocated historical artifacts](project-layout.md#historical-artifacts).
 
 `results.json` is atomically updated after each PDF and includes complete successful
@@ -770,7 +771,7 @@ need code. Do not build a general rule language solely to claim zero-code extens
 | Travel metrics are N/A | No trusted product labels exist; do not infer them from `pds` or replace N/A with zero |
 | Storage rejects source/version | Check approved schema, PDF, manifest root, insurer folder, and artifact; never edit identity fields to bypass checks |
 | A workflow was interrupted | Valid review permits `--resume-review`; Health feedback permits `--resume-feedback`; other cases normally need a new experiment, not arbitrary API-call resume |
-| A migrated historical artifact names an old path | Locate it through the migration inventory; resuming/reloading relocated runs requires a separate identity review |
+| A historical artifact names an old path | Verify its actual source location and recorded hashes; resuming/reloading relocated runs requires a separate identity review |
 
 ## 9. Routine verification
 
@@ -788,8 +789,3 @@ Before a demonstration, separately run a small approved live sample, record the
 manifest, schema version, model, seeds, inputs, and output paths, and compare
 values against original PDFs. Offline tests do not establish real API behavior,
 PDF extraction quality, or database connectivity.
-
-The layout migration ran offline checks only. Earlier project notes recorded a
-single local MinerU PDS smoke test and acquisition-link checks without downloading
-bodies; those historical checks are not a fresh verification of providers,
-websites, or PostgreSQL.
