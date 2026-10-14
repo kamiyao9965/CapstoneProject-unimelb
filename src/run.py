@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Mapping
 from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
@@ -126,6 +127,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--resume",
         action="store_true",
         help="Reuse successful outputs whose PDF, schema, provider, and model match.",
+    )
+    batch.add_argument(
+        "--timeout",
+        type=float,
+        default=1800.0,
+        help="Per-provider-request timeout in seconds (default: 1800).",
     )
     batch.add_argument(
         "--trust-legacy-cache",
@@ -344,6 +351,9 @@ def command_batch(args: argparse.Namespace) -> int:
     if args.product_ids and args.limit is not None:
         print("--product-ids cannot be combined with --limit")
         return 1
+    if args.timeout <= 0:
+        print("--timeout must be greater than zero")
+        return 1
     if args.limit is not None:
         if args.limit <= 0:
             print("--limit must be greater than zero")
@@ -381,6 +391,7 @@ def command_batch(args: argparse.Namespace) -> int:
         selection=selection,
         pdf_root=input_root,
         manifest_path=manifest_path,
+        timeout_seconds=args.timeout,
     )
     # Batch resume/failure artifacts need the same schema identity as the
     # single-document command.  Define it before entering the per-PDF try block
@@ -703,6 +714,9 @@ def run_pet_product_batch(
     resumed_products = 0
     failed_families = 0
     claimed_outputs: dict[Path, str] = {}
+    superseded_archive_root = (
+        output_root / "archive" / f"superseded-{uuid4().hex}"
+    )
     for family in families:
         for document in family.unattached_documents:
             print(
@@ -741,6 +755,12 @@ def run_pet_product_batch(
                 f"{len(expected_paths)} product(s)"
             )
             continue
+        archived = _archive_product_outputs(expected_paths, superseded_archive_root)
+        if archived:
+            print(
+                f"Archived {len(archived)} superseded output(s) for family "
+                f"{family.family_id}: {superseded_archive_root}"
+            )
         try:
             record = extractor.extract_product_family(family)
             products = record.get("products")
@@ -881,9 +901,17 @@ def _archive_stale_product_outputs(
     if not stale:
         return []
     archive_root = output_root / "archive" / f"stale-{uuid4().hex}"
-    archive_root.mkdir(parents=True, exist_ok=False)
+    return _archive_product_outputs(stale, archive_root)
+
+
+def _archive_product_outputs(paths: list[Path], archive_root: Path) -> list[Path]:
+    """Move selected product records into one recoverable archive directory."""
+    existing = [path for path in paths if path.is_file()]
+    if not existing:
+        return []
+    archive_root.mkdir(parents=True, exist_ok=True)
     archived: list[Path] = []
-    for path in stale:
+    for path in existing:
         target = archive_root / path.name
         path.replace(target)
         archived.append(target)
@@ -987,8 +1015,11 @@ def record_batch_failure(
     run_id = uuid4().hex
     all_pdf_paths = pdf_paths or [pdf_path]
     all_source_hashes = source_hashes or [source_hash]
-    structured_errors = getattr(getattr(error, "result", None), "errors", ())
+    structured_result = getattr(error, "result", None)
+    structured_errors = getattr(structured_result, "errors", ())
     details = [dict(item) for item in structured_errors if isinstance(item, dict)]
+    output_root = load_config().outputs_dir / vertical / "extractions"
+    failure_stage = f"batch_{stage}"
     failure = build_failure_artifact(
         artifact_type=f"batch_{stage}_error",
         contract_version="1.0.0",
@@ -1007,12 +1038,66 @@ def record_batch_failure(
         message=str(error),
         details=details,
     )
-    return write_failure_artifact(
-        load_config().outputs_dir / vertical / "extractions",
-        f"batch_{stage}",
+    failure_path = write_failure_artifact(
+        output_root,
+        failure_stage,
         run_id,
         failure,
     )
+    diagnostics = _structured_attempt_diagnostics(structured_result, run_id=run_id)
+    if diagnostics is not None:
+        diagnostics_path = failure_path.with_name(f"{run_id}.attempts.json")
+        try:
+            diagnostics_path.write_text(
+                json.dumps(diagnostics, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        except (OSError, UnicodeError, TypeError, ValueError) as diagnostics_error:
+            print(
+                f"Could not write structured-attempt diagnostics for {pdf_path}: "
+                f"{diagnostics_error}"
+            )
+    return failure_path
+
+
+def _structured_attempt_diagnostics(
+    structured_result: object,
+    *,
+    run_id: str,
+) -> dict[str, object] | None:
+    attempts = getattr(structured_result, "attempts", None)
+    if not attempts:
+        return None
+    serialized_attempts: list[dict[str, object]] = []
+    for attempt in attempts:
+        response = getattr(attempt, "response", None)
+        usage = getattr(response, "usage", None)
+        errors = getattr(attempt, "errors", ())
+        serialized_attempts.append({
+            "attempt_number": getattr(attempt, "number", None),
+            "response_id": getattr(response, "response_id", None),
+            "provider": getattr(response, "provider", None),
+            "model": getattr(response, "model", None),
+            "response_text": getattr(response, "text", ""),
+            "usage": (
+                {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                    "total_tokens": getattr(usage, "total_tokens", None),
+                }
+                if usage is not None
+                else None
+            ),
+            "errors": [
+                dict(item) if isinstance(item, Mapping) else {"message": str(item)}
+                for item in errors
+            ],
+        })
+    return {
+        "artifact_type": "structured_output_attempt_diagnostics",
+        "run_id": run_id,
+        "attempts": serialized_attempts,
+    }
 
 
 def safely_record_batch_failure(**kwargs: object) -> Path | None:

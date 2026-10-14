@@ -168,7 +168,7 @@ def _validate_response(
                     {
                         "path": str(error.get("path", "$")),
                         "message": str(error.get("message", exc)),
-                        "kind": "business_validation",
+                        "kind": _business_error_kind(error),
                         **(
                             {"repair_hint": str(error["repair_hint"])}
                             if error.get("repair_hint") else {}
@@ -179,7 +179,7 @@ def _validate_response(
             error = {
                 "path": "$",
                 "message": str(exc),
-                "kind": "business_validation",
+                "kind": _business_error_kind({"path": "$", "message": str(exc)}),
             }
             repair_hint = getattr(exc, "repair_hint", None)
             if isinstance(repair_hint, str) and repair_hint:
@@ -213,7 +213,7 @@ def _repair_text(
     repair_hints = _business_repair_hints(errors, data_contract=data_contract)
     source_context = (
         f"{original_user_text}\n\n"
-        if repair_number == 1 and _needs_source_context(errors)
+        if _needs_source_context(errors)
         else ""
     )
     previous = _bounded_previous_response(previous_response_text)
@@ -243,6 +243,22 @@ def _contract_error_kind(error: Mapping[str, str]) -> str:
     if any(term in f"{path} {message}" for term in evidence_terms):
         return "evidence_related"
     return "contract_validation"
+
+
+def _business_error_kind(error: Mapping[str, object]) -> str:
+    """Preserve explicit business-error kinds and recognize evidence failures."""
+    explicit_kind = error.get("kind")
+    if isinstance(explicit_kind, str) and explicit_kind:
+        return explicit_kind
+    classified = _contract_error_kind({
+        "path": str(error.get("path", "")),
+        "message": str(error.get("message", "")),
+    })
+    return (
+        "evidence_related"
+        if classified == "evidence_related"
+        else "business_validation"
+    )
 
 
 def _needs_source_context(errors: list[dict[str, str]]) -> bool:

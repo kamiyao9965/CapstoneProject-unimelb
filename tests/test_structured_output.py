@@ -149,6 +149,81 @@ class StructuredOutputTest(unittest.TestCase):
 
         self.assertIn("duplicate field name", provider.requests[1].user_text)
 
+    def test_evidence_business_error_resends_source_context_and_repair_hint(self) -> None:
+        import json
+
+        provider = SequenceProvider([
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+        ])
+        calls = 0
+
+        def validate_evidence(payload: object) -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                error = ValueError("source_quote is not a verbatim excerpt")
+                error.errors = ({
+                    "path": "$.products[0].benefit_coverages[0].source_quote",
+                    "message": "source_quote is not a verbatim excerpt",
+                    "kind": "evidence_related",
+                    "repair_hint": "Exact cited block text: Accidental injury is covered.",
+                },)
+                raise error
+
+        source_request = replace(request(), user_text="ORIGINAL_SOURCE_CONTEXT")
+        result = run_structured_output(
+            provider,
+            source_request,
+            data_contract="private_health/discovered_schema",
+            business_validator=validate_evidence,
+        )
+
+        self.assertEqual(len(result.attempts), 2)
+        self.assertEqual(
+            result.attempts[0].errors[0]["kind"],
+            "evidence_related",
+        )
+        repair_text = provider.requests[1].user_text
+        self.assertIn("ORIGINAL_SOURCE_CONTEXT", repair_text)
+        self.assertIn("Exact cited block text", repair_text)
+        self.assertIn("Accidental injury is covered", repair_text)
+
+    def test_every_evidence_repair_resends_source_context(self) -> None:
+        import json
+
+        provider = SequenceProvider([
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+            json.dumps(VALID_DISCOVERED_SCHEMA),
+        ])
+        calls = 0
+
+        def validate_evidence(payload: object) -> None:
+            nonlocal calls
+            calls += 1
+            if calls < 3:
+                error = ValueError("source block needs correction")
+                error.errors = ({
+                    "path": "$.products[0].benefit_coverages[0].source_block_id",
+                    "message": "source block needs correction",
+                    "kind": "evidence_related",
+                    "repair_hint": "Select a different source block.",
+                },)
+                raise error
+
+        source_request = replace(request(), user_text="ORIGINAL_SOURCE_CONTEXT")
+        result = run_structured_output(
+            provider,
+            source_request,
+            data_contract="private_health/discovered_schema",
+            business_validator=validate_evidence,
+        )
+
+        self.assertEqual(len(result.attempts), 3)
+        self.assertIn("ORIGINAL_SOURCE_CONTEXT", provider.requests[1].user_text)
+        self.assertIn("ORIGINAL_SOURCE_CONTEXT", provider.requests[2].user_text)
+
     def test_business_repair_keeps_large_json_without_resending_pdf_context(self) -> None:
         import json
 

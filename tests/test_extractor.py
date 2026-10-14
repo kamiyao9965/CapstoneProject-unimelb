@@ -10,6 +10,7 @@ from src.common.model_config import ModelSelection
 from src.common.model_provider import ModelResponse, ProviderRequest
 from src.schema_application.extractor import SchemaExtractor
 from tests.test_json_contracts import VALID_DISCOVERED_SCHEMA
+from tests.test_pet_product_families import PET_SCHEMA
 
 VALID_RECORD = {
     "product_type": "hospital",
@@ -20,6 +21,63 @@ VALID_RECORD = {
 
 
 class ExtractManyOutputTest(unittest.TestCase):
+    def test_pet_defaults_use_pet_specific_usage_and_cache_paths(self) -> None:
+        extractor = SchemaExtractor(
+            schema_data=PET_SCHEMA,
+            provider=mock.Mock(),
+            product_type_overrides_path=None,
+            log=None,
+        )
+
+        self.assertEqual(
+            extractor.pdfingestor_cache_dir,
+            Path("outputs/pet_insurance/pdfingestor_cache"),
+        )
+        self.assertEqual(
+            extractor.extraction_cache_dir,
+            Path("outputs/pet_insurance/extraction_cache"),
+        )
+        self.assertEqual(
+            extractor.usage_log_path,
+            Path("outputs/pet_insurance/extraction_usage.jsonl"),
+        )
+
+    def test_explicit_none_still_disables_usage_logging(self) -> None:
+        extractor = SchemaExtractor(
+            schema_data=PET_SCHEMA,
+            provider=mock.Mock(),
+            usage_log_path=None,
+            product_type_overrides_path=None,
+            log=None,
+        )
+
+        self.assertIsNone(extractor.usage_log_path)
+
+    def test_pet_shared_cache_key_tracks_pet_prompt_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "pet.pdf"
+            pdf_path.write_bytes(b"pet-pdf")
+            extractor = SchemaExtractor(
+                schema_data=PET_SCHEMA,
+                provider=mock.Mock(),
+                usage_log_path=None,
+                product_type_overrides_path=None,
+                log=None,
+            )
+
+            with mock.patch(
+                "src.schema_application.extractor.PET_EXTRACTION_PROMPT_VERSION",
+                "pet-extraction.test-a",
+            ):
+                first = extractor._extraction_cache_key(pdf_path)
+            with mock.patch(
+                "src.schema_application.extractor.PET_EXTRACTION_PROMPT_VERSION",
+                "pet-extraction.test-b",
+            ):
+                second = extractor._extraction_cache_key(pdf_path)
+
+        self.assertNotEqual(first, second)
+
     def test_rejects_invalid_schema_before_extraction(self) -> None:
         with self.assertRaises(ValueError):
             SchemaExtractor(schema_data={"fields": []}, log=None)

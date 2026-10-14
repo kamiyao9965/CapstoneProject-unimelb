@@ -8,7 +8,6 @@ from typing import Callable, Mapping
 from uuid import uuid4
 
 from src.PDFingestor.adapter import (
-    DEFAULT_CACHE_DIR,
     document_quality,
     ingest_pdfs,
     render_documents_for_prompt,
@@ -51,6 +50,7 @@ from src.schema_application.extraction_validation import (
     normalize_pet_benefit_categories,
     normalize_pet_unfilled,
     validate_pet_benefit_category_consistency,
+    validate_pet_benefit_coverage_completeness,
     validate_pet_benefit_coverage_evidence,
     validate_pet_product_inventory,
     validate_pet_unfilled_consistency,
@@ -67,6 +67,9 @@ from src.schema_application.prompts import (
 from src.schema.validation import validate_schema_mapping, validate_pet_schema_mapping
 
 
+_DEFAULT_USAGE_LOG = object()
+
+
 class SchemaExtractor:
     """Extract one validated, enveloped JSON record per PDF."""
 
@@ -79,7 +82,7 @@ class SchemaExtractor:
         provider: ModelProvider | None = None,
         cleanup_uploaded_files: bool = True,
         timeout_seconds: float = 600.0,
-        usage_log_path: str | Path | None = "outputs/private_health/extraction_usage.jsonl",
+        usage_log_path: str | Path | None | object = _DEFAULT_USAGE_LOG,
         log: Callable[[str], None] | None = print,
         background: bool = True,
         poll_interval: float = 5.0,
@@ -109,13 +112,23 @@ class SchemaExtractor:
         self._manifest_documents = self._load_manifest_documents()
         self.product_type_overrides = load_product_type_overrides(product_type_overrides_path)
         self.preprocessor = preprocessor
-        self.pdfingestor_cache_dir = Path(pdfingestor_cache_dir or DEFAULT_CACHE_DIR)
+        vertical_output_root = Path("outputs") / str(
+            self.schema_data.get("vertical") or "private_health"
+        )
+        self.pdfingestor_cache_dir = Path(
+            pdfingestor_cache_dir
+            if pdfingestor_cache_dir is not None
+            else vertical_output_root / "pdfingestor_cache"
+        )
         self.extraction_cache_dir = Path(
             extraction_cache_dir or self.pdfingestor_cache_dir.parent / "extraction_cache"
         )
         self.cleanup_uploaded_files = cleanup_uploaded_files
         self.timeout_seconds = timeout_seconds
-        self.usage_log_path = Path(usage_log_path) if usage_log_path else None
+        if usage_log_path is _DEFAULT_USAGE_LOG:
+            self.usage_log_path = vertical_output_root / "extraction_usage.jsonl"
+        else:
+            self.usage_log_path = Path(usage_log_path) if usage_log_path else None
         self.log = log
         self.background = background
         self.poll_interval = poll_interval
@@ -432,6 +445,7 @@ class SchemaExtractor:
         normalize_pet_unfilled(payload, self.schema_data)
         validate_pet_product_inventory(payload, expected_product_ids)
         validate_pet_benefit_category_consistency(payload)
+        validate_pet_benefit_coverage_completeness(payload)
         validate_pet_benefit_coverage_evidence(payload, source_blocks)
         validate_pet_unfilled_consistency(payload, self.schema_data)
 
@@ -440,7 +454,7 @@ class SchemaExtractor:
             self._product_type_resolution(pdf_path).effective_product_type or "unclassified"
         )
         material = "\0".join((
-            _file_hash(pdf_path), self.schema_hash, EXTRACTION_PROMPT_VERSION,
+            _file_hash(pdf_path), self.schema_hash, self._prompt_version,
             self.selection.provider, self.selection.model, effective_product_type,
         ))
         return sha256(material.encode("utf-8")).hexdigest()

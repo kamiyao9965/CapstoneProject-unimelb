@@ -78,8 +78,11 @@ included, optional, or excluded. Never flatten an optional add-on into included
 merely because its terms are described in the booklet. Every benefit_coverages
 item must cite source_document_id, source_page, source_block_id, and a concise
 source_quote that directly supports both the category and its status. Copy
-source_block_id exactly from a text block_id or table_id marker; never invent it.
-The cited block must itself discuss that benefit category. Do not emit a category
+source_quote as one contiguous verbatim excerpt from the cited block: never
+paraphrase, summarize, or compose a heading, and never cite a short fragment such
+as a lone word that has no benefit meaning. Copy source_block_id exactly from a
+text block_id or table_id marker; never invent it. The cited block must itself
+discuss that benefit category. Do not emit a category
 merely because the source never mentions it: absence is not evidence of exclusion.
 Use null and _unfilled
 for facts absent from the source; do not infer equivalence
@@ -94,7 +97,7 @@ product_name, or insurer_name. Use the manifest product-name hint when supplied;
 otherwise copy the marketed product name from the document.
 """.strip()
 
-PET_EXTRACTION_PROMPT_VERSION = "pet-extraction.v7"
+PET_EXTRACTION_PROMPT_VERSION = "pet-extraction.v8"
 
 PET_PRODUCT_FAMILY_PROMPT = """
 You extract final Australian pet-insurance products from a related document family.
@@ -116,8 +119,11 @@ Populate eligible_species only with the canonical lowercase values dog and cat.
 Use benefit_coverages to distinguish included, optional, and excluded benefits
 for each plan. Every row must cite source_document_id, source_page,
 source_block_id, and a concise source_quote that directly supports both the
-category and status. Copy source_block_id exactly from a text block_id or table_id
-marker; never invent it. The cited block must itself discuss the benefit category.
+category and status. Copy source_quote as one contiguous verbatim excerpt from
+the cited block: never paraphrase, summarize, or compose a heading, and never
+cite a short fragment such as a lone word that has no benefit meaning. Copy
+source_block_id exactly from a text block_id or table_id marker; never invent it.
+The cited block must itself discuss the benefit category.
 Do not convert silence into excluded: if a benefit is not discussed anywhere in
 the source family, omit it from benefit_coverages. covered_benefit_categories is
 derived from benefit_coverages and contains included benefits only. If a
@@ -125,6 +131,14 @@ shared booklet says an add-on (for example Extra care) is included on one plan
 and optional on another, the affected benefit categories must have different
 coverage_status values in those product records; do not leave that difference
 only in _notes.
+Coverage rows must also be complete with respect to the rest of each product:
+every product needs at least one included core benefit, and any category named
+by a waiting period or sublimit must have its own benefit_coverages row. When
+routine_care_available, euthanasia_covered, overseas treatment notes,
+consultation opt-out availability, emergency-boarding duration, or routine-care
+items are populated, emit the corresponding category row with a consistent
+included, optional, or excluded status and direct source evidence. Do not leave
+a covered core condition represented only by a waiting-period row.
 
 Keep every marketed plan in the expected inventory separate. Never combine two plan
 names into a hybrid product, and never copy one plan's values into another merely
@@ -144,4 +158,4 @@ example, 364 days is approximately 0.997 years).
 
 # Product-result resume checks include this value. Bump it when product-family
 # routing or output semantics change so old records cannot bypass new checks.
-PET_PRODUCT_FAMILY_PROMPT_VERSION = "pet-product-family.v7"
+PET_PRODUCT_FAMILY_PROMPT_VERSION = "pet-product-family.v9"

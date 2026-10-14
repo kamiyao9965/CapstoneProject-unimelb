@@ -242,7 +242,11 @@ def _compile_pet_product_contract(
         for name, field in ((str(field["name"]), field) for field in product_fields)
     }
     product_properties["_unfilled"] = {
-        "type": "array", "items": {"enum": field_names}, "uniqueItems": True,
+        # Product-family validation deterministically rebuilds this bookkeeping
+        # field from null values.  Allow duplicate model entries through the
+        # structural gate so normalization can repair them before the strict
+        # business-consistency check.
+        "type": "array", "items": {"enum": field_names},
     }
     product_properties["_notes"] = {"type": ["string", "null"]}
     return {

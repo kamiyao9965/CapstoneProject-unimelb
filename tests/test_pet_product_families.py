@@ -16,6 +16,7 @@ from src.schema_application.extraction_validation import (
     normalize_pet_benefit_categories,
     normalize_pet_unfilled,
     validate_pet_benefit_category_consistency,
+    validate_pet_benefit_coverage_completeness,
     validate_pet_benefit_coverage_evidence,
     validate_pet_product_inventory,
     validate_pet_unfilled_consistency,
@@ -112,7 +113,7 @@ PET_SCHEMA = {
 
 class ProductFamilyTest(unittest.TestCase):
     def test_family_prompt_distinguishes_plan_columns_scope_and_subyear_ages(self) -> None:
-        self.assertEqual(PET_PRODUCT_FAMILY_PROMPT_VERSION, "pet-product-family.v7")
+        self.assertEqual(PET_PRODUCT_FAMILY_PROMPT_VERSION, "pet-product-family.v9")
         self.assertIn("benefit_coverages", PET_PRODUCT_FAMILY_PROMPT)
         self.assertIn("source_block_id", PET_PRODUCT_FAMILY_PROMPT)
         self.assertIn("source_quote", PET_PRODUCT_FAMILY_PROMPT)
@@ -121,6 +122,9 @@ class ProductFamilyTest(unittest.TestCase):
         self.assertIn("names into a hybrid product", PET_PRODUCT_FAMILY_PROMPT)
         self.assertIn("specified_conditions_only", PET_PRODUCT_FAMILY_PROMPT)
         self.assertIn("364 days is approximately 0.997 years", PET_PRODUCT_FAMILY_PROMPT)
+        self.assertIn("Coverage rows must also be complete", PET_PRODUCT_FAMILY_PROMPT)
+        self.assertIn("contiguous verbatim excerpt", PET_PRODUCT_FAMILY_PROMPT)
+        self.assertIn("never paraphrase", PET_PRODUCT_FAMILY_PROMPT)
 
     def test_groups_base_and_update_and_inventories_multi_product_pdf(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -339,14 +343,21 @@ class ProductFamilyTest(unittest.TestCase):
                     "product_name": "Basic",
                     "insurer_name": "Example Insurer",
                     "co_payment_percentage": None,
-                    "covered_benefit_categories": None,
-                    "benefit_coverages": None,
+                    "covered_benefit_categories": ["accidents"],
+                    "benefit_coverages": [{
+                        "benefit_category": "accidents",
+                        "coverage_status": "included",
+                        "source_document_id": "base",
+                        "source_block_id": "p1_text_1",
+                        "source_page": 1,
+                        "source_quote": "Accidental injury treatment is covered.",
+                    }],
                     "annual_benefit_limit_options_aud": None,
                     "benefit_percentage_options": None,
                     "excess_options_aud": None,
                     "temporary_condition_reinstatement_after_months": None,
                     "_unfilled": [
-                        "co_payment_percentage", "covered_benefit_categories", "benefit_coverages",
+                        "co_payment_percentage",
                         "annual_benefit_limit_options_aud", "benefit_percentage_options",
                         "excess_options_aud",
                         "temporary_condition_reinstatement_after_months",
@@ -399,7 +410,12 @@ class ProductFamilyTest(unittest.TestCase):
                 return_value="# base\n# update",
             ), mock.patch(
                 "src.schema_application.extractor._pet_evidence_blocks",
-                return_value={},
+                return_value={
+                    "base": {
+                        "p1_text_1": (1, "Accidental injury treatment is covered."),
+                    },
+                    "update": {},
+                },
             ):
                 result = extractor.extract_product_family(family)
 
@@ -460,6 +476,39 @@ class ProductFamilyTest(unittest.TestCase):
         self.assertIn("covered_benefit_categories", product["_unfilled"])
         self.assertNotIn("co_payment_percentage", product["_unfilled"])
 
+    def test_family_contract_allows_unfilled_duplicates_for_normalization(self) -> None:
+        contract = compile_pet_product_family_contract(
+            PET_SCHEMA,
+            document_family_id="plans",
+            document_count=1,
+            expected_product_ids=["basic"],
+        )
+        product = {
+            "product_id": "basic", "product_name": "Basic",
+            "insurer_name": "Example Insurer", "co_payment_percentage": None,
+            "covered_benefit_categories": None, "benefit_coverages": None,
+            "annual_benefit_limit_options_aud": None,
+            "benefit_percentage_options": None, "excess_options_aud": None,
+            "temporary_condition_reinstatement_after_months": None,
+            "_unfilled": ["co_payment_percentage", "co_payment_percentage"],
+            "_notes": None,
+        }
+        payload = {
+            "document_family_id": "plans",
+            "source_documents": [{
+                "document_id": "base", "document_role": "pds",
+                "effective_date": None, "source_path": "base.pdf",
+            }],
+            "products": [product],
+            "_notes": None,
+        }
+
+        validate_inline_contract(payload, contract)
+        normalize_pet_unfilled(payload, PET_SCHEMA)
+        validate_pet_unfilled_consistency(payload, PET_SCHEMA)
+
+        self.assertEqual(len(product["_unfilled"]), len(set(product["_unfilled"])))
+
     def test_derives_included_categories_from_authoritative_coverage_rows(self) -> None:
         product = {
             "covered_benefit_categories": [],
@@ -500,6 +549,69 @@ class ProductFamilyTest(unittest.TestCase):
                 }],
             })
 
+    def test_coverage_completeness_requires_an_included_core_benefit(self) -> None:
+        with self.assertRaisesRegex(ValueError, "at least one included core benefit"):
+            validate_pet_benefit_coverage_completeness({
+                "products": [{
+                    "benefit_coverages": [{
+                        "benefit_category": "routine_care",
+                        "coverage_status": "optional",
+                    }],
+                }],
+            })
+
+    def test_coverage_completeness_rejects_missing_cross_field_categories(self) -> None:
+        product = {
+            "benefit_coverages": [{
+                "benefit_category": "accidental_injury_treatment",
+                "coverage_status": "included",
+            }],
+            "routine_care_available": True,
+            "overseas_vet_treatment_coverage_notes": "Not covered outside Australia.",
+            "waiting_periods": [{
+                "benefit_category": "cruciate_ligament_condition",
+            }],
+            "sublimits": [{"benefit_category": "consultations"}],
+        }
+
+        with self.assertRaisesRegex(ValueError, "omits 'routine_care'") as raised:
+            validate_pet_benefit_coverage_completeness({"products": [product]})
+
+        message = str(raised.exception)
+        self.assertIn("omits 'overseas_vet_treatment'", message)
+        self.assertIn("omits 'cruciate_ligament_condition'", message)
+        self.assertIn("omits 'consultations'", message)
+        self.assertEqual(raised.exception.errors[0]["kind"], "evidence_related")
+        self.assertIn("Re-read the source", raised.exception.errors[0]["repair_hint"])
+
+    def test_coverage_completeness_accepts_consistent_cross_field_categories(self) -> None:
+        validate_pet_benefit_coverage_completeness({
+            "products": [{
+                "benefit_coverages": [
+                    {
+                        "benefit_category": "accidental_injury_treatment",
+                        "coverage_status": "included",
+                    },
+                    {"benefit_category": "routine_care", "coverage_status": "optional"},
+                    {
+                        "benefit_category": "overseas_vet_treatment",
+                        "coverage_status": "excluded",
+                    },
+                    {
+                        "benefit_category": "cruciate_ligament_condition",
+                        "coverage_status": "included",
+                    },
+                    {"benefit_category": "consultations", "coverage_status": "included"},
+                ],
+                "routine_care_available": True,
+                "overseas_vet_treatment_coverage_notes": "Not covered outside Australia.",
+                "waiting_periods": [{
+                    "benefit_category": "cruciate_ligament_condition",
+                }],
+                "sublimits": [{"benefit_category": "consultations"}],
+            }],
+        })
+
     def test_coverage_evidence_must_exist_on_the_cited_source_page(self) -> None:
         payload = {"products": [{"benefit_coverages": [{
             "benefit_category": "accidents",
@@ -522,6 +634,271 @@ class ProductFamilyTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "not supported"):
             validate_pet_benefit_coverage_evidence(payload, blocks)
+
+    def test_coverage_evidence_rejects_a_close_paraphrase(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "accidents",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "p4_text_1",
+            "source_page": 4,
+            "source_quote": "Treatment for accidental injuries is covered.",
+        }]}]}
+        blocks = {
+            "base": {
+                "p4_text_1": (4, "Benefits: Accidental injury treatment is covered."),
+            },
+        }
+
+        with self.assertRaisesRegex(ValueError, "not a verbatim excerpt") as raised:
+            validate_pet_benefit_coverage_evidence(payload, blocks)
+
+        self.assertEqual(raised.exception.errors[0]["kind"], "evidence_related")
+        self.assertIn(
+            "Benefits: Accidental injury treatment is covered.",
+            raised.exception.errors[0]["repair_hint"],
+        )
+
+    def test_coverage_evidence_allows_pdf_table_whitespace_collapse(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "illness_treatment",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "p20_t1",
+            "source_page": 20,
+            "source_quote": (
+                "What is Covered If during the Period of Insurance Your Pet "
+                "suffers an Illness"
+            ),
+        }]}]}
+        blocks = {
+            "base": {
+                "p20_t1": (
+                    20,
+                    "WhatisCovered IfduringthePeriodofInsurance "
+                    "YourPetsuffersanIllness",
+                ),
+            },
+        }
+
+        validate_pet_benefit_coverage_evidence(payload, blocks)
+
+    def test_coverage_evidence_allows_bounded_column_interleaving(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "accidental_injury_treatment",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "p18_text_3",
+            "source_page": 18,
+            "source_quote": (
+                "We cover vet fees for treatment of an accidental injury."
+            ),
+        }]}]}
+        blocks = {"base": {"p18_text_3": (
+            18,
+            "We cover vet fees for unrelated neighbouring column words treatment "
+            "of an accidental injury.",
+        )}}
+
+        validate_pet_benefit_coverage_evidence(payload, blocks)
+
+    def test_coverage_evidence_accepts_corpus_category_wording_variants(self) -> None:
+        cases = [
+            ("essential_euthanasia", "We will pay to euthanase your Pet."),
+            (
+                "overseas_vet_treatment",
+                "Coverage for treatments provided outside of Australia is not covered.",
+            ),
+            (
+                "holiday_cancellation_costs",
+                "This option covers holiday vacation cancellation costs.",
+            ),
+            (
+                "routine_care",
+                "We cover a Health and Wellness Check-up examination.",
+            ),
+        ]
+        for index, (category, text) in enumerate(cases):
+            with self.subTest(category=category):
+                block_id = f"p{index + 1}_text_1"
+                validate_pet_benefit_coverage_evidence(
+                    {"products": [{"benefit_coverages": [{
+                        "benefit_category": category,
+                        "coverage_status": "included",
+                        "source_document_id": "base",
+                        "source_block_id": block_id,
+                        "source_page": index + 1,
+                        "source_quote": text,
+                    }]}]},
+                    {"base": {block_id: (index + 1, text)}},
+                )
+
+    def test_coverage_evidence_accepts_specified_condition_as_illness(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "illness_treatment",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "p12_text_8",
+            "source_page": 12,
+            "source_quote": (
+                "Coverage is restricted to treatment for the following "
+                "specified conditions only."
+            ),
+        }]}]}
+        blocks = {
+            "base": {
+                "p12_text_8": (
+                    12,
+                    "Coverage is restricted to treatment for the following "
+                    "specified conditions only.",
+                ),
+            },
+        }
+
+        validate_pet_benefit_coverage_evidence(payload, blocks)
+
+    def test_coverage_evidence_accepts_within_australia_as_overseas_exclusion(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "overseas_vet_treatment",
+            "coverage_status": "excluded",
+            "source_document_id": "base",
+            "source_block_id": "p14_t0",
+            "source_page": 14,
+            "source_quote": (
+                "This policy only covers insured events occurring within Australia."
+            ),
+        }]}]}
+        blocks = {"base": {"p14_t0": (
+            14,
+            "This policy only covers insured events occurring within Australia.",
+        )}}
+
+        validate_pet_benefit_coverage_evidence(payload, blocks)
+
+    def test_coverage_evidence_aggregates_errors_across_rows(self) -> None:
+        payload = {"products": [{"benefit_coverages": [
+            {
+                "benefit_category": "accidental_injury_treatment",
+                "coverage_status": "included",
+                "source_document_id": "base",
+                "source_block_id": "p1_text_1",
+                "source_page": 1,
+                "source_quote": "A paraphrased accidental injury benefit.",
+            },
+            {
+                "benefit_category": "illness_treatment",
+                "coverage_status": "included",
+                "source_document_id": "base",
+                "source_block_id": "p2_text_1",
+                "source_page": 2,
+                "source_quote": "A paraphrased illness benefit.",
+            },
+        ]}]}
+        blocks = {"base": {
+            "p1_text_1": (1, "Accidental injury treatment is covered."),
+            "p2_text_1": (2, "Illness treatment is covered."),
+        }}
+
+        with self.assertRaises(ValueError) as raised:
+            validate_pet_benefit_coverage_evidence(payload, blocks)
+
+        self.assertEqual(len(raised.exception.errors), 2)
+        self.assertEqual(
+            [error["path"] for error in raised.exception.errors],
+            [
+                "$.products[0].benefit_coverages[0].source_quote",
+                "$.products[0].benefit_coverages[1].source_quote",
+            ],
+        )
+
+    def test_coverage_evidence_reports_all_errors_for_one_wrong_block(self) -> None:
+        quote = (
+            "Covers the percentage of veterinary expenses incurred as a result "
+            "of accidental injury to and illness of the insured pet."
+        )
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "illness_treatment",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "p6_text_47",
+            "source_page": 7,
+            "source_quote": quote,
+        }]}]}
+        blocks = {"base": {
+            "p6_text_47": (6, "Classic Plan"),
+            "p6_text_48": (6, quote),
+            "p7_text_2": (7, f"{quote} Including hereditary conditions."),
+            "p12_t0": (
+                12,
+                "Long exclusions text about illness that says we will not pay "
+                "for excluded treatment and does not cover those costs. " * 20,
+            ),
+        }}
+
+        with self.assertRaises(ValueError) as raised:
+            validate_pet_benefit_coverage_evidence(payload, blocks)
+
+        self.assertEqual(
+            [error["path"] for error in raised.exception.errors],
+            [
+                "$.products[0].benefit_coverages[0].source_page",
+                "$.products[0].benefit_coverages[0].source_block_id",
+                "$.products[0].benefit_coverages[0].source_quote",
+            ],
+        )
+        block_hint = raised.exception.errors[1]["repair_hint"]
+        self.assertLess(block_hint.index("p6_text_48"), block_hint.index("p7_text_2"))
+        self.assertLess(block_hint.index("p6_text_48"), block_hint.index("p12_t0"))
+        self.assertEqual(
+            raised.exception.errors[2]["repair_hint"],
+            block_hint,
+        )
+
+    def test_category_mismatch_repair_lists_likely_source_blocks(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "dental_illness_treatment",
+            "coverage_status": "optional",
+            "source_document_id": "base",
+            "source_block_id": "p22_text_2",
+            "source_page": 22,
+            "source_quote": "This Section is only included if selected.",
+        }]}]}
+        blocks = {"base": {
+            "p22_text_2": (22, "This Section is only included if selected."),
+            "p22_t2": (
+                22,
+                "Section 6: Vet Costs - Dental Illness. This Optional Extra "
+                "Benefit is included if selected.",
+            ),
+        }}
+
+        with self.assertRaises(ValueError) as raised:
+            validate_pet_benefit_coverage_evidence(payload, blocks)
+
+        hint = raised.exception.errors[0]["repair_hint"]
+        self.assertIn("Likely category-matching candidate blocks", hint)
+        self.assertIn("p22_t2", hint)
+        self.assertIn("Dental Illness", hint)
+
+    def test_coverage_evidence_rejects_semantically_empty_short_block(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "accidents",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "p12_text_1",
+            "source_page": 12,
+            "source_quote": "Your accidental injury cover",
+        }]}]}
+        blocks = {"base": {"p12_text_1": (12, "Your")}}
+
+        with self.assertRaisesRegex(ValueError, "semantically empty") as raised:
+            validate_pet_benefit_coverage_evidence(payload, blocks)
+
+        self.assertEqual(
+            raised.exception.errors[0]["path"],
+            "$.products[0].benefit_coverages[0].source_block_id",
+        )
+        self.assertIn("Do not cite this fragment", raised.exception.errors[0]["repair_hint"])
 
     def test_coverage_evidence_rejects_wrong_page_or_unknown_block(self) -> None:
         coverage = {
@@ -554,6 +931,22 @@ class ProductFamilyTest(unittest.TestCase):
         blocks = {
             "base": {"privacy": (20, "marketing information about services of ours or a third party")},
         }
+
+        with self.assertRaisesRegex(ValueError, "does not contain evidence terms"):
+            validate_pet_benefit_coverage_evidence(payload, blocks)
+
+    def test_dental_injury_does_not_match_accidental_injury_substring(self) -> None:
+        payload = {"products": [{"benefit_coverages": [{
+            "benefit_category": "dental_injury_treatment",
+            "coverage_status": "included",
+            "source_document_id": "base",
+            "source_block_id": "accident",
+            "source_page": 4,
+            "source_quote": "Treatment for an Accidental Injury is covered.",
+        }]}]}
+        blocks = {"base": {"accident": (
+            4, "Treatment for an Accidental Injury is covered.",
+        )}}
 
         with self.assertRaisesRegex(ValueError, "does not contain evidence terms"):
             validate_pet_benefit_coverage_evidence(payload, blocks)

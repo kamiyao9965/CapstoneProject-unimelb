@@ -93,6 +93,64 @@ class RunParserTest(unittest.TestCase):
             ["pd_insurance_accident", "pd_insurance_classic"],
         )
 
+    def test_batch_exposes_long_configurable_timeout(self) -> None:
+        default_args = build_parser().parse_args(["batch", "--schema", "schema.json"])
+        custom_args = build_parser().parse_args([
+            "batch", "--schema", "schema.json", "--timeout", "1350",
+        ])
+
+        self.assertEqual(default_args.timeout, 1800.0)
+        self.assertEqual(custom_args.timeout, 1350.0)
+
+    def test_batch_passes_timeout_to_pet_extractor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf = root / "product.pdf"
+            pdf.write_bytes(b"pdf")
+            manifest = root / "manifest.json"
+            manifest.write_text('{"documents": []}', encoding="utf-8")
+            args = build_parser().parse_args([
+                "batch",
+                "--schema", str(root / "schema.json"),
+                "--input-root", str(root),
+                "--manifest", str(manifest),
+                "--timeout", "1350",
+            ])
+            schema = SimpleNamespace(vertical="pet_insurance", version="test")
+            loader = mock.Mock()
+            loader.load.return_value = schema
+            validator = mock.Mock()
+            validator.validate.return_value = []
+            extractor = SimpleNamespace(schema_hash="schema-hash")
+            selection = ModelSelection("openai", "gpt-5", "markdown")
+
+            with mock.patch(
+                "src.run.load_schema_data",
+                return_value={"vertical": "pet_insurance"},
+            ), mock.patch(
+                "src.run.SchemaLoader",
+                return_value=loader,
+            ), mock.patch(
+                "src.run.SchemaValidator",
+                return_value=validator,
+            ), mock.patch(
+                "src.run.resolve_selection",
+                return_value=selection,
+            ), mock.patch(
+                "src.pipeline.extractor.Extractor",
+                return_value=extractor,
+            ) as extractor_factory, mock.patch(
+                "src.run.run_pet_product_batch",
+                return_value=0,
+            ):
+                exit_code = run_module.command_batch(args)
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(
+                extractor_factory.call_args.kwargs["timeout_seconds"],
+                1350.0,
+            )
+
     def test_manifest_discovery_defaults_to_broader_12_document_sample(self) -> None:
         args = build_parser().parse_args(["discover", "--manifest", "manifest.json"])
 
@@ -244,17 +302,146 @@ class BatchResumeTest(unittest.TestCase):
             self.assertEqual([path.name for path in archived], ["stale.json"])
             self.assertTrue(archived[0].is_file())
 
+    def test_failed_family_archives_superseded_expected_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf = root / "product.pdf"
+            pdf.write_bytes(b"pdf")
+            output_root = root / "pet_insurance" / "products"
+            output_root.mkdir(parents=True)
+            old_output = output_root / "example.json"
+            run_module.ProductExtractionResult(
+                schema_version="old",
+                product_id="example",
+                document_family_id="example-family",
+                provider="openai",
+                model="gpt-5",
+                extraction_prompt_version="pet-product-family.old",
+                data={"product_id": "example"},
+            ).write_json(old_output)
+            family = SimpleNamespace(
+                family_id="example-family",
+                expected_product_ids=["example"],
+                unattached_documents=[],
+                pdf_paths=[pdf],
+            )
+            extractor = SimpleNamespace(
+                schema_hash="schema-hash",
+                extract_product_family=mock.Mock(
+                    side_effect=RuntimeError("provider timed out")
+                ),
+            )
+
+            with mock.patch(
+                "src.schema_application.product_families.resolve_product_families",
+                return_value=[family],
+            ), mock.patch(
+                "src.run.load_config",
+                return_value=SimpleNamespace(outputs_dir=root),
+            ), mock.patch(
+                "src.run.safely_record_batch_failure",
+                return_value=None,
+            ):
+                exit_code = run_module.run_pet_product_batch(
+                    extractor=extractor,
+                    schema=SimpleNamespace(version="current"),
+                    pdf_paths=[pdf],
+                    source_hashes={pdf: "source-hash"},
+                    manifest_path=root / "manifest.json",
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
+                    resume=False,
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertFalse(old_output.exists())
+            archived = list(
+                output_root.glob("archive/superseded-*/example.json")
+            )
+            self.assertEqual(len(archived), 1)
+            self.assertTrue(archived[0].is_file())
+
+    def test_matching_resumed_family_is_not_archived(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf = root / "product.pdf"
+            pdf.write_bytes(b"pdf")
+            output_root = root / "pet_insurance" / "products"
+            output_root.mkdir(parents=True)
+            output = output_root / "example.json"
+            run_module.ProductExtractionResult(
+                schema_version="current",
+                product_id="example",
+                document_family_id="example-family",
+                provider="openai",
+                model="gpt-5",
+                schema_sha256="schema-hash",
+                extraction_prompt_version=run_module.PET_PRODUCT_FAMILY_PROMPT_VERSION,
+                source_sha256=["source-hash"],
+                data={"product_id": "example"},
+            ).write_json(output)
+            family = SimpleNamespace(
+                family_id="example-family",
+                expected_product_ids=["example"],
+                unattached_documents=[],
+                pdf_paths=[pdf],
+            )
+            extract_product_family = mock.Mock()
+            extractor = SimpleNamespace(
+                schema_hash="schema-hash",
+                extract_product_family=extract_product_family,
+            )
+
+            with mock.patch(
+                "src.schema_application.product_families.resolve_product_families",
+                return_value=[family],
+            ), mock.patch(
+                "src.run.load_config",
+                return_value=SimpleNamespace(outputs_dir=root),
+            ):
+                exit_code = run_module.run_pet_product_batch(
+                    extractor=extractor,
+                    schema=SimpleNamespace(version="current"),
+                    pdf_paths=[pdf],
+                    source_hashes={pdf: "source-hash"},
+                    manifest_path=root / "manifest.json",
+                    selection=ModelSelection("openai", "gpt-5", "markdown"),
+                    resume=True,
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(output.is_file())
+            self.assertFalse((output_root / "archive").exists())
+            extract_product_family.assert_not_called()
+
     def test_batch_failure_artifact_preserves_structured_validation_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             error = RuntimeError("structured extraction failed")
-            error.result = SimpleNamespace(errors=(
-                {
-                    "path": "$.products[0].benefit_coverages[2]",
-                    "message": "source_block_id was not found",
-                    "kind": "business_validation",
-                },
-            ))
+            structured_error = {
+                "path": "$.products[0].benefit_coverages[2]",
+                "message": "source_block_id was not found",
+                "kind": "evidence_related",
+                "repair_hint": "Use block p4_text_1.",
+            }
+            response = SimpleNamespace(
+                response_id="response-1",
+                provider="openai",
+                model="gpt-5",
+                text='{"products": [{"product_id": "example"}]}',
+                usage=SimpleNamespace(
+                    input_tokens=100,
+                    output_tokens=20,
+                    total_tokens=120,
+                ),
+            )
+            error.result = SimpleNamespace(
+                errors=(structured_error,),
+                attempts=(SimpleNamespace(
+                    number=1,
+                    response=response,
+                    errors=(structured_error,),
+                ),),
+            )
             with mock.patch(
                 "src.run.load_config",
                 return_value=SimpleNamespace(outputs_dir=root),
@@ -280,6 +467,25 @@ class BatchResumeTest(unittest.TestCase):
                     "path": "$.products[0].benefit_coverages[2]",
                     "message": "source_block_id was not found",
                 },
+            )
+            diagnostics_path = path.with_name(f"{path.stem}.attempts.json")
+            diagnostics = json.loads(diagnostics_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                diagnostics["artifact_type"],
+                "structured_output_attempt_diagnostics",
+            )
+            self.assertEqual(diagnostics["run_id"], path.stem)
+            self.assertEqual(
+                diagnostics["attempts"][0]["response_text"],
+                response.text,
+            )
+            self.assertEqual(
+                diagnostics["attempts"][0]["errors"][0]["kind"],
+                "evidence_related",
+            )
+            self.assertEqual(
+                diagnostics["attempts"][0]["usage"]["total_tokens"],
+                120,
             )
 
 
